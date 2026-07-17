@@ -339,22 +339,26 @@ export function resolve(doc: CharacterDoc): Resolution {
   hpContribs.push(...unconds('hp:max'));
   stats['hp:max'] = makeStat('hp:max', 'Hit Points', hpContribs);
 
-  // AC
+  // AC. Some play-sheet conditions (flat-footed, blinded, stunned, paralyzed…) make you lose your
+  // Dexterity bonus to AC — you keep a Dex penalty but not a positive bonus.
+  const loseDexToAc = (doc.play?.conditions ?? []).some((cid) => C.conditionById.get(cid)?.loseDexToAc);
   const dexToAc = (() => {
     const cap = maxDexBonus(doc);
-    return cap === null ? mods.dex : Math.min(mods.dex, cap);
+    const capped = cap === null ? mods.dex : Math.min(mods.dex, cap);
+    return loseDexToAc ? Math.min(0, capped) : capped;
   })();
+  const dexNote = loseDexToAc && mods.dex > 0 ? 'Dex modifier (lost)' : 'Dex modifier' + (dexToAc !== mods.dex ? ' (capped by armor)' : '');
   const acContribs: Contribution[] = [
     { type: 'base', value: 10, note: 'Base' },
     ...unconds('ac'),
-    { type: 'base', value: dexToAc, note: 'Dex modifier' + (dexToAc !== mods.dex ? ' (capped by armor)' : '') },
+    { type: 'base', value: dexToAc, note: dexNote },
     { type: 'size', value: sizeAcAtk, note: 'Size' },
   ];
   stats['ac'] = makeStat('ac', 'Armor Class', acContribs, conds('ac'));
   // Touch = no armor/shield/natural
   stats['ac:touch'] = makeStat('ac:touch', 'Touch AC', [
     { type: 'base', value: 10, note: 'Base' },
-    { type: 'base', value: dexToAc, note: 'Dex modifier' },
+    { type: 'base', value: dexToAc, note: dexNote },
     { type: 'size', value: sizeAcAtk, note: 'Size' },
     ...unconds('ac').filter((c) => c.type === 'dodge' || c.type === 'deflection'),
   ]);
@@ -392,11 +396,12 @@ export function resolve(doc: CharacterDoc): Resolution {
     { type: 'size', value: cmbSize, note: 'Size' },
     ...unconds('cmb'),
   ]);
+  const cmdDex = loseDexToAc ? Math.min(0, mods.dex) : mods.dex;
   stats['cmd'] = makeStat('cmd', 'CMD', [
     { type: 'base', value: 10, note: 'Base' },
     { type: 'base', value: bab, note: 'BAB' },
     { type: 'base', value: mods.str, note: 'Str modifier' },
-    { type: 'base', value: mods.dex, note: 'Dex modifier' },
+    { type: 'base', value: cmdDex, note: loseDexToAc && mods.dex > 0 ? 'Dex modifier (lost)' : 'Dex modifier' },
     { type: 'size', value: cmbSize, note: 'Size' },
     ...unconds('cmd'),
   ], conds('cmd'));
@@ -485,7 +490,14 @@ export function resolve(doc: CharacterDoc): Resolution {
   // ---- Caster level + spell slots ----
   const sc = klass?.spellcasting;
   const spellTable = sc ? spellTableFor(sc) : undefined;
-  const spellSlots = sc ? spellSlotsPerDay(spellTable, level, mods[sc.ability]) : undefined;
+  let spellSlots = sc ? spellSlotsPerDay(spellTable, level, mods[sc.ability]) : undefined;
+  // Domain (cleric) and specialist-school (non-universalist wizard) grant one bonus slot per spell
+  // level for that restricted spell — approximated as +1 to each accessible level's count.
+  if (spellSlots) {
+    const domainSlot = klass?.id === 'cleric' && (dec.classChoices['domains']?.length ?? 0) > 0;
+    const schoolSlot = klass?.id === 'wizard' && (dec.classChoices['school']?.length ?? 0) > 0 && !(dec.classChoices['school'] ?? []).includes('universalist');
+    if (domainSlot || schoolSlot) spellSlots = spellSlots.map((n, lvl) => (lvl >= 1 && n > 0 ? n + 1 : n));
+  }
   const spellsKnown = sc && sc.kind === 'spontaneous' ? spellsKnownPerLevel(spellTable, level) : undefined;
 
   // ---- Per-level advancement table ----

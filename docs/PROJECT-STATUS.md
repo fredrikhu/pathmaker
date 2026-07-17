@@ -191,5 +191,15 @@ values.
 
 Phase 3 is **complete**: the play sheet tracks HP (damage/temp/nonlethal), spell slots (spontaneous)
 or prepared spells (prepared), resource pools, and conditions (which fold into the resolved stats),
-all persisted and reset by Rest. Remaining niceties (one-click roll surfacing — the breakdown tooltips
-already exist; buff durations/campaign clock) belong to phases 4–5.
+all persisted and reset by Rest.
+
+### Phase 3 breadth fill-in (ongoing)
+- **Conditions** expanded 11 → 22 (added panicked, deafened, cowering, pinned, flat-footed, helpless,
+  paralyzed, dazed, staggered, nauseated, confused). A `loseDexToAc` flag on conditions now drops the
+  Dex bonus from AC/touch/CMD (flat-footed, blinded, stunned, cowering, pinned, paralyzed, helpless).
+- **Domain / specialist-school bonus spell slot** — cleric-with-domains and non-universalist wizard get
+  +1 slot per accessible level (approximated as +1 to the count; the restriction isn't enforced).
+- **Spell save DC** (10 + spell level + casting mod) shown on the play sheet.
+- **Still thin:** resource pools omit some classes (oracle/sorcerer/witch/druid wild shape/ranger/etc.)
+  and model only one pool per class (paladin also has smite/channel, monk also stunning fist, …); the
+  play sheet has no skills panel, per-weapon attack lines, or breakdown tooltips yet.

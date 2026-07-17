@@ -1,6 +1,6 @@
 import { loadCharacter } from '../storage/store';
 import { newCharacter } from '../engine/character';
-import { emptyPlayState, fmtMod, type PlayState } from '../engine/types';
+import { emptyPlayState, fmtMod, abilityMod, type PlayState } from '../engine/types';
 import { CONDITIONS, conditionById, SPELLS, spellById, classById } from '../content/index';
 import { useCharacter } from './useCharacter';
 import { navigate } from './App';
@@ -52,6 +52,9 @@ export function PlaySheet({ id }: { id: string }) {
     updatePlay((p) => { const arr = [...(p.prepared?.[l] ?? [])]; arr[i] = spell; return { prepared: { ...p.prepared, [l]: arr } }; });
   const toggleCast = (l: number, i: number) =>
     updatePlay((p) => { const set = new Set(p.castPrepared?.[l] ?? []); set.has(i) ? set.delete(i) : set.add(i); return { castPrepared: { ...p.castPrepared, [l]: [...set] } }; });
+
+  const castMod = sc ? abilityMod(sheet.stats[`ability:${sc.ability}`]?.total ?? 10) : 0;
+  const dcNote = `save DC 10 + spell level ${fmtMod(castMod)}`;
 
   const rest = () => setPlay({ hpDamage: 0, nonlethal: 0, tempHp: 0, usedSlots: {}, usedPools: {}, castPrepared: {} });
 
@@ -202,9 +205,9 @@ export function PlaySheet({ id }: { id: string }) {
       {/* Spontaneous casters: generic slot pips */}
       {hasSlots && !isPrepared && (
         <div style={{ background: 'var(--color-surface)', borderRadius: 12, padding: 18, marginTop: 18 }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
             <div className="micro">Spell slots / day</div>
-            <span className="text-muted" style={{ fontSize: 11.5 }}>tap a pip to expend · tap again to restore</span>
+            <span className="text-muted" style={{ fontSize: 11.5 }}>{dcNote} · tap a pip to expend</span>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {slots.map((total, level) => {
@@ -243,7 +246,7 @@ export function PlaySheet({ id }: { id: string }) {
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
             <div className="micro">Prepared spells</div>
             <span className="text-muted" style={{ fontSize: 11.5 }}>
-              {sc?.kind === 'prepared-book' ? 'prepare from your spellbook, then tick as you cast' : 'prepare from your class list, then tick as you cast'} · cantrips are at-will
+              {dcNote} · {sc?.kind === 'prepared-book' ? 'prepare from your spellbook' : 'prepare from your class list'}, then tick as cast · cantrips at-will
             </span>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>

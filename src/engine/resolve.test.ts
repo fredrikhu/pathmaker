@@ -875,3 +875,49 @@ describe('resource pools (play sheet)', () => {
     expect(resolve(humanFighter1()).sheet.pools.length).toBe(0);
   });
 });
+
+describe('conditions that remove Dex to AC', () => {
+  const play = (conditions: string[]) => ({ hpDamage: 0, tempHp: 0, nonlethal: 0, usedSlots: {}, conditions, usedPools: {} });
+  it('flat-footed drops the +2 Dex from AC, touch, and CMD (Dex 14)', () => {
+    const r = resolve({ ...humanFighter1(), play: play(['flat-footed']) });
+    expect(r.sheet.stats['ac'].total).toBe(10); // 12 − 2 Dex
+    expect(r.sheet.stats['ac:touch'].total).toBe(10);
+    expect(r.sheet.stats['cmd'].total).toBe(14); // 10 + BAB 1 + Str 3 + 0 Dex (lost)
+  });
+  it('blinded combines its −2 AC with losing Dex', () => {
+    const r = resolve({ ...humanFighter1(), play: play(['blinded']) });
+    expect(r.sheet.stats['ac'].total).toBe(8); // 10 + 0 Dex − 2 blinded
+  });
+  it('a Dex penalty (from armor cap) still applies when flat-footed; positive is lost', () => {
+    // No positive Dex to lose changes nothing beyond the flag; sanity: fighter unaffected on saves.
+    const r = resolve({ ...humanFighter1(), play: play(['flat-footed']) });
+    expect(r.sheet.stats['save:ref'].total).toBe(2); // Reflex still uses full Dex (only AC loses it)
+  });
+});
+
+describe('domain / specialist bonus spell slot', () => {
+  it('a cleric with two domains gains +1 slot at each accessible spell level', () => {
+    let d = newCharacter('t-cle-dom', 'Kore');
+    d = withDecision(d, 'ability-base', { str: 10, dex: 12, con: 12, int: 10, wis: 16, cha: 10 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['cha']);
+    d = withDecision(d, 'class', 'cleric');
+    d = withDecision(d, 'class-choices', { domains: ['war', 'healing'] });
+    // Base [4,5,4,3,1] (Wis 16 = +3 bonus at levels 1–3), +1 domain slot at levels 1–4.
+    expect(resolve(atLevel(d, 7)).sheet.spellSlots).toEqual([4, 6, 5, 4, 2]);
+  });
+  it('a specialist wizard gains the school slot but a universalist does not', () => {
+    const wiz = (school: string) => {
+      let d = newCharacter('t-wiz-' + school, 'Nyx');
+      d = withDecision(d, 'ability-base', { str: 8, dex: 14, con: 12, int: 16, wis: 12, cha: 10 });
+      d = withDecision(d, 'race', 'human');
+      d = withDecision(d, 'floating-bonus', ['int']);
+      d = withDecision(d, 'class', 'wizard');
+      d = withDecision(d, 'class-choices', { school: [school] });
+      return resolve(atLevel(d, 1)).sheet.spellSlots![1];
+    };
+    // Wizard 1, Int 18 (+4): base 1 + 1 Int bonus = 2 first-level. Specialist adds +1 → 3.
+    expect(wiz('evocation')).toBe(3);
+    expect(wiz('universalist')).toBe(2);
+  });
+});

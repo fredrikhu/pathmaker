@@ -10,6 +10,8 @@ export interface ConditionDef {
   name: string;
   desc: string;
   effects: Effect[];
+  /** The creature loses its Dexterity bonus to AC (and takes any Dex penalty) while this is active. */
+  loseDexToAc?: boolean;
 }
 
 const pen = (target: string, value: number, note: string): Effect => ({ target, type: 'penalty', value, note });
@@ -33,10 +35,32 @@ export const CONDITIONS: ConditionDef[] = [
     effects: [pen('attack:melee', -2, 'Entangled'), pen('attack:ranged', -2, 'Entangled'), pen('ability:dex', -4, 'Entangled')] },
   { id: 'grappled', name: 'Grappled', desc: '−4 Dexterity, −2 on attacks and most checks; cannot move.',
     effects: [pen('ability:dex', -4, 'Grappled'), pen('attack:melee', -2, 'Grappled'), pen('attack:ranged', -2, 'Grappled')] },
-  { id: 'blinded', name: 'Blinded', desc: '−2 AC, lose Dex to AC, −4 Str/Dex skills, 50% miss (only AC computed).',
-    effects: [pen('ac', -2, 'Blinded')] },
-  { id: 'stunned', name: 'Stunned', desc: '−2 AC, lose Dex to AC, drop held items, cannot act (only AC computed).',
-    effects: [pen('ac', -2, 'Stunned')] },
+  { id: 'panicked', name: 'Panicked', desc: '−2 on saves and attacks; drop held items and flee in terror.',
+    effects: [pen('attack:melee', -2, 'Panicked'), pen('attack:ranged', -2, 'Panicked'), pen('save:all', -2, 'Panicked')] },
+  { id: 'deafened', name: 'Deafened', desc: '−4 on initiative; 20% arcane spell failure with verbal components.',
+    effects: [pen('init', -4, 'Deafened')] },
+  { id: 'blinded', name: 'Blinded', desc: '−2 AC, lose Dex to AC, −4 on Str/Dex skills, 50% miss chance.',
+    effects: [pen('ac', -2, 'Blinded')], loseDexToAc: true },
+  { id: 'cowering', name: 'Cowering', desc: '−2 AC, lose Dex to AC, and can take no actions.',
+    effects: [pen('ac', -2, 'Cowering')], loseDexToAc: true },
+  { id: 'stunned', name: 'Stunned', desc: '−2 AC, lose Dex to AC, drop held items, and can take no actions.',
+    effects: [pen('ac', -2, 'Stunned')], loseDexToAc: true },
+  { id: 'pinned', name: 'Pinned', desc: '−4 AC, lose Dex to AC, and are held immobile.',
+    effects: [pen('ac', -4, 'Pinned')], loseDexToAc: true },
+  { id: 'flat-footed', name: 'Flat-footed', desc: 'Lose your Dexterity bonus to AC (e.g. before you act).',
+    effects: [], loseDexToAc: true },
+  { id: 'helpless', name: 'Helpless', desc: 'Lose Dex to AC (treated as Dex 0); melee attackers gain +4 and may coup de grace.',
+    effects: [], loseDexToAc: true },
+  { id: 'paralyzed', name: 'Paralyzed', desc: 'Str and Dex drop to 0; helpless and unable to act (lose Dex to AC).',
+    effects: [], loseDexToAc: true },
+  { id: 'dazed', name: 'Dazed', desc: 'Can take no actions for the duration (no stat penalty).',
+    effects: [] },
+  { id: 'staggered', name: 'Staggered', desc: 'Only a single move or standard action each round.',
+    effects: [] },
+  { id: 'nauseated', name: 'Nauseated', desc: 'Only a single move action; cannot attack or cast.',
+    effects: [] },
+  { id: 'confused', name: 'Confused', desc: 'Act randomly each round (attack, flee, babble, or act normally).',
+    effects: [] },
 ];
 
 export const conditionById = new Map(CONDITIONS.map((c) => [c.id, c]));
