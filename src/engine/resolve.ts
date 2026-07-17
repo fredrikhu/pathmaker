@@ -194,6 +194,11 @@ function collectEffects(dec: Decisions, doc: CharacterDoc, level: number): Effec
   const shield = doc.equipped.offHand ? C.armorById.get(doc.equipped.offHand) : null;
   if (armor) effects.push({ target: 'ac', type: 'armor', value: armor.acBonus, note: `${armor.name} (armor)` });
   if (shield && shield.slot === 'shield') effects.push({ target: 'ac', type: 'shield', value: shield.acBonus, note: `${shield.name} (shield)` });
+  // Active conditions (play state).
+  for (const cid of doc.play?.conditions ?? []) {
+    const c = C.conditionById.get(cid);
+    if (c) effects.push(...c.effects);
+  }
   return effects;
 }
 
@@ -225,11 +230,18 @@ export function resolve(doc: CharacterDoc): Resolution {
   const klass = dec.classId ? C.classById.get(dec.classId) : undefined;
   // Ability increases above the current target level are suspended, not applied.
   const abilities = finalAbilities(dec, level);
+  const { standard, alternates } = activeRacialTraits(dec);
+  const effects = collectEffects(dec, doc, level);
+  // Apply unconditional ability-score effects (conditions like Fatigued, and future items) to the
+  // ability scores before deriving modifiers, so the penalty flows to everything.
+  for (const e of effects) {
+    if (e.condition || !e.target.startsWith('ability:')) continue;
+    const ab = e.target.slice('ability:'.length);
+    if (ab in abilities) abilities[ab as Ability] += e.value;
+  }
   const mods: Record<Ability, number> = Object.fromEntries(
     ABILITIES.map((a) => [a, abilityMod(abilities[a])]),
   ) as Record<Ability, number>;
-  const { standard, alternates } = activeRacialTraits(dec);
-  const effects = collectEffects(dec, doc, level);
   const size = race?.size ?? 'medium';
   const sizeAcAtk = size === 'small' ? 1 : 0;
 
@@ -271,6 +283,7 @@ export function resolve(doc: CharacterDoc): Resolution {
       ...(incCount > 0
         ? [{ type: 'base' as const, value: incCount, note: `Level-up increase${incCount > 1 ? `s ×${incCount}` : ''}` }]
         : []),
+      ...unconds(`ability:${ab}`),
     ]);
   }
 

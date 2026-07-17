@@ -818,3 +818,25 @@ describe('9th-level spell access at the top', () => {
     expect(l9!.options.some((o) => o.id === 'wish')).toBe(true);
   });
 });
+
+describe('conditions (play state) fold into the resolved sheet', () => {
+  const play = (conditions: string[]) => ({ hpDamage: 0, tempHp: 0, nonlethal: 0, usedSlots: {}, conditions });
+  it('shaken applies −2 to attacks and saves', () => {
+    const d = { ...humanFighter1(), play: play(['shaken']) };
+    const r = resolve(d);
+    expect(r.sheet.stats['attack:melee'].total).toBe(2); // 4 − 2
+    expect(r.sheet.stats['save:fort'].total).toBe(2); // 4 − 2
+    expect(r.sheet.stats['save:will'].total).toBe(-1); // 1 − 2
+  });
+  it('fatigued drops Str and Dex, flowing to attack and AC', () => {
+    const d = { ...humanFighter1(), play: play(['fatigued']) };
+    const r = resolve(d);
+    expect(r.sheet.stats['ability:str'].total).toBe(15); // 17 − 2
+    expect(r.sheet.stats['ability:dex'].total).toBe(12); // 14 − 2
+    expect(r.sheet.stats['attack:melee'].total).toBe(3); // BAB 1 + Str +2
+    expect(r.sheet.stats['ac'].total).toBe(11); // 10 + Dex +1
+  });
+  it('no conditions → unchanged sheet', () => {
+    expect(resolve({ ...humanFighter1(), play: play([]) }).sheet.stats['attack:melee'].total).toBe(4);
+  });
+});

@@ -172,8 +172,12 @@ values.
 - **Increment 1 (first):** HP tracker (current = max − damage, temp HP, take-damage/heal, nonlethal)
   and spell-slot tracker (per level: used / remaining, tick off, restore) with a **Rest** action that
   clears damage and used slots. Reuses `sheet.stats['hp:max']` and `sheet.spellSlots`.
-- **Increment 2:** conditions as toggles that feed effects back into `resolve()` (shaken −2, prone,
-  etc.) — the effect engine already stacks typed bonuses, so conditions are just another effect source.
+- **Increment 2 (done):** conditions as toggles on the play sheet feed effects into `resolve()`
+  (`CONDITIONS` in `conditions.ts`; `doc.play.conditions` → `collectEffects`). Shaken/frightened/
+  sickened (−2 attacks/saves), fatigued/exhausted (−Str/Dex), dazzled, prone, entangled, grappled,
+  blinded, stunned. Required wiring **ability-score effects** into the engine (apply `ability:*`
+  effects before deriving mods; show in the breakdown) — foundational, also enables future items.
+  Non-numeric parts (can't-act, lose-Dex-to-AC, 50% miss) are noted in the description, not computed.
 - **Increment 3:** resource pools (rage rounds, ki, channel, performance, lay-on-hands, grit,
   panache…) — needs the engine to expose pool maxima (currently descriptive), then a used-counter layer.
 - **Increment 4+:** daily prepared-spell layer for prepared casters; one-click roll surfacing (the

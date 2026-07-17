@@ -1,6 +1,7 @@
 import { loadCharacter } from '../storage/store';
 import { newCharacter } from '../engine/character';
 import { emptyPlayState, fmtMod, type PlayState } from '../engine/types';
+import { CONDITIONS, conditionById } from '../content/index';
 import { useCharacter } from './useCharacter';
 import { navigate } from './App';
 
@@ -34,6 +35,10 @@ export function PlaySheet({ id }: { id: string }) {
   const setUsed = (l: number, v: number) => updatePlay((p) => ({ usedSlots: { ...p.usedSlots, [l]: Math.max(0, v) } }));
 
   const rest = () => setPlay({ hpDamage: 0, nonlethal: 0, tempHp: 0, usedSlots: {} });
+
+  const conditions = play.conditions;
+  const toggleCondition = (id: string) =>
+    updatePlay((p) => ({ conditions: p.conditions.includes(id) ? p.conditions.filter((x) => x !== id) : [...p.conditions, id] }));
 
   const hpColor = currentHp <= 0 ? 'var(--err)' : currentHp <= maxHp / 4 ? 'var(--warn-fg)' : 'var(--color-accent-300)';
 
@@ -101,6 +106,33 @@ export function PlaySheet({ id }: { id: string }) {
           </div>
           <div className="text-muted" style={{ fontSize: 11.5, marginTop: 12 }}>Speed {sheet.speed.base} ft{sheet.casterLevel ? ` · caster level ${sheet.casterLevel}` : ''}</div>
         </div>
+      </div>
+
+      {/* Conditions */}
+      <div style={{ background: 'var(--color-surface)', borderRadius: 12, padding: 18, marginTop: 18 }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
+          <div className="micro">Conditions</div>
+          {conditions.length > 0 && <span className="text-muted" style={{ fontSize: 11.5 }}>active penalties are folded into the stats above</span>}
+        </div>
+        <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
+          {CONDITIONS.map((c) => {
+            const on = conditions.includes(c.id);
+            return (
+              <button key={c.id} onClick={() => toggleCondition(c.id)} title={c.desc}
+                style={{ padding: '5px 12px', borderRadius: 999, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit',
+                  border: `1px solid ${on ? 'var(--warn-fg)' : 'var(--color-divider)'}`,
+                  background: on ? 'var(--warn)' : 'transparent',
+                  color: on ? 'var(--warn-fg)' : 'var(--color-text)' }}>
+                {c.name}
+              </button>
+            );
+          })}
+        </div>
+        {conditions.length > 0 && (
+          <div style={{ fontSize: 11.5, color: 'var(--color-neutral-400)', marginTop: 10, lineHeight: 1.6 }}>
+            {conditions.map((id) => conditionById.get(id)?.desc).filter(Boolean).join(' ')}
+          </div>
+        )}
       </div>
 
       {/* Spell slots */}
