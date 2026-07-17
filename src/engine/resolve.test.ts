@@ -921,3 +921,28 @@ describe('domain / specialist bonus spell slot', () => {
     expect(wiz('universalist')).toBe(2);
   });
 });
+
+describe('multiple resource pools per class', () => {
+  it('paladin has lay-on-hands and smite-evil pools', () => {
+    let d = newCharacter('t-pal-pools', 'Seelah');
+    d = withDecision(d, 'ability-base', { str: 14, dex: 10, con: 12, int: 8, wis: 10, cha: 16 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['cha']);
+    d = withDecision(d, 'alignment', 'LG');
+    d = withDecision(d, 'class', 'paladin');
+    const ids = resolve(atLevel(d, 7)).sheet.pools.map((p) => p.id);
+    expect(ids).toContain('lay-on-hands');
+    expect(ids).toContain('smite-evil'); // 1 + floor(6/3) = 3 at level 7
+    expect(resolve(atLevel(d, 7)).sheet.pools.find((p) => p.id === 'smite-evil')!.max).toBe(3);
+  });
+  it('monk has ki and stunning-fist pools from level 4', () => {
+    let d = newCharacter('t-monk-pools', 'Sun');
+    d = withDecision(d, 'ability-base', { str: 14, dex: 14, con: 12, int: 10, wis: 15, cha: 8 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['wis']);
+    d = withDecision(d, 'alignment', 'LN');
+    d = withDecision(d, 'class', 'monk');
+    const ids = resolve(atLevel(d, 4)).sheet.pools.map((p) => p.id).sort();
+    expect(ids).toEqual(['ki', 'stunning-fist']);
+  });
+});

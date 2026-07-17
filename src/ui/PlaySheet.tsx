@@ -1,7 +1,7 @@
 import { loadCharacter } from '../storage/store';
 import { newCharacter } from '../engine/character';
 import { emptyPlayState, fmtMod, abilityMod, type PlayState } from '../engine/types';
-import { CONDITIONS, conditionById, SPELLS, spellById, classById } from '../content/index';
+import { CONDITIONS, conditionById, SPELLS, spellById, classById, skillById } from '../content/index';
 import { useCharacter } from './useCharacter';
 import { navigate } from './App';
 
@@ -65,6 +65,9 @@ export function PlaySheet({ id }: { id: string }) {
   // Delta-based (reads fresh state) so rapid spend/restore clicks accumulate correctly.
   const adjustPool = (id: string, delta: number, max: number) =>
     updatePlay((p) => ({ usedPools: { ...p.usedPools, [id]: Math.max(0, Math.min(max, (p.usedPools[id] ?? 0) + delta)) } }));
+
+  const ranks = (doc.decisions['skill-ranks'] as Record<string, number>) ?? {};
+  const trainedSkills = sheet.skillIds.filter((sid) => (ranks[sid] ?? 0) > 0);
 
   const conditions = play.conditions;
   const toggleCondition = (id: string) =>
@@ -137,6 +140,20 @@ export function PlaySheet({ id }: { id: string }) {
           <div className="text-muted" style={{ fontSize: 11.5, marginTop: 12 }}>Speed {sheet.speed.base} ft{sheet.casterLevel ? ` · caster level ${sheet.casterLevel}` : ''}</div>
         </div>
       </div>
+
+      {/* Skills (trained) */}
+      {trainedSkills.length > 0 && (
+        <div style={{ background: 'var(--color-surface)', borderRadius: 12, padding: 18, marginTop: 18 }}>
+          <div className="micro" style={{ marginBottom: 10 }}>Skills</div>
+          <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
+            {trainedSkills.map((sid) => (
+              <span key={sid} style={{ padding: '5px 11px', borderRadius: 999, fontSize: 12.5, background: 'var(--color-neutral-800)' }}>
+                {skillById.get(sid)?.name} <span className="num" style={{ fontWeight: 600, color: 'var(--color-accent-300)' }}>{fmtMod(sheet.stats[`skill:${sid}`]?.total ?? 0)}</span>
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Resource pools */}
       {pools.length > 0 && (

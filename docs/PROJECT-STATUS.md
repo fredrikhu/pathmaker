@@ -200,6 +200,9 @@ all persisted and reset by Rest.
 - **Domain / specialist-school bonus spell slot** — cleric-with-domains and non-universalist wizard get
   +1 slot per accessible level (approximated as +1 to the count; the restriction isn't enforced).
 - **Spell save DC** (10 + spell level + casting mod) shown on the play sheet.
-- **Still thin:** resource pools omit some classes (oracle/sorcerer/witch/druid wild shape/ranger/etc.)
-  and model only one pool per class (paladin also has smite/channel, monk also stunning fist, …); the
-  play sheet has no skills panel, per-weapon attack lines, or breakdown tooltips yet.
+- **Multiple pools per class**: paladin now has lay-on-hands **and** smite-evil; monk has ki **and**
+  stunning fist. Added druid **wild shape** uses (4th–19th). A **skills panel** (trained skills + totals)
+  is on the play sheet.
+- **Still thin:** resource pools still omit oracle/sorcerer/witch/ranger/hunter/summoner/shaman/slayer/
+  brawler (varied or at-will resources); no per-weapon attack lines or click-to-see-breakdown tooltips
+  on the play sheet yet; the domain/school slot is a count approximation (restriction not enforced).

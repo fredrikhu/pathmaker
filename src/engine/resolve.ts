@@ -234,10 +234,17 @@ function classPools(klass: C.ClassDef | undefined, level: number, mods: Record<A
   switch (klass.id) {
     case 'barbarian': add('rage', 'Rage', 4 + mods.con + 2 * (level - 1), 'rounds'); break;
     case 'bloodrager': add('bloodrage', 'Bloodrage', 4 + mods.con + 2 * (level - 1), 'rounds'); break;
-    case 'monk': if (level >= 4) add('ki', 'Ki pool', half + mods.wis, 'points'); break;
+    case 'monk':
+      if (level >= 4) add('ki', 'Ki pool', half + mods.wis, 'points');
+      add('stunning-fist', 'Stunning Fist', level, 'uses');
+      break;
     case 'cleric': add('channel', 'Channel energy', 3 + mods.cha, 'uses'); break;
     case 'warpriest': add('fervor', 'Fervor', half + mods.wis, 'uses'); break;
-    case 'paladin': if (level >= 2) add('lay-on-hands', 'Lay on hands', half + mods.cha, 'uses'); break;
+    case 'paladin':
+      if (level >= 2) add('lay-on-hands', 'Lay on hands', half + mods.cha, 'uses');
+      add('smite-evil', 'Smite evil', per3, 'uses');
+      break;
+    case 'druid': if (level >= 4 && level < 20) add('wild-shape', 'Wild shape', Math.floor((level - 4) / 2) + 1, 'uses'); break;
     case 'bard': add('performance', 'Bardic performance', 4 + mods.cha + 2 * (level - 1), 'rounds'); break;
     case 'skald': add('raging-song', 'Raging song', 4 + mods.cha + 2 * (level - 1), 'rounds'); break;
     case 'gunslinger': add('grit', 'Grit', Math.max(1, mods.wis), 'points'); break;
