@@ -379,3 +379,189 @@ describe('elven immunities is an annotation, not folded into the save total', ()
     expect(r.sheet.stats['save:will'].annotations.some((a) => /enchantment/.test(a))).toBe(true);
   });
 });
+
+// ---------- Phase 2: multi-level progression ----------
+
+function atLevel(d: CharacterDoc, level: number): CharacterDoc {
+  return { ...d, level };
+}
+
+describe('human fighter 5 (multi-level core numbers)', () => {
+  const r = resolve(atLevel(humanFighter1(), 5));
+  const s = r.sheet.stats;
+
+  it('full BAB = 5', () => {
+    expect(s['bab'].total).toBe(5);
+  });
+
+  it('saves: Fort +6 (good 4 + Con 2), Ref +3 (poor 1 + Dex 2), Will +2 (poor 1 + Wis 1)', () => {
+    expect(s['save:fort'].total).toBe(6);
+    expect(s['save:ref'].total).toBe(3);
+    expect(s['save:will'].total).toBe(2);
+  });
+
+  it('HP = 10 (max d10) + 24 (levels 2–5 @6) + 10 (Con×5) + 5 (FCB×5) = 49', () => {
+    expect(s['hp:max'].total).toBe(49);
+  });
+
+  it('skill ranks = 3/level × 5 = 15', () => {
+    expect(r.sheet.skillRanksTotal).toBe(15);
+  });
+
+  it('opens general feats at 1/3/5, racial, and fighter bonus at 1/2/4', () => {
+    const featSlots = r.slots.filter((sl) => sl.step === 'feats' && sl.id.startsWith('feat'));
+    expect(featSlots.map((sl) => sl.id).sort()).toEqual(
+      ['feat-1', 'feat-L3', 'feat-L5', 'feat-fighter', 'feat-fighter-L2', 'feat-fighter-L4', 'feat-human'].sort(),
+    );
+  });
+
+  it('progression table has 5 rows ending at BAB +5', () => {
+    expect(r.sheet.progression.length).toBe(5);
+    expect(r.sheet.progression[4]).toMatchObject({ level: 5, bab: 5 });
+  });
+});
+
+function cleric(level: number, wis: number): CharacterDoc {
+  let d = newCharacter('t-cleric', 'Kore');
+  d = withDecision(d, 'ability-base', { str: 10, dex: 12, con: 12, int: 10, wis, cha: 10 });
+  d = withDecision(d, 'race', 'human');
+  d = withDecision(d, 'floating-bonus', ['cha']); // keep Wis clean
+  d = withDecision(d, 'alignment', 'N');
+  d = withDecision(d, 'class', 'cleric');
+  return atLevel(d, level);
+}
+
+describe('cleric 7 (¾ BAB + caster level + slots)', () => {
+  const r = resolve(cleric(7, 16)); // Wis 16 = +3
+
+  it('three-quarter BAB at 7 = 5', () => {
+    expect(r.sheet.stats['bab'].total).toBe(5);
+  });
+
+  it('caster level = 7', () => {
+    expect(r.sheet.casterLevel).toBe(7);
+  });
+
+  it('spell slots/day = base [4,4,3,2,1] + Wis bonus = [4,5,4,3,1]', () => {
+    expect(r.sheet.spellSlots).toEqual([4, 5, 4, 3, 1]);
+  });
+});
+
+describe('rogue 4 (ability increase at 4)', () => {
+  let d = newCharacter('t-rogue', 'Sly');
+  d = withDecision(d, 'ability-base', { str: 14, dex: 15, con: 12, int: 12, wis: 10, cha: 10 });
+  d = withDecision(d, 'race', 'human');
+  d = withDecision(d, 'floating-bonus', ['dex']);
+  d = withDecision(d, 'alignment', 'N');
+  d = withDecision(d, 'class', 'rogue');
+  d = withDecision(d, 'ability-increases', { 4: 'str' });
+  const r = resolve(atLevel(d, 4));
+
+  it('¾ BAB at 4 = 3', () => {
+    expect(r.sheet.stats['bab'].total).toBe(3);
+  });
+
+  it('applies the +1 level-4 increase to Str (14 → 15)', () => {
+    expect(r.sheet.stats['ability:str'].total).toBe(15);
+  });
+
+  it('records the increase in the level-4 progression row', () => {
+    expect(r.sheet.progression[3]).toMatchObject({ level: 4, abilityIncrease: 'str' });
+  });
+});
+
+describe('retroactive HP from a Con increase at level 4', () => {
+  // Fighter with an odd Con (13 → +1) so the +1 at level 4 raises the modifier to +2.
+  function odd(level: number, increases?: Record<number, string>): CharacterDoc {
+    let d = newCharacter('t-con', 'Bruiser');
+    d = withDecision(d, 'ability-base', { str: 14, dex: 12, con: 13, int: 10, wis: 10, cha: 10 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['str']);
+    d = withDecision(d, 'class', 'fighter');
+    d = withDecision(d, 'favored-class', 'fighter');
+    d = withDecision(d, 'fcb', 'hp');
+    if (increases) d = withDecision(d, 'ability-increases', increases);
+    return atLevel(d, level);
+  }
+
+  it('without the increase: 10 + 18 + Con(+1)×4 + FCB 4 = 36', () => {
+    expect(resolve(odd(4)).sheet.stats['hp:max'].total).toBe(36);
+  });
+
+  it('with Con increase at 4: modifier +2 applies to all 4 levels retroactively = 40', () => {
+    expect(resolve(odd(4, { 4: 'con' })).sheet.stats['hp:max'].total).toBe(40);
+  });
+});
+
+describe('level-down suspends higher-level decisions (does not delete or error)', () => {
+  let d = humanFighter1();
+  d = withDecision(d, 'feats', { 'feat-1': 'toughness', 'feat-L5': 'toughness' });
+
+  it('at level 5 the 5th-level feat slot exists', () => {
+    const r = resolve(atLevel(d, 5));
+    expect(r.slots.some((sl) => sl.id === 'feat-L5')).toBe(true);
+  });
+
+  it('at level 3 the 5th-level feat is suspended: no slot, no error, an info notice', () => {
+    const r = resolve(atLevel(d, 3));
+    expect(r.slots.some((sl) => sl.id === 'feat-L5')).toBe(false);
+    expect(r.issues.some((i) => i.severity === 'error' && /orphan/i.test(i.message))).toBe(false);
+    expect(r.issues.some((i) => i.severity === 'info' && /suspended/i.test(i.message))).toBe(true);
+    expect(r.sheet.stats['bab'].total).toBe(3);
+  });
+
+  it('the suspended decision is still present in the document', () => {
+    expect((d.decisions['feats'] as Record<string, string>)['feat-L5']).toBe('toughness');
+  });
+});
+
+describe('Toughness scales with Hit Dice (max(3, level))', () => {
+  function withToughness(level: number): CharacterDoc {
+    let d = humanFighter1();
+    d = withDecision(d, 'feats', { 'feat-1': 'toughness' });
+    return atLevel(d, level);
+  }
+  it('level 1: +3 HP (13 → 16)', () => {
+    expect(resolve(withToughness(1)).sheet.stats['hp:max'].total).toBe(16);
+  });
+  it('level 5: +5 HP (49 → 54)', () => {
+    expect(resolve(withToughness(5)).sheet.stats['hp:max'].total).toBe(54);
+  });
+});
+
+describe('per-level subsystem picks (Part B content)', () => {
+  function barbarian(level: number): CharacterDoc {
+    let d = newCharacter('t-barb', 'Grug');
+    d = withDecision(d, 'ability-base', { str: 16, dex: 14, con: 15, int: 8, wis: 10, cha: 8 });
+    d = withDecision(d, 'race', 'half-orc');
+    d = withDecision(d, 'alignment', 'CN');
+    d = withDecision(d, 'class', 'barbarian');
+    return atLevel(d, level);
+  }
+
+  it('barbarian gains a rage-power slot at 2, 4, 6 (three by level 6)', () => {
+    const r = resolve(barbarian(6));
+    const ragePowers = r.slots.filter((s) => s.step === 'class' && s.id.startsWith('rage-power'));
+    expect(ragePowers.map((s) => s.id).sort()).toEqual(['rage-power-L2', 'rage-power-L4', 'rage-power-L6']);
+    expect(r.sheet.stats['bab'].total).toBe(6); // full BAB
+  });
+
+  it('barbarian at level 1 has no rage-power slot yet', () => {
+    expect(resolve(barbarian(1)).slots.some((s) => s.id.startsWith('rage-power'))).toBe(false);
+  });
+
+  it('oracle exposes mystery and curse picks at level 1', () => {
+    let d = newCharacter('t-oracle', 'Sibyl');
+    d = withDecision(d, 'ability-base', { str: 10, dex: 12, con: 12, int: 10, wis: 10, cha: 16 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['cha']);
+    d = withDecision(d, 'alignment', 'N');
+    d = withDecision(d, 'class', 'oracle');
+    const r = resolve(atLevel(d, 3));
+    expect(r.slots.some((s) => s.id === 'mystery')).toBe(true);
+    expect(r.slots.some((s) => s.id === 'curse')).toBe(true);
+    // full spontaneous caster: caster level 3, slot table present
+    expect(r.sheet.casterLevel).toBe(3);
+    expect(r.sheet.spellSlots && r.sheet.spellSlots.length).toBeGreaterThan(0);
+  });
+});

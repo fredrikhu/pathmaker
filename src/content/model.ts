@@ -1,4 +1,5 @@
 import type { Ability, Alignment, Effect, Predicate } from '../engine/types';
+import type { BabProgression, CasterProgression } from '../engine/progression';
 
 export interface RacialTraitDef {
   id: string;
@@ -41,10 +42,18 @@ export interface ClassFeatureDef {
   effects?: Effect[];
 }
 
+/** A class feature tagged with the class level at which it is gained. */
+export interface LeveledFeatureDef extends ClassFeatureDef {
+  level: number;
+}
+
 export interface SpellcastingDef {
   kind: 'prepared-book' | 'spontaneous' | 'prepared-list';
   ability: Ability;
   list: 'arcane' | 'bard' | 'divine' | 'druid' | 'ranger' | 'paladin';
+  /** Slot/known progression speed. Defaults to 'full' (9-level) when omitted; bard/summoner
+   *  are 'six', paladin/ranger are 'four'. Drives caster level and slots-per-day tables. */
+  progression?: CasterProgression;
   /** Spell slots per day at class level 1, index = spell level. */
   slots1: number[];
   /** Spontaneous: spells known at level 1, index = spell level. */
@@ -67,6 +76,10 @@ export interface ClassChoiceDef {
   label: string;
   kind: ClassChoiceKind;
   count: number;
+  /** Class levels at which this choice is granted. Omitted ⇒ [1] (a one-time level-1 pick).
+   *  The engine emits one slot per granted level ≤ the character's level, keyed `<id>-L<level>`
+   *  for levels > 1 (the level-1 grant keeps the bare `<id>` key for back-compat). */
+  levels?: number[];
   /** For kind: 'list' — the pick-one(-or-more) options, defined inline as data. */
   options?: { id: string; name: string; desc: string }[];
 }
@@ -77,7 +90,7 @@ export interface ClassDef {
   sub: string;
   desc: string;
   hitDie: number;
-  bab: 'full' | 'threequarter' | 'half';
+  bab: BabProgression;
   goodSaves: ('fort' | 'ref' | 'will')[];
   skillRanks: number;
   classSkills: string[];
@@ -87,7 +100,13 @@ export interface ClassDef {
     weapons: ('simple' | 'martial')[] | string[];
     armor: ('light' | 'medium' | 'heavy' | 'shield')[];
   };
+  /** Level-1 class features. Retained as the fallback while per-level `features` are authored
+   *  class-by-class in Part B; the engine reads `features` when present, else `features1` at L1. */
   features1: ClassFeatureDef[];
+  /** Full per-level feature progression (Part B). When present, supersedes `features1`. */
+  features?: LeveledFeatureDef[];
+  /** Class bonus feat slots, e.g. fighter at every even level, wizard at 5/10/15/20. */
+  bonusFeats?: { levels: number[]; combatOnly?: boolean; label?: string };
   choices?: ClassChoiceDef[];
   spellcasting?: SpellcastingDef;
 }

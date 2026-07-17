@@ -3,17 +3,34 @@ import type {
   Ability, Alignment, CharacterDoc, ChoiceSlot, Effect, Issue, Resolution,
   Sheet, SlotOption, Stat,
 } from './types';
+import type { ProgressionRow } from './types';
 import { ABILITIES, abilityMod } from './types';
 import { evalPredicate, explainFailure, type PredicateCtx } from './predicates';
 import { stack, type Contribution } from './stack';
+import {
+  babAt, saveBase, fixedHpPerLevel, generalFeatLevels, abilityIncreaseLevels,
+  casterLevel, spellSlotsPerDay, spellsKnownPerLevel, type SpellTable, type CasterProgression,
+} from './progression';
 
 const POINT_BUY_COST: Record<number, number> = {
   7: -4, 8: -2, 9: -1, 10: 0, 11: 1, 12: 2, 13: 3, 14: 5, 15: 7, 16: 10, 17: 13, 18: 17,
 };
 const POINT_BUY_TOTAL: Record<string, number> = { pb15: 15, pb20: 20, pb25: 25 };
 
-const babAt1 = (p: 'full' | 'threequarter' | 'half'): number => (p === 'full' ? 1 : 0);
-const saveBase1 = (good: boolean): number => (good ? 2 : 0);
+/** Which slot/known table a casting class uses. Only the fully-verified progressions
+ *  ('full' 9-level and 'six' bard) return a table; every other caster — the four-level
+ *  paladin/ranger and the many classes with unique 6-level/extract tables (magus, inquisitor,
+ *  summoner, alchemist, warpriest, arcanist, hunter…) — returns undefined so the sheet shows
+ *  no slot numbers rather than guessed ones, until their exact table is encoded. */
+function spellTableFor(sc: C.SpellcastingDef): SpellTable | undefined {
+  const prog: CasterProgression | undefined = sc.progression;
+  if (prog === 'six') return 'bard';
+  if (prog === 'full') return sc.kind === 'spontaneous' ? 'spontaneous-full' : 'prepared-full';
+  return undefined;
+}
+
+const ORDINALS = ['0th', '1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th', '9th', '10th'];
+const ordinal = (n: number): string => ORDINALS[n] ?? `${n}th`;
 
 /** A friendly display name for any content id (for whyNot messages). */
 function displayName(id: string): string {
@@ -43,6 +60,8 @@ interface Decisions {
   skillRanks: Record<string, number>;
   languages: string[];
   spellPicks: string[];
+  hpRolls: Record<number, number>; // level -> hp gained (levels >= 2)
+  abilityIncreases: Record<number, Ability>; // level (4/8/12/16/20) -> chosen ability
 }
 
 function readDecisions(doc: CharacterDoc): Decisions {
@@ -66,6 +85,8 @@ function readDecisions(doc: CharacterDoc): Decisions {
     skillRanks: get<Record<string, number>>('skill-ranks', {}),
     languages: get<string[]>('languages', []),
     spellPicks: get<string[]>('spell-picks', []),
+    hpRolls: get<Record<number, number>>('hp-rolls', {}),
+    abilityIncreases: get<Record<number, Ability>>('ability-increases', {}),
   };
 }
 
@@ -91,7 +112,10 @@ function appliedFloating(dec: Decisions): Ability[] {
   return dec.floatingBonus.slice(-floatingCap(dec));
 }
 
-function finalAbilities(dec: Decisions): Record<Ability, number> {
+/** Ability scores after race + floating bonus + the +1 level-up increases gained at or below
+ *  `uptoLevel` (default: all of them). The level cap lets skill ranks use the Int mod as of
+ *  each level, matching how PF1e assigns ranks at level-up. */
+function finalAbilities(dec: Decisions, uptoLevel = Infinity): Record<Ability, number> {
   const race = dec.raceId ? C.raceById.get(dec.raceId) : undefined;
   const out = { ...dec.abilityBase };
   if (race) {
@@ -101,30 +125,44 @@ function finalAbilities(dec: Decisions): Record<Ability, number> {
       for (const ab of ABILITIES) out[ab] += race.abilityMods[ab] ?? 0;
     }
   }
+  for (const [lvl, ab] of Object.entries(dec.abilityIncreases)) {
+    if (Number(lvl) <= uptoLevel) out[ab] += 1;
+  }
   return out;
+}
+
+/** Normalized class features gained at or below `level` (uses per-level `features`, else the
+ *  level-1 `features1` fallback while Part B authoring is in progress). */
+function classFeaturesUpTo(klass: C.ClassDef | undefined, level: number): C.LeveledFeatureDef[] {
+  if (!klass) return [];
+  const src: C.LeveledFeatureDef[] = klass.features ?? klass.features1.map((f) => ({ ...f, level: 1 }));
+  return src.filter((f) => f.level <= level).sort((a, b) => a.level - b.level);
 }
 
 /** Feat ids sitting in a currently-valid slot. Orphaned feats (slot removed by an
  *  upstream choice) are suspended — they persist as decisions + Issues but contribute
  *  nothing to the sheet until the user resolves them. */
-function validFeatIds(dec: Decisions): string[] {
+function validFeatIds(dec: Decisions, level: number): string[] {
   const race = dec.raceId ? C.raceById.get(dec.raceId) : undefined;
   const klass = dec.classId ? C.classById.get(dec.classId) : undefined;
-  const keys = new Set(featSlots(dec, race, klass).map((s) => s.key));
+  const keys = new Set(featSlots(dec, race, klass, level).map((s) => s.key));
   return Object.entries(dec.feats)
     .filter(([k, v]) => v && keys.has(k))
     .map(([, v]) => v as string);
 }
 
-function collectEffects(dec: Decisions, doc: CharacterDoc): Effect[] {
+function collectEffects(dec: Decisions, doc: CharacterDoc, level: number): Effect[] {
   const effects: Effect[] = [];
   const { standard, alternates } = activeRacialTraits(dec);
   for (const t of [...standard, ...alternates]) if (t.effects) effects.push(...t.effects);
 
   // Feats (orphaned feats suspended — see validFeatIds)
-  for (const fid of validFeatIds(dec)) {
+  for (const fid of validFeatIds(dec, level)) {
     const f = C.featById.get(fid);
-    if (f?.effects) effects.push(...f.effects);
+    if (!f?.effects) continue;
+    // Toughness scales: +3 HP, plus 1 per Hit Die beyond 3rd (i.e. max(3, character level)).
+    if (fid === 'toughness') { effects.push({ target: 'hp:max', type: 'untyped', value: Math.max(3, level), note: 'Toughness' }); continue; }
+    effects.push(...f.effects);
   }
   // Traits + drawback
   for (const tid of [...dec.traits, dec.drawback].filter(Boolean) as string[]) {
@@ -162,14 +200,16 @@ function makeStat(id: string, label: string, contribs: Contribution[], annotatio
 
 export function resolve(doc: CharacterDoc): Resolution {
   const dec = readDecisions(doc);
+  const level = Math.max(1, Math.min(20, Math.floor(doc.level) || 1));
   const race = dec.raceId ? C.raceById.get(dec.raceId) : undefined;
   const klass = dec.classId ? C.classById.get(dec.classId) : undefined;
-  const abilities = finalAbilities(dec);
+  // Ability increases above the current target level are suspended, not applied.
+  const abilities = finalAbilities(dec, level);
   const mods: Record<Ability, number> = Object.fromEntries(
     ABILITIES.map((a) => [a, abilityMod(abilities[a])]),
   ) as Record<Ability, number>;
   const { standard, alternates } = activeRacialTraits(dec);
-  const effects = collectEffects(dec, doc);
+  const effects = collectEffects(dec, doc, level);
   const size = race?.size ?? 'medium';
   const sizeAcAtk = size === 'small' ? 1 : 0;
 
@@ -185,18 +225,21 @@ export function resolve(doc: CharacterDoc): Resolution {
   const unconds = (target: string): Contribution[] =>
     (byTarget.get(target) ?? []).filter((e) => !e.condition).map((e) => ({ type: e.type, value: e.value, note: e.note }));
 
-  const featIds = validFeatIds(dec);
+  const bab = klass ? babAt(klass.bab, level) : 0;
+  const clvl = klass?.spellcasting ? casterLevel(klass.spellcasting.progression ?? 'full', level) : 0;
+  const featIds = validFeatIds(dec, level);
   const predCtx: PredicateCtx = {
-    abilities, bab: klass ? babAt1(klass.bab) : 0, featIds,
+    abilities, bab, featIds,
     raceId: dec.raceId, classId: dec.classId, alignment: dec.alignment,
-    casterLevel: klass?.spellcasting ? 1 : 0, skillRanks: dec.skillRanks,
+    casterLevel: clvl, skillRanks: dec.skillRanks,
   };
 
   // ---- Stats ----
   const stats: Record<string, Stat> = {};
-  const bab = klass ? babAt1(klass.bab) : 0;
 
   for (const ab of ABILITIES) {
+    const incCount = Object.entries(dec.abilityIncreases)
+      .filter(([l, a]) => a === ab && Number(l) <= level).length;
     stats[`ability:${ab}`] = makeStat(`ability:${ab}`, ab.toUpperCase(), [
       { type: 'base', value: dec.abilityBase[ab], note: 'Base' },
       ...(race && race.abilityMods !== 'choice' && race.abilityMods[ab]
@@ -205,15 +248,26 @@ export function resolve(doc: CharacterDoc): Resolution {
       ...(race && race.abilityMods === 'choice' && appliedFloating(dec).includes(ab)
         ? [{ type: 'racial' as const, value: 2, note: `${race.name} +2` }]
         : []),
+      ...(incCount > 0
+        ? [{ type: 'base' as const, value: incCount, note: `Level-up increase${incCount > 1 ? `s ×${incCount}` : ''}` }]
+        : []),
     ]);
   }
 
-  // HP: max hit die + Con mod + FCB(hp) + effects (Toughness)
+  // HP: level 1 = max hit die; each later level adds its rolled/average HP. Con mod applies to
+  // every level (a level-up Con increase raises the modifier retroactively, per RAW, because we
+  // use the final Con mod × total levels). FCB(hp) adds 1 per level when chosen. Plus Toughness.
+  const fcbHp = dec.favoredClass && dec.favoredClass === dec.classId && dec.fcbChoice === 'hp';
   const hpContribs: Contribution[] = [];
-  if (klass) hpContribs.push({ type: 'base', value: klass.hitDie, note: `Max hit die (${klass.name})` });
-  hpContribs.push({ type: 'base', value: mods.con, note: 'Con modifier' });
-  if (dec.favoredClass && dec.favoredClass === dec.classId && dec.fcbChoice === 'hp')
-    hpContribs.push({ type: 'base', value: 1, note: 'Favored class bonus' });
+  if (klass) {
+    hpContribs.push({ type: 'base', value: klass.hitDie, note: `Max hit die (${klass.name})` });
+    let laterLevelsHp = 0;
+    for (let l = 2; l <= level; l++) laterLevelsHp += dec.hpRolls[l] ?? fixedHpPerLevel(klass.hitDie);
+    if (laterLevelsHp) hpContribs.push({ type: 'base', value: laterLevelsHp, note: `Levels 2–${level}` });
+  }
+  const hpLevels = klass ? level : 1;
+  hpContribs.push({ type: 'base', value: mods.con * hpLevels, note: hpLevels > 1 ? `Con modifier × ${hpLevels}` : 'Con modifier' });
+  if (fcbHp) hpContribs.push({ type: 'base', value: level, note: `Favored class bonus${level > 1 ? ` × ${level}` : ''}` });
   hpContribs.push(...unconds('hp:max'));
   stats['hp:max'] = makeStat('hp:max', 'Hit Points', hpContribs);
 
@@ -248,7 +302,7 @@ export function resolve(doc: CharacterDoc): Resolution {
   for (const sv of ['fort', 'ref', 'will'] as const) {
     const good = klass?.goodSaves.includes(sv) ?? false;
     const contribs: Contribution[] = [
-      { type: 'base', value: saveBase1(good), note: `${klass?.name ?? 'Class'} base (${good ? 'good' : 'poor'})` },
+      { type: 'base', value: klass ? saveBase(good, level) : 0, note: `${klass?.name ?? 'Class'} base (${good ? 'good' : 'poor'})` },
       { type: 'base', value: mods[saveAbility[sv]], note: `${saveAbility[sv].toUpperCase()} modifier` },
       ...unconds(`save:${sv}`),
       ...unconds('save:all'),
@@ -258,7 +312,7 @@ export function resolve(doc: CharacterDoc): Resolution {
   }
 
   // BAB, initiative, CMB, CMD
-  stats['bab'] = makeStat('bab', 'Base Attack Bonus', [{ type: 'base', value: bab, note: `${klass?.name ?? 'Class'} level 1` }]);
+  stats['bab'] = makeStat('bab', 'Base Attack Bonus', [{ type: 'base', value: bab, note: `${klass?.name ?? 'Class'} level ${level}` }]);
   stats['init'] = makeStat('init', 'Initiative', [
     { type: 'base', value: mods.dex, note: 'Dex modifier' },
     ...unconds('init'),
@@ -301,11 +355,18 @@ export function resolve(doc: CharacterDoc): Resolution {
     const b = C.bloodlineById.get(bl);
     if (b) classSkillSet.add(b.classSkill);
   }
-  const skillRanksPerLevel = (() => {
+  const racialSkillPerLevel = standard.reduce((n, t) => n + (t.skillRanksPerLevel ?? 0), 0);
+  const fcbSkill = dec.favoredClass === dec.classId && dec.fcbChoice === 'skill';
+  // Skill-rank budget summed over levels 1..N, using the Int modifier as of each level (an
+  // Int increase at level 4 raises ranks from level 4 onward), + favored-class skill bonus.
+  const skillRanksTotal = (() => {
     if (!klass) return 0;
-    let n = klass.skillRanks + mods.int;
-    for (const t of standard) if (t.skillRanksPerLevel) n += t.skillRanksPerLevel;
-    return Math.max(1, n);
+    let total = 0;
+    for (let l = 1; l <= level; l++) {
+      const intAtL = abilityMod(finalAbilities(dec, l).int);
+      total += Math.max(1, klass.skillRanks + intAtL + racialSkillPerLevel);
+    }
+    return total + (fcbSkill ? level : 0);
   })();
   const skillIds = C.SKILLS.map((s) => s.id);
   const classSkillIds: string[] = [];
@@ -354,10 +415,35 @@ export function resolve(doc: CharacterDoc): Resolution {
   }
   const gold = Math.round((startGold - doc.goldSpent) * 100) / 100;
 
+  // ---- Caster level + spell slots ----
+  const sc = klass?.spellcasting;
+  const spellTable = sc ? spellTableFor(sc) : undefined;
+  const spellSlots = sc ? spellSlotsPerDay(spellTable, level, mods[sc.ability]) : undefined;
+  const spellsKnown = sc && sc.kind === 'spontaneous' ? spellsKnownPerLevel(spellTable, level) : undefined;
+
+  // ---- Per-level advancement table ----
+  const featSlotKeys = featSlots(dec, race, klass, level);
+  const progression: ProgressionRow[] = [];
+  if (klass) {
+    for (let l = 1; l <= level; l++) {
+      progression.push({
+        level: l,
+        bab: babAt(klass.bab, l),
+        fort: saveBase(klass.goodSaves.includes('fort'), l),
+        ref: saveBase(klass.goodSaves.includes('ref'), l),
+        will: saveBase(klass.goodSaves.includes('will'), l),
+        features: classFeaturesUpTo(klass, l).filter((f) => f.level === l).map((f) => f.name),
+        featSlots: featSlotKeys.filter((fs) => fs.level === l).map((fs) => fs.label),
+        abilityIncrease: dec.abilityIncreases[l],
+        hp: l === 1 ? klass.hitDie : (dec.hpRolls[l] ?? fixedHpPerLevel(klass.hitDie)),
+      });
+    }
+  }
+
   // ---- Slots + issues ----
   const { slots, issues } = buildSlotsAndIssues(doc, dec, {
-    race, klass, abilities, mods, predCtx, skillRanksPerLevel, skillRanksSpent,
-    standard, alternates, gold, load, carry, activeAcp: acp.total,
+    race, klass, abilities, mods, predCtx, skillRanksTotal, skillRanksSpent,
+    standard, alternates, gold, load, carry, activeAcp: acp.total, level,
   });
 
   const steps = deriveSteps(klass);
@@ -365,15 +451,19 @@ export function resolve(doc: CharacterDoc): Resolution {
   const summaryLine = [
     dec.alignment ?? '',
     race?.name ?? '',
-    klass ? `${klass.name} 1` : '',
+    klass ? `${klass.name} ${level}` : '',
   ].filter(Boolean).join(' ');
 
   const sheet: Sheet = {
+    level,
     stats, skillIds, classSkillIds, acpSkillIds,
-    skillRanksTotal: skillRanksPerLevel, skillRanksSpent,
+    skillRanksTotal, skillRanksSpent,
     gold,
     load: { current: load, light: carry.light, medium: carry.medium, heavy: carry.heavy, label: loadLabel },
     speed: { base: effectiveSpeed, ...(speedReduced ? { reducedFrom: baseSpeed } : {}), ...(race?.speeds ?? {}) },
+    ...(sc ? { casterLevel: clvl, spellSlots } : {}),
+    ...(spellsKnown ? { spellsKnown } : {}),
+    progression,
     summaryLine,
   };
   return { sheet, slots, issues, steps };
@@ -393,7 +483,7 @@ function carryingCapacity(str: number): { light: number; medium: number; heavy: 
 }
 
 function deriveSteps(klass?: C.ClassDef): string[] {
-  const steps = ['basics', 'race', 'class', 'skills', 'feats'];
+  const steps = ['basics', 'race', 'class', 'advancement', 'skills', 'feats'];
   // Only classes that make a spell selection at creation get a Spells step. Prepared-list
   // divine casters (cleric, druid, warpriest) prepare from their whole list daily — nothing
   // to choose at level 1 — so they get no creation-time Spells step.
@@ -409,7 +499,7 @@ interface SlotCtx {
   abilities: Record<Ability, number>;
   mods: Record<Ability, number>;
   predCtx: PredicateCtx;
-  skillRanksPerLevel: number;
+  skillRanksTotal: number;
   skillRanksSpent: number;
   standard: C.RacialTraitDef[];
   alternates: C.AltTraitDef[];
@@ -417,6 +507,7 @@ interface SlotCtx {
   load: number;
   carry: { light: number; medium: number; heavy: number };
   activeAcp: number;
+  level: number;
 }
 
 function buildSlotsAndIssues(
@@ -493,13 +584,20 @@ function buildSlotsAndIssues(
     issues.push({ severity: 'info', step: 'class', slot: 'class', message: 'Choose a class' });
   } else {
     for (const ch of klass.choices ?? []) {
-      const selected = dec.classChoices[ch.id] ?? [];
-      const options = classChoiceOptions(ch, dec);
       // Universalist wizard → no opposition slot.
       if (ch.kind === 'wizard-opposition' && (dec.classChoices['school'] ?? []).includes('universalist')) continue;
-      slots.push({ id: ch.id, step: 'class', label: ch.label, count: ch.count, multi: ch.count > 1, selected, options });
-      if (selected.length < ch.count)
-        issues.push({ severity: 'info', step: 'class', slot: ch.id, message: `Choose ${ch.label.toLowerCase()} (${selected.length}/${ch.count})` });
+      const options = classChoiceOptions(ch, dec);
+      // A choice may recur across levels (e.g. a talent at 2, 4, 6…). Level-1 grants keep the
+      // bare key; later grants are suffixed `<id>-L<level>`.
+      for (const gLvl of (ch.levels ?? [1])) {
+        if (gLvl > ctx.level) continue;
+        const slotId = gLvl === 1 ? ch.id : `${ch.id}-L${gLvl}`;
+        const selected = dec.classChoices[slotId] ?? [];
+        const label = gLvl === 1 ? ch.label : `${ch.label} (level ${gLvl})`;
+        slots.push({ id: slotId, step: 'class', label, count: ch.count, multi: ch.count > 1, selected, options });
+        if (selected.length < ch.count)
+          issues.push({ severity: 'info', step: 'class', slot: slotId, message: `Choose ${label.toLowerCase()} (${selected.length}/${ch.count})` });
+      }
     }
     // Favored class + FCB
     if (!dec.favoredClass)
@@ -509,17 +607,17 @@ function buildSlotsAndIssues(
   }
 
   // ---------- SKILLS ----------
-  const ranksLeft = ctx.skillRanksPerLevel - ctx.skillRanksSpent;
+  const ranksLeft = ctx.skillRanksTotal - ctx.skillRanksSpent;
   if (klass) {
     if (ranksLeft > 0) issues.push({ severity: 'warning', step: 'skills', slot: 'skill-ranks', message: `${ranksLeft} skill rank${ranksLeft === 1 ? '' : 's'} unspent` });
     if (ranksLeft < 0) issues.push({ severity: 'error', step: 'skills', slot: 'skill-ranks', message: `${-ranksLeft} skill rank${ranksLeft === -1 ? '' : 's'} over budget` });
     for (const [sid, r] of Object.entries(dec.skillRanks)) {
-      if (r > 1) issues.push({ severity: 'error', step: 'skills', slot: `skill:${sid}`, message: `${displayName(sid)}: ${r} ranks exceeds level-1 cap of 1` });
+      if (r > ctx.level) issues.push({ severity: 'error', step: 'skills', slot: `skill:${sid}`, message: `${displayName(sid)}: ${r} ranks exceeds the max of ${ctx.level} (character level)` });
     }
   }
 
   // ---------- FEATS ----------
-  const featSlotKeys = featSlots(dec, race, klass);
+  const featSlotKeys = featSlots(dec, race, klass, ctx.level);
   const featOptions: SlotOption[] = C.FEATS.map((f) => {
     const legal = !f.prerequisites || evalPredicate(f.prerequisites, predCtx);
     return {
@@ -539,6 +637,10 @@ function buildSlotsAndIssues(
   // Broken prereqs on already-selected feats (upstream edit)
   for (const [key, fid] of Object.entries(dec.feats)) {
     if (!fid) continue;
+    // Feats keyed for a level above the target are suspended (see the advancement notice),
+    // not orphaned — don't raise prerequisite/orphan errors for them.
+    const keyLvl = key.match(/-L(\d+)$/);
+    if (keyLvl && Number(keyLvl[1]) > ctx.level) continue;
     const f = C.featById.get(fid);
     if (f?.prerequisites && !evalPredicate(f.prerequisites, predCtx)) {
       issues.push({ severity: 'error', step: 'feats', slot: key, clearSlot: `feats.${key}`, message: `${f.name}: ${explainFailure(f.prerequisites, predCtx, displayName)}` });
@@ -547,6 +649,17 @@ function buildSlotsAndIssues(
     if (!featSlotKeys.some((fs) => fs.key === key)) {
       issues.push({ severity: 'error', step: 'feats', slot: key, clearSlot: `feats.${key}`, message: `Decision orphaned: "${f?.name ?? fid}" — its slot was removed by an earlier choice` });
     }
+  }
+
+  // ---------- ADVANCEMENT (per-level picks) ----------
+  if (klass) {
+    for (const l of abilityIncreaseLevels(ctx.level)) {
+      if (!dec.abilityIncreases[l])
+        issues.push({ severity: 'info', step: 'advancement', slot: `ability-increase-L${l}`, message: `Choose your level-${l} ability score increase` });
+    }
+    const suspended = countSuspendedAboveLevel(dec, ctx.level);
+    if (suspended > 0)
+      issues.push({ severity: 'info', step: 'advancement', slot: 'level', message: `${suspended} decision${suspended === 1 ? '' : 's'} for levels above ${ctx.level} are suspended — they return if you level back up` });
   }
 
   // ---------- TRAITS ----------
@@ -668,13 +781,37 @@ function dualTalent(dec: Decisions): boolean {
   return dec.altTraits.includes('human-dual-talent');
 }
 
-function featSlots(dec: Decisions, race?: C.RaceDef, klass?: C.ClassDef): { key: string; label: string; combatOnly?: boolean }[] {
-  const out: { key: string; label: string; combatOnly?: boolean }[] = [{ key: 'feat-1', label: '1st-level feat' }];
+interface FeatSlotKey { key: string; label: string; combatOnly?: boolean; level: number; }
+
+/** All feat slots opened up through `level`: a general feat at each odd level, racial bonus
+ *  feat(s) at level 1, and class bonus feats at the class's `bonusFeats.levels`. Level-1 keys
+ *  keep their bare form (`feat-1`, `feat-<class>`) for back-compat; later levels are suffixed. */
+function featSlots(dec: Decisions, race: C.RaceDef | undefined, klass: C.ClassDef | undefined, level: number): FeatSlotKey[] {
+  const out: FeatSlotKey[] = [];
+  for (const l of generalFeatLevels(level))
+    out.push({ key: l === 1 ? 'feat-1' : `feat-L${l}`, label: `${ordinal(l)}-level feat`, level: l });
   const { standard, alternates } = activeRacialTraits(dec);
-  const active = [...standard, ...alternates];
-  for (const t of active) if (t.grantsFeatSlot) out.push({ key: t.grantsFeatSlot, label: `${race?.name ?? 'Racial'} bonus feat` });
-  if (klass?.id === 'fighter') out.push({ key: 'feat-fighter', label: 'Fighter bonus feat · combat only', combatOnly: true });
+  for (const t of [...standard, ...alternates])
+    if (t.grantsFeatSlot) out.push({ key: t.grantsFeatSlot, label: `${race?.name ?? 'Racial'} bonus feat`, level: 1 });
+  if (klass?.bonusFeats) {
+    const label = `${klass.bonusFeats.label ?? `${klass.name} bonus feat`}${klass.bonusFeats.combatOnly ? ' · combat only' : ''}`;
+    for (const l of klass.bonusFeats.levels) {
+      if (l > level) continue;
+      out.push({ key: l === 1 ? `feat-${klass.id}` : `feat-${klass.id}-L${l}`, label, combatOnly: klass.bonusFeats.combatOnly, level: l });
+    }
+  }
   return out;
+}
+
+/** How many stored decisions belong to levels above the current target (suspended, not lost). */
+function countSuspendedAboveLevel(dec: Decisions, level: number): number {
+  let n = 0;
+  const lvlOf = (k: string): number | null => { const m = k.match(/-L(\d+)$/); return m ? Number(m[1]) : null; };
+  for (const [k, v] of Object.entries(dec.feats)) { const l = lvlOf(k); if (l && l > level && v) n++; }
+  for (const [k, v] of Object.entries(dec.classChoices)) { const l = lvlOf(k); if (l && l > level && Array.isArray(v) && v.length) n++; }
+  for (const k of Object.keys(dec.abilityIncreases)) if (Number(k) > level) n++;
+  for (const k of Object.keys(dec.hpRolls)) if (Number(k) > level) n++;
+  return n;
 }
 
 /** Would selecting this alt trait orphan a feat sitting in a soon-removed slot? */

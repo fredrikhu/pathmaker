@@ -69,10 +69,54 @@ Working, verified (60 tests passing, typecheck clean):
 | Phase | Scope | Status |
 | --- | --- | --- |
 | 1 | Level-1 character creator | **done** |
-| 2 | **Level-up** — multi-level engine + per-level decisions | next; biggest architectural step |
+| 2 | **Level-up** — multi-level engine + per-level decisions | **done** (Part A engine/UI + Part B content, 30/31 classes) |
 | 3 | Interactive play sheet — one-click roll totals, spell/resource tracking, conditions, HP | designed-for (effect engine reused) |
 | 4 | Time & campaign clock — buff durations, rest resets | layers on phase 3 states |
 | 5 | Live inventory — consumables, charges, encumbrance in play | items are already entities |
+
+### Phase 2 status (level-up)
+
+**Part A — scaffolding & core numbers: done.** The engine resolves any level 1–20 with correct
+BAB, saves, HP (incl. retroactive Con), skill ranks (Int mod as of each level), feats at odd
+levels, class bonus feats (`ClassDef.bonusFeats`), ability increases at 4/8/12/16/20, caster
+level, and spell slots/day. Model: `CharacterDoc.level` + level-suffixed decision keys
+(`feat-L3`, `rogue-talent-L2`) + `hp-rolls` / `ability-increases`; schema v2 migration.
+UI: header level stepper, Advancement step (progression table + per-level HP + ability picks),
+feat slots grouped by level, skill cap = level. Golden tests at levels 5/7/4 + Toughness
+scaling + retroactive-Con + level-down suspend. Single-class only; multiclass model-ready.
+
+**Part B — verified per-class progression content: done (30/31 classes).** Per-level `features`,
+`bonusFeats`, and per-level subsystem `ClassChoiceDef.levels` are authored for all classes except
+vampire-hunter, verified against each class's d20pfsrd table (mechanical facts from source, prose
+paraphrased). The data lives in `src/content/class-features.ts` (`CLASS_PROGRESSION`, attached to
+the class defs by a loop in `classes.ts`); subsystem option lists in `subsystems.ts`. Subsystem
+picks working: rage powers, rogue/slayer talents (+ advanced), alchemist discoveries, magus arcana,
+paladin mercies & divine bond, oracle mystery/curse, witch/shaman hexes, arcanist exploits, shifter
+aspects, and bonus-feat slots (fighter/monk/wizard/ranger/cavalier/gunslinger/inquisitor/brawler/
+swashbuckler/bloodrager/warpriest/hunter). Caster slots gated to verified progressions only
+(`CASTER_PROGRESSION`: cleric/druid/wizard/sorcerer/oracle/witch/shaman = full, bard/skald = six).
+
+Remaining Part-B deferrals / fidelity notes:
+- **Spell selection above level 1 is still blocked** — only level 0–1 spell content exists, so the
+  picker offers L0–1 even for a level-7 caster (slots/day shown correctly for the verified casters).
+  The L2–9 spell lists remain the large deferred content item.
+- **Slot tables shown only for verified casters.** The unique 6-level/extract/4-level tables
+  (magus, inquisitor, summoner, alchemist, investigator, warpriest, hunter, arcanist, paladin,
+  ranger, bloodrager, vampire-hunter) are intentionally not encoded — those classes show no slot
+  numbers rather than guessed ones (`spellTableFor` → undefined). Encoding them is a follow-up.
+- **Subsystem-list approximations** (kept honest but not exhaustive): slayer & investigator talents
+  reuse the rogue-talent list; shaman hexes reuse the witch-hex list; every option list is a
+  core-scope subset. Source/choice-dependent picks (oracle revelations, sorcerer/bloodrager bloodline
+  powers, cavalier order abilities, gunslinger deeds) are modeled as descriptive features, not
+  interactive slots.
+- **vampire-hunter** keeps only its level-1 `features1` fallback — its table couldn't be verified
+  cleanly (same policy as the deferred Vigilante/Omdura classes).
+- **Repeated subsystem picks don't enforce cross-slot uniqueness** yet (you could pick the same rage
+  power at two levels). A per-series uniqueness pass is a small follow-up.
+- **Favored-class bonus is applied uniformly at every level** (single `fcb` choice), not per level.
+- **Class-feature effects are still not collected** into stats (e.g. druid Nature Sense) — only
+  racial/feat/trait/armor effects are. Wiring feature effects is a follow-up with tests.
+- **Toughness** scales correctly (`max(3, level)` HP), special-cased in the engine.
 
 ### Phase 2, concretely (the real work)
 1. Give `CharacterDoc.decisions` a **level dimension** (per-level records; creation = levels 1..N via

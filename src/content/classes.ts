@@ -4,6 +4,16 @@ import {
   WITCH_HEXES, SUMMONER_EIDOLON_FORMS, ARCANIST_EXPLOITS, BLOODRAGER_BLOODLINES,
   SHIFTER_ASPECTS, SHAMAN_SPIRITS,
 } from './subsystems';
+import { CLASS_PROGRESSION } from './class-features';
+import type { CasterProgression } from '../engine/progression';
+
+// Only classes whose exact slots/known table is verified and encoded in progression.ts get a
+// caster progression (and thus slot numbers on the sheet). The many classes with unique 6-level
+// or extract tables are intentionally omitted until their tables are authored — see resolve.ts.
+const CASTER_PROGRESSION: Record<string, CasterProgression> = {
+  cleric: 'full', druid: 'full', wizard: 'full', sorcerer: 'full', oracle: 'full', witch: 'full', shaman: 'full',
+  bard: 'six', skald: 'six',
+};
 
 // Class skill lists use the skill ids from skills.ts. Craft/Knowledge/Profession/Perform
 // families are listed by the specific subskill ids a class actually gets.
@@ -48,7 +58,7 @@ export const CLASSES: ClassDef[] = [
       { id: 'bard-performance', name: 'Bardic Performance', desc: 'Inspire courage: allies gain a morale bonus on attack and damage rolls and saves against fear.' },
       { id: 'bard-knowledge', name: 'Bardic Knowledge', desc: 'Add half class level (minimum 1) on all Knowledge checks, and may make them untrained.' },
     ],
-    spellcasting: { kind: 'spontaneous', ability: 'cha', list: 'bard', slots1: [999, 1], known1: [4, 2] },
+    spellcasting: { kind: 'spontaneous', ability: 'cha', list: 'bard', progression: 'six', slots1: [999, 1], known1: [4, 2] },
   },
   {
     id: 'cleric', name: 'Cleric', sub: 'Divine · d8 · 9th-level caster',
@@ -423,7 +433,7 @@ export const CLASSES: ClassDef[] = [
       { id: 'skd-knowledge', name: 'Bardic Knowledge', desc: 'Add half your level to all Knowledge checks and make them untrained.' },
       { id: 'skd-scribe', name: 'Scribe Scroll', desc: 'Gain Scribe Scroll as a bonus feat.' },
     ],
-    spellcasting: { kind: 'spontaneous', ability: 'cha', list: 'bard', slots1: [999, 1], known1: [4, 2] },
+    spellcasting: { kind: 'spontaneous', ability: 'cha', list: 'bard', progression: 'six', slots1: [999, 1], known1: [4, 2] },
   },
   {
     id: 'slayer', name: 'Slayer', sub: 'Hybrid · d10 · studied target',
@@ -451,5 +461,18 @@ export const CLASSES: ClassDef[] = [
     ],
   },
 ];
+
+// Attach the Part-B per-level progression (features, bonus feats, per-level subsystem picks).
+// Classes without an entry keep only their level-1 `features1` fallback (the engine handles that).
+for (const c of CLASSES) {
+  const prog = CLASS_PROGRESSION[c.id];
+  if (!prog) continue;
+  c.features = prog.features;
+  if (prog.bonusFeats) c.bonusFeats = prog.bonusFeats;
+  if (prog.choices) c.choices = [...(c.choices ?? []), ...prog.choices];
+}
+for (const c of CLASSES) {
+  if (c.spellcasting && CASTER_PROGRESSION[c.id]) c.spellcasting.progression = CASTER_PROGRESSION[c.id];
+}
 
 export const classById = new Map(CLASSES.map((c) => [c.id, c]));

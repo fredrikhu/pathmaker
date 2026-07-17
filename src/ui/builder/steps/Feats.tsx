@@ -4,6 +4,9 @@ import { featById, TRAITS } from '../../../content/index';
 import type { ChoiceSlot, SlotOption } from '../../../engine/types';
 import { WarnTag } from '../bits';
 
+/** Level a feat slot opens at, parsed from its `-L<n>` suffix (bare keys are level 1). */
+const slotLevel = (id: string): number => { const m = id.match(/-L(\d+)$/); return m ? Number(m[1]) : 1; };
+
 export function FeatsStep({ ch }: { ch: CharCtl }) {
   const { doc, setDecision, resolution } = ch;
   const featSlots = resolution.slots.filter((s) => s.step === 'feats' && s.id.startsWith('feat'));
@@ -24,18 +27,27 @@ export function FeatsStep({ ch }: { ch: CharCtl }) {
     // If already selected somewhere, clear it.
     const existing = Object.entries(feats).find(([, v]) => v === opt.id);
     if (existing) { setFeat(existing[0], null); return; }
-    const combat = featById.get(opt.id)?.types.includes('combat');
-    // Route: explicit target if compatible, else first empty compatible slot; never silently overwrite a full set.
+    // Route: explicit target if compatible & empty, else the first empty compatible slot by level;
+    // never silently overwrite a full set. Combat-only restriction is already baked into slot.options.
     const compatible = (slot: ChoiceSlot) => slot.options.some((o) => o.id === opt.id);
-    let key = targetSlot && compatible(featSlots.find((s) => s.id === targetSlot)!) && !feats[targetSlot] ? targetSlot : null;
+    let key = targetSlot && !feats[targetSlot] && compatible(featSlots.find((s) => s.id === targetSlot)!) ? targetSlot : null;
     if (!key) {
-      const order = combat ? ['feat-fighter', 'feat-human', 'feat-1'] : ['feat-human', 'feat-1'];
-      key = order.find((k) => featSlots.some((s) => s.id === k) && !feats[k]) ?? null;
+      const sorted = [...featSlots].sort((a, b) => slotLevel(a.id) - slotLevel(b.id));
+      key = sorted.find((s) => !feats[s.id] && compatible(s))?.id ?? null;
     }
     if (!key) return; // all compatible slots full — user must clear one
     setFeat(key, opt.id);
     setTargetSlot(null);
   };
+
+  // Feat slots grouped by the level at which they open (parsed from the `-L<n>` key suffix).
+  const levelGroups = new Map<number, ChoiceSlot[]>();
+  for (const s of featSlots) {
+    const l = slotLevel(s.id);
+    if (!levelGroups.has(l)) levelGroups.set(l, []);
+    levelGroups.get(l)!.push(s);
+  }
+  const groupLevels = [...levelGroups.keys()].sort((a, b) => a - b);
 
   const filtered = allOptions.filter((o) => {
     const f = featById.get(o.id)!;
@@ -60,23 +72,28 @@ export function FeatsStep({ ch }: { ch: CharCtl }) {
     <div style={{ maxWidth: 980 }}>
       <h3 style={{ fontSize: 21, margin: '0 0 12px' }}>Feats &amp; traits</h3>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 10, marginBottom: 16, maxWidth: 760 }}>
-        {featSlots.map((s) => {
-          const fid = feats[s.id];
-          const isTarget = targetSlot === s.id;
-          return (
-            <div key={s.id} onClick={() => setTargetSlot(isTarget ? null : s.id)}
-              style={{ padding: '10px 12px', borderRadius: 8, background: 'var(--color-surface)', cursor: 'pointer', boxShadow: `inset 0 0 0 1px ${fid ? 'var(--color-divider)' : isTarget ? 'var(--color-accent)' : 'var(--color-accent-800)'}` }}>
-              <div className="micro" style={{ marginBottom: 3 }}>{s.label}</div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: 13, fontWeight: 500, color: fid ? 'var(--color-text)' : 'var(--color-neutral-600)' }}>{fid ? featById.get(fid)?.name : (isTarget ? 'Selecting…' : 'Empty')}</span>
-                <span style={{ flex: 1 }} />
-                {fid && <button onClick={(e) => { e.stopPropagation(); setFeat(s.id, null); }} style={{ background: 'transparent', border: 'none', color: 'var(--color-neutral-500)', cursor: 'pointer', fontSize: 12 }}>✕</button>}
-              </div>
-            </div>
-          );
-        })}
-      </div>
+      {groupLevels.map((lvl) => (
+        <div key={lvl} style={{ marginBottom: 14 }}>
+          {groupLevels.length > 1 && <div className="micro" style={{ marginBottom: 6, color: 'var(--color-accent-300)' }}>Level {lvl}</div>}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 10, maxWidth: 760 }}>
+            {levelGroups.get(lvl)!.map((s) => {
+              const fid = feats[s.id];
+              const isTarget = targetSlot === s.id;
+              return (
+                <div key={s.id} onClick={() => setTargetSlot(isTarget ? null : s.id)}
+                  style={{ padding: '10px 12px', borderRadius: 8, background: 'var(--color-surface)', cursor: 'pointer', boxShadow: `inset 0 0 0 1px ${fid ? 'var(--color-divider)' : isTarget ? 'var(--color-accent)' : 'var(--color-accent-800)'}` }}>
+                  <div className="micro" style={{ marginBottom: 3 }}>{s.label}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 13, fontWeight: 500, color: fid ? 'var(--color-text)' : 'var(--color-neutral-600)' }}>{fid ? featById.get(fid)?.name : (isTarget ? 'Selecting…' : 'Empty')}</span>
+                    <span style={{ flex: 1 }} />
+                    {fid && <button onClick={(e) => { e.stopPropagation(); setFeat(s.id, null); }} style={{ background: 'transparent', border: 'none', color: 'var(--color-neutral-500)', cursor: 'pointer', fontSize: 12 }}>✕</button>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ))}
       {allFull && <p style={{ fontSize: 11.5, color: 'var(--warn-fg)', marginTop: -6, marginBottom: 12 }}>All feat slots are full — clear one to pick a different feat.</p>}
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12, flexWrap: 'wrap' }}>

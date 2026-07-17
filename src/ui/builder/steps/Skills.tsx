@@ -57,15 +57,15 @@ export function SkillsStep({ ch }: { ch: CharCtl }) {
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
               <button className="stepper" style={{ width: 24, height: 24 }} disabled={r <= 0} onClick={() => setRank(sk.id, r - 1)}>−</button>
               <span className="num" style={{ width: 18, textAlign: 'center', fontWeight: 600 }}>{r}</span>
-              <button className="stepper" style={{ width: 24, height: 24 }} disabled={r >= 1 || left <= 0} onClick={() => setRank(sk.id, r + 1)}>+</button>
+              <button className="stepper" style={{ width: 24, height: 24 }} disabled={r >= sheet.level || left <= 0} onClick={() => setRank(sk.id, r + 1)}>+</button>
             </span>
-            <button className="btn btn-ghost" style={{ fontSize: 11, justifyContent: 'flex-start' }} disabled={r >= 1 || left <= 0} onClick={() => setRank(sk.id, 1)}>Max</button>
+            <button className="btn btn-ghost" style={{ fontSize: 11, justifyContent: 'flex-start' }} disabled={r >= sheet.level || left <= 0} onClick={() => setRank(sk.id, Math.min(sheet.level, r + left))}>Max</button>
             {trainedUnusable ? <span className="text-muted num" style={{ fontSize: 13 }}>—</span> : <StatValue stat={stat} mode="mod" />}
             <span className="text-muted" style={{ fontSize: 10.5 }}>{trainedUnusable ? 'trained only' : (skillById.get(sk.id)?.trainedOnly ? '' : '')}</span>
           </div>
         );
       })}
-      <p className="text-muted" style={{ fontSize: 11.5, marginTop: 12 }}>Max ranks per skill = character level (1). Click any total for its breakdown.</p>
+      <p className="text-muted" style={{ fontSize: 11.5, marginTop: 12 }}>Max ranks per skill = character level ({sheet.level}). Click any total for its breakdown.</p>
     </div>
   );
 }

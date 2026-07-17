@@ -52,8 +52,14 @@ export interface CharacterDoc {
   name: string;
   createdAt: string;
   updatedAt: string;
+  /** Target character level being built, 1–20. Single-class for now. */
+  level: number;
   abilityMethod: 'pb15' | 'pb20' | 'pb25' | 'roll' | 'manual';
-  /** slotId -> chosen value. Unknown slots are kept (orphans) until cleared. */
+  /** slotId -> chosen value. Unknown slots are kept (orphans) until cleared.
+   *  Per-level decisions reuse the same maps with level-suffixed keys, e.g. the `feats`
+   *  map holds `feat-L3`, the `class-choices` map holds `rogue-talent-L2`. Two per-level
+   *  decisions live at the top level: `hp-rolls` (Record<level, hpGained> for levels ≥ 2)
+   *  and `ability-increases` (Record<level, Ability> for 4/8/12/16/20). */
   decisions: Record<string, DecisionValue>;
   purchases: Record<string, number>;
   goldSpent: number;
@@ -115,7 +121,25 @@ export interface ChoiceSlot {
   auto?: boolean;
 }
 
+/** One row of the class advancement table: what the character gains at a given level. */
+export interface ProgressionRow {
+  level: number;
+  bab: number;
+  fort: number;
+  ref: number;
+  will: number;
+  /** Class-feature names gained at this level. */
+  features: string[];
+  /** Feat-slot labels opened at this level (general + class bonus + racial). */
+  featSlots: string[];
+  /** The chosen ability increase at this level, if any (4/8/12/16/20). */
+  abilityIncrease?: Ability;
+  /** Hit points gained at this level (max die at 1; roll/average after). */
+  hp: number;
+}
+
 export interface Sheet {
+  level: number;
   stats: Record<string, Stat>;
   /** Ordered skill rows for the skills step / sheet. */
   skillIds: string[];
@@ -128,6 +152,13 @@ export interface Sheet {
   /** Effective land speed plus any special movement modes (feet). `reducedFrom` is the
    *  unencumbered land speed when armor/load has slowed it. Display only in phase 1. */
   speed: { base: number; reducedFrom?: number; fly?: number; swim?: number; climb?: number; burrow?: number };
+  /** Caster level and spell slots per day (index = spell level), when the class casts. */
+  casterLevel?: number;
+  spellSlots?: number[];
+  /** Known-spell counts per spell level for spontaneous casters (index = spell level). */
+  spellsKnown?: number[];
+  /** Per-level advancement table for the Advancement view and sheet. */
+  progression: ProgressionRow[];
   summaryLine: string; // "LN Human Fighter 1"
 }
 

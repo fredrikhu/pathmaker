@@ -74,6 +74,12 @@ export function SheetPreview({ id }: { id: string }) {
 
         {klass?.spellcasting && (
           <Section title="Spells">
+            {sheet.casterLevel != null && (
+              <div className="text-muted" style={{ fontSize: 12, marginBottom: 4 }}>
+                Caster level {sheet.casterLevel}
+                {sheet.spellSlots && sheet.spellSlots.length > 0 && <> · slots/day {sheet.spellSlots.map((n, l) => `L${l}:${n}`).join('  ')}</>}
+              </div>
+            )}
             <div className="text-muted" style={{ fontSize: 12, marginBottom: 4 }}>Cantrips and 1st-level selections</div>
             {spells.length ? spells.map((s) => <div key={s} style={{ fontSize: 13, lineHeight: 1.7 }}>{spellById.get(s)?.name} <span className="text-muted">· {spellById.get(s)?.school}</span></div>) : <span className="text-muted">No spells chosen.</span>}
           </Section>

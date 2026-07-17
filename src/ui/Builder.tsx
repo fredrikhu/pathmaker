@@ -8,6 +8,7 @@ import { IssuesPanel } from './builder/IssuesPanel';
 import { BasicsStep } from './builder/steps/Basics';
 import { RaceStep } from './builder/steps/Race';
 import { ClassStep } from './builder/steps/Class';
+import { AdvancementStep } from './builder/steps/Advancement';
 import { SkillsStep } from './builder/steps/Skills';
 import { FeatsStep } from './builder/steps/Feats';
 import { SpellsStep } from './builder/steps/Spells';
@@ -15,7 +16,7 @@ import { EquipmentStep } from './builder/steps/Equipment';
 import { ReviewStep } from './builder/steps/Review';
 
 const STEP_LABEL: Record<string, string> = {
-  basics: 'Basics', race: 'Race', class: 'Class', skills: 'Skills',
+  basics: 'Basics', race: 'Race', class: 'Class', advancement: 'Advancement', skills: 'Skills',
   feats: 'Feats & traits', spells: 'Spells', equipment: 'Equipment', review: 'Review',
 };
 
@@ -45,6 +46,14 @@ export function Builder({ id }: { id: string }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '10px 20px', flexWrap: 'wrap' }}>
         <button onClick={() => navigate({ name: 'roster' })} style={{ fontSize: 10, letterSpacing: '.14em', textTransform: 'uppercase', color: 'var(--color-accent)', background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>Pathmaker</button>
         <span style={{ fontWeight: 500, fontSize: 15 }}>{doc.name} <span className="text-muted" style={{ fontSize: 12, fontWeight: 400 }}>· {resolution.sheet.summaryLine || 'new character'}</span></span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }} title="Character level">
+          <span className="micro">Level</span>
+          <button className="stepper" style={{ width: 24, height: 24 }} disabled={doc.level <= 1}
+            onClick={() => ch.patch((d) => ({ ...d, updatedAt: new Date().toISOString(), level: Math.max(1, d.level - 1) }))}>−</button>
+          <span className="num" style={{ width: 20, textAlign: 'center', fontWeight: 600, fontSize: 15 }}>{doc.level}</span>
+          <button className="stepper" style={{ width: 24, height: 24 }} disabled={doc.level >= 20}
+            onClick={() => ch.patch((d) => ({ ...d, updatedAt: new Date().toISOString(), level: Math.min(20, d.level + 1) }))}>+</button>
+        </div>
         <div style={{ display: 'flex', gap: 2, marginLeft: 16, flexWrap: 'wrap' }}>
           {steps.map((s) => {
             const gg = glyph(s);
@@ -69,6 +78,7 @@ export function Builder({ id }: { id: string }) {
           {activeStep === 'basics' && <BasicsStep ch={ch} />}
           {activeStep === 'race' && <RaceStep ch={ch} />}
           {activeStep === 'class' && <ClassStep ch={ch} />}
+          {activeStep === 'advancement' && <AdvancementStep ch={ch} />}
           {activeStep === 'skills' && <SkillsStep ch={ch} />}
           {activeStep === 'feats' && <FeatsStep ch={ch} />}
           {activeStep === 'spells' && <SpellsStep ch={ch} />}

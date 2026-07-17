@@ -109,15 +109,51 @@ describe('classes', () => {
         expect(skillIds.has(sid), `class ${c.id}: class skill "${sid}" is not a real skill`).toBe(true);
       }
       for (const f of c.features1) checkEffects(f.effects, `class ${c.id} feature ${f.id}`);
+      const featIdsSeen = new Set<string>();
+      for (const f of c.features ?? []) {
+        expect(f.level, `class ${c.id} feature ${f.id}: level out of 1..20`).toBeGreaterThanOrEqual(1);
+        expect(f.level, `class ${c.id} feature ${f.id}: level out of 1..20`).toBeLessThanOrEqual(20);
+        expect(featIdsSeen.has(f.id), `class ${c.id}: duplicate feature id "${f.id}"`).toBe(false);
+        featIdsSeen.add(f.id);
+        checkEffects(f.effects, `class ${c.id} feature ${f.id}`);
+      }
+      for (const l of c.bonusFeats?.levels ?? []) {
+        expect(l, `class ${c.id} bonusFeat level out of 1..20`).toBeGreaterThanOrEqual(1);
+        expect(l, `class ${c.id} bonusFeat level out of 1..20`).toBeLessThanOrEqual(20);
+      }
       for (const ch of c.choices ?? []) {
         expect(CHOICE_KINDS.has(ch.kind), `class ${c.id}: unknown choice kind "${ch.kind}"`).toBe(true);
         expect(ch.count, `${c.id}/${ch.id} count`).toBeGreaterThan(0);
+        for (const l of ch.levels ?? []) {
+          expect(l, `class ${c.id}/${ch.id}: choice level out of 1..20`).toBeGreaterThanOrEqual(1);
+          expect(l, `class ${c.id}/${ch.id}: choice level out of 1..20`).toBeLessThanOrEqual(20);
+        }
+        // Inline 'list' options must have unique ids within the choice.
+        const optIds = (ch.options ?? []).map((o) => o.id);
+        expect(new Set(optIds).size, `class ${c.id}/${ch.id}: duplicate option ids`).toBe(optIds.length);
       }
       if (c.spellcasting) {
         expect(SPELL_LISTS.has(c.spellcasting.list), `class ${c.id}: unknown spell list`).toBe(true);
         expect(ABILITIES, `${c.id} casting ability`).toContain(c.spellcasting.ability);
+        if (c.spellcasting.progression)
+          expect(['full', 'six', 'four'], `${c.id} caster progression`).toContain(c.spellcasting.progression);
       }
     }
+  });
+});
+
+describe('class progression coverage (Part B)', () => {
+  it('every class except the documented deferral has a per-level feature progression', () => {
+    const deferred = new Set(['vampire-hunter']);
+    for (const c of C.CLASSES) {
+      if (deferred.has(c.id)) continue;
+      expect(c.features && c.features.length > 0, `class ${c.id}: no per-level features authored`).toBe(true);
+      expect(c.features!.some((f) => f.level === 1), `class ${c.id}: no level-1 feature`).toBe(true);
+    }
+  });
+  it('only verified casters carry a caster progression (others show no slot numbers)', () => {
+    const withProg = C.CLASSES.filter((c) => c.spellcasting?.progression).map((c) => c.id).sort();
+    expect(withProg).toEqual(['bard', 'cleric', 'druid', 'oracle', 'shaman', 'skald', 'sorcerer', 'witch', 'wizard'].sort());
   });
 });
 
