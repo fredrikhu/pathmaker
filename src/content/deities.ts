@@ -61,4 +61,6 @@ export const bloodlineById = new Map(BLOODLINES.map((b) => [b.id, b]));
 export const LANGUAGES = [
   'common', 'dwarven', 'elven', 'gnome', 'goblin', 'halfling', 'orc', 'draconic', 'giant',
   'sylvan', 'celestial', 'abyssal', 'infernal', 'terran', 'undercommon', 'gnoll', 'aquan', 'auran', 'ignan',
+  // Additional tongues used by featured/uncommon races.
+  'aklo', 'catfolk', 'tengu', 'aboleth', 'grippli', 'nagaji', 'samsaran', 'vanaran', 'vishkanya', 'wayang', 'boggard', 'strix',
 ];

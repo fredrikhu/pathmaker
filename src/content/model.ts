@@ -22,6 +22,10 @@ export interface RaceDef {
   desc: string;
   size: 'small' | 'medium';
   speed: number;
+  /** "Slow and Steady": land speed is never reduced by armor or encumbrance (dwarf, duergar, oread). */
+  speedNeverReduced?: boolean;
+  /** Non-land movement modes (fly/swim/climb/burrow), in feet. Display only. */
+  speeds?: { fly?: number; swim?: number; climb?: number; burrow?: number };
   /** Fixed modifiers, or 'choice' for the floating +2 (human, half-elf, half-orc). */
   abilityMods: Partial<Record<Ability, number>> | 'choice';
   traits: RacialTraitDef[];
@@ -55,13 +59,16 @@ export type ClassChoiceKind =
   | 'arcane-bond'
   | 'cleric-domains'
   | 'warpriest-blessings'
-  | 'sorcerer-bloodline';
+  | 'sorcerer-bloodline'
+  | 'list';
 
 export interface ClassChoiceDef {
   id: string; // slot suffix, e.g. "school"
   label: string;
   kind: ClassChoiceKind;
   count: number;
+  /** For kind: 'list' — the pick-one(-or-more) options, defined inline as data. */
+  options?: { id: string; name: string; desc: string }[];
 }
 
 export interface ClassDef {

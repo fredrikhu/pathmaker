@@ -143,6 +143,130 @@ describe('elf wizard 1: opposition schools and spellbook', () => {
   });
 });
 
+describe('new races', () => {
+  function race(raceId: string, cls = 'fighter'): CharacterDoc {
+    let d = newCharacter('t-' + raceId);
+    d = withDecision(d, 'ability-base', { str: 12, dex: 14, con: 12, int: 10, wis: 10, cha: 10 });
+    d = withDecision(d, 'race', raceId);
+    d = withDecision(d, 'class', cls);
+    return d;
+  }
+
+  it('Goblin (Small, +4 Dex) stacks +4 racial and +4 size on Stealth', () => {
+    let d = race('goblin', 'rogue');
+    d = withDecision(d, 'skill-ranks', { stealth: 1 });
+    const r = resolve(d);
+    // Dex 14+4=18 (+4) + 1 rank + 3 class skill + 4 racial (Skilled) + 4 size (Small) = 16
+    expect(r.sheet.stats['skill:stealth'].total).toBe(16);
+    // AC gains +1 from Small size
+    expect(r.sheet.stats['ability:dex'].total).toBe(18);
+  });
+
+  it('Kobold gets +1 natural armor into AC', () => {
+    const r = resolve(race('kobold'));
+    expect(r.sheet.stats['ac'].lines.some((l) => /Natural Armor/.test(l.label))).toBe(true);
+  });
+
+  it('Dhampir’s +2 vs disease/mind-affecting is an annotation, not in the flat save total', () => {
+    const r = resolve(race('dhampir'));
+    // Will = 0 (fighter poor) + 0 Wis = 0, NOT +2.
+    expect(r.sheet.stats['save:will'].total).toBe(0);
+    expect(r.sheet.stats['save:will'].annotations.some((a) => /disease/.test(a))).toBe(true);
+  });
+
+  it('Oread has a 20-ft speed and no floating bonus', () => {
+    const r = resolve(race('oread'));
+    expect(r.slots.some((s) => s.id === 'floating-bonus')).toBe(false); // fixed mods, not a choice race
+    expect(r.sheet.speed.base).toBe(20);
+  });
+
+  it('heavy armor reduces a human’s 30-ft speed to 20', () => {
+    let d = race('human');
+    d = { ...d, equipped: { ...d.equipped, armor: 'full-plate' } };
+    const r = resolve(d);
+    expect(r.sheet.speed.base).toBe(20);
+    expect(r.sheet.speed.reducedFrom).toBe(30);
+  });
+
+  it('a dwarf in heavy armor keeps 20 ft (Slow and Steady is never reduced)', () => {
+    let d = race('dwarf');
+    d = { ...d, equipped: { ...d.equipped, armor: 'full-plate' } };
+    const r = resolve(d);
+    expect(r.sheet.speed.base).toBe(20);
+    expect(r.sheet.speed.reducedFrom).toBeUndefined();
+  });
+
+  it('medium armor reduces a Small race’s 20-ft speed to 15', () => {
+    let d = race('halfling');
+    d = { ...d, equipped: { ...d.equipped, armor: 'scale-mail' } }; // medium
+    const r = resolve(d);
+    expect(r.sheet.speed.base).toBe(15);
+  });
+
+  it('light armor does not reduce speed', () => {
+    let d = race('human');
+    d = { ...d, equipped: { ...d.equipped, armor: 'chain-shirt' } }; // light
+    const r = resolve(d);
+    expect(r.sheet.speed.base).toBe(30);
+    expect(r.sheet.speed.reducedFrom).toBeUndefined();
+  });
+});
+
+describe('new Base/Hybrid classes', () => {
+  function human(cls: string): CharacterDoc {
+    let d = newCharacter('t-' + cls);
+    d = withDecision(d, 'ability-base', { str: 14, dex: 14, con: 14, int: 14, wis: 12, cha: 14 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['str']);
+    d = withDecision(d, 'class', cls);
+    return d;
+  }
+
+  it('Magus: full BAB (+1 at 1st), good Fort+Will, and a 3+Int spellbook slot', () => {
+    const r = resolve(human('magus'));
+    expect(r.sheet.stats['bab'].total).toBe(1);
+    expect(r.sheet.stats['save:fort'].total).toBe(4); // +2 + 2 Con
+    expect(r.sheet.stats['save:will'].total).toBe(3); // +2 + 1 Wis
+    expect(r.steps).toContain('spells');
+    const book = r.slots.find((s) => s.id === 'spell-picks')!;
+    expect(book.count).toBe(5); // 3 + Int mod (16 → +3)? Int 14+2 racial = 16 → +3
+  });
+
+  it('Oracle: ¾ BAB (+0), spontaneous divine, and mystery + curse choices', () => {
+    const r = resolve(human('oracle'));
+    expect(r.sheet.stats['bab'].total).toBe(0);
+    expect(r.steps).toContain('spells');
+    const known = r.slots.find((s) => s.id === 'spell-picks')!;
+    expect(known.count).toBe(2); // known1[1]
+    expect(r.slots.some((s) => s.id === 'mystery')).toBe(true);
+    expect(r.slots.some((s) => s.id === 'curse')).toBe(true);
+  });
+
+  it('Cavalier: full BAB martial with an order choice and no spells step', () => {
+    const r = resolve(human('cavalier'));
+    expect(r.sheet.stats['bab'].total).toBe(1);
+    expect(r.steps).not.toContain('spells');
+    const order = r.slots.find((s) => s.id === 'order')!;
+    expect(order.options.length).toBeGreaterThan(3);
+    expect(order.options.every((o) => o.legal)).toBe(true);
+  });
+
+  it('Bloodrager: full BAB, bloodline choice, but no spells at level 1', () => {
+    const r = resolve(human('bloodrager'));
+    expect(r.sheet.stats['bab'].total).toBe(1);
+    expect(r.steps).not.toContain('spells'); // casting begins at 4th
+    expect(r.slots.some((s) => s.id === 'bloodline')).toBe(true);
+  });
+
+  it('Witch: ½ BAB (+0), d6, arcane spellbook, patron + hex choices', () => {
+    const r = resolve(human('witch'));
+    expect(r.sheet.stats['bab'].total).toBe(0);
+    expect(r.sheet.stats['hp:max'].total).toBe(8); // d6 6 + 2 Con
+    expect(r.slots.some((s) => s.id === 'patron')).toBe(true);
+    expect(r.slots.some((s) => s.id === 'hex')).toBe(true);
+  });
+});
+
 describe('Dual Talent and the over-selection bug class', () => {
   function human(): CharacterDoc {
     let d = newCharacter('t-dt');

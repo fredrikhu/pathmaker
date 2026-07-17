@@ -125,6 +125,9 @@ export interface Sheet {
   skillRanksSpent: number;
   gold: number;
   load: { current: number; light: number; medium: number; heavy: number; label: string };
+  /** Effective land speed plus any special movement modes (feet). `reducedFrom` is the
+   *  unencumbered land speed when armor/load has slowed it. Display only in phase 1. */
+  speed: { base: number; reducedFrom?: number; fly?: number; swim?: number; climb?: number; burrow?: number };
   summaryLine: string; // "LN Human Fighter 1"
 }
 
@@ -139,3 +142,21 @@ export interface Resolution {
 export const abilityMod = (score: number): number => Math.floor((score - 10) / 2);
 
 export const fmtMod = (v: number): string => (v >= 0 ? `+${v}` : `−${Math.abs(v)}`);
+
+/** Non-land movement modes, e.g. "fly 60 ft, swim 30 ft" (empty if none). */
+export const speedExtra = (s: Sheet['speed']): string => {
+  const p: string[] = [];
+  if (s.fly) p.push(`fly ${s.fly} ft`);
+  if (s.swim) p.push(`swim ${s.swim} ft`);
+  if (s.climb) p.push(`climb ${s.climb} ft`);
+  if (s.burrow) p.push(`burrow ${s.burrow} ft`);
+  return p.join(', ');
+};
+
+/** "30 ft", "20 ft (30 base) · swim 30 ft", etc. Includes the pre-reduction base when slowed. */
+export const speedLabel = (s: Sheet['speed']): string => {
+  const parts = [s.reducedFrom ? `${s.base} ft (${s.reducedFrom} base)` : `${s.base} ft`];
+  const extra = speedExtra(s);
+  if (extra) parts.push(extra);
+  return parts.join(' · ');
+};

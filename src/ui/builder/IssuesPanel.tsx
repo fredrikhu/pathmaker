@@ -8,7 +8,7 @@ export function IssuesPanel({ issues, onNavigate, onClear }: {
   onClear: (slot: string) => void;
 }) {
   return (
-    <div style={{ borderLeft: '1px solid var(--color-divider)', padding: 18, display: 'flex', flexDirection: 'column', gap: 10, background: 'var(--color-surface)' }}>
+    <div style={{ borderLeft: '1px solid var(--color-divider)', padding: 18, display: 'flex', flexDirection: 'column', gap: 10, background: 'var(--color-surface)', minHeight: 0, overflowY: 'auto' }}>
       <span className="micro" style={{ letterSpacing: '.12em' }}>To resolve — {issues.length}</span>
       {issues.map((i, idx) => (
         <div key={idx} onClick={() => onNavigate(i.step, i.slot)}

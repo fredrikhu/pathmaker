@@ -1,5 +1,5 @@
 import type { Sheet } from '../../engine/types';
-import { fmtMod } from '../../engine/types';
+import { fmtMod, speedLabel, speedExtra } from '../../engine/types';
 import { useTip } from '../Tooltip';
 
 const CELLS: { key: string; label: string; mode: 'plain' | 'mod'; term?: string }[] = [
@@ -31,6 +31,27 @@ export function StatStrip({ sheet }: { sheet: Sheet }) {
           </div>
         );
       })}
+      {(() => {
+        const s = sheet.speed;
+        const extra = speedExtra(s);
+        const reducedNote = s.reducedFrom ? ` Reduced from ${s.reducedFrom} ft by armor or a heavy load.` : '';
+        const open = tip.card({
+          kicker: 'Movement',
+          title: `Speed ${speedLabel(s)}`,
+          body: `Land speed ${s.base} ft.${reducedNote}${extra ? ` Also ${extra}.` : ''}`,
+        });
+        return (
+          <div onMouseEnter={open} onMouseLeave={tip.leave} onClick={open}
+            style={{ padding: '8px 15px 9px', cursor: 'pointer', borderRight: '1px solid rgba(233,233,237,.06)', flex: 'none' }}>
+            <div className="micro">Speed</div>
+            <div className="num" style={{ fontSize: 17, fontWeight: 600, color: s.reducedFrom ? 'var(--warn-fg)' : undefined }}>
+              {s.base}
+              {s.reducedFrom ? <span style={{ fontSize: 11, fontWeight: 400 }}> ↓</span> : ''}
+              {extra ? <span style={{ fontSize: 11, color: 'var(--color-accent-300)', fontWeight: 400 }}> ✦</span> : ''}
+            </div>
+          </div>
+        );
+      })()}
       <span style={{ flex: 1 }} />
       <div style={{ alignSelf: 'center', fontSize: 11, color: 'var(--color-neutral-500)', whiteSpace: 'nowrap', paddingLeft: 12 }}>
         hover a number for its breakdown · click to pin · dotted terms explain the rules

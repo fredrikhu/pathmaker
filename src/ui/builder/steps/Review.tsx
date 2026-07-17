@@ -1,5 +1,5 @@
 import type { CharCtl } from '../../Builder';
-import { ABILITIES, abilityMod, fmtMod, type Ability } from '../../../engine/types';
+import { ABILITIES, abilityMod, fmtMod, speedLabel, type Ability } from '../../../engine/types';
 import { exportCharacter } from '../../../storage/store';
 import { navigate } from '../../App';
 import { StatValue } from '../../StatValue';
@@ -17,7 +17,7 @@ export function ReviewStep({ ch, onGoto }: { ch: CharCtl; onGoto: (s: string) =>
     <div style={{ maxWidth: 980 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 4, flexWrap: 'wrap' }}>
         <h3 style={{ fontSize: 24, margin: 0 }}>{doc.name}</h3>
-        <span className="text-muted" style={{ fontSize: 13 }}>{sheet.summaryLine}</span>
+        <span className="text-muted" style={{ fontSize: 13 }}>{sheet.summaryLine} · Speed {speedLabel(sheet.speed)}</span>
         <span style={{ flex: 1 }} />
         <button className="btn btn-secondary" style={{ fontSize: 12 }} onClick={() => exportCharacter(doc)}>Export JSON</button>
         <button className="btn btn-primary" style={{ fontSize: 12 }} onClick={() => navigate({ name: 'sheet', id: doc.id })}>Open sheet preview</button>

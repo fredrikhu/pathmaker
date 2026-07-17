@@ -16,7 +16,7 @@ const BONUS_TYPES = new Set([
 ]);
 const SPELL_LISTS = new Set(['arcane', 'bard', 'divine', 'druid', 'ranger', 'paladin']);
 const CHOICE_KINDS = new Set([
-  'wizard-school', 'wizard-opposition', 'arcane-bond', 'cleric-domains', 'warpriest-blessings', 'sorcerer-bloodline',
+  'wizard-school', 'wizard-opposition', 'arcane-bond', 'cleric-domains', 'warpriest-blessings', 'sorcerer-bloodline', 'list',
 ]);
 
 const skillIds = new Set(C.SKILLS.map((s) => s.id));

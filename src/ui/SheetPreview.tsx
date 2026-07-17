@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { loadCharacter } from '../storage/store';
 import { resolve } from '../engine/resolve';
-import { ABILITIES, abilityMod, fmtMod, type Ability } from '../engine/types';
+import { ABILITIES, abilityMod, fmtMod, speedLabel, type Ability } from '../engine/types';
 import { classById, anyItemById, featById, spellById } from '../content/index';
 import { navigate } from './App';
 import { StatValue } from './StatValue';
@@ -36,7 +36,7 @@ export function SheetPreview({ id }: { id: string }) {
 
       <div style={{ maxWidth: 900, margin: '0 auto', padding: '0 24px 60px' }}>
         <h1 style={{ fontSize: 32, marginBottom: 2 }}>{doc.name}</h1>
-        <p className="text-muted" style={{ fontSize: 14 }}>{sheet.summaryLine}</p>
+        <p className="text-muted" style={{ fontSize: 14 }}>{sheet.summaryLine} · Speed {speedLabel(sheet.speed)}</p>
 
         <div style={{ display: 'flex', gap: 8, margin: '18px 0', flexWrap: 'wrap' }}>
           {ABILITIES.map((ab: Ability) => {
@@ -138,7 +138,7 @@ function PrintSheet({ doc, onExit }: { doc: ReturnType<typeof loadCharacter> & o
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', borderBottom: `2px solid var(--ink)`, paddingBottom: 8 }}>
           <div style={{ fontSize: 26, fontWeight: 700 }}>{doc.name}</div>
-          <div style={{ fontSize: 13 }}>{sheet.summaryLine}</div>
+          <div style={{ fontSize: 13, textAlign: 'right' }}>{sheet.summaryLine}<br /><span style={{ fontSize: 11 }}>Speed {speedLabel(sheet.speed)}</span></div>
         </div>
 
         <div style={{ display: 'flex', gap: 0, margin: '12px 0', border: `1px solid var(--ink-hairline)` }}>

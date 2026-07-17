@@ -1,0 +1,86 @@
+# Pathmaker — Project Status & Backlog
+
+Snapshot of where the project stands, what was deliberately deferred (and why), and the
+phase roadmap. Written so context isn't lost across sessions/compaction. Companion to
+[DESIGN.md](DESIGN.md) (architecture) and the HANDOVER docs (UI).
+
+## Phase 1 — Level-1 character creator: **complete**
+
+Working, verified (60 tests passing, typecheck clean):
+- **Roster** (create/duplicate/delete/import/export, empty state), **Builder** (all steps:
+  Basics, Race, Class, Skills, Feats & traits, Spells, Equipment, Review), **Sheet preview**
+  (screen + A4/Letter print).
+- **Engine** (`src/engine/`): pure `resolve(doc) → { sheet, slots, issues, steps }`; typed-bonus
+  stacking; predicate DSL; uniform choice slots; non-blocking validation; localStorage + migrations.
+- **Content**: 31 classes (11 core + Warpriest + 12 base + 9 hybrid − see deferrals), 39 races
+  (7 core + 16 featured + 14 uncommon + Android/Gnoll), ~20 core feats, level 0–1 spells, sample
+  traits, core equipment, ~20 deities.
+
+### Key conventions / decisions (don't relitigate without reason)
+- **Nothing locks.** Changing an earlier choice never destroys a later one; conflicts surface as
+  non-blocking `Issue`s. Exceptions we agreed: (a) hard-disable alignment cells only for
+  single-alignment classes (paladin); (b) hard-illegal options (unmet prereqs, double-replaced
+  traits) are disabled with `whyNot`.
+- **Suspend, don't delete.** Orphaned feats and over-count picks (e.g. Dual Talent → drop) keep the
+  decision but stop contributing to the sheet, and raise an error Issue. Generic slot-integrity pass
+  in `resolve.ts` catches over-count / now-illegal selections across all slots.
+- **UI does zero rules math** — renders `Sheet`/`ChoiceSlot[]`/`Issue[]`, dispatches decisions.
+- **Verification gate**: `npm test` must be green. Two suites: golden-character (`resolve.test.ts`,
+  hand-computed numbers) + content-integrity (`content.test.ts`, validates every cross-reference).
+  Add a golden test for new rules math; content tests auto-cover new data.
+- **New content is verified against d20pfsrd** before authoring (caught e.g. Warpriest ¾-BAB,
+  Witch ½-BAB, Magus full-BAB).
+
+## Deferred backlog (conscious skips)
+
+### Classes
+- **Vigilante** — BAB changes with the level-1 specialization (Avenger full / Stalker ¾) and the
+  Warlock path adds psychic casting; needs choice-dependent progression the engine lacks.
+- **Omdura** — obscure supplement class; source gave an ambiguous BAB. Don't guess.
+- **Never in scope yet** (user chose Base+Hybrid): Occult (Kineticist, Medium, Mesmerist, Occultist,
+  Psychic, Spiritualist), Alternate (Antipaladin, Ninja, Samurai), NPC (Adept, Aristocrat, Commoner,
+  Expert, Warrior), Unchained variants (Barbarian/Monk/Rogue/Summoner).
+- **Alchemist & Investigator** are features-only (extract spell list not authored).
+- **Bloodrager, Vampire Hunter** cast from 4th level → no creation spell step (correct).
+
+### Races
+- **Lizardfolk** — source returned an ambiguous natural-armor value (+1 vs canonical +5); held.
+- **Kasatha** — four arms is a combat mechanic, not data.
+- **Monster-tier (31+ RP)**: Drider, Gargoyle, Trox, Drow Noble — full monster stat blocks.
+- **Other advanced**: Lashunta (dual subtypes), Skinwalker (shapeshift heritages), Ghoran, Syrinx,
+  Wyrwood (construct), Wyvaran, Gathlain, Shabti, Triaxian, Monkey Goblin.
+
+### Content breadth (all pure-data expansions)
+- Feats: only ~20 core feats. Spells: level 0–1 only. Traits: small sample. Equipment: core subset.
+- **Psychic/occult spell list** and **alchemist/investigator extract list** not authored.
+- Subsystem option lists (mysteries, patrons, bloodlines, orders, spirits, etc.) are representative
+  subsets, not exhaustive.
+
+### Modeling simplifications (fidelity notes)
+- Spell-like abilities, darkvision, and energy resistances are **descriptive traits** (not computed).
+  Skill/save/stat bonuses **are** real effects.
+- Racial **variant heritages** (Aasimar/Tiefling sub-bloodlines) not modeled — standard heritage only.
+- **Fly/swim/climb** speeds are display-only; only **land speed** is reduced by armor/encumbrance,
+  and that reduction doesn't yet handle non-proficiency or class-feature exceptions.
+- Race-level "pick one" traits (Samsaran Shards of the Past, Changeling hag heritage) are text.
+
+## Phase roadmap
+
+| Phase | Scope | Status |
+| --- | --- | --- |
+| 1 | Level-1 character creator | **done** |
+| 2 | **Level-up** — multi-level engine + per-level decisions | next; biggest architectural step |
+| 3 | Interactive play sheet — one-click roll totals, spell/resource tracking, conditions, HP | designed-for (effect engine reused) |
+| 4 | Time & campaign clock — buff durations, rest resets | layers on phase 3 states |
+| 5 | Live inventory — consumables, charges, encumbrance in play | items are already entities |
+
+### Phase 2, concretely (the real work)
+1. Give `CharacterDoc.decisions` a **level dimension** (per-level records; creation = levels 1..N via
+   the same pipeline). Today it's a flat map — this is the main model change.
+2. Generalize the engine off level 1: BAB/save curves over class levels, HP per level, skill ranks
+   per level, feats at odd levels, ability bumps at 4/8/12/16/20, class features per level,
+   multiclassing (stack BAB/saves), favored-class bonus per level.
+3. Level-up UI reuses the existing builder steps per level; add retraining/undo of earlier levels.
+
+Everything in phases 3–5 is additive on top of the effect engine (toggleable states with durations,
+a "used" counter layer on the stat nodes that already model pools). No rearchitecting anticipated.

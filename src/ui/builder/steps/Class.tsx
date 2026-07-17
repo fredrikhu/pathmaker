@@ -32,10 +32,10 @@ export function ClassStep({ ch }: { ch: CharCtl }) {
   };
 
   return (
-    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 28, maxWidth: 1120 }}>
-      <div style={{ flex: 'none', width: 280 }}>
+    <div style={{ display: 'flex', gap: 28, maxWidth: 1120, height: '100%' }}>
+      <div style={{ flex: 'none', width: 280, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
         <h3 style={{ fontSize: 21, margin: '0 0 12px' }}>Class</h3>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, overflowY: 'auto', minHeight: 0, paddingRight: 6 }}>
           {CLASSES.map((c) => (
             <div key={c.id} role="button" tabIndex={0}
               onClick={() => setViewId(c.id)}
@@ -53,7 +53,7 @@ export function ClassStep({ ch }: { ch: CharCtl }) {
         </div>
       </div>
 
-      <div style={{ padding: '4px 0', flex: 1, minWidth: 480 }}>
+      <div style={{ padding: '4px 20px 4px 0', flex: 1, minWidth: 0, overflowY: 'auto', minHeight: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 6, flexWrap: 'wrap' }}>
           <h3 style={{ fontSize: 24, margin: 0 }}>{view.name}</h3>
           <button className="btn btn-primary" style={{ fontSize: 12 }} onClick={() => setDecision('class', view.id)}>

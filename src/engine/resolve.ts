@@ -321,6 +321,7 @@ export function resolve(doc: CharacterDoc): Resolution {
     ];
     if (isClass && ranks > 0) contribs.push({ type: 'base', value: 3, note: 'Class skill' });
     if (sk.acp && acp.total < 0) contribs.push({ type: 'penalty', value: acp.total, note: `Armor check penalty (${acp.sources.join(', ')})` });
+    if (sk.id === 'stealth' && size === 'small') contribs.push({ type: 'size', value: 4, note: 'Size (Small)' });
     contribs.push(...unconds(`skill:${sk.id}`));
     stats[`skill:${sk.id}`] = makeStat(`skill:${sk.id}`, sk.name, contribs, conds(`skill:${sk.id}`));
   }
@@ -335,6 +336,15 @@ export function resolve(doc: CharacterDoc): Resolution {
     if (item) load += item.weight * qty;
   }
   const loadLabel = load <= carry.light ? 'Light' : load <= carry.medium ? 'Medium' : load <= carry.heavy ? 'Heavy' : 'Overloaded';
+
+  // Land speed reduction from medium/heavy armor or a medium/heavy load (PF1e), unless the race
+  // is exempt (Slow and Steady). Reduction = round-down-to-5(base / 3); e.g. 30→20, 20→15.
+  const armorForSpeed = doc.equipped.armor ? C.armorById.get(doc.equipped.armor) : null;
+  const encumberingArmor = armorForSpeed?.category === 'medium' || armorForSpeed?.category === 'heavy';
+  const encumberingLoad = loadLabel === 'Medium' || loadLabel === 'Heavy' || loadLabel === 'Overloaded';
+  const baseSpeed = race?.speed ?? 30;
+  const speedReduced = !race?.speedNeverReduced && (encumberingArmor || encumberingLoad);
+  const effectiveSpeed = speedReduced ? baseSpeed - Math.floor(baseSpeed / 3 / 5) * 5 : baseSpeed;
 
   // ---- Gold ----
   let startGold = klass?.startingGold ?? 0;
@@ -363,6 +373,7 @@ export function resolve(doc: CharacterDoc): Resolution {
     skillRanksTotal: skillRanksPerLevel, skillRanksSpent,
     gold,
     load: { current: load, light: carry.light, medium: carry.medium, heavy: carry.heavy, label: loadLabel },
+    speed: { base: effectiveSpeed, ...(speedReduced ? { reducedFrom: baseSpeed } : {}), ...(race?.speeds ?? {}) },
     summaryLine,
   };
   return { sheet, slots, issues, steps };
@@ -714,6 +725,8 @@ function classChoiceOptions(ch: C.ClassChoiceDef, dec: Decisions): SlotOption[] 
     }
     case 'sorcerer-bloodline':
       return C.BLOODLINES.map((b) => ({ id: b.id, name: b.name, desc: b.desc, legal: true, meta: { classSkill: b.classSkill } }));
+    case 'list':
+      return (ch.options ?? []).map((o) => ({ id: o.id, name: o.name, desc: o.desc, legal: true }));
     default:
       return [];
   }

@@ -1,6 +1,9 @@
 import type { RaceDef } from './model';
+import { FEATURED_RACES } from './races-featured';
+import { UNCOMMON_RACES } from './races-uncommon';
+import { EXOTIC_RACES } from './races-exotic';
 
-export const RACES: RaceDef[] = [
+const CORE_RACES: RaceDef[] = [
   {
     id: 'human', name: 'Human', sub: 'Adaptable · +2 any',
     desc: 'Ambitious and varied, humans are the most adaptable of the common races. They claim a flexible ability bonus, an extra feat, and an extra skill rank every level — the strongest chassis for almost any build.',
@@ -20,7 +23,7 @@ export const RACES: RaceDef[] = [
   {
     id: 'dwarf', name: 'Dwarf', sub: '+2 Con, +2 Wis, −2 Cha',
     desc: 'Dwarves are stoic mountain folk — slow but unstoppable, masters of stone and metal, with long memories for both friendship and grudges.',
-    size: 'medium', speed: 20, abilityMods: { con: 2, wis: 2, cha: -2 },
+    size: 'medium', speed: 20, speedNeverReduced: true, abilityMods: { con: 2, wis: 2, cha: -2 },
     traits: [
       { id: 'dwarf-darkvision', name: 'Darkvision', desc: 'Dwarves can see in the dark up to 60 feet.' },
       { id: 'dwarf-defensive-training', name: 'Defensive Training', desc: '+4 dodge bonus to AC against monsters of the giant subtype.', effects: [{ target: 'ac', type: 'dodge', value: 4, note: 'Defensive Training (Dwarf)', condition: 'vs giants' }] },
@@ -130,5 +133,7 @@ export const RACES: RaceDef[] = [
     languagesBonus: ['dwarven', 'elven', 'gnome', 'goblin'],
   },
 ];
+
+export const RACES: RaceDef[] = [...CORE_RACES, ...FEATURED_RACES, ...UNCOMMON_RACES, ...EXOTIC_RACES];
 
 export const raceById = new Map(RACES.map((r) => [r.id, r]));

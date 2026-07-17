@@ -1,0 +1,36 @@
+import type { RaceDef } from './model';
+
+// Exotic races that are cleanly "just data" at our fidelity. The rest of the exotic/monstrous
+// tier is deferred: the 31+ RP monster PCs (Drider, Gargoyle, Trox, Drow Noble) are full monster
+// stat blocks, Kasatha's four arms is a combat mechanic, several others need fly speeds / construct
+// types / dual heritages, and a few (Lizardfolk, etc.) returned ambiguous source numbers.
+
+export const EXOTIC_RACES: RaceDef[] = [
+  {
+    id: 'android', name: 'Android', sub: '+2 Dex, +2 Int, −2 Cha',
+    desc: 'Artificial people of flesh over a synthetic frame, androids are logical, emotionally reserved, and driven by nanite-laced blood.',
+    size: 'medium', speed: 30, abilityMods: { dex: 2, int: 2, cha: -2 },
+    traits: [
+      { id: 'android-darkvision', name: 'Darkvision', desc: 'See in the dark up to 60 feet (plus low-light vision).' },
+      { id: 'android-constructed', name: 'Constructed', desc: 'Count as both humanoid and construct. +4 on saves vs mind-affecting effects, paralysis, poison, and stun; immune to fatigue, exhaustion, disease, sleep, fear, and emotion effects; cannot gain morale bonuses.', effects: [{ target: 'save:all', type: 'racial', value: 4, note: 'Constructed (Android)', condition: 'vs mind-affecting, paralysis, poison, and stun' }] },
+      { id: 'android-nanite-surge', name: 'Nanite Surge', desc: 'Once per day as an immediate action, gain a bonus of 3 + character level on any one d20 roll.' },
+      { id: 'android-alert', name: 'Alert', desc: '+2 racial bonus on Perception checks.', effects: [{ target: 'skill:perception', type: 'racial', value: 2, note: 'Alert (Android)' }] },
+      { id: 'android-emotionless', name: 'Emotionless', desc: '−4 penalty on Sense Motive checks.', effects: [{ target: 'skill:sense-motive', type: 'penalty', value: -4, note: 'Emotionless (Android)' }] },
+    ],
+    altTraits: [],
+    languagesAuto: ['common'],
+    languagesBonus: ['aklo', 'draconic', 'dwarven', 'elven', 'gnome', 'goblin', 'halfling', 'orc'],
+  },
+  {
+    id: 'gnoll', name: 'Gnoll', sub: '+2 Str, +2 Con',
+    desc: 'Hulking hyena-headed humanoids, gnolls are pack hunters and raiders with a scavenger’s cunning and cruelty.',
+    size: 'medium', speed: 30, abilityMods: { str: 2, con: 2 },
+    traits: [
+      { id: 'gnoll-darkvision', name: 'Darkvision', desc: 'See in the dark up to 60 feet.' },
+      { id: 'gnoll-armor', name: 'Natural Armor', desc: '+1 natural armor bonus from a thick hide.', effects: [{ target: 'ac', type: 'natural-armor', value: 1, note: 'Natural Armor (Gnoll)' }] },
+    ],
+    altTraits: [],
+    languagesAuto: ['gnoll'],
+    languagesBonus: ['abyssal', 'common', 'draconic', 'elven', 'gnome', 'goblin', 'orc'],
+  },
+];

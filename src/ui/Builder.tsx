@@ -41,7 +41,7 @@ export function Builder({ id }: { id: string }) {
   const goto = (s: string) => setStep(s);
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', fontSize: 14 }}>
+    <div style={{ height: '100vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', fontSize: 14 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '10px 20px', flexWrap: 'wrap' }}>
         <button onClick={() => navigate({ name: 'roster' })} style={{ fontSize: 10, letterSpacing: '.14em', textTransform: 'uppercase', color: 'var(--color-accent)', background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>Pathmaker</button>
         <span style={{ fontWeight: 500, fontSize: 15 }}>{doc.name} <span className="text-muted" style={{ fontSize: 12, fontWeight: 400 }}>· {resolution.sheet.summaryLine || 'new character'}</span></span>
@@ -64,8 +64,8 @@ export function Builder({ id }: { id: string }) {
 
       <StatStrip sheet={resolution.sheet} />
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', flex: 1, alignItems: 'stretch' }}>
-        <div style={{ padding: '20px 26px 40px', minWidth: 0, overflowX: 'auto' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', flex: 1, alignItems: 'stretch', minHeight: 0 }}>
+        <div style={{ padding: '20px 26px 40px', minWidth: 0, minHeight: 0, overflowX: 'auto', overflowY: 'auto' }}>
           {activeStep === 'basics' && <BasicsStep ch={ch} />}
           {activeStep === 'race' && <RaceStep ch={ch} />}
           {activeStep === 'class' && <ClassStep ch={ch} />}

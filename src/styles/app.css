@@ -14,6 +14,26 @@
   --ink-hairline: oklch(0.88 0.005 277);
 }
 
+/* Themed scrollbars (Nocturne). Firefox/modern-Chromium use the standard scrollbar-color/
+   -width; older WebKit uses the ::-webkit-scrollbar pseudo-elements. scrollbar-width is NOT
+   inherited, so it's set on every element to thin all scroll regions, not just the document.
+   The transparent border + padding-box clip slims the webkit thumb and insets it. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-neutral-700) transparent;
+}
+::-webkit-scrollbar { width: 12px; height: 12px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--color-neutral-700);
+  border-radius: 8px;
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--color-neutral-600); }
+::-webkit-scrollbar-thumb:active { background: var(--color-neutral-500); }
+::-webkit-scrollbar-corner { background: transparent; }
+
 @keyframes tipIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 @keyframes issueIn {
   0% { opacity: 0; transform: translateX(8px); box-shadow: inset 0 0 0 1px var(--warn); }
