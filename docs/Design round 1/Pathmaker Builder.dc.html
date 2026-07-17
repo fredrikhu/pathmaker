@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/nocturne-7be3073d-4769-4495-930e-a77ce614c276/styles.css">
+<script src="_ds/nocturne-7be3073d-4769-4495-930e-a77ce614c276/_ds_bundle.js"></script>
+<style>
+body{margin:0;background:var(--color-bg);color:var(--color-text)}
+a{color:var(--color-accent)}a:hover{color:var(--color-accent-300)}
+@keyframes tipIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+</style>
+</helmet>
+<div style="min-height:100vh;display:flex;flex-direction:column;font-size:14px">
+  <div style="display:flex;align-items:center;gap:16px;padding:10px 20px;flex-wrap:wrap">
+    <span style="font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--color-accent)">Pathmaker</span>
+    <span style="font-family:var(--font-heading);font-weight:500;font-size:15px">{{ name }} <span class="text-muted" style="font-size:12px;font-weight:400">· Human Fighter 1</span></span>
+    <div style="display:flex;gap:2px;margin-left:16px">
+      <sc-for list="{{ steps }}" as="st" hint-placeholder-count="7">
+        <button onClick="{{ st.go }}" style="padding:7px 12px 9px;font-size:13px;cursor:pointer;box-shadow:{{ st.ul }};color:var(--color-text);background:transparent;border:none;font-family:inherit" style-hover="color:var(--color-accent-300)">
+          <span style="font-size:11px;color:{{ st.color }}">{{ st.glyph }}</span> {{ st.label }}
+        </button>
+      </sc-for>
+    </div>
+    <span style="flex:1"></span>
+    <button class="btn btn-secondary" style="font-size:12px;white-space:nowrap" title="Undo (Ctrl+Z)">↩ Undo</button>
+    <span class="text-muted" style="font-size:11px;white-space:nowrap">Saved just now</span>
+    <button class="btn btn-primary" style="font-size:12px;white-space:nowrap">Sheet preview</button>
+  </div>
+  <div style="display:flex;padding:0 20px;border-top:1px solid var(--color-divider);border-bottom:1px solid var(--color-divider);background:var(--color-surface)">
+    <sc-for list="{{ strip }}" as="s" hint-placeholder-count="9">
+      <div onMouseEnter="{{ s.h }}" onMouseLeave="{{ leaveTip }}" onClick="{{ s.h }}" style="padding:8px 15px 9px;cursor:pointer;border-right:1px solid rgba(233,233,237,.06)" style-hover="background:rgba(145,132,217,.08)">
+        <div style="font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-500)">{{ s.k }}</div>
+        <div style="font-size:17px;font-weight:600;font-variant-numeric:tabular-nums">{{ s.v }}</div>
+      </div>
+    </sc-for>
+    <span style="flex:1"></span>
+    <div style="align-self:center;font-size:11px;color:var(--color-neutral-500)">hover a number for its breakdown · click to pin · dotted terms explain the rules</div>
+  </div>
+  <div style="display:grid;grid-template-columns:{{ gridCols }};flex:1;align-items:stretch">
+    <div style="padding:20px 26px 40px;min-width:0;overflow-x:auto">
+
+      <sc-if value="{{ isBasics }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;flex-wrap:wrap;gap:40px;max-width:1100px">
+          <div style="display:flex;flex-direction:column;gap:16px;flex:none;width:280px">
+            <h3 style="font-size:21px;margin:0">Basics</h3>
+            <div class="field"><label>Character name</label><input class="input" value="{{ name }}" onChange="{{ setName }}"></div>
+            <div class="field"><label>Alignment <span onMouseEnter="{{ tips.alignment }}" onMouseLeave="{{ leaveTip }}" onClick="{{ tips.alignment }}" style="border-bottom:1px dotted var(--color-neutral-600);cursor:help">?</span></label>
+              <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;width:200px">
+                <sc-for list="{{ aligns }}" as="al" hint-placeholder-count="9">
+                  <button onClick="{{ al.go }}" style="padding:8px 0;border-radius:7px;border:1px solid {{ al.bd }};background:{{ al.bg }};color:var(--color-text);font-size:12px;font-weight:500;cursor:pointer;font-family:inherit" style-hover="border-color:var(--color-accent-600)">{{ al.id }}</button>
+                </sc-for>
+              </div>
+            </div>
+            <div class="field"><label>Deity <span onMouseEnter="{{ tips.deity }}" onMouseLeave="{{ leaveTip }}" onClick="{{ tips.deity }}" style="border-bottom:1px dotted var(--color-neutral-600);cursor:help">?</span></label>
+              <select class="input" value="{{ deity }}" onChange="{{ setDeity }}">
+                <sc-for list="{{ deities }}" as="d" hint-placeholder-count="4"><option value="{{ d }}">{{ d }}</option></sc-for>
+              </select>
+            </div>
+          </div>
+          <div style="flex:1;min-width:640px">
+            <div style="display:flex;align-items:baseline;gap:12px;margin-bottom:12px">
+              <h3 style="font-size:21px;margin:0"><span onMouseEnter="{{ tips.ability }}" onMouseLeave="{{ leaveTip }}" onClick="{{ tips.ability }}" style="border-bottom:1px dotted var(--color-neutral-600);cursor:help">Ability scores</span></h3>
+            </div>
+            <div style="display:flex;align-items:center;gap:18px;margin:0 0 14px;flex-wrap:wrap">
+              <div style="display:inline-flex;border:1px solid var(--color-divider);border-radius:var(--radius-md);overflow:hidden">
+                <sc-for list="{{ methods }}" as="m" hint-placeholder-count="5">
+                  <button onClick="{{ m.go }}" style="padding:7px 12px;font-size:13px;cursor:pointer;background:transparent;border:none;border-left:1px solid var(--color-divider);color:{{ m.fg }};box-shadow:{{ m.ring }};font-family:inherit" style-hover="background:rgba(233,233,237,.06)">{{ m.label }}</button>
+                </sc-for>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px">
+                <div style="width:110px;height:5px;border-radius:3px;background:var(--color-neutral-800);overflow:hidden"><div style="width:{{ poolPct }}%;height:100%;background:var(--color-accent)"></div></div>
+                <span onMouseEnter="{{ tips.pointbuy }}" onMouseLeave="{{ leaveTip }}" onClick="{{ tips.pointbuy }}" style="font-size:12px;color:var(--color-accent-300);border-bottom:1px dotted transparent;cursor:help">{{ poolNote }}</span>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:190px 140px 64px 116px 74px 60px;gap:8px;padding:0 4px 7px;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-500)">
+              <span>Ability</span><span>Base</span><span>Cost</span><span onMouseEnter="{{ tips.racial }}" onMouseLeave="{{ leaveTip }}" onClick="{{ tips.racial }}" style="border-bottom:1px dotted var(--color-neutral-600);cursor:help;width:fit-content">Racial</span><span>Score</span><span onMouseEnter="{{ tips.mod }}" onMouseLeave="{{ leaveTip }}" onClick="{{ tips.mod }}" style="border-bottom:1px dotted var(--color-neutral-600);cursor:help;width:fit-content">Mod</span>
+            </div>
+            <sc-for list="{{ abilities }}" as="a" hint-placeholder-count="6">
+              <div style="display:grid;grid-template-columns:190px 140px 64px 116px 74px 60px;gap:8px;align-items:center;padding:7px 4px;border-bottom:1px solid rgba(233,233,237,.06)">
+                <span style="font-size:14px"><span onMouseEnter="{{ a.tip }}" onMouseLeave="{{ leaveTip }}" onClick="{{ a.tip }}" style="border-bottom:1px dotted var(--color-neutral-600);cursor:help">{{ a.name }}</span> <span class="text-muted" style="font-size:11px">{{ a.ab }}</span></span>
+                <span style="display:inline-flex;align-items:center;gap:7px">
+                  <button onClick="{{ a.dec }}" style="width:26px;height:26px;border:1px solid var(--color-divider);border-radius:7px;background:transparent;color:var(--color-text);cursor:pointer;font-size:14px" style-hover="border-color:var(--color-accent)">−</button>
+                  <span style="width:22px;text-align:center;font-weight:600;font-variant-numeric:tabular-nums">{{ a.base }}</span>
+                  <button onClick="{{ a.inc }}" style="width:26px;height:26px;border:1px solid var(--color-divider);border-radius:7px;background:transparent;color:var(--color-text);cursor:pointer;font-size:14px" style-hover="border-color:var(--color-accent)">+</button>
+                </span>
+                <span style="font-size:13px;color:var(--color-neutral-400);font-variant-numeric:tabular-nums">{{ a.cost }}</span>
+                <span><button onClick="{{ a.setRacial }}" style="{{ a.racialStyle }}">{{ a.racial }}</button></span>
+                <span style="font-size:16px;font-weight:600;font-variant-numeric:tabular-nums">{{ a.final }}</span>
+                <span style="font-size:14px;color:var(--color-accent-300);font-variant-numeric:tabular-nums">{{ a.mod }}</span>
+              </div>
+            </sc-for>
+            <p class="text-muted" style="font-size:11.5px;margin-top:12px;max-width:560px">Humans gain +2 to one ability score of their choice. Click a row's racial cell to move it. Watch the strip above react — nothing is locked, come back anytime.</p>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isRace }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-wrap:wrap;gap:28px;max-width:1100px">
+          <div style="flex:none;width:280px">
+            <h3 style="font-size:21px;margin:0 0 12px">Race</h3>
+            <div style="display:flex;flex-direction:column;gap:7px">
+              <sc-for list="{{ races }}" as="r" hint-placeholder-count="7">
+                <div onClick="{{ r.view }}" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;background:var(--color-surface);cursor:pointer;box-shadow:inset 0 0 0 1px {{ r.bd }}" style-hover="background:var(--color-neutral-900)">
+                  <div style="flex:1"><div style="font-size:13.5px;font-weight:500">{{ r.name }}</div><div class="text-muted" style="font-size:11px">{{ r.sub }}</div></div>
+                  <span style="font-size:11px;color:{{ r.markColor }}">{{ r.mark }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="padding:4px 0;flex:1;min-width:480px">
+            <div style="display:flex;align-items:center;gap:14px;margin-bottom:6px">
+              <h3 style="font-size:24px;margin:0">{{ raceDetail.name }}</h3>
+              <button onClick="{{ raceDetail.select }}" class="btn btn-primary" style="font-size:12px">{{ raceDetail.selLabel }}</button>
+            </div>
+            <p style="font-size:13.5px;line-height:1.65;color:var(--color-neutral-300);max-width:620px">{{ raceDetail.desc }}</p>
+            <h6 style="margin:18px 0 8px;color:var(--color-neutral-500)">Racial traits</h6>
+            <div style="display:flex;flex-direction:column;gap:6px;max-width:620px">
+              <sc-for list="{{ raceDetail.traits }}" as="t" hint-placeholder-count="4">
+                <div style="font-size:13px;line-height:1.55"><span style="font-weight:500;border-bottom:1px dotted var(--color-neutral-600);cursor:help" onMouseEnter="{{ t.h }}" onMouseLeave="{{ leaveTip }}" onClick="{{ t.h }}">{{ t.n }}</span> <span style="color:var(--color-neutral-400)">— {{ t.d }}</span></div>
+              </sc-for>
+            </div>
+            <h6 style="margin:22px 0 8px;color:var(--color-neutral-500)">Alternate racial traits</h6>
+            <div style="display:flex;flex-direction:column;gap:8px;max-width:620px">
+              <sc-for list="{{ raceDetail.alts }}" as="t" hint-placeholder-count="2">
+                <div style="padding:11px 13px;border-radius:8px;background:var(--color-surface);opacity:{{ t.op }};box-shadow:inset 0 0 0 1px {{ t.bd }}">
+                  <div style="display:flex;align-items:center;gap:10px">
+                    <span style="font-size:13.5px;font-weight:500">{{ t.n }}</span>
+                    <span class="tag tag-neutral" style="font-size:10px">replaces {{ t.rep }}</span>
+                    <span style="flex:1"></span>
+                    <button onClick="{{ t.go }}" class="btn btn-ghost" style="font-size:11.5px" disabled="{{ t.dis }}">{{ t.btn }}</button>
+                  </div>
+                  <div style="font-size:12.5px;color:var(--color-neutral-400);margin-top:3px;line-height:1.5">{{ t.d }}</div>
+                  <sc-if value="{{ t.whyNot }}" hint-placeholder-val="{{ false }}"><div style="font-size:11.5px;color:oklch(0.7 0.11 25);margin-top:5px">{{ t.whyNot }}</div></sc-if>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isClass }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-wrap:wrap;gap:28px;max-width:1100px">
+          <div style="flex:none;width:280px">
+            <h3 style="font-size:21px;margin:0 0 12px">Class</h3>
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <sc-for list="{{ classes }}" as="c" hint-placeholder-count="11">
+                <div onClick="{{ c.view }}" style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;background:var(--color-surface);cursor:pointer;box-shadow:inset 0 0 0 1px {{ c.bd }}" style-hover="background:var(--color-neutral-900)">
+                  <div style="flex:1"><div style="font-size:13.5px;font-weight:500">{{ c.name }}</div><div class="text-muted" style="font-size:11px">{{ c.sub }}</div></div>
+                  <span style="font-size:11px;color:{{ c.markColor }}">{{ c.mark }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="padding:4px 0;flex:1;min-width:480px">
+            <div style="display:flex;align-items:center;gap:14px;margin-bottom:6px">
+              <h3 style="font-size:24px;margin:0">{{ classDetail.name }}</h3>
+              <button onClick="{{ classDetail.select }}" class="btn btn-primary" style="font-size:12px">{{ classDetail.selLabel }}</button>
+            </div>
+            <div style="display:flex;gap:22px;margin:8px 0 12px;font-size:12.5px;color:var(--color-neutral-300)">
+              <span>Hit die <strong>{{ classDetail.hd }}</strong></span>
+              <span><span onMouseEnter="{{ tips.bab }}" onMouseLeave="{{ leaveTip }}" onClick="{{ tips.bab }}" style="border-bottom:1px dotted var(--color-neutral-600);cursor:help">BAB</span> <strong>{{ classDetail.bab }}</strong></span>
+              <span>Good saves <strong>{{ classDetail.saves }}</strong></span>
+              <span>Skill points <strong>{{ classDetail.sp }}</strong></span>
+            </div>
+            <p style="font-size:13.5px;line-height:1.65;color:var(--color-neutral-300);max-width:620px">{{ classDetail.desc }}</p>
+            <h6 style="margin:18px 0 8px;color:var(--color-neutral-500)">Level 1 features</h6>
+            <div style="display:flex;flex-direction:column;gap:6px;max-width:620px">
+              <sc-for list="{{ classDetail.feats1 }}" as="f" hint-placeholder-count="3">
+                <div style="font-size:13px;line-height:1.55;text-decoration:{{ f.strike }};opacity:{{ f.op }}"><span style="font-weight:500">{{ f.n }}</span> <span style="color:var(--color-neutral-400)">— {{ f.d }}</span></div>
+              </sc-for>
+            </div>
+            <h6 style="margin:22px 0 8px;color:var(--color-neutral-500)">Archetypes</h6>
+            <div style="display:flex;flex-direction:column;gap:8px;max-width:620px">
+              <sc-for list="{{ classDetail.archs }}" as="t" hint-placeholder-count="3">
+                <div style="padding:11px 13px;border-radius:8px;background:var(--color-surface);opacity:{{ t.op }};box-shadow:inset 0 0 0 1px {{ t.bd }}">
+                  <div style="display:flex;align-items:center;gap:10px">
+                    <span style="font-size:13.5px;font-weight:500">{{ t.n }}</span>
+                    <span class="tag tag-neutral" style="font-size:10px">replaces {{ t.rep }}</span>
+                    <span style="flex:1"></span>
+                    <button onClick="{{ t.go }}" class="btn btn-ghost" style="font-size:11.5px" disabled="{{ t.dis }}">{{ t.btn }}</button>
+                  </div>
+                  <div style="font-size:12.5px;color:var(--color-neutral-400);margin-top:3px;line-height:1.5">{{ t.d }}</div>
+                  <sc-if value="{{ t.whyNot }}" hint-placeholder-val="{{ false }}"><div style="font-size:11.5px;color:oklch(0.7 0.11 25);margin-top:5px">{{ t.whyNot }}</div></sc-if>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isSkills }}" hint-placeholder-val="{{ false }}">
+        <div style="max-width:920px">
+          <div style="display:flex;align-items:center;gap:20px;margin-bottom:14px">
+            <h3 style="font-size:21px;margin:0">Skills</h3>
+            <span style="font-size:12px;color:{{ skillPtsColor }}"><strong>{{ skillPtsLeft }}</strong> of 2 ranks left</span>
+            <span class="text-muted" style="font-size:11.5px">● = <span onMouseEnter="{{ tips.classskill }}" onMouseLeave="{{ leaveTip }}" onClick="{{ tips.classskill }}" style="border-bottom:1px dotted var(--color-neutral-600);cursor:help">class skill</span> · ▲ = <span onMouseEnter="{{ tips.acp }}" onMouseLeave="{{ leaveTip }}" onClick="{{ tips.acp }}" style="border-bottom:1px dotted var(--color-neutral-600);cursor:help">armor check penalty</span> applies</span>
+          </div>
+          <div style="display:grid;grid-template-columns:250px 60px 150px 90px 80px 70px;gap:8px;padding:0 4px 7px;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-500)">
+            <span>Skill</span><span>Abil</span><span><span onMouseEnter="{{ tips.rank }}" onMouseLeave="{{ leaveTip }}" onClick="{{ tips.rank }}" style="border-bottom:1px dotted var(--color-neutral-600);cursor:help">Ranks</span></span><span></span><span>Total</span><span></span>
+          </div>
+          <sc-for list="{{ skillRows }}" as="s" hint-placeholder-count="12">
+            <div style="display:grid;grid-template-columns:250px 60px 150px 90px 80px 70px;gap:8px;align-items:center;padding:6px 4px;border-bottom:1px solid rgba(233,233,237,.06)">
+              <span style="font-size:13.5px">{{ s.name }} <span style="color:var(--color-accent);font-size:10px">{{ s.clsMark }}</span> <span style="color:var(--color-neutral-500);font-size:10px">{{ s.acpMark }}</span></span>
+              <span class="text-muted" style="font-size:12px">{{ s.ab }}</span>
+              <span style="display:inline-flex;align-items:center;gap:7px">
+                <button onClick="{{ s.dec }}" style="width:24px;height:24px;border:1px solid var(--color-divider);border-radius:6px;background:transparent;color:var(--color-text);cursor:pointer;font-size:13px" style-hover="border-color:var(--color-accent)">−</button>
+                <span style="width:18px;text-align:center;font-weight:600;font-variant-numeric:tabular-nums">{{ s.rank }}</span>
+                <button onClick="{{ s.inc }}" style="width:24px;height:24px;border:1px solid var(--color-divider);border-radius:6px;background:transparent;color:var(--color-text);cursor:pointer;font-size:13px" style-hover="border-color:var(--color-accent)">+</button>
+              </span>
+              <button onClick="{{ s.max }}" class="btn btn-ghost" style="font-size:11px;justify-content:flex-start">Max</button>
+              <button onMouseEnter="{{ s.bk }}" onMouseLeave="{{ leaveTip }}" onClick="{{ s.bk }}" style="font-size:14.5px;font-weight:600;font-variant-numeric:tabular-nums;background:transparent;border:none;color:var(--color-text);cursor:pointer;text-align:left;padding:0;border-bottom:1px dotted var(--color-neutral-600);width:fit-content;font-family:inherit">{{ s.total }}</button>
+              <span class="text-muted" style="font-size:10.5px">{{ s.note }}</span>
+            </div>
+          </sc-for>
+          <p class="text-muted" style="font-size:11.5px;margin-top:12px">Fighter grants 2 + Int modifier ranks per level. Max ranks per skill = character level (1). Click any total for its breakdown.</p>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isFeats }}" hint-placeholder-val="{{ false }}">
+        <div style="max-width:980px">
+          <h3 style="font-size:21px;margin:0 0 12px">Feats</h3>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;max-width:760px">
+            <sc-for list="{{ featSlots }}" as="sl" hint-placeholder-count="3">
+              <div style="padding:10px 12px;border-radius:8px;background:var(--color-surface);box-shadow:inset 0 0 0 1px {{ sl.bd }}">
+                <div style="font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-500);margin-bottom:3px"><span onMouseEnter="{{ sl.h }}" onMouseLeave="{{ leaveTip }}" onClick="{{ sl.h }}" style="border-bottom:1px dotted var(--color-neutral-700);cursor:help">{{ sl.label }}</span></div>
+                <div style="display:flex;align-items:center;gap:8px"><span style="font-size:13px;font-weight:500;color:{{ sl.fg }}">{{ sl.val }}</span><span style="flex:1"></span><sc-if value="{{ sl.filled }}" hint-placeholder-val="{{ false }}"><button onClick="{{ sl.clear }}" style="background:transparent;border:none;color:var(--color-neutral-500);cursor:pointer;font-size:12px">✕</button></sc-if></div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap">
+            <input class="input" style="width:230px" placeholder="Search feats…" value="{{ featQ }}" onChange="{{ setFeatQ }}">
+            <div style="display:flex;gap:6px">
+              <sc-for list="{{ featChips }}" as="ch" hint-placeholder-count="3">
+                <button onClick="{{ ch.go }}" style="padding:5px 13px;border-radius:999px;font-size:12px;cursor:pointer;border:1px solid {{ ch.bd }};background:{{ ch.bg }};color:{{ ch.fg }};font-family:inherit" style-hover="border-color:var(--color-accent-600)">{{ ch.label }}</button>
+              </sc-for>
+            </div>
+            <button onClick="{{ illegalToggle.go }}" style="padding:5px 13px;border-radius:999px;font-size:12px;cursor:pointer;border:1px solid var(--color-divider);background:transparent;color:{{ illegalToggle.fg }};font-family:inherit">{{ illegalToggle.label }}</button>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:7px">
+            <sc-for list="{{ featRows }}" as="f" hint-placeholder-count="8">
+              <div style="display:flex;align-items:center;gap:14px;padding:10px 14px;border-radius:8px;background:var(--color-surface);opacity:{{ f.op }};box-shadow:inset 0 0 0 1px {{ f.bd }}">
+                <div style="flex:1;min-width:0">
+                  <div style="display:flex;align-items:center;gap:9px"><span style="font-size:13.5px;font-weight:500">{{ f.name }}</span><span class="tag tag-neutral" style="font-size:10px">{{ f.type }}</span><span class="text-muted" style="font-size:11px">{{ f.req }}</span></div>
+                  <div style="font-size:12.5px;color:var(--color-neutral-400);margin-top:2px">{{ f.ben }}</div>
+                  <sc-if value="{{ f.whyNot }}" hint-placeholder-val="{{ false }}"><div style="font-size:11.5px;color:oklch(0.7 0.11 25);margin-top:3px">{{ f.whyNot }}</div></sc-if>
+                </div>
+                <button onClick="{{ f.pick }}" class="btn btn-primary" style="font-size:11.5px;flex:none" disabled="{{ f.dis }}">{{ f.btn }}</button>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isEquip }}" hint-placeholder-val="{{ false }}">
+        <div style="max-width:1080px">
+          <div style="display:flex;align-items:center;gap:26px;margin-bottom:16px;flex-wrap:wrap">
+            <h3 style="font-size:21px;margin:0">Equipment</h3>
+            <span style="font-size:13px">Gold <strong style="font-variant-numeric:tabular-nums;color:var(--color-accent-300)">{{ gold }} gp</strong></span>
+            <div style="display:flex;align-items:center;gap:9px">
+              <span onMouseEnter="{{ tips.encumbrance }}" onMouseLeave="{{ leaveTip }}" onClick="{{ tips.encumbrance }}" style="font-size:11.5px;color:var(--color-neutral-400);border-bottom:1px dotted var(--color-neutral-600);cursor:help">Load</span>
+              <div style="width:130px;height:5px;border-radius:3px;background:var(--color-neutral-800);overflow:hidden"><div style="width:{{ loadPct }}%;height:100%;background:var(--color-accent)"></div></div>
+              <span style="font-size:11.5px;color:var(--color-neutral-400)">{{ loadNow }} lb — <strong style="color:var(--color-text)">{{ loadLabel }}</strong></span>
+            </div>
+          </div>
+          <div style="display:flex;gap:10px;margin-bottom:18px">
+            <sc-for list="{{ equipSlots }}" as="es" hint-placeholder-count="3">
+              <div style="padding:9px 14px;border-radius:8px;background:var(--color-surface);min-width:170px;box-shadow:inset 0 0 0 1px var(--color-divider)">
+                <div style="font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-500)">{{ es.k }}</div>
+                <div style="font-size:13px;font-weight:500;margin-top:2px">{{ es.v }}</div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display:grid;grid-template-columns:minmax(420px,1fr) minmax(300px,380px);gap:34px">
+            <div>
+              <h6 style="margin:0 0 10px;color:var(--color-neutral-500)">Shop</h6>
+              <sc-for list="{{ shopGroups }}" as="g" hint-placeholder-count="3">
+                <div style="margin-bottom:16px">
+                  <div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-accent);margin-bottom:6px">{{ g.label }}</div>
+                  <sc-for list="{{ g.items }}" as="it" hint-placeholder-count="4">
+                    <div style="display:flex;align-items:center;gap:12px;padding:7px 4px;border-bottom:1px solid rgba(233,233,237,.06)">
+                      <span style="flex:1;font-size:13px">{{ it.name }} <span class="text-muted" style="font-size:11px">{{ it.note }}</span></span>
+                      <span style="font-size:12px;color:var(--color-neutral-400);font-variant-numeric:tabular-nums;width:64px;text-align:right">{{ it.cost }} gp</span>
+                      <span class="text-muted" style="font-size:11px;width:44px;text-align:right">{{ it.wt }} lb</span>
+                      <button onClick="{{ it.buy }}" class="btn btn-ghost" style="font-size:11.5px" disabled="{{ it.dis }}">{{ it.btn }}</button>
+                    </div>
+                  </sc-for>
+                </div>
+              </sc-for>
+            </div>
+            <div>
+              <h6 style="margin:0 0 10px;color:var(--color-neutral-500)">Owned</h6>
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <sc-for list="{{ ownedRows }}" as="o" hint-placeholder-count="5">
+                  <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;background:var(--color-surface)">
+                    <span style="flex:1;font-size:13px">{{ o.name }} <span class="text-muted" style="font-size:11px">×{{ o.qty }}</span></span>
+                    <sc-if value="{{ o.equippable }}" hint-placeholder-val="{{ false }}"><button onClick="{{ o.equip }}" class="btn btn-ghost" style="font-size:11px" disabled="{{ o.eqDis }}">{{ o.eqBtn }}</button></sc-if>
+                    <button onClick="{{ o.sell }}" style="background:transparent;border:none;color:var(--color-neutral-500);cursor:pointer;font-size:11.5px;font-family:inherit" style-hover="color:var(--color-text)">Sell</button>
+                  </div>
+                </sc-for>
+              </div>
+              <p class="text-muted" style="font-size:11px;margin-top:12px">Equipping armor or a shield changes AC and armor check penalty — watch the strip and the Skills step.</p>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isReview }}" hint-placeholder-val="{{ false }}">
+        <div style="max-width:980px">
+          <div style="display:flex;align-items:center;gap:16px;margin-bottom:4px">
+            <h3 style="font-size:24px;margin:0">{{ name }}</h3>
+            <span class="text-muted" style="font-size:13px">{{ align }} Human Fighter 1 · {{ deity }}</span>
+            <span style="flex:1"></span>
+            <button class="btn btn-secondary" style="font-size:12px">Export JSON</button>
+            <button class="btn btn-primary" style="font-size:12px">Print sheet</button>
+          </div>
+          <p class="text-muted" style="font-size:12px;margin:0 0 18px">Every number below is clickable — hover to peek at its breakdown, click to pin.</p>
+          <div style="display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap">
+            <sc-for list="{{ abilities }}" as="a" hint-placeholder-count="6">
+              <div style="padding:9px 14px;border-radius:8px;background:var(--color-surface);text-align:center;min-width:74px">
+                <div style="font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-500)">{{ a.ab }}</div>
+                <div style="font-size:18px;font-weight:600;font-variant-numeric:tabular-nums">{{ a.final }}</div>
+                <div style="font-size:12px;color:var(--color-accent-300)">{{ a.mod }}</div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:22px;margin-bottom:20px">
+            <div>
+              <h6 style="margin:0 0 8px;color:var(--color-neutral-500)">Defense</h6>
+              <sc-for list="{{ revDef }}" as="s" hint-placeholder-count="4">
+                <div style="display:flex;justify-content:space-between;padding:5px 2px;font-size:13px;border-bottom:1px solid rgba(233,233,237,.05)">
+                  <span style="color:var(--color-neutral-400)">{{ s.k }}</span>
+                  <button onMouseEnter="{{ s.h }}" onMouseLeave="{{ leaveTip }}" onClick="{{ s.h }}" style="font-weight:600;font-variant-numeric:tabular-nums;background:transparent;border:none;color:var(--color-text);cursor:pointer;padding:0;border-bottom:1px dotted var(--color-neutral-600);font-family:inherit;font-size:13px">{{ s.v }}</button>
+                </div>
+              </sc-for>
+            </div>
+            <div>
+              <h6 style="margin:0 0 8px;color:var(--color-neutral-500)">Saves &amp; offense</h6>
+              <sc-for list="{{ revOff }}" as="s" hint-placeholder-count="5">
+                <div style="display:flex;justify-content:space-between;padding:5px 2px;font-size:13px;border-bottom:1px solid rgba(233,233,237,.05)">
+                  <span style="color:var(--color-neutral-400)">{{ s.k }}</span>
+                  <button onMouseEnter="{{ s.h }}" onMouseLeave="{{ leaveTip }}" onClick="{{ s.h }}" style="font-weight:600;font-variant-numeric:tabular-nums;background:transparent;border:none;color:var(--color-text);cursor:pointer;padding:0;border-bottom:1px dotted var(--color-neutral-600);font-family:inherit;font-size:13px">{{ s.v }}</button>
+                </div>
+              </sc-for>
+            </div>
+            <div>
+              <h6 style="margin:0 0 8px;color:var(--color-neutral-500)">Feats &amp; gear</h6>
+              <div style="font-size:12.5px;line-height:1.7;color:var(--color-neutral-300)">
+                <sc-for list="{{ revFeats }}" as="f" hint-placeholder-count="3"><div>{{ f }}</div></sc-for>
+                <div class="hr" style="margin:8px 0"></div>
+                <sc-for list="{{ revGear }}" as="g" hint-placeholder-count="5"><div>{{ g }}</div></sc-for>
+              </div>
+            </div>
+          </div>
+          <h6 style="margin:0 0 8px;color:var(--color-neutral-500)">Trained skills</h6>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <sc-for list="{{ revSkills }}" as="s" hint-placeholder-count="2">
+              <button onMouseEnter="{{ s.bk }}" onMouseLeave="{{ leaveTip }}" onClick="{{ s.bk }}" style="padding:6px 12px;border-radius:999px;font-size:12.5px;background:var(--color-surface);border:1px solid var(--color-divider);color:var(--color-text);cursor:pointer;font-family:inherit" style-hover="border-color:var(--color-accent-600)">{{ s.name }} <strong>{{ s.total }}</strong></button>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+    </div>
+    <sc-if value="{{ showIssues }}" hint-placeholder-val="{{ true }}">
+      <div style="border-left:1px solid var(--color-divider);padding:18px;display:flex;flex-direction:column;gap:10px;background:var(--color-surface)">
+        <span style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--color-neutral-500)">To resolve — {{ issueCount }}</span>
+        <sc-for list="{{ issues }}" as="i" hint-placeholder-count="3">
+          <div onClick="{{ i.go }}" style="padding:10px 12px;border-radius:8px;background:var(--color-bg);cursor:pointer;box-shadow:inset 2px 0 0 {{ i.color }}" style-hover="background:var(--color-neutral-900)">
+            <div style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:{{ i.color }};margin-bottom:2px">{{ i.sev }} · {{ i.loc }}</div>
+            <div style="font-size:12.5px;line-height:1.45">{{ i.msg }}</div>
+          </div>
+        </sc-for>
+        <sc-if value="{{ issuesEmpty }}" hint-placeholder-val="{{ false }}"><div style="font-size:12.5px;color:var(--color-accent-300)">✓ Nothing to resolve — ready to adventure.</div></sc-if>
+        <p class="text-muted" style="font-size:11px;margin-top:auto">Click an issue to jump to its step. Errors never block saving — a character with errors is still yours.</p>
+      </div>
+    </sc-if>
+  </div>
+
+  <sc-if value="{{ tipOpen }}" hint-placeholder-val="{{ false }}">
+    <div onMouseEnter="{{ cardEnter }}" onMouseLeave="{{ cardLeave }}" style="{{ tipStyle }}">
+      <div style="width:330px;padding:13px 15px;border-radius:10px;background:var(--color-surface);box-shadow:var(--shadow-md);animation:tipIn .12s ease-out">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <span style="font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--color-accent)">{{ tipKicker }}</span>
+          <span style="flex:1"></span>
+          <sc-if value="{{ hasBack }}" hint-placeholder-val="{{ false }}"><button onClick="{{ backTip }}" style="background:transparent;border:none;color:var(--color-neutral-400);cursor:pointer;font-size:11px;font-family:inherit">← back</button></sc-if>
+          <sc-if value="{{ tipPinned }}" hint-placeholder-val="{{ false }}"><span style="font-size:10px;color:var(--color-neutral-500)">pinned</span></sc-if>
+          <button onClick="{{ closeTip }}" style="background:transparent;border:none;color:var(--color-neutral-500);cursor:pointer;font-size:12px">✕</button>
+        </div>
+        <div style="font-size:14px;font-weight:500;margin-bottom:5px">{{ tipTitle }}</div>
+        <sc-if value="{{ tipBody }}" hint-placeholder-val="{{ false }}"><div style="font-size:12.5px;line-height:1.6;color:var(--color-neutral-300)">{{ tipBody }}</div></sc-if>
+        <sc-if value="{{ hasLines }}" hint-placeholder-val="{{ false }}">
+          <div style="font-size:12.5px;line-height:1.75;font-variant-numeric:tabular-nums;color:var(--color-neutral-300)">
+            <sc-for list="{{ tipLines }}" as="l" hint-placeholder-count="3"><div>{{ l }}</div></sc-for>
+          </div>
+        </sc-if>
+        <sc-if value="{{ hasChips }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:9px">
+            <sc-for list="{{ tipChips }}" as="c" hint-placeholder-count="3">
+              <button onClick="{{ c.go }}" style="padding:3px 10px;border-radius:999px;font-size:11px;cursor:pointer;border:1px solid var(--color-accent-700);background:transparent;color:var(--color-accent-300);font-family:inherit" style-hover="background:rgba(145,132,217,.12)">{{ c.label }}</button>
+            </sc-for>
+          </div>
+        </sc-if>
+        <sc-if value="{{ tipHint }}" hint-placeholder-val="{{ false }}"><div style="font-size:10.5px;color:var(--color-neutral-500);margin-top:8px">{{ tipHint }}</div></sc-if>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;statStrip&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;full&quot;,&quot;compact&quot;],&quot;default&quot;:&quot;full&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Layout&quot;},&quot;issuesPanel&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;docked&quot;,&quot;hidden&quot;],&quot;default&quot;:&quot;docked&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Layout&quot;}}">
+class Component extends DCLogic {
+  state = {
+    step: 'basics', name: 'Valeria Kessler', align: 'LN', deity: 'Iomedae',
+    method: 'pb20', base: { STR: 15, DEX: 14, CON: 14, INT: 10, WIS: 12, CHA: 8 }, humanBonus: 'STR',
+    race: 'human', raceView: 'human', altTrait: null,
+    klass: 'fighter', classView: 'fighter', arch: null,
+    ranks: { climb: 1 },
+    feats: { f1: 'power-attack', fh: null, ff: null }, featQ: '', featType: 'All', showIllegal: true,
+    owned: { longsword: 1, 'chain-shirt': 1, 'heavy-shield': 1, backpack: 1, rope: 1 }, gold: 50,
+    equipped: { armor: 'chain-shirt', main: 'longsword', off: 'heavy-shield' },
+    tip: null
+  };
+  COST = { 7: -4, 8: -2, 9: -1, 10: 0, 11: 1, 12: 2, 13: 3, 14: 5, 15: 7, 16: 10, 17: 13, 18: 17 };
+  DICT = {
+    ability: { k: 'PF1e rules', t: 'Ability scores', b: 'Six scores describe your raw talent. Everything else — attacks, saves, skills, spells — derives from their modifiers.', c: ['mod', 'pointbuy', 'racial'] },
+    pointbuy: { k: 'PF1e rules', t: 'Point buy', b: 'You spend a pool of points to raise scores from 10. Costs climb steeply: 14 costs 5, but 18 costs 17. Dropping a score below 10 refunds points.', c: ['ability', 'mod'] },
+    mod: { k: 'PF1e rules', t: 'Ability modifier', b: 'The number you actually add to rolls: (score − 10) ÷ 2, rounded down. A 17 gives +3; an 8 gives −1.', c: ['ability'] },
+    racial: { k: 'PF1e rules', t: 'Racial modifier', b: 'Your race adjusts ability scores. Humans (and half-elves, half-orcs) add +2 to any one score of their choice; other races have fixed adjustments.', c: ['ability'] },
+    STR: { k: 'Ability', t: 'Strength', b: 'Melee attack and damage, Climb and Swim, and how much you can carry.', c: ['mod', 'encumbrance'] },
+    DEX: { k: 'Ability', t: 'Dexterity', b: 'AC, Reflex saves, Initiative, ranged attacks, and skills like Stealth and Acrobatics.', c: ['ac', 'init'] },
+    CON: { k: 'Ability', t: 'Constitution', b: 'Hit points every level and Fortitude saves. Never a dump stat.', c: ['hp', 'fort'] },
+    INT: { k: 'Ability', t: 'Intelligence', b: 'Bonus skill ranks per level, Knowledge skills, and wizard spellcasting.', c: ['rank'] },
+    WIS: { k: 'Ability', t: 'Wisdom', b: 'Will saves and Perception — the most-rolled skill in the game.', c: ['will'] },
+    CHA: { k: 'Ability', t: 'Charisma', b: 'Social skills and sorcerer, bard, and paladin casting. A classic fighter dump stat.', c: [] },
+    classskill: { k: 'PF1e rules', t: 'Class skill', b: 'Skills your class practices. Put at least 1 rank in a class skill and you get a one-time +3 bonus.', c: ['rank'] },
+    rank: { k: 'PF1e rules', t: 'Skill ranks', b: 'Points invested in a skill, capped at your character level. Fighters get 2 + Int modifier per level.', c: ['classskill'] },
+    acp: { k: 'PF1e rules', t: 'Armor check penalty', b: 'Heavier armor and shields hinder physical skills. The penalty applies to Str- and Dex-based skills — marked ▲ in the skill table.', c: ['classskill'] },
+    bab: { k: 'PF1e rules', t: 'Base attack bonus', b: 'Your class-granted attack bonus. Fighters get the full progression: +1 per level. Casters get half.', c: ['cmb'] },
+    hp: { k: 'Stat', t: 'Hit points', b: 'Damage you can take before falling. Max hit die at level 1, plus Con modifier, plus favored-class bonus if chosen.', c: ['CON', 'favored'] },
+    ac: { k: 'Stat', t: 'Armor Class', b: 'What enemies must roll to hit you: 10 + armor + shield + Dex + size + dodge + others.', c: ['touch', 'ff'] },
+    touch: { k: 'Stat', t: 'Touch AC', b: 'AC against attacks that only need contact (rays, grapples). Ignores armor, shield, and natural armor.', c: ['ac'] },
+    ff: { k: 'Stat', t: 'Flat-footed AC', b: 'AC when caught off guard — before you act in combat. Ignores your Dex and dodge bonuses.', c: ['ac'] },
+    fort: { k: 'Save', t: 'Fortitude', b: 'Resists poison, disease, and effects that attack your body. Con-based; good save for fighters.', c: ['CON'] },
+    ref: { k: 'Save', t: 'Reflex', b: 'Dodges area effects like fireballs and dragon breath. Dex-based; poor save for fighters.', c: ['DEX'] },
+    will: { k: 'Save', t: 'Will', b: 'Resists charms, fear, and mind control. Wis-based; the classic fighter weak point.', c: ['WIS'] },
+    init: { k: 'Stat', t: 'Initiative', b: 'Determines turn order: d20 + Dex modifier + feats like Improved Initiative.', c: ['DEX'] },
+    cmb: { k: 'Stat', t: 'CMB / CMD', b: 'Combat Maneuver Bonus (BAB + Str) drives trips and grapples; CMD (10 + BAB + Str + Dex) defends against them.', c: ['bab'] },
+    favored: { k: 'PF1e rules', t: 'Favored class', b: 'Your first class choice. Each level in it grants +1 hit point or +1 skill rank — this build takes the hit point.', c: ['hp'] },
+    encumbrance: { k: 'PF1e rules', t: 'Encumbrance', b: 'Carry too much and you slow down and take penalties. With Str 17: light load up to 86 lb, medium to 173, heavy to 260.', c: ['STR'] },
+    alignment: { k: 'PF1e rules', t: 'Alignment', b: 'Your moral compass on two axes: law–chaos and good–evil. Some classes restrict it — paladins must be Lawful Good.', c: [] },
+    deity: { k: 'PF1e rules', t: 'Deity', b: 'Mostly flavor for a fighter, but clerics and paladins draw powers from their god — and some feats and traits check it.', c: [] },
+    humanfeat: { k: 'Racial trait', t: 'Bonus feat (human)', b: 'Humans select one extra feat at 1st level — any feat they qualify for.', c: [] },
+    combatfeat: { k: 'PF1e rules', t: 'Combat feats', b: 'A subset of feats. Fighter bonus feats must come from this list — it is marked on each feat.', c: [] }
+  };
+  BK = {
+    hp: ['10 max hit die (Fighter)', '+ 2 Con modifier', '+ 1 favored class bonus'],
+    ac: ['10 base', '+ 4 armor (chain shirt)', '+ 2 shield (heavy wooden)', '+ 2 Dex modifier'],
+    touch: ['10 base', '+ 2 Dex modifier'],
+    ff: ['10 base', '+ 4 armor', '+ 2 shield'],
+    fort: ['+ 2 base (Fighter, good)', '+ 2 Con modifier'],
+    ref: ['+ 0 base (Fighter, poor)', '+ 2 Dex modifier'],
+    will: ['+ 0 base (Fighter, poor)', '+ 1 Wis modifier'],
+    bab: ['+ 1 Fighter level 1 (full progression)'],
+    init: ['+ 2 Dex modifier'],
+    atk: ['+ 1 BAB', '+ 3 Str modifier']
+  };
+  RACES = [
+    { id: 'human', name: 'Human', sub: 'Adaptable · +2 any', desc: 'Ambitious and varied, humans are the most adaptable of the common races. They claim a flexible ability bonus, an extra feat, and an extra skill rank every level — the strongest chassis for almost any build.', traits: [ { n: 'Ability bonus', d: '+2 to one ability score of your choice.', tk: 'racial' }, { n: 'Bonus feat', d: 'One extra feat at 1st level.', tk: 'humanfeat' }, { n: 'Skilled', d: '+1 skill rank per level.', tk: 'rank' }, { n: 'Languages', d: 'Common, plus one per point of Int bonus.', tk: 'INT' } ], alts: [ { id: 'dual', n: 'Dual Talent', rep: 'Bonus feat + Skilled', d: '+2 to two different ability scores instead of one, at the cost of the bonus feat and the extra skill ranks.' }, { id: 'heart', n: 'Heart of the Fields', rep: 'Skilled', d: '+½ level to one Craft or Profession skill; once per day, ignore one fatigued or exhausted effect.' }, { id: 'focused', n: 'Focused Study', rep: 'Bonus feat', d: 'Skill Focus at 1st, 8th, and 16th level instead of the bonus feat.', whyNot: 'Conflicts with your selected Human bonus feat slot — clear it first.' } ] },
+    { id: 'dwarf', name: 'Dwarf', sub: '+2 Con, +2 Wis, −2 Cha', desc: 'Stoic mountain folk, slow but unstoppable. Darkvision, stability, and hatred of giants and goblinoids.', traits: [ { n: 'Darkvision', d: 'See 60 ft in total darkness.' }, { n: 'Stability', d: '+4 CMD vs bull rush and trip while on the ground.', tk: 'cmb' }, { n: 'Hardy', d: '+2 saves vs poison, spells, and spell-like abilities.' } ], alts: [ { id: 'craftsman', n: 'Craftsman', rep: 'Greed', d: '+2 on Craft and Profession checks to create stone or metal objects.' } ] },
+    { id: 'elf', name: 'Elf', sub: '+2 Dex, +2 Int, −2 Con', desc: 'Long-lived and graceful, elves favor precision — bows, blades, and wizardry.', traits: [ { n: 'Low-light vision', d: 'See twice as far as humans in dim light.' }, { n: 'Elven immunities', d: 'Immune to magic sleep; +2 saves vs enchantment.' }, { n: 'Keen senses', d: '+2 Perception.' } ], alts: [ { id: 'fleet', n: 'Fleet-Footed', rep: 'Keen Senses + Weapon Familiarity', d: 'Run as a full-round action even in heavy armor; +2 Initiative.', } ] },
+    { id: 'gnome', name: 'Gnome', sub: '+2 Con, +2 Cha, −2 Str', desc: 'Small, curious, and touched by the fey. Illusion magic runs in their blood.', traits: [ { n: 'Small size', d: '+1 AC and attack, +4 Stealth, −1 CMB/CMD.', tk: 'cmb' }, { n: 'Gnome magic', d: 'Minor illusion spell-like abilities.' } ], alts: [ { id: 'darkgnome', n: 'Magical Linguist', rep: 'Gnome magic', d: 'Bonus languages and +1 DC on language-dependent spells.' } ] },
+    { id: 'halfelf', name: 'Half-elf', sub: 'Adaptable · +2 any', desc: 'Between two worlds, half-elves blend human flexibility with elven senses.', traits: [ { n: 'Ability bonus', d: '+2 to one ability score of your choice.', tk: 'racial' }, { n: 'Adaptability', d: 'Skill Focus as a bonus feat at 1st level.' }, { n: 'Elf blood', d: 'Counts as both human and elf.' } ], alts: [ { id: 'ancestral', n: 'Ancestral Arms', rep: 'Adaptability', d: 'Exotic Weapon Proficiency with one weapon instead of Skill Focus.' } ] },
+    { id: 'halforc', name: 'Half-orc', sub: 'Adaptable · +2 any', desc: 'Feared and ferocious. Orc blood grants darkvision and the stubborn refusal to fall.', traits: [ { n: 'Ability bonus', d: '+2 to one ability score of your choice.', tk: 'racial' }, { n: 'Orc ferocity', d: 'Once per day, fight on for one more round at 0 HP.', tk: 'hp' }, { n: 'Darkvision', d: 'See 60 ft in total darkness.' } ], alts: [ { id: 'sacred', n: 'Sacred Tattoo', rep: 'Orc ferocity', d: '+1 luck bonus on all saving throws.' } ] },
+    { id: 'halfling', name: 'Halfling', sub: '+2 Dex, +2 Cha, −2 Str', desc: 'Small, lucky, and quietly brave — the best saves in the game for their size.', traits: [ { n: 'Small size', d: '+1 AC and attack, +4 Stealth, −1 CMB/CMD.', tk: 'cmb' }, { n: 'Halfling luck', d: '+1 on all saving throws.', tk: 'fort' }, { n: 'Fearless', d: '+2 saves vs fear (stacks with luck).' } ], alts: [ { id: 'fleetfoot', n: 'Fleet of Foot', rep: 'Sure-Footed', d: 'Speed 30 ft instead of 20 ft.' } ] }
+  ];
+  CLASSES = [
+    { id: 'fighter', name: 'Fighter', sub: 'Martial · d10 · full BAB', hd: 'd10', bab: 'Full (+1/level)', saves: 'Fortitude', sp: '2 + Int', desc: 'The master of arms. Fighters trade flash for an unmatched stream of bonus combat feats and, later, armor and weapon training. Simple to play, deep to build.', feats1: [ { n: 'Bonus feat', d: 'One bonus combat feat at 1st level, and another at every even level.' }, { n: 'Proficiencies', d: 'All simple and martial weapons; all armor and shields.' } ], archs: [ { id: 'weaponmaster', n: 'Weapon Master', rep: 'Bravery, Armor Training', d: 'Devote yourself to a single weapon: bonuses to attack, damage, and critical confirmation with it.' }, { id: 'armormaster', n: 'Armor Master', rep: 'Weapon Training, Bravery', d: 'Trade offense for damage reduction and shield mastery.' }, { id: 'twohanded', n: 'Two-Handed Fighter', rep: 'Armor Training', d: 'Overhand chop: massive damage with two-handed weapons.', whyNot: 'Replaces Armor Training — already replaced by Armor Master. Remove that archetype first.' } ] },
+    { id: 'barbarian', name: 'Barbarian', sub: 'Martial · d12 · rage', hd: 'd12', bab: 'Full', saves: 'Fortitude', sp: '4 + Int', desc: 'Fury given form — rage powers, fast movement, and the biggest hit die in the game.', feats1: [{ n: 'Rage', d: '+4 Str/Con, +2 Will, −2 AC for limited rounds per day.' }], archs: [] },
+    { id: 'bard', name: 'Bard', sub: 'Hybrid · d8 · arcane', hd: 'd8', bab: '3/4', saves: 'Ref, Will', sp: '6 + Int', desc: 'Jack of all trades: spells, songs that buff the whole party, and every skill under the sun.', feats1: [{ n: 'Bardic performance', d: 'Inspire courage +1 to allies\u2019 attacks and damage.' }], archs: [] },
+    { id: 'cleric', name: 'Cleric', sub: 'Divine · d8 · 9th-level caster', hd: 'd8', bab: '3/4', saves: 'Fort, Will', sp: '2 + Int', desc: 'Conduit of a god. Two domains, channel energy, and full divine casting.', feats1: [{ n: 'Domains', d: 'Two domains granting powers and bonus spells.' }], archs: [] },
+    { id: 'druid', name: 'Druid', sub: 'Divine · d8 · wild shape', hd: 'd8', bab: '3/4', saves: 'Fort, Will', sp: '4 + Int', desc: 'Nature\u2019s champion, with an animal companion and eventually the ability to become the animals.', feats1: [{ n: 'Nature bond', d: 'Animal companion or nature domain.' }], archs: [] },
+    { id: 'monk', name: 'Monk', sub: 'Martial · d8 · unarmed', hd: 'd8', bab: '3/4', saves: 'All three', sp: '4 + Int', desc: 'Discipline as a weapon: flurries, mobility, and all three good saves.', feats1: [{ n: 'Flurry of blows', d: 'Extra unarmed attacks at a penalty.' }], archs: [] },
+    { id: 'paladin', name: 'Paladin', sub: 'Divine · d10 · LG only', hd: 'd10', bab: 'Full', saves: 'Fort, Will', sp: '2 + Int', desc: 'Holy warrior. Smite evil, divine grace, and immunity to fear — must be Lawful Good.', feats1: [{ n: 'Smite evil', d: 'Cha to attack, level to damage vs an evil target.' }], archs: [] },
+    { id: 'ranger', name: 'Ranger', sub: 'Martial · d10 · favored enemy', hd: 'd10', bab: 'Full', saves: 'Fort, Ref', sp: '6 + Int', desc: 'Hunter of chosen foes, at home in chosen lands, with combat-style feats that skip prerequisites.', feats1: [{ n: 'Favored enemy', d: '+2 attack and damage vs one creature type.' }], archs: [] },
+    { id: 'rogue', name: 'Rogue', sub: 'Skill · d8 · sneak attack', hd: 'd8', bab: '3/4', saves: 'Reflex', sp: '8 + Int', desc: 'Precision damage and the party\u2019s answer to traps, locks, and awkward questions.', feats1: [{ n: 'Sneak attack', d: '+1d6 damage when the target is denied Dex.' }], archs: [] },
+    { id: 'sorcerer', name: 'Sorcerer', sub: 'Arcane · d6 · bloodline', hd: 'd6', bab: '1/2', saves: 'Will', sp: '2 + Int', desc: 'Magic in the blood — spontaneous casting shaped by a bloodline. Opens a bloodline choice slot.', feats1: [{ n: 'Bloodline', d: 'Powers, bonus spells, and a bloodline arcana.' }], archs: [] },
+    { id: 'wizard', name: 'Wizard', sub: 'Arcane · d6 · school', hd: 'd6', bab: '1/2', saves: 'Will', sp: '2 + Int', desc: 'The scholar of magic. Choosing wizard opens an arcane school slot — and the school opens opposition school slots. Nested choices render as they appear.', feats1: [{ n: 'Arcane school', d: 'Choose a school; then choose two opposition schools.' }], archs: [] }
+  ];
+  SKILLS = [
+    { id: 'acrobatics', name: 'Acrobatics', ab: 'DEX', cls: false, acp: true },
+    { id: 'climb', name: 'Climb', ab: 'STR', cls: true, acp: true },
+    { id: 'craft', name: 'Craft (weapons)', ab: 'INT', cls: true, acp: false },
+    { id: 'diplomacy', name: 'Diplomacy', ab: 'CHA', cls: false, acp: false },
+    { id: 'handle', name: 'Handle Animal', ab: 'CHA', cls: true, acp: false, trained: true },
+    { id: 'intimidate', name: 'Intimidate', ab: 'CHA', cls: true, acp: false },
+    { id: 'kdunge', name: 'Knowledge (dungeoneering)', ab: 'INT', cls: true, acp: false, trained: true },
+    { id: 'perception', name: 'Perception', ab: 'WIS', cls: false, acp: false },
+    { id: 'ride', name: 'Ride', ab: 'DEX', cls: true, acp: true },
+    { id: 'stealth', name: 'Stealth', ab: 'DEX', cls: false, acp: true },
+    { id: 'survival', name: 'Survival', ab: 'WIS', cls: true, acp: false },
+    { id: 'swim', name: 'Swim', ab: 'STR', cls: true, acp: true }
+  ];
+  FEATS = [
+    { id: 'power-attack', name: 'Power Attack', type: 'Combat', req: 'Str 13, BAB +1', ben: 'Trade 1 attack for +2 damage (+3 two-handed) on melee attacks.' },
+    { id: 'cleave', name: 'Cleave', type: 'Combat', req: 'Power Attack', ben: 'Hit one foe, get a free attack against an adjacent foe.' },
+    { id: 'dodge', name: 'Dodge', type: 'Combat', req: 'Dex 13', ben: '+1 dodge bonus to AC.' },
+    { id: 'weapon-focus', name: 'Weapon Focus (longsword)', type: 'Combat', req: 'BAB +1', ben: '+1 on attack rolls with the chosen weapon.' },
+    { id: 'point-blank', name: 'Point-Blank Shot', type: 'Combat', req: '—', ben: '+1 attack and damage with ranged weapons within 30 ft.' },
+    { id: 'weapon-finesse', name: 'Weapon Finesse', type: 'Combat', req: '—', ben: 'Use Dex instead of Str on attacks with light weapons.' },
+    { id: 'improved-init', name: 'Improved Initiative', type: 'General', req: '—', ben: '+4 bonus on initiative checks.' },
+    { id: 'iron-will', name: 'Iron Will', type: 'General', req: '—', ben: '+2 bonus on Will saves.' },
+    { id: 'toughness', name: 'Toughness', type: 'General', req: '—', ben: '+3 hit points, +1 per level beyond 3rd.' },
+    { id: 'combat-expertise', name: 'Combat Expertise', type: 'Combat', req: 'Int 13', ben: 'Trade attack bonus for AC.', whyNot: 'Requires Int 13 — you have 10.' },
+    { id: 'two-weapon', name: 'Two-Weapon Fighting', type: 'Combat', req: 'Dex 15', ben: 'Reduce two-weapon attack penalties.', whyNot: 'Requires Dex 15 — you have 14.' },
+    { id: 'gwf', name: 'Greater Weapon Focus', type: 'Combat', req: 'Fighter 8', ben: 'Additional +1 on attacks with the chosen weapon.', whyNot: 'Requires Fighter level 8 — you are Fighter 1.' }
+  ];
+  SHOP = [
+    { g: 'Weapons', items: [ { id: 'longsword', name: 'Longsword', cost: 15, wt: 4, note: '1d8 slashing, 19–20/×2', slot: 'main' }, { id: 'dagger', name: 'Dagger', cost: 2, wt: 1, note: '1d4, thrown 10 ft', slot: 'main' }, { id: 'longbow', name: 'Longbow', cost: 75, wt: 3, note: '1d8 piercing, 100 ft', slot: 'main' } ] },
+    { g: 'Armor & shields', items: [ { id: 'chain-shirt', name: 'Chain shirt', cost: 100, wt: 25, note: '+4 AC, ACP −2', slot: 'armor' }, { id: 'scale-mail', name: 'Scale mail', cost: 50, wt: 30, note: '+5 AC, ACP −4', slot: 'armor' }, { id: 'breastplate', name: 'Breastplate', cost: 200, wt: 30, note: '+6 AC, ACP −4', slot: 'armor' }, { id: 'heavy-shield', name: 'Heavy wooden shield', cost: 7, wt: 10, note: '+2 AC, ACP −2', slot: 'off' } ] },
+    { g: 'Gear', items: [ { id: 'backpack', name: 'Backpack', cost: 2, wt: 2, note: '' }, { id: 'rope', name: 'Rope, hemp (50 ft)', cost: 1, wt: 10, note: '' }, { id: 'waterskin', name: 'Waterskin', cost: 1, wt: 4, note: '' }, { id: 'rations', name: 'Trail rations (5 days)', cost: 2.5, wt: 5, note: '' } ] }
+  ];
+  itemById(id) { for (const g of this.SHOP) { const f = g.items.find(i => i.id === id); if (f) return f; } return null; }
+  fmt(v) { return v >= 0 ? '+' + v : '−' + Math.abs(v); }
+  mod(ab) { const s = this.state, f = s.base[ab] + (s.humanBonus === ab ? 2 : 0); return Math.floor((f - 10) / 2); }
+  mkTip(key) {
+    return (e) => {
+      const t = this.state.tip;
+      if (e.type !== 'click' && t && t.pinned) return;
+      const pos = this.tipPos(e);
+      clearTimeout(this.tid);
+      this.setState({ tip: { key, ...pos, pinned: e.type === 'click', stack: [] } });
+    };
+  }
+  mkBk(title, lines, kicker) {
+    return (e) => {
+      const t = this.state.tip;
+      if (e.type !== 'click' && t && t.pinned) return;
+      const pos = this.tipPos(e);
+      clearTimeout(this.tid);
+      this.setState({ tip: { custom: { k: kicker || 'Breakdown', t: title, lines }, ...pos, pinned: e.type === 'click', stack: [] } });
+    };
+  }
+  tipPos(e) {
+    const r = e.currentTarget.getBoundingClientRect();
+    const x = Math.max(10, Math.min(r.left, window.innerWidth - 370));
+    let y = r.bottom + 8;
+    if (y > window.innerHeight - 250) y = Math.max(10, r.top - 240);
+    return { x, y };
+  }
+  hideSoon() { clearTimeout(this.tid); this.tid = setTimeout(() => { const t = this.state.tip; if (t && !t.pinned) this.setState({ tip: null }); }, 280); }
+  renderVals() {
+    const s = this.state, F = this.fmt.bind(this), err = 'oklch(0.7 0.11 25)', warn = 'oklch(0.75 0.1 80)', info = 'var(--color-neutral-500)';
+    const tips = {}; for (const k of Object.keys(this.DICT)) tips[k] = this.mkTip(k);
+    const go = (st) => () => this.setState({ step: st });
+    // pool
+    const pbTotals = { pb15: 15, pb20: 20, pb25: 25 };
+    const spent = Object.values(s.base).reduce((a, v) => a + (this.COST[v] ?? 0), 0);
+    const poolTotal = pbTotals[s.method] || 0;
+    const poolLeft = poolTotal - spent;
+    const isPB = !!pbTotals[s.method];
+    // skills
+    const acpOn = s.equipped.armor || s.equipped.off ? -2 : 0;
+    const ranksSpent = Object.values(s.ranks).reduce((a, v) => a + v, 0);
+    const skillPtsLeft = Math.max(0, 2 - ranksSpent);
+    // feats
+    const openSlots = ['f1', 'fh', 'ff'].filter(k => !s.feats[k]).length;
+    // steps
+    const stepDefs = [
+      { id: 'basics', label: 'Basics', glyph: isPB && poolLeft > 0 ? '●' : '✓' },
+      { id: 'race', label: 'Race', glyph: '✓' },
+      { id: 'class', label: 'Class', glyph: '✓' },
+      { id: 'skills', label: 'Skills', glyph: skillPtsLeft > 0 ? '!' : '✓' },
+      { id: 'feats', label: 'Feats', glyph: openSlots > 0 ? '●' : '✓' },
+      { id: 'equip', label: 'Equipment', glyph: '✓' },
+      { id: 'review', label: 'Review', glyph: '○' }
+    ];
+    const steps = stepDefs.map(d => ({
+      ...d, go: go(d.id),
+      color: d.glyph === '!' ? err : d.glyph === '●' ? 'var(--color-accent)' : 'var(--color-neutral-500)',
+      ul: s.step === d.id ? 'inset 0 -2px 0 var(--color-accent)' : 'none'
+    }));
+    // strip
+    const strip = [
+      { k: 'HP', v: 13, bk: 'hp' }, { k: 'AC', v: 18, bk: 'ac' }, { k: 'Touch', v: 12, bk: 'touch' }, { k: 'FF', v: 16, bk: 'ff' },
+      { k: 'Fort', v: '+4', bk: 'fort' }, { k: 'Ref', v: '+2', bk: 'ref' }, { k: 'Will', v: '+1', bk: 'will' },
+      { k: 'BAB', v: '+1', bk: 'bab' }, { k: 'Init', v: '+2', bk: 'init' }
+    ].map(x => ({ ...x, h: (e) => { const d = this.DICT[x.bk]; const lines = this.BK[x.bk]; const pos = this.tipPos(e); if (e.type !== 'click' && this.state.tip && this.state.tip.pinned) return; clearTimeout(this.tid); this.setState({ tip: { custom: { k: d.t, t: `${x.k} ${x.v}`, lines, b2: d.b, chips: d.c }, ...pos, pinned: e.type === 'click', stack: [] } }); } }));
+    const stripOut = (this.props.statStrip ?? 'full') === 'compact' ? strip.slice(0, 5) : strip;
+    // abilities
+    const abNames = { STR: 'Strength', DEX: 'Dexterity', CON: 'Constitution', INT: 'Intelligence', WIS: 'Wisdom', CHA: 'Charisma' };
+    const tagStyle = 'background:var(--color-accent-800);color:var(--color-accent-100);padding:3px 9px;border-radius:6px;font-size:11px;cursor:pointer;border:none;font-family:inherit';
+    const dashStyle = 'color:var(--color-neutral-700);background:transparent;border:1px dashed transparent;padding:3px 9px;border-radius:6px;font-size:11px;cursor:pointer;font-family:inherit';
+    const setBase = (ab, d) => () => {
+      const v = s.base[ab] + d, lo = isPB ? 7 : 3, hi = 18;
+      if (s.method === 'std') return;
+      if (v < lo || v > hi) return;
+      if (isPB) { const nc = (this.COST[v] ?? 0) - (this.COST[s.base[ab]] ?? 0); if (nc > poolLeft) return; }
+      this.setState({ base: { ...s.base, [ab]: v } });
+    };
+    const abilities = Object.keys(abNames).map(ab => {
+      const fin = s.base[ab] + (s.humanBonus === ab ? 2 : 0);
+      return {
+        ab, name: abNames[ab], base: s.base[ab],
+        cost: isPB ? (this.COST[s.base[ab]] ?? 0) : '—',
+        racial: s.humanBonus === ab ? '+2 Human' : 'set +2',
+        racialStyle: s.humanBonus === ab ? tagStyle : dashStyle,
+        setRacial: () => this.setState({ humanBonus: ab }),
+        final: fin, mod: F(Math.floor((fin - 10) / 2)),
+        inc: setBase(ab, 1), dec: setBase(ab, -1), tip: tips[ab]
+      };
+    });
+    const methods = [
+      { id: 'pb15', label: 'Point buy 15' }, { id: 'pb20', label: 'Point buy 20' }, { id: 'pb25', label: 'Point buy 25' },
+      { id: 'std', label: 'Standard array' }, { id: 'manual', label: 'Manual' }
+    ].map(m => ({
+      ...m, go: () => { const patch = { method: m.id }; if (m.id === 'std') patch.base = { STR: 15, DEX: 14, CON: 13, INT: 12, WIS: 10, CHA: 8 }; this.setState(patch); },
+      fg: s.method === m.id ? 'var(--color-accent)' : 'var(--color-text)',
+      ring: s.method === m.id ? 'inset 0 0 0 1px var(--color-accent)' : 'none'
+    }));
+    const poolNote = isPB ? `${poolLeft} of ${poolTotal} points left` : s.method === 'std' ? 'Standard array: 15 14 13 12 10 8' : 'Manual entry — no pool';
+    const poolPct = isPB ? Math.round(100 * spent / poolTotal) : 100;
+    // basics misc
+    const aligns = ['LG', 'NG', 'CG', 'LN', 'N', 'CN', 'LE', 'NE', 'CE'].map(id => ({
+      id, go: () => this.setState({ align: id }),
+      bd: s.align === id ? 'var(--color-accent)' : 'var(--color-divider)',
+      bg: s.align === id ? 'rgba(145,132,217,.12)' : 'transparent'
+    }));
+    // race
+    const races = this.RACES.map(r => ({
+      id: r.id, name: r.name, sub: r.sub,
+      view: () => this.setState({ raceView: r.id }),
+      bd: s.raceView === r.id ? 'var(--color-accent)' : 'transparent',
+      mark: s.race === r.id ? '✓ selected' : '', markColor: 'var(--color-accent-300)'
+    }));
+    const rd = this.RACES.find(r => r.id === s.raceView);
+    const raceDetail = {
+      name: rd.name, desc: rd.desc,
+      selLabel: s.race === rd.id ? '✓ Selected' : 'Select race',
+      select: () => this.setState({ race: rd.id }),
+      traits: rd.traits.map(t => ({ n: t.n, d: t.d, h: t.tk ? tips[t.tk] : this.mkBk(t.n, [t.d], 'Racial trait') })),
+      alts: rd.alts.map(a => ({
+        n: a.n, rep: a.rep, d: a.d, whyNot: a.whyNot || false,
+        dis: !!a.whyNot, op: a.whyNot ? 0.55 : 1,
+        bd: s.altTrait === a.id ? 'var(--color-accent)' : 'transparent',
+        btn: s.altTrait === a.id ? '✓ Taken' : 'Take',
+        go: () => this.setState({ altTrait: s.altTrait === a.id ? null : a.id })
+      }))
+    };
+    // class
+    const classes = this.CLASSES.map(c => ({
+      id: c.id, name: c.name, sub: c.sub,
+      view: () => this.setState({ classView: c.id }),
+      bd: s.classView === c.id ? 'var(--color-accent)' : 'transparent',
+      mark: s.klass === c.id ? '✓ selected' : '', markColor: 'var(--color-accent-300)'
+    }));
+    const cd = this.CLASSES.find(c => c.id === s.classView);
+    const archSel = s.classView === 'fighter' ? s.arch : null;
+    const replaced = archSel ? (this.CLASSES[0].archs.find(a => a.id === archSel) || {}).rep : '';
+    const classDetail = {
+      name: cd.name, hd: cd.hd, bab: cd.bab, saves: cd.saves, sp: cd.sp, desc: cd.desc,
+      selLabel: s.klass === cd.id ? '✓ Selected' : 'Select class',
+      select: () => this.setState({ klass: cd.id }),
+      feats1: cd.feats1.map(f => ({ ...f, strike: replaced && replaced.includes(f.n) ? 'line-through' : 'none', op: 1 })),
+      archs: cd.archs.map(a => ({
+        n: a.n, rep: a.rep, d: a.d, whyNot: a.whyNot || false,
+        dis: !!a.whyNot && s.arch !== a.id, op: a.whyNot ? 0.55 : 1,
+        bd: s.arch === a.id ? 'var(--color-accent)' : 'transparent',
+        btn: s.arch === a.id ? '✓ Taken' : 'Take',
+        go: () => this.setState({ arch: s.arch === a.id ? null : a.id })
+      }))
+    };
+    // skills
+    const skillRows = this.SKILLS.map(sk => {
+      const rank = s.ranks[sk.id] || 0;
+      const abMod = this.mod(sk.ab);
+      const acpPen = sk.acp ? acpOn * 2 : 0;
+      const acpVal = sk.acp ? -4 : 0; // chain shirt −2 + heavy shield −2
+      const pen = sk.acp && (s.equipped.armor || s.equipped.off) ? acpVal : 0;
+      const cls3 = sk.cls && rank > 0 ? 3 : 0;
+      const total = rank + cls3 + abMod + pen;
+      const untrainable = sk.trained && rank === 0;
+      const lines = [`${rank} ranks`, ...(cls3 ? ['+ 3 class skill'] : []), `${abMod >= 0 ? '+' : '−'} ${Math.abs(abMod)} ${abNames[sk.ab]} modifier`, ...(pen ? [`− ${Math.abs(pen)} armor check penalty (chain shirt, heavy shield)`] : [])];
+      return {
+        id: sk.id, name: sk.name, ab: sk.ab.charAt(0) + sk.ab.slice(1).toLowerCase(),
+        clsMark: sk.cls ? '●' : '', acpMark: sk.acp ? '▲' : '',
+        rank, total: untrainable ? '—' : F(total),
+        note: untrainable ? 'trained only' : '',
+        inc: () => { if (rank >= 1 || skillPtsLeft <= 0) return; this.setState({ ranks: { ...s.ranks, [sk.id]: rank + 1 } }); },
+        dec: () => { if (rank <= 0) return; this.setState({ ranks: { ...s.ranks, [sk.id]: rank - 1 } }); },
+        max: () => { if (rank >= 1 || skillPtsLeft <= 0) return; this.setState({ ranks: { ...s.ranks, [sk.id]: 1 } }); },
+        bk: untrainable ? this.mkBk(sk.name, ['Trained only — requires at least 1 rank to use.'], 'Skill') : this.mkBk(`${sk.name} ${F(total)}`, lines, 'Skill breakdown')
+      };
+    });
+    // feats
+    const slotLabels = { f1: 'Level 1 feat', fh: 'Human bonus feat', ff: 'Fighter bonus · combat only' };
+    const slotTips = { f1: 'rank', fh: 'humanfeat', ff: 'combatfeat' };
+    const featName = (id) => { const f = this.FEATS.find(x => x.id === id); return f ? f.name : null; };
+    const featSlots = ['f1', 'fh', 'ff'].map(k => ({
+      label: slotLabels[k], val: featName(s.feats[k]) || 'Empty',
+      fg: s.feats[k] ? 'var(--color-text)' : 'var(--color-neutral-600)',
+      filled: !!s.feats[k], bd: s.feats[k] ? 'var(--color-divider)' : 'var(--color-accent-800)',
+      clear: () => this.setState({ feats: { ...s.feats, [k]: null } }),
+      h: tips[k === 'f1' ? 'combatfeat' : slotTips[k]] && this.mkTip(slotTips[k] === 'rank' ? 'combatfeat' : slotTips[k])
+    }));
+    featSlots[0].h = this.mkBk('Level 1 feat', ['Every character gains one feat at 1st level — any feat whose prerequisites you meet.'], 'PF1e rules');
+    const featChips = ['All', 'Combat', 'General'].map(t => ({
+      label: t, go: () => this.setState({ featType: t }),
+      bd: s.featType === t ? 'var(--color-accent)' : 'var(--color-divider)',
+      bg: s.featType === t ? 'rgba(145,132,217,.12)' : 'transparent',
+      fg: s.featType === t ? 'var(--color-accent-300)' : 'var(--color-text)'
+    }));
+    const q = s.featQ.toLowerCase();
+    const featRows = this.FEATS
+      .filter(f => (s.featType === 'All' || f.type === s.featType) && (s.showIllegal || !f.whyNot) && (!q || f.name.toLowerCase().includes(q) || f.ben.toLowerCase().includes(q)))
+      .map(f => {
+        const selKey = Object.keys(s.feats).find(k => s.feats[k] === f.id);
+        return {
+          name: f.name, type: f.type, req: f.req === '—' ? '' : 'Requires ' + f.req, ben: f.ben,
+          whyNot: f.whyNot || false, op: f.whyNot ? 0.55 : 1, dis: !!f.whyNot,
+          bd: selKey ? 'var(--color-accent)' : 'transparent',
+          btn: selKey ? '✓ Selected' : 'Select',
+          pick: () => {
+            if (f.whyNot) return;
+            if (selKey) { this.setState({ feats: { ...s.feats, [selKey]: null } }); return; }
+            const order = f.type === 'Combat' ? ['ff', 'fh', 'f1'] : ['fh', 'f1'];
+            const slot = order.find(k => !s.feats[k]) || (f.type === 'Combat' ? 'ff' : 'f1');
+            this.setState({ feats: { ...s.feats, [slot]: f.id } });
+          }
+        };
+      });
+    const illegalToggle = { label: s.showIllegal ? 'Hiding nothing — illegal shown dimmed' : 'Illegal hidden — show', fg: s.showIllegal ? 'var(--color-neutral-400)' : 'var(--color-accent-300)', go: () => this.setState({ showIllegal: !s.showIllegal }) };
+    // equipment
+    const load = Object.entries(s.owned).reduce((a, [id, q2]) => { const it = this.itemById(id); return a + (it ? it.wt * q2 : 0); }, 0);
+    const loadLabel = load <= 86 ? 'Light' : load <= 173 ? 'Medium' : 'Heavy';
+    const equipSlots = [
+      { k: 'Armor', v: featNameSafe(this.itemById(s.equipped.armor)) },
+      { k: 'Main hand', v: featNameSafe(this.itemById(s.equipped.main)) },
+      { k: 'Off hand', v: featNameSafe(this.itemById(s.equipped.off)) }
+    ];
+    function featNameSafe(it) { return it ? it.name : '— empty —'; }
+    const shopGroups = this.SHOP.map(g => ({
+      label: g.g,
+      items: g.items.map(it => ({
+        name: it.name, note: it.note, cost: it.cost, wt: it.wt,
+        dis: s.gold < it.cost, btn: s.gold < it.cost ? 'Too costly' : 'Buy',
+        buy: () => { if (s.gold < it.cost) return; this.setState({ gold: Math.round((s.gold - it.cost) * 10) / 10, owned: { ...s.owned, [it.id]: (s.owned[it.id] || 0) + 1 } }); }
+      }))
+    }));
+    const ownedRows = Object.entries(s.owned).filter(([, q2]) => q2 > 0).map(([id, q2]) => {
+      const it = this.itemById(id);
+      const equipped = Object.values(s.equipped).includes(id);
+      return {
+        name: it.name, qty: q2, equippable: !!it.slot,
+        eqBtn: equipped ? '✓ Equipped' : 'Equip', eqDis: equipped,
+        equip: () => this.setState({ equipped: { ...s.equipped, [it.slot]: id } }),
+        sell: () => {
+          const owned = { ...s.owned, [id]: q2 - 1 };
+          const equippedNew = { ...s.equipped };
+          if (owned[id] === 0) for (const k of Object.keys(equippedNew)) if (equippedNew[k] === id) equippedNew[k] = null;
+          this.setState({ gold: Math.round((s.gold + it.cost) * 10) / 10, owned, equipped: equippedNew });
+        }
+      };
+    });
+    // issues
+    const issues = [];
+    if (skillPtsLeft > 0) issues.push({ sev: 'Error', loc: 'Skills', msg: `${skillPtsLeft} skill rank${skillPtsLeft > 1 ? 's' : ''} unspent`, color: err, go: go('skills') });
+    if (isPB && poolLeft > 0) issues.push({ sev: 'Warning', loc: 'Basics', msg: `${poolLeft} point-buy point${poolLeft > 1 ? 's' : ''} unspent`, color: warn, go: go('basics') });
+    if (openSlots > 0) issues.push({ sev: 'Info', loc: 'Feats', msg: `${openSlots} feat slot${openSlots > 1 ? 's' : ''} open`, color: info, go: go('feats') });
+    // review
+    const revDef = [
+      { k: 'Hit points', v: 13, bk: 'hp' }, { k: 'AC', v: 18, bk: 'ac' }, { k: 'Touch', v: 12, bk: 'touch' }, { k: 'Flat-footed', v: 16, bk: 'ff' }
+    ].map(x => ({ ...x, h: this.mkBk(`${x.k} ${x.v}`, this.BK[x.bk]) }));
+    const revOff = [
+      { k: 'Fortitude', v: '+4', bk: 'fort' }, { k: 'Reflex', v: '+2', bk: 'ref' }, { k: 'Will', v: '+1', bk: 'will' },
+      { k: 'BAB', v: '+1', bk: 'bab' }, { k: 'Longsword attack', v: '+4 (1d8+3)', bk: 'atk' }
+    ].map(x => ({ ...x, h: this.mkBk(`${x.k} ${x.v}`, this.BK[x.bk]) }));
+    const revFeats = ['f1', 'fh', 'ff'].map(k => featName(s.feats[k])).filter(Boolean);
+    const revGear = Object.entries(s.owned).filter(([, q2]) => q2 > 0).map(([id, q2]) => { const it = this.itemById(id); return it.name + (q2 > 1 ? ` ×${q2}` : ''); });
+    const revSkills = skillRows.filter(r => r.rank > 0).map(r => ({ name: r.name, total: r.total, bk: r.bk }));
+    // tooltip
+    const tip = s.tip;
+    let tipKicker = '', tipTitle = '', tipBody = false, tipLines = [], tipChips = [];
+    if (tip) {
+      const d = tip.custom || this.DICT[tip.key];
+      tipKicker = d.k; tipTitle = d.t; tipBody = d.b || d.b2 || false; tipLines = d.lines || [];
+      tipChips = (d.c || d.chips || []).map(ck => ({ label: this.DICT[ck].t, go: () => this.setState({ tip: { ...tip, key: ck, custom: null, pinned: true, stack: [...(tip.stack || []), tip.custom || tip.key] } }) }));
+    }
+    return {
+      name: s.name, setName: (e) => this.setState({ name: e.target.value }),
+      align: s.align, aligns, deity: s.deity, deities: ['Iomedae', 'Torag', 'Sarenrae', 'Gorum', 'Erastil', 'Abadar', 'Desna', 'None'],
+      setDeity: (e) => this.setState({ deity: e.target.value }),
+      steps, strip: stripOut, tips, leaveTip: () => this.hideSoon(),
+      gridCols: (this.props.issuesPanel ?? 'docked') === 'docked' ? '1fr 300px' : '1fr',
+      showIssues: (this.props.issuesPanel ?? 'docked') === 'docked',
+      isBasics: s.step === 'basics', isRace: s.step === 'race', isClass: s.step === 'class',
+      isSkills: s.step === 'skills', isFeats: s.step === 'feats', isEquip: s.step === 'equip', isReview: s.step === 'review',
+      methods, poolPct, poolNote, abilities,
+      races, raceDetail, classes, classDetail,
+      skillRows, skillPtsLeft, skillPtsColor: skillPtsLeft > 0 ? 'oklch(0.7 0.11 25)' : 'var(--color-accent-300)',
+      featSlots, featChips, featQ: s.featQ, setFeatQ: (e) => this.setState({ featQ: e.target.value }), featRows, illegalToggle,
+      gold: s.gold, loadNow: load, loadPct: Math.min(100, Math.round(100 * load / 260)), loadLabel, equipSlots, shopGroups, ownedRows,
+      issues, issueCount: issues.length, issuesEmpty: issues.length === 0,
+      revDef, revOff, revFeats, revGear, revSkills,
+      tipOpen: !!tip, tipStyle: tip ? `position:fixed;left:${tip.x}px;top:${tip.y}px;z-index:60` : '',
+      tipKicker, tipTitle, tipBody, tipLines, tipChips,
+      hasLines: tipLines.length > 0, hasChips: tipChips.length > 0,
+      hasBack: !!(tip && tip.stack && tip.stack.length),
+      backTip: () => { const st = [...s.tip.stack]; const prev = st.pop(); const patch = typeof prev === 'string' ? { key: prev, custom: null } : { custom: prev, key: null }; this.setState({ tip: { ...s.tip, ...patch, stack: st } }); },
+      tipPinned: !!(tip && tip.pinned),
+      tipHint: tip && !tip.pinned ? 'Click to pin · Esc or ✕ to close' : false,
+      closeTip: () => this.setState({ tip: null }),
+      cardEnter: () => clearTimeout(this.tid),
+      cardLeave: () => this.hideSoon()
+    };
+  }
+  componentDidMount() {
+    this.onKey = (e) => { if (e.key === 'Escape' && this.state.tip) this.setState({ tip: null }); };
+    window.addEventListener('keydown', this.onKey);
+  }
+  componentWillUnmount() { window.removeEventListener('keydown', this.onKey); }
+}
+</script>
+</body>
+</html>

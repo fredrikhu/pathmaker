@@ -1,0 +1,87 @@
+/* Pathmaker additions on top of Nocturne (round-2 handoff README §"New tokens"). */
+
+:root {
+  /* Warning surface pair — every would-invalidate tag, orphaned slot ring, opposition marker. */
+  --warn: oklch(0.75 0.1 80);
+  --warn-fg: oklch(0.82 0.09 80);
+  --warn-bg: color-mix(in srgb, oklch(0.75 0.1 80) 16%, transparent);
+  --err: oklch(0.7 0.11 25);
+  --info: var(--color-neutral-500);
+
+  /* Print palette (sheet route only). */
+  --paper: oklch(0.985 0.004 90);
+  --ink: oklch(0.24 0.015 277);
+  --ink-hairline: oklch(0.88 0.005 277);
+}
+
+@keyframes tipIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@keyframes issueIn {
+  0% { opacity: 0; transform: translateX(8px); box-shadow: inset 0 0 0 1px var(--warn); }
+  60% { box-shadow: inset 0 0 0 1px var(--warn); }
+  100% { opacity: 1; transform: none; }
+}
+
+.num { font-variant-numeric: tabular-nums; }
+
+/* Dotted "inspectable" affordance — terms and breakdown numbers. */
+.term {
+  border-bottom: 1px dotted var(--color-neutral-600);
+  cursor: help;
+}
+button.inspect {
+  background: transparent;
+  border: none;
+  padding: 0;
+  color: var(--color-text);
+  cursor: pointer;
+  font-family: inherit;
+  font-variant-numeric: tabular-nums;
+  border-bottom: 1px dotted var(--color-neutral-600);
+  width: fit-content;
+}
+
+.warn-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  padding: 3px 9px;
+  border-radius: 6px;
+  background: var(--warn-bg);
+  color: var(--warn-fg);
+  cursor: help;
+  white-space: nowrap;
+}
+
+.stepper {
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--color-divider);
+  border-radius: 7px;
+  background: transparent;
+  color: var(--color-text);
+  cursor: pointer;
+  font-size: 14px;
+}
+.stepper:hover:not(:disabled) { border-color: var(--color-accent); }
+.stepper:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.micro {
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-neutral-500);
+}
+
+/* Print rendition of the sheet route. */
+@media print {
+  body { background: #fff !important; color: var(--ink) !important; }
+  .no-print { display: none !important; }
+  .print-page {
+    box-shadow: none !important;
+    margin: 0 !important;
+    width: auto !important;
+    min-height: auto !important;
+  }
+  @page { size: A4; margin: 12mm; }
+}

@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/nocturne-7be3073d-4769-4495-930e-a77ce614c276/styles.css">
+<script src="_ds/nocturne-7be3073d-4769-4495-930e-a77ce614c276/_ds_bundle.js"></script>
+<style>
+body{margin:0;background:var(--color-bg);color:var(--color-text)}
+a{color:var(--color-accent)}a:hover{color:var(--color-accent-300)}
+@keyframes tipIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+</style>
+</helmet>
+<div style="min-height:100vh;display:flex;flex-direction:column;font-size:14px">
+  <div style="display:flex;align-items:center;gap:16px;padding:10px 20px;flex-wrap:wrap">
+    <span style="font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--color-accent)">Pathmaker</span>
+    <span style="font-family:var(--font-heading);font-weight:500;font-size:15px">Aravel Thendriel <span class="text-muted" style="font-size:12px;font-weight:400">· Elf Wizard 1</span></span>
+    <div style="display:flex;gap:2px;margin-left:16px">
+      <sc-for list="{{ steps }}" as="st" hint-placeholder-count="8">
+        <button onClick="{{ st.go }}" style="padding:7px 12px 9px;font-size:13px;cursor:pointer;box-shadow:{{ st.ul }};color:var(--color-text);background:transparent;border:none;font-family:inherit" style-hover="color:var(--color-accent-300)">
+          <span style="font-size:11px;color:{{ st.color }}">{{ st.glyph }}</span> {{ st.label }}
+        </button>
+      </sc-for>
+    </div>
+    <span style="flex:1"></span>
+    <button class="btn btn-secondary" style="font-size:12px;white-space:nowrap" title="Undo (Ctrl+Z)">↩ Undo</button>
+    <span class="text-muted" style="font-size:11px;white-space:nowrap">Saved just now</span>
+    <a href="Pathmaker Sheet.dc.html" class="btn btn-primary" style="font-size:12px;white-space:nowrap">Sheet preview</a>
+  </div>
+  <div style="display:flex;padding:0 20px;border-top:1px solid var(--color-divider);border-bottom:1px solid var(--color-divider);background:var(--color-surface)">
+    <sc-for list="{{ strip }}" as="s" hint-placeholder-count="9">
+      <div onMouseEnter="{{ s.h }}" onMouseLeave="{{ leaveTip }}" onClick="{{ s.h }}" style="padding:8px 15px 9px;cursor:pointer;border-right:1px solid rgba(233,233,237,.06)" style-hover="background:rgba(145,132,217,.08)">
+        <div style="font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-500)">{{ s.k }}</div>
+        <div style="font-size:17px;font-weight:600;font-variant-numeric:tabular-nums">{{ s.v }}</div>
+      </div>
+    </sc-for>
+    <span style="flex:1"></span>
+    <div style="align-self:center;font-size:11px;color:var(--color-neutral-500)">hover a number for its breakdown · click to pin · dotted terms explain the rules</div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 300px;flex:1;align-items:stretch">
+    <div style="padding:20px 26px 40px;min-width:0;overflow-x:auto">
+
+      <sc-if value="{{ isSpells }}" hint-placeholder-val="{{ true }}">
+        <div style="max-width:1120px">
+          <div style="display:flex;align-items:center;gap:16px;margin-bottom:4px;flex-wrap:wrap">
+            <h3 style="font-size:21px;margin:0">Spells</h3>
+            <span class="text-muted" style="font-size:12px"><span onMouseEnter="{{ tips.school }}" onMouseLeave="{{ leaveTip }}" onClick="{{ tips.school }}" style="border-bottom:1px dotted var(--color-neutral-600);cursor:help">Arcane school</span>: <strong style="color:var(--color-accent-300)">Evocation</strong> · <span onMouseEnter="{{ tips.opposition }}" onMouseLeave="{{ leaveTip }}" onClick="{{ tips.opposition }}" style="border-bottom:1px dotted var(--color-neutral-600);cursor:help">Opposition</span>: Enchantment, Necromancy</span>
+          </div>
+          <p class="text-muted" style="font-size:12px;margin:0 0 14px;max-width:700px">Creation-time selection only — preparing and casting come later. This step exists because the engine opened spell slots for this build; a fighter never sees it.</p>
+          <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+            <div style="padding:10px 14px;border-radius:8px;background:var(--color-surface);box-shadow:inset 0 0 0 1px var(--color-divider);min-width:210px">
+              <div style="font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-500);margin-bottom:3px"><span onMouseEnter="{{ tips.cantrip }}" onMouseLeave="{{ leaveTip }}" onClick="{{ tips.cantrip }}" style="border-bottom:1px dotted var(--color-neutral-700);cursor:help">Cantrips (0-level)</span></div>
+              <div style="font-size:13px;font-weight:500">All 10 in spellbook <span class="text-muted" style="font-size:11px;font-weight:400">· automatic</span></div>
+            </div>
+            <div style="padding:10px 14px;border-radius:8px;background:var(--color-surface);box-shadow:inset 0 0 0 1px {{ pickBd }};min-width:250px">
+              <div style="font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-500);margin-bottom:3px">1st-level spellbook · 3 + Int mod</div>
+              <div style="display:flex;align-items:center;gap:10px">
+                <span style="font-size:13px;font-weight:500;color:{{ pickFg }}">{{ pickedCount }} of 6 picked</span>
+                <div style="width:80px;height:4px;border-radius:2px;background:var(--color-neutral-800);overflow:hidden"><div style="width:{{ pickPct }}%;height:100%;background:var(--color-accent)"></div></div>
+              </div>
+            </div>
+            <div style="padding:10px 14px;border-radius:8px;background:var(--color-surface);box-shadow:inset 0 0 0 1px var(--color-divider);min-width:230px">
+              <div style="font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-500);margin-bottom:3px">Slots per day <span class="text-muted">(from Sheet — display only)</span></div>
+              <div style="font-size:13px;font-weight:500;font-variant-numeric:tabular-nums">0th ×3 · 1st ×2 <span class="text-muted" style="font-size:11px;font-weight:400">+1 evocation</span></div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap">
+            <input class="input" style="width:220px" placeholder="Search spells…" value="{{ q }}" onChange="{{ setQ }}">
+            <div style="display:flex;gap:6px">
+              <sc-for list="{{ lvlChips }}" as="ch" hint-placeholder-count="3">
+                <button onClick="{{ ch.go }}" style="padding:5px 13px;border-radius:999px;font-size:12px;cursor:pointer;border:1px solid {{ ch.bd }};background:{{ ch.bg }};color:{{ ch.fg }};font-family:inherit" style-hover="border-color:var(--color-accent-600)">{{ ch.label }}</button>
+              </sc-for>
+            </div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+              <sc-for list="{{ schoolChips }}" as="ch" hint-placeholder-count="9">
+                <button onClick="{{ ch.go }}" style="padding:5px 12px;border-radius:999px;font-size:11.5px;cursor:pointer;border:1px solid {{ ch.bd }};background:{{ ch.bg }};color:{{ ch.fg }};font-family:inherit" style-hover="border-color:var(--color-accent-600)">{{ ch.label }}</button>
+              </sc-for>
+            </div>
+          </div>
+          <div style="display:flex;gap:26px;align-items:flex-start">
+            <div style="flex:1;min-width:380px;display:flex;flex-direction:column;gap:5px">
+              <sc-for list="{{ rows }}" as="sp" hint-placeholder-count="10">
+                <div onClick="{{ sp.view }}" style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;background:var(--color-surface);cursor:pointer;box-shadow:inset 0 0 0 1px {{ sp.bd }}" style-hover="background:var(--color-neutral-900)">
+                  <span style="width:16px;text-align:center;font-size:11px;color:var(--color-neutral-500);font-variant-numeric:tabular-nums">{{ sp.lvl }}</span>
+                  <div style="flex:1;min-width:0">
+                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                      <span style="font-size:13.5px;font-weight:500">{{ sp.name }}</span>
+                      <span class="tag tag-neutral" style="font-size:10px">{{ sp.school }}</span>
+                      <sc-if value="{{ sp.opposed }}" hint-placeholder-val="{{ false }}">
+                        <span onMouseEnter="{{ tips.opposition }}" onMouseLeave="{{ leaveTip }}" onClick="{{ tips.opposition }}" style="display:inline-flex;align-items:center;gap:4px;font-size:10px;padding:2px 8px;border-radius:6px;background:color-mix(in srgb, oklch(0.75 0.1 80) 16%, transparent);color:oklch(0.82 0.09 80);cursor:help">⚠ opposed — double slot</span>
+                      </sc-if>
+                    </div>
+                    <div style="font-size:12px;color:var(--color-neutral-400);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ sp.sum }}</div>
+                  </div>
+                  <sc-if value="{{ sp.auto }}" hint-placeholder-val="{{ false }}"><span class="text-muted" style="font-size:11px;flex:none">in spellbook</span></sc-if>
+                  <sc-if value="{{ sp.pickable }}" hint-placeholder-val="{{ true }}"><button onClick="{{ sp.pick }}" class="btn btn-primary" style="font-size:11px;flex:none" disabled="{{ sp.dis }}">{{ sp.btn }}</button></sc-if>
+                </div>
+              </sc-for>
+              <p class="text-muted" style="font-size:11px;margin-top:8px">Mock shows the core-rulebook head of the list — production virtualizes hundreds of rows with these same filters.</p>
+            </div>
+            <div style="width:360px;flex:none;position:sticky;top:16px">
+              <div style="padding:16px 18px;border-radius:10px;background:var(--color-surface);box-shadow:var(--shadow-sm)">
+                <div style="display:flex;align-items:center;gap:9px;margin-bottom:2px;flex-wrap:wrap">
+                  <h4 style="font-size:18px;margin:0">{{ det.name }}</h4>
+                  <span class="tag tag-neutral" style="font-size:10px">{{ det.school }} {{ det.lvl }}</span>
+                  <sc-if value="{{ det.opposed }}" hint-placeholder-val="{{ false }}"><span style="font-size:10px;padding:2px 8px;border-radius:6px;background:color-mix(in srgb, oklch(0.75 0.1 80) 16%, transparent);color:oklch(0.82 0.09 80)">opposed school</span></sc-if>
+                </div>
+                <div style="display:grid;grid-template-columns:auto 1fr;gap:3px 14px;font-size:12px;margin:10px 0 12px;color:var(--color-neutral-300)">
+                  <span class="text-muted">Casting</span><span>{{ det.cast }}</span>
+                  <span class="text-muted"><span onMouseEnter="{{ tips.components }}" onMouseLeave="{{ leaveTip }}" onClick="{{ tips.components }}" style="border-bottom:1px dotted var(--color-neutral-600);cursor:help">Components</span></span><span>{{ det.comp }}</span>
+                  <span class="text-muted">Range</span><span>{{ det.range }}</span>
+                  <span class="text-muted">Duration</span><span>{{ det.dur }}</span>
+                  <span class="text-muted">Save / SR</span><span>{{ det.save }}</span>
+                </div>
+                <div style="font-size:13px;line-height:1.7;color:var(--color-neutral-200)">{{ det.desc }}</div>
+                <sc-if value="{{ det.opposed }}" hint-placeholder-val="{{ false }}">
+                  <div style="font-size:11.5px;color:oklch(0.82 0.09 80);margin-top:10px;line-height:1.5">Enchantment is one of your opposition schools: you may still learn and prepare this spell, but preparing it consumes two slots.</div>
+                </sc-if>
+              </div>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isOther }}" hint-placeholder-val="{{ false }}">
+        <div style="max-width:640px;padding:30px 0">
+          <h3 style="font-size:21px;margin:0 0 8px">{{ otherLabel }}</h3>
+          <p class="text-muted" style="font-size:13px;line-height:1.6">This step is unchanged from round 1 — see <a href="Pathmaker Builder v2.dc.html">Pathmaker Builder v2</a>. This mock focuses on the Spells step for the elf-wizard build; the engine opened it because wizard emits spell choice slots.</p>
+        </div>
+      </sc-if>
+
+    </div>
+    <div style="border-left:1px solid var(--color-divider);padding:18px;display:flex;flex-direction:column;gap:10px;background:var(--color-surface)">
+      <span style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--color-neutral-500)">To resolve — {{ issueCount }}</span>
+      <sc-for list="{{ issues }}" as="i" hint-placeholder-count="2">
+        <div onClick="{{ i.go }}" style="padding:10px 12px;border-radius:8px;background:var(--color-bg);cursor:pointer;box-shadow:inset 2px 0 0 {{ i.color }}" style-hover="background:var(--color-neutral-900)">
+          <div style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:{{ i.color }};margin-bottom:2px">{{ i.sev }} · {{ i.loc }}</div>
+          <div style="font-size:12.5px;line-height:1.45">{{ i.msg }}</div>
+        </div>
+      </sc-for>
+      <sc-if value="{{ issuesEmpty }}" hint-placeholder-val="{{ false }}"><div style="font-size:12.5px;color:var(--color-accent-300)">✓ Nothing to resolve — ready to adventure.</div></sc-if>
+      <p class="text-muted" style="font-size:11px;margin-top:auto">Click an issue to jump to its step. Errors never block saving.</p>
+    </div>
+  </div>
+
+  <sc-if value="{{ tipOpen }}" hint-placeholder-val="{{ false }}">
+    <div onMouseEnter="{{ cardEnter }}" onMouseLeave="{{ cardLeave }}" style="{{ tipStyle }}">
+      <div style="width:330px;padding:13px 15px;border-radius:10px;background:var(--color-surface);box-shadow:var(--shadow-md);animation:tipIn .12s ease-out">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <span style="font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--color-accent)">{{ tipKicker }}</span>
+          <span style="flex:1"></span>
+          <sc-if value="{{ tipPinned }}" hint-placeholder-val="{{ false }}"><span style="font-size:10px;color:var(--color-neutral-500)">pinned</span></sc-if>
+          <button onClick="{{ closeTip }}" style="background:transparent;border:none;color:var(--color-neutral-500);cursor:pointer;font-size:12px">✕</button>
+        </div>
+        <div style="font-size:14px;font-weight:500;margin-bottom:5px">{{ tipTitle }}</div>
+        <sc-if value="{{ tipBody }}" hint-placeholder-val="{{ false }}"><div style="font-size:12.5px;line-height:1.6;color:var(--color-neutral-300)">{{ tipBody }}</div></sc-if>
+        <sc-if value="{{ hasLines }}" hint-placeholder-val="{{ false }}">
+          <div style="font-size:12.5px;line-height:1.75;font-variant-numeric:tabular-nums;color:var(--color-neutral-300)">
+            <sc-for list="{{ tipLines }}" as="l" hint-placeholder-count="3"><div>{{ l }}</div></sc-for>
+          </div>
+        </sc-if>
+        <sc-if value="{{ tipHint }}" hint-placeholder-val="{{ false }}"><div style="font-size:10.5px;color:var(--color-neutral-500);margin-top:8px">{{ tipHint }}</div></sc-if>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { step: 'spells', q: '', lvl: 'All', school: 'All', view: 'magic-missile', picked: ['magic-missile', 'shield', 'mage-armor', 'burning-hands'], tip: null };
+  OPPOSED = ['Enchantment', 'Necromancy'];
+  DICT = {
+    school: { k: 'PF1e rules', t: 'Schools of magic', b: 'Every spell belongs to one of eight schools — evocation blasts, illusion deceives, necromancy manipulates life force. A wizard specializes in one school for an extra slot per level.' },
+    opposition: { k: 'PF1e rules', t: 'Opposition schools', b: 'A specialist wizard names two opposed schools. Spells from them can still be learned and prepared, but each one prepared consumes two slots instead of one. A marker, never a lock.' },
+    cantrip: { k: 'PF1e rules', t: 'Cantrips (0-level spells)', b: 'Minor spells a wizard can cast at will once prepared. A wizard begins with all 0-level spells in their spellbook automatically.' },
+    components: { k: 'PF1e rules', t: 'Spell components', b: 'V = verbal (speech), S = somatic (a free hand), M = material (ingredients), F = focus (a reusable item). Somatic components suffer arcane spell failure in armor.' },
+    spelllevel: { k: 'PF1e rules', t: 'Spell level', b: 'Spell power from 0 to 9. A 1st-level wizard casts 0- and 1st-level spells; new levels unlock every two class levels.' },
+    hp: { k: 'Stat', t: 'Hit points', b: '' }, ac: { k: 'Stat', t: 'Armor Class', b: '' }
+  };
+  BK = {
+    hp: ['6 max hit die (Wizard)', '+ 1 Con modifier (12, after elf −2)'],
+    ac: ['10 base', '+ 2 Dex modifier'],
+    touch: ['10 base', '+ 2 Dex modifier'],
+    ff: ['10 base'],
+    fort: ['+ 0 base (Wizard, poor)', '+ 1 Con modifier'],
+    ref: ['+ 0 base (Wizard, poor)', '+ 2 Dex modifier'],
+    will: ['+ 2 base (Wizard, good)', '+ 0 Wis modifier'],
+    bab: ['+ 0 Wizard level 1 (half progression)'],
+    init: ['+ 2 Dex modifier']
+  };
+  SPELLS = [
+    { id: 'acid-splash', name: 'Acid Splash', lvl: 0, school: 'Conjuration', sum: 'Orb of acid, 1d3 damage, ranged touch.', cast: '1 standard action', comp: 'V, S', range: 'Close (25 ft + 5 ft/2 levels)', dur: 'Instantaneous', save: 'None / SR no', desc: 'You fire a small orb of acid at the target as a ranged touch attack. The orb deals 1d3 points of acid damage. The acid disappears after one round.' },
+    { id: 'detect-magic', name: 'Detect Magic', lvl: 0, school: 'Divination', sum: 'Sense magic auras in a 60-ft cone.', cast: '1 standard action', comp: 'V, S', range: '60 ft', dur: 'Concentration, up to 1 min/level', save: 'None / SR no', desc: 'You detect magical auras in a cone-shaped emanation. Each round of concentration reveals more: presence, then number of auras, then location and strength. The single most-cast spell in the game — every party detects before it touches.' },
+    { id: 'read-magic', name: 'Read Magic', lvl: 0, school: 'Divination', sum: 'Decipher scrolls and magical writing.', cast: '1 standard action', comp: 'V, S, F', range: 'Personal', dur: '10 min/level', save: '— / —', desc: 'You can decipher magical inscriptions on objects that would otherwise be unintelligible — the key to reading scrolls and spellbooks not your own.' },
+    { id: 'light', name: 'Light', lvl: 0, school: 'Evocation', sum: 'Object glows like a torch.', cast: '1 standard action', comp: 'V, M', range: 'Touch', dur: '10 min/level', save: 'None / SR no', desc: 'The object you touch sheds light like a torch in a 20-foot radius. Your school: prepared evocation spells like this one can use your bonus school slot.' },
+    { id: 'ray-of-frost', name: 'Ray of Frost', lvl: 0, school: 'Evocation', sum: 'Ray deals 1d3 cold damage.', cast: '1 standard action', comp: 'V, S', range: 'Close (25 ft + 5 ft/2 levels)', dur: 'Instantaneous', save: 'None / SR yes', desc: 'A ray of freezing air and ice projects from your pointing finger. Requires a ranged touch attack; deals 1d3 points of cold damage.' },
+    { id: 'mage-hand', name: 'Mage Hand', lvl: 0, school: 'Transmutation', sum: 'Telekinetically move a 5-lb object.', cast: '1 standard action', comp: 'V, S', range: 'Close (25 ft + 5 ft/2 levels)', dur: 'Concentration', save: 'None / SR no', desc: 'You point at an unattended object weighing up to 5 pounds and move it up to 15 feet per round by concentrating.' },
+    { id: 'prestidigitation', name: 'Prestidigitation', lvl: 0, school: 'Universal', sum: 'Minor magical tricks for an hour.', cast: '1 standard action', comp: 'V, S', range: '10 ft', dur: '1 hour', save: 'See text / SR no', desc: 'The classic minor trick: clean, soil, warm, chill, flavor, or color small things. No damage, endless flavor.' },
+    { id: 'ghost-sound', name: 'Ghost Sound', lvl: 0, school: 'Illusion', sum: 'Illusory sounds of your design.', cast: '1 standard action', comp: 'V, S, M', range: 'Close (25 ft + 5 ft/2 levels)', dur: '1 round/level', save: 'Will disbelief / SR no', desc: 'You create a volume of sound that rises, recedes, or remains fixed — up to the noise of four humans per caster level.' },
+    { id: 'daze', name: 'Daze', lvl: 0, school: 'Enchantment', sum: 'Humanoid of 4 HD or less loses its action.', cast: '1 standard action', comp: 'V, S, M', range: 'Close (25 ft + 5 ft/2 levels)', dur: '1 round', save: 'Will negates / SR yes', desc: 'This enchantment clouds the mind of a humanoid creature with 4 or fewer Hit Dice so that it takes no actions for one round.' },
+    { id: 'touch-of-fatigue', name: 'Touch of Fatigue', lvl: 0, school: 'Necromancy', sum: 'Touch attack fatigues the target.', cast: '1 standard action', comp: 'V, S, M', range: 'Touch', dur: '1 round/level', save: 'Fortitude negates / SR yes', desc: 'You channel negative energy through your touch, fatiguing the target for the duration.' },
+    { id: 'magic-missile', name: 'Magic Missile', lvl: 1, school: 'Evocation', sum: 'Unerring darts of force, 1d4+1 each.', cast: '1 standard action', comp: 'V, S', range: 'Medium (100 ft + 10 ft/level)', dur: 'Instantaneous', save: 'None / SR yes', desc: 'A missile of magical energy darts forth and strikes its target unerringly — no attack roll, no save — dealing 1d4+1 points of force damage. The missile strikes even a target in melee or behind anything short of total cover. You gain more missiles as you level: two at 3rd, up to five at 9th. The signature evoker opener, and it never misses.' },
+    { id: 'burning-hands', name: 'Burning Hands', lvl: 1, school: 'Evocation', sum: '15-ft cone of fire, 1d4/level.', cast: '1 standard action', comp: 'V, S', range: '15 ft', dur: 'Instantaneous', save: 'Reflex half / SR yes', desc: 'A thin sheet of flame shoots from your outspread fingertips, dealing 1d4 points of fire damage per caster level (max 5d4) to every creature in a 15-foot cone.' },
+    { id: 'shocking-grasp', name: 'Shocking Grasp', lvl: 1, school: 'Evocation', sum: 'Touch deals 1d6/level electricity.', cast: '1 standard action', comp: 'V, S', range: 'Touch', dur: 'Instantaneous', save: 'None / SR yes', desc: 'Your successful melee touch attack deals 1d6 points of electricity damage per caster level (max 5d6). +3 on the attack roll against targets in metal armor.' },
+    { id: 'shield', name: 'Shield', lvl: 1, school: 'Abjuration', sum: '+4 shield AC, blocks magic missile.', cast: '1 standard action', comp: 'V, S', range: 'Personal', dur: '1 min/level', save: '— / —', desc: 'An invisible disc of force grants you a +4 shield bonus to AC and completely blocks magic missiles aimed at you. A wizard staple — it stacks with mage armor.' },
+    { id: 'mage-armor', name: 'Mage Armor', lvl: 1, school: 'Conjuration', sum: '+4 armor bonus, 1 hour/level.', cast: '1 standard action', comp: 'V, S, F', range: 'Touch', dur: '1 hour/level', save: 'Will negates (harmless) / SR no', desc: 'An invisible but tangible field of force grants a +4 armor bonus to AC — with no armor check penalty and no arcane spell failure. The all-day defensive layer for casters who can\u2019t wear armor.' },
+    { id: 'grease', name: 'Grease', lvl: 1, school: 'Conjuration', sum: '10-ft square becomes slippery.', cast: '1 standard action', comp: 'V, S, M', range: 'Close (25 ft + 5 ft/2 levels)', dur: '1 min/level', save: 'Reflex / SR no', desc: 'A layer of slippery grease covers a 10-foot square. Creatures in the area must save or fall; moving through it requires Acrobatics. Battlefield control for one slot.' },
+    { id: 'color-spray', name: 'Color Spray', lvl: 1, school: 'Illusion', sum: 'Cone knocks weak foes unconscious.', cast: '1 standard action', comp: 'V, S, M', range: '15 ft', dur: 'Instantaneous', save: 'Will negates / SR yes', desc: 'A vivid cone of clashing colors leaves creatures of 2 HD or less unconscious, blinded, and stunned. The great equalizer at level 1.' },
+    { id: 'silent-image', name: 'Silent Image', lvl: 1, school: 'Illusion', sum: 'Visual illusion of your design.', cast: '1 standard action', comp: 'V, S, F', range: 'Long (400 ft + 40 ft/level)', dur: 'Concentration', save: 'Will disbelief / SR no', desc: 'You create the visual illusion of an object, creature, or force. As big as four 10-ft cubes plus one per level — limited only by your cunning.' },
+    { id: 'sleep', name: 'Sleep', lvl: 1, school: 'Enchantment', sum: '4 HD of creatures fall asleep.', cast: '1 round', comp: 'V, S, M', range: 'Medium (100 ft + 10 ft/level)', dur: '1 min/level', save: 'Will negates / SR yes', desc: 'A magical slumber comes upon 4 Hit Dice of creatures in a 10-foot-radius burst, lowest HD first. Sleeping creatures are helpless. One of the strongest 1st-level spells — if you can spare the double slot.' },
+    { id: 'charm-person', name: 'Charm Person', lvl: 1, school: 'Enchantment', sum: 'Humanoid regards you as an ally.', cast: '1 standard action', comp: 'V, S', range: 'Close (25 ft + 5 ft/2 levels)', dur: '1 hour/level', save: 'Will negates / SR yes', desc: 'One humanoid regards you as a trusted friend and ally. It won\u2019t obviously endanger itself, but perceives your words in the most favorable way.' },
+    { id: 'cause-fear', name: 'Cause Fear', lvl: 1, school: 'Necromancy', sum: 'One creature of 5 HD or less flees.', cast: '1 standard action', comp: 'V, S', range: 'Close (25 ft + 5 ft/2 levels)', dur: '1d4 rounds', save: 'Will partial / SR yes', desc: 'One living creature with 5 or fewer Hit Dice becomes frightened and flees. On a successful save it is merely shaken for 1 round.' },
+    { id: 'ray-enfeeble', name: 'Ray of Enfeeblement', lvl: 1, school: 'Necromancy', sum: 'Ray imposes 1d6+ Str penalty.', cast: '1 standard action', comp: 'V, S', range: 'Close (25 ft + 5 ft/2 levels)', dur: '1 round/level', save: 'Fortitude half / SR yes', desc: 'A coruscating ray saps the target\u2019s strength: a penalty of 1d6 + 1 per two caster levels (max +5) to Strength.' },
+    { id: 'enlarge-person', name: 'Enlarge Person', lvl: 1, school: 'Transmutation', sum: 'Humanoid doubles in size.', cast: '1 round', comp: 'V, S, M', range: 'Close (25 ft + 5 ft/2 levels)', dur: '1 min/level', save: 'Fortitude negates / SR yes', desc: 'A humanoid creature grows to double size: +2 Strength, −2 Dexterity, bigger weapons, longer reach. Cast it on the fighter, not on yourself.' },
+    { id: 'identify', name: 'Identify', lvl: 1, school: 'Divination', sum: '+10 to identify magic items.', cast: '1 standard action', comp: 'V, S, M', range: '60 ft', dur: '3 rounds/level', save: 'None / SR no', desc: 'Functions as detect magic, but you gain +10 on Spellcraft checks to identify the properties of magic items in the area.' }
+  ];
+  mkTip(key) {
+    return (e) => {
+      const t = this.state.tip;
+      if (e.type !== 'click' && t && t.pinned) return;
+      const pos = this.tipPos(e);
+      clearTimeout(this.tid);
+      this.setState({ tip: { key, ...pos, pinned: e.type === 'click' } });
+    };
+  }
+  tipPos(e) {
+    const r = e.currentTarget.getBoundingClientRect();
+    const x = Math.max(10, Math.min(r.left, window.innerWidth - 370));
+    let y = r.bottom + 8;
+    if (y > window.innerHeight - 250) y = Math.max(10, r.top - 240);
+    return { x, y };
+  }
+  hideSoon() { clearTimeout(this.tid); this.tid = setTimeout(() => { const t = this.state.tip; if (t && !t.pinned) this.setState({ tip: null }); }, 280); }
+  renderVals() {
+    const s = this.state, info = 'var(--color-neutral-500)';
+    const tips = {}; for (const k of Object.keys(this.DICT)) tips[k] = this.mkTip(k);
+    const go = (st) => () => this.setState({ step: st });
+    const remaining = 6 - s.picked.length;
+    const stepDefs = [
+      { id: 'basics', label: 'Basics', glyph: '✓' }, { id: 'race', label: 'Race', glyph: '✓' }, { id: 'class', label: 'Class', glyph: '✓' },
+      { id: 'skills', label: 'Skills', glyph: '✓' }, { id: 'feats', label: 'Feats', glyph: '✓' },
+      { id: 'spells', label: 'Spells', glyph: remaining > 0 ? '●' : '✓' },
+      { id: 'equip', label: 'Equipment', glyph: '✓' }, { id: 'review', label: 'Review', glyph: '○' }
+    ];
+    const steps = stepDefs.map(d => ({
+      ...d, go: go(d.id),
+      color: d.glyph === '●' ? 'var(--color-accent)' : 'var(--color-neutral-500)',
+      ul: s.step === d.id ? 'inset 0 -2px 0 var(--color-accent)' : 'none'
+    }));
+    const strip = [
+      { k: 'HP', v: 7, bk: 'hp' }, { k: 'AC', v: 12, bk: 'ac' }, { k: 'Touch', v: 12, bk: 'touch' }, { k: 'FF', v: 10, bk: 'ff' },
+      { k: 'Fort', v: '+1', bk: 'fort' }, { k: 'Ref', v: '+2', bk: 'ref' }, { k: 'Will', v: '+2', bk: 'will' },
+      { k: 'BAB', v: '+0', bk: 'bab' }, { k: 'Init', v: '+2', bk: 'init' }
+    ].map(x => ({ ...x, h: (e) => { const pos = this.tipPos(e); if (e.type !== 'click' && this.state.tip && this.state.tip.pinned) return; clearTimeout(this.tid); this.setState({ tip: { custom: { k: 'Breakdown', t: `${x.k} ${x.v}`, lines: this.BK[x.bk] }, ...pos, pinned: e.type === 'click' } }); } }));
+    const mkChip = (label, cur, set) => ({
+      label, go: set,
+      bd: cur ? 'var(--color-accent)' : 'var(--color-divider)',
+      bg: cur ? 'rgba(145,132,217,.12)' : 'transparent',
+      fg: cur ? 'var(--color-accent-300)' : 'var(--color-text)'
+    });
+    const lvlChips = ['All', '0', '1'].map(l => mkChip(l === 'All' ? 'All levels' : 'Level ' + l, s.lvl === l, () => this.setState({ lvl: l })));
+    const schools = ['All', 'Abjuration', 'Conjuration', 'Divination', 'Enchantment', 'Evocation', 'Illusion', 'Necromancy', 'Transmutation'];
+    const schoolChips = schools.map(sc => mkChip(sc + (this.OPPOSED.includes(sc) ? ' ⚠' : ''), s.school === sc, () => this.setState({ school: sc })));
+    const q = s.q.toLowerCase();
+    const rows = this.SPELLS
+      .filter(sp => (s.lvl === 'All' || String(sp.lvl) === s.lvl) && (s.school === 'All' || sp.school === s.school) && (!q || sp.name.toLowerCase().includes(q) || sp.sum.toLowerCase().includes(q)))
+      .map(sp => {
+        const opposed = this.OPPOSED.includes(sp.school);
+        const sel = s.picked.includes(sp.id);
+        const full = !sel && remaining <= 0;
+        return {
+          name: sp.name, lvl: sp.lvl, school: sp.school, sum: sp.sum, opposed,
+          auto: sp.lvl === 0, pickable: sp.lvl === 1,
+          bd: s.view === sp.id ? 'var(--color-accent)' : sel ? 'var(--color-accent-800)' : 'transparent',
+          btn: sel ? '✓ In book' : full ? 'Picks full' : 'Add', dis: full,
+          view: () => this.setState({ view: sp.id }),
+          pick: (e) => { e.stopPropagation(); if (sp.lvl !== 1) return; if (sel) { this.setState({ picked: s.picked.filter(x => x !== sp.id) }); return; } if (remaining <= 0) return; this.setState({ picked: [...s.picked, sp.id] }); }
+        };
+      });
+    const d = this.SPELLS.find(sp => sp.id === s.view);
+    const det = { name: d.name, school: d.school, lvl: d.lvl === 0 ? '0 (cantrip)' : 'level ' + d.lvl, cast: d.cast, comp: d.comp, range: d.range, dur: d.dur, save: d.save, desc: d.desc, opposed: this.OPPOSED.includes(d.school) };
+    const issues = [];
+    if (remaining > 0) issues.push({ sev: 'Info', loc: 'Spells', msg: `${remaining} spellbook pick${remaining > 1 ? 's' : ''} remaining`, color: info, go: go('spells') });
+    const opposedPicked = s.picked.map(id => this.SPELLS.find(sp => sp.id === id)).filter(sp => this.OPPOSED.includes(sp.school));
+    for (const sp of opposedPicked) issues.push({ sev: 'Info', loc: 'Spells', msg: `${sp.name} is from an opposition school — it will cost two slots to prepare`, color: info, go: go('spells') });
+    const tip = s.tip;
+    let tipKicker = '', tipTitle = '', tipBody = false, tipLines = [];
+    if (tip) { const dd = tip.custom || this.DICT[tip.key]; tipKicker = dd.k; tipTitle = dd.t; tipBody = dd.b || false; tipLines = dd.lines || []; }
+    return {
+      steps, strip, tips, leaveTip: () => this.hideSoon(),
+      isSpells: s.step === 'spells', isOther: s.step !== 'spells',
+      otherLabel: (stepDefs.find(x => x.id === s.step) || {}).label || '',
+      q: s.q, setQ: (e) => this.setState({ q: e.target.value }),
+      lvlChips, schoolChips, rows, det,
+      pickedCount: s.picked.length, pickPct: Math.round(100 * s.picked.length / 6),
+      pickBd: remaining > 0 ? 'var(--color-accent-800)' : 'var(--color-divider)',
+      pickFg: remaining > 0 ? 'var(--color-accent-300)' : 'var(--color-text)',
+      issues, issueCount: issues.length, issuesEmpty: issues.length === 0,
+      tipOpen: !!tip, tipStyle: tip ? `position:fixed;left:${tip.x}px;top:${tip.y}px;z-index:60` : '',
+      tipKicker, tipTitle, tipBody, tipLines, hasLines: tipLines.length > 0,
+      tipPinned: !!(tip && tip.pinned),
+      tipHint: tip && !tip.pinned ? 'Click to pin · Esc or ✕ to close' : false,
+      closeTip: () => this.setState({ tip: null }),
+      cardEnter: () => clearTimeout(this.tid),
+      cardLeave: () => this.hideSoon()
+    };
+  }
+  componentDidMount() {
+    this.onKey = (e) => { if (e.key === 'Escape' && this.state.tip) this.setState({ tip: null }); };
+    window.addEventListener('keydown', this.onKey);
+  }
+  componentWillUnmount() { window.removeEventListener('keydown', this.onKey); }
+}
+</script>
+</body>
+</html>

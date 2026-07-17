@@ -1,0 +1,89 @@
+import { useState } from 'react';
+import type { CharCtl } from '../../Builder';
+import { RACES, raceById } from '../../../content/index';
+import { OptionCard } from '../bits';
+import { useTip } from '../../Tooltip';
+
+export function RaceStep({ ch }: { ch: CharCtl }) {
+  const tip = useTip();
+  const { doc, setDecision, resolution } = ch;
+  const selectedRace = doc.decisions['race'] as string | null;
+  const [viewId, setViewId] = useState<string>(selectedRace ?? 'human');
+  const view = raceById.get(viewId)!;
+  const altSlot = resolution.slots.find((s) => s.id === 'alt-traits');
+  const chosenAlts = (doc.decisions['alt-traits'] as string[]) ?? [];
+
+  const selectRace = (id: string) => {
+    // Changing race: reset now-invalid alt-traits and floating bonus so they don't linger as noise.
+    if (id !== selectedRace) {
+      setDecision('race', id);
+      setDecision('alt-traits', []);
+      setDecision('floating-bonus', []);
+    }
+  };
+
+  const toggleAlt = (altId: string) => {
+    const next = chosenAlts.includes(altId) ? chosenAlts.filter((a) => a !== altId) : [...chosenAlts, altId];
+    setDecision('alt-traits', next);
+  };
+
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 28, maxWidth: 1120 }}>
+      <div style={{ flex: 'none', width: 280 }}>
+        <h3 style={{ fontSize: 21, margin: '0 0 12px' }}>Race</h3>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+          {RACES.map((r) => (
+            <div key={r.id} onClick={() => setViewId(r.id)}
+              style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 8, background: 'var(--color-surface)', cursor: 'pointer', boxShadow: `inset 0 0 0 1px ${viewId === r.id ? 'var(--color-accent)' : 'transparent'}` }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 13.5, fontWeight: 500 }}>{r.name}</div>
+                <div className="text-muted" style={{ fontSize: 11 }}>{r.sub}</div>
+              </div>
+              {selectedRace === r.id && <span style={{ fontSize: 11, color: 'var(--color-accent-300)' }}>✓ selected</span>}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ padding: '4px 0', flex: 1, minWidth: 480 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 6 }}>
+          <h3 style={{ fontSize: 24, margin: 0 }}>{view.name}</h3>
+          <button className="btn btn-primary" style={{ fontSize: 12 }} onClick={() => selectRace(view.id)}>
+            {selectedRace === view.id ? '✓ Selected' : 'Select race'}
+          </button>
+        </div>
+        <p style={{ fontSize: 13.5, lineHeight: 1.65, color: 'var(--color-neutral-300)', maxWidth: 620 }}>{view.desc}</p>
+
+        <h6 style={{ margin: '18px 0 8px', color: 'var(--color-neutral-500)' }}>Racial traits</h6>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxWidth: 620 }}>
+          {view.traits.map((t) => {
+            const open = tip.card({ kicker: 'Racial trait', title: t.name, body: t.desc });
+            return (
+              <div key={t.id} style={{ fontSize: 13, lineHeight: 1.55 }}>
+                <span className="term" onMouseEnter={open} onMouseLeave={tip.leave} onClick={open} style={{ fontWeight: 500 }}>{t.name}</span>
+                <span style={{ color: 'var(--color-neutral-400)' }}> — {t.desc}</span>
+              </div>
+            );
+          })}
+        </div>
+
+        {view.altTraits.length > 0 && (
+          <>
+            <h6 style={{ margin: '22px 0 8px', color: 'var(--color-neutral-500)' }}>Alternate racial traits</h6>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 620 }}>
+              {view.altTraits.map((a) => {
+                const opt = altSlot?.options.find((o) => o.id === a.id);
+                if (!opt) return null;
+                return (
+                  <OptionCard key={a.id} option={opt} selected={chosenAlts.includes(a.id)}
+                    onToggle={() => toggleAlt(a.id)} replacesLabel={a.replaces.map((r) => raceById.get(view.id)!.traits.find((t) => t.id === r)?.name ?? r).join(', ')} />
+                );
+              })}
+            </div>
+            {view.id !== selectedRace && <p className="text-muted" style={{ fontSize: 11.5, marginTop: 10 }}>Select this race to choose its alternate traits.</p>}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}

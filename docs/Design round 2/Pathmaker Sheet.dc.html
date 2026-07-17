@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/nocturne-7be3073d-4769-4495-930e-a77ce614c276/styles.css">
+<script src="_ds/nocturne-7be3073d-4769-4495-930e-a77ce614c276/_ds_bundle.js"></script>
+<style>
+body{margin:0;background:var(--color-bg);color:var(--color-text)}
+a{color:var(--color-accent)}a:hover{color:var(--color-accent-300)}
+@keyframes tipIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+</style>
+</helmet>
+<div style="min-height:100vh;font-size:14px">
+  <div style="display:flex;align-items:center;gap:16px;padding:12px 24px">
+    <span style="font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--color-accent)">Pathmaker</span>
+    <a href="Pathmaker Builder v2.dc.html" class="btn btn-ghost" style="font-size:12px">← Back to builder</a>
+    <span style="flex:1"></span>
+    <div class="seg">
+      <label class="seg-opt"><input type="radio" name="view" checked="{{ isScreen }}" onChange="{{ toScreen }}">Screen</label>
+      <label class="seg-opt"><input type="radio" name="view" checked="{{ isPrint }}" onChange="{{ toPrint }}">Print preview</label>
+    </div>
+    <button class="btn btn-primary" style="font-size:12px">⎙ Print / PDF</button>
+  </div>
+
+  <sc-if value="{{ isScreen }}" hint-placeholder-val="{{ true }}">
+    <div style="max-width:1060px;margin:0 auto;padding:16px 24px 60px">
+      <div style="display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin-bottom:2px">
+        <h2 style="font-size:30px;margin:0">Valeria Kessler</h2>
+        <span class="text-muted" style="font-size:14px">LN Human Paladin 1 · Iomedae · Medium humanoid</span>
+      </div>
+      <p class="text-muted" style="font-size:12px;margin:0 0 20px">Read-only sheet — every number peeks its breakdown on hover, pins on click. This view becomes the play surface in phase 2.</p>
+      <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap">
+        <sc-for list="{{ abilities }}" as="a" hint-placeholder-count="6">
+          <div style="padding:10px 16px;border-radius:8px;background:var(--color-surface);text-align:center;min-width:80px">
+            <div style="font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-500)">{{ a.ab }}</div>
+            <div style="font-size:20px;font-weight:600;font-variant-numeric:tabular-nums">{{ a.v }}</div>
+            <div style="font-size:12.5px;color:var(--color-accent-300)">{{ a.m }}</div>
+          </div>
+        </sc-for>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:24px">
+        <div>
+          <h6 style="margin:0 0 8px;color:var(--color-neutral-500)">Defense</h6>
+          <sc-for list="{{ def }}" as="s" hint-placeholder-count="5">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;padding:6px 2px;font-size:13.5px;border-bottom:1px solid rgba(233,233,237,.06)">
+              <span style="color:var(--color-neutral-400)">{{ s.k }}</span>
+              <button onMouseEnter="{{ s.h }}" onMouseLeave="{{ leaveTip }}" onClick="{{ s.h }}" style="font-weight:600;font-variant-numeric:tabular-nums;background:transparent;border:none;color:var(--color-text);cursor:pointer;padding:0;border-bottom:1px dotted var(--color-neutral-600);font-family:inherit;font-size:14px">{{ s.v }}</button>
+            </div>
+          </sc-for>
+          <div style="font-size:11.5px;color:var(--color-neutral-500);margin-top:8px;font-style:italic">+2 saves vs. fear when adjacent allies can see you (aura of courage — level 3)</div>
+        </div>
+        <div>
+          <h6 style="margin:0 0 8px;color:var(--color-neutral-500)">Offense</h6>
+          <sc-for list="{{ off }}" as="s" hint-placeholder-count="5">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;padding:6px 2px;font-size:13.5px;border-bottom:1px solid rgba(233,233,237,.06)">
+              <span style="color:var(--color-neutral-400)">{{ s.k }}</span>
+              <button onMouseEnter="{{ s.h }}" onMouseLeave="{{ leaveTip }}" onClick="{{ s.h }}" style="font-weight:600;font-variant-numeric:tabular-nums;background:transparent;border:none;color:var(--color-text);cursor:pointer;padding:0;border-bottom:1px dotted var(--color-neutral-600);font-family:inherit;font-size:14px">{{ s.v }}</button>
+            </div>
+          </sc-for>
+        </div>
+        <div>
+          <h6 style="margin:0 0 8px;color:var(--color-neutral-500)">Feats &amp; class features</h6>
+          <div style="font-size:13px;line-height:1.8;color:var(--color-neutral-300)">
+            <sc-for list="{{ feats }}" as="f" hint-placeholder-count="4"><div>{{ f }}</div></sc-for>
+          </div>
+          <h6 style="margin:16px 0 8px;color:var(--color-neutral-500)">Gear <span class="text-muted" style="letter-spacing:0;text-transform:none">· 50 gp · 51 lb (light)</span></h6>
+          <div style="font-size:13px;line-height:1.8;color:var(--color-neutral-300)">
+            <sc-for list="{{ gear }}" as="g" hint-placeholder-count="5"><div>{{ g }}</div></sc-for>
+          </div>
+        </div>
+      </div>
+      <h6 style="margin:24px 0 8px;color:var(--color-neutral-500)">Skills</h6>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <sc-for list="{{ skills }}" as="s" hint-placeholder-count="4">
+          <button onMouseEnter="{{ s.h }}" onMouseLeave="{{ leaveTip }}" onClick="{{ s.h }}" style="padding:6px 13px;border-radius:999px;font-size:12.5px;background:var(--color-surface);border:1px solid var(--color-divider);color:var(--color-text);cursor:pointer;font-family:inherit" style-hover="border-color:var(--color-accent-600)">{{ s.name }} <strong>{{ s.v }}</strong></button>
+        </sc-for>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isPrint }}" hint-placeholder-val="{{ false }}">
+    <div style="padding:20px 24px 60px;display:flex;flex-direction:column;align-items:center;gap:14px">
+      <p class="text-muted" style="font-size:11.5px;max-width:794px;margin:0;align-self:center">Print rendition — light, ink-friendly, A4-proportioned (fits US Letter too). No tooltips, no chrome; conditional notes print inline. Implemented as a @media print stylesheet on this route.</p>
+      <div style="width:794px;min-height:1123px;background:oklch(0.985 0.004 90);color:oklch(0.24 0.015 277);padding:52px 56px;box-shadow:var(--shadow-md);font-size:12.5px;line-height:1.5">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid oklch(0.24 0.015 277);padding-bottom:10px">
+          <div>
+            <div style="font-size:26px;font-weight:600;letter-spacing:-0.01em">Valeria Kessler</div>
+            <div style="font-size:12px;color:oklch(0.45 0.01 277);margin-top:2px">Lawful Neutral · Human Paladin 1 · Iomedae · Medium humanoid</div>
+          </div>
+          <div style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:oklch(0.45 0.01 277)">Pathmaker · PF1e</div>
+        </div>
+        <div style="display:flex;gap:0;margin:16px 0;border:1px solid oklch(0.8 0.008 277);border-radius:4px;overflow:hidden">
+          <sc-for list="{{ abilities }}" as="a" hint-placeholder-count="6">
+            <div style="flex:1;text-align:center;padding:8px 0;border-right:1px solid oklch(0.8 0.008 277)">
+              <div style="font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:oklch(0.45 0.01 277)">{{ a.ab }}</div>
+              <div style="font-size:17px;font-weight:600;font-variant-numeric:tabular-nums">{{ a.v }}</div>
+              <div style="font-size:11px;color:oklch(0.45 0.01 277)">{{ a.m }}</div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 36px">
+          <div>
+            <div style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;border-bottom:1px solid oklch(0.24 0.015 277);padding-bottom:3px;margin-bottom:6px">Defense</div>
+            <sc-for list="{{ def }}" as="s" hint-placeholder-count="5">
+              <div style="display:flex;justify-content:space-between;padding:3.5px 0;border-bottom:1px solid oklch(0.88 0.005 277)">
+                <span style="color:oklch(0.42 0.01 277)">{{ s.k }}</span><span style="font-weight:600;font-variant-numeric:tabular-nums">{{ s.v }}</span>
+              </div>
+            </sc-for>
+            <div style="font-size:10.5px;color:oklch(0.45 0.01 277);font-style:italic;margin:6px 0 14px">Conditional bonuses print beside their stat; room reserved for damage &amp; condition tracking in play mode.</div>
+            <div style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;border-bottom:1px solid oklch(0.24 0.015 277);padding-bottom:3px;margin:12px 0 6px">Offense</div>
+            <sc-for list="{{ off }}" as="s" hint-placeholder-count="5">
+              <div style="display:flex;justify-content:space-between;padding:3.5px 0;border-bottom:1px solid oklch(0.88 0.005 277)">
+                <span style="color:oklch(0.42 0.01 277)">{{ s.k }}</span><span style="font-weight:600;font-variant-numeric:tabular-nums">{{ s.v }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <div>
+            <div style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;border-bottom:1px solid oklch(0.24 0.015 277);padding-bottom:3px;margin-bottom:6px">Skills</div>
+            <sc-for list="{{ skills }}" as="s" hint-placeholder-count="4">
+              <div style="display:flex;justify-content:space-between;padding:3.5px 0;border-bottom:1px solid oklch(0.88 0.005 277)">
+                <span style="color:oklch(0.42 0.01 277)">{{ s.name }}</span><span style="font-weight:600;font-variant-numeric:tabular-nums">{{ s.v }}</span>
+              </div>
+            </sc-for>
+            <div style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;border-bottom:1px solid oklch(0.24 0.015 277);padding-bottom:3px;margin:14px 0 6px">Feats &amp; class features</div>
+            <sc-for list="{{ feats }}" as="f" hint-placeholder-count="4"><div style="padding:2.5px 0">{{ f }}</div></sc-for>
+            <div style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;border-bottom:1px solid oklch(0.24 0.015 277);padding-bottom:3px;margin:14px 0 6px">Gear · 50 gp · 51 lb (light load)</div>
+            <sc-for list="{{ gear }}" as="g" hint-placeholder-count="5"><div style="padding:2.5px 0">{{ g }}</div></sc-for>
+          </div>
+        </div>
+        <div style="margin-top:28px;padding-top:8px;border-top:1px solid oklch(0.8 0.008 277);display:flex;justify-content:space-between;font-size:9.5px;color:oklch(0.5 0.01 277)">
+          <span>Exported from Pathmaker · July 17, 2026</span><span>Pathfinder 1e · page 1 of 1</span>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ tipOpen }}" hint-placeholder-val="{{ false }}">
+    <div onMouseEnter="{{ cardEnter }}" onMouseLeave="{{ cardLeave }}" style="{{ tipStyle }}">
+      <div style="width:320px;padding:13px 15px;border-radius:10px;background:var(--color-surface);box-shadow:var(--shadow-md);animation:tipIn .12s ease-out">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <span style="font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--color-accent)">Breakdown</span>
+          <span style="flex:1"></span>
+          <sc-if value="{{ tipPinned }}" hint-placeholder-val="{{ false }}"><span style="font-size:10px;color:var(--color-neutral-500)">pinned</span></sc-if>
+          <button onClick="{{ closeTip }}" style="background:transparent;border:none;color:var(--color-neutral-500);cursor:pointer;font-size:12px">✕</button>
+        </div>
+        <div style="font-size:14px;font-weight:500;margin-bottom:5px">{{ tipTitle }}</div>
+        <div style="font-size:12.5px;line-height:1.75;font-variant-numeric:tabular-nums;color:var(--color-neutral-300)">
+          <sc-for list="{{ tipLines }}" as="l" hint-placeholder-count="3"><div>{{ l }}</div></sc-for>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { view: 'screen', tip: null };
+  BK = {
+    hp: ['10 max hit die (Paladin)', '+ 2 Con modifier', '+ 1 favored class bonus'],
+    ac: ['10 base', '+ 4 armor (chain shirt)', '+ 2 shield (heavy wooden)', '+ 2 Dex modifier'],
+    touch: ['10 base', '+ 2 Dex modifier'],
+    ff: ['10 base', '+ 4 armor', '+ 2 shield'],
+    cmd: ['10 base', '+ 1 BAB', '+ 3 Str modifier', '+ 2 Dex modifier'],
+    fort: ['+ 2 base (Paladin, good)', '+ 2 Con modifier'],
+    ref: ['+ 0 base (Paladin, poor)', '+ 2 Dex modifier'],
+    will: ['+ 2 base (Paladin, good)', '+ 1 Wis modifier'],
+    bab: ['+ 1 Paladin level 1 (full progression)'],
+    init: ['+ 2 Dex modifier'],
+    ls: ['+ 1 BAB', '+ 3 Str modifier'],
+    dg: ['+ 1 BAB', '+ 3 Str modifier'],
+    cmb: ['+ 1 BAB', '+ 3 Str modifier'],
+    climb: ['1 rank', '+ 3 class skill', '+ 3 Str modifier', '− 4 armor check penalty'],
+    sense: ['1 rank', '+ 3 class skill', '+ 1 Wis modifier'],
+    kreligion: ['1 rank', '+ 3 class skill', '+ 0 Int modifier'],
+    perception: ['0 ranks', '+ 1 Wis modifier']
+  };
+  mkBk(title, key) {
+    return (e) => {
+      const t = this.state.tip;
+      if (e.type !== 'click' && t && t.pinned) return;
+      const r = e.currentTarget.getBoundingClientRect();
+      const x = Math.max(10, Math.min(r.left, window.innerWidth - 360));
+      let y = r.bottom + 8;
+      if (y > window.innerHeight - 220) y = Math.max(10, r.top - 200);
+      clearTimeout(this.tid);
+      this.setState({ tip: { title, lines: this.BK[key], x, y, pinned: e.type === 'click' } });
+    };
+  }
+  hideSoon() { clearTimeout(this.tid); this.tid = setTimeout(() => { const t = this.state.tip; if (t && !t.pinned) this.setState({ tip: null }); }, 280); }
+  renderVals() {
+    const s = this.state;
+    const abilities = [
+      { ab: 'STR', v: 17, m: '+3' }, { ab: 'DEX', v: 14, m: '+2' }, { ab: 'CON', v: 14, m: '+2' },
+      { ab: 'INT', v: 10, m: '+0' }, { ab: 'WIS', v: 12, m: '+1' }, { ab: 'CHA', v: 8, m: '−1' }
+    ];
+    const mk = (k, v, bk, t) => ({ k, v, h: this.mkBk(t || `${k} ${v}`, bk) });
+    const def = [ mk('Hit points', 13, 'hp'), mk('AC', 18, 'ac'), mk('Touch AC', 12, 'touch'), mk('Flat-footed AC', 16, 'ff'), mk('CMD', 16, 'cmd') ];
+    const off = [ mk('Longsword', '+4 (1d8+3, 19–20/×2)', 'ls', 'Longsword +4'), mk('Dagger', '+4 (1d4+3, 19–20/×2)', 'dg', 'Dagger +4'), mk('BAB', '+1', 'bab'), mk('CMB', '+4', 'cmb'), mk('Initiative', '+2', 'init'), mk('Fortitude', '+4', 'fort'), mk('Reflex', '+2', 'ref'), mk('Will', '+3', 'will') ];
+    const skills = [
+      { name: 'Climb', v: '+3', h: this.mkBk('Climb +3', 'climb') },
+      { name: 'Sense Motive', v: '+5', h: this.mkBk('Sense Motive +5', 'sense') },
+      { name: 'Knowledge (religion)', v: '+4', h: this.mkBk('Knowledge (religion) +4', 'kreligion') },
+      { name: 'Perception', v: '+1', h: this.mkBk('Perception +1', 'perception') }
+    ];
+    const feats = ['Power Attack', 'Cleave (human bonus)', 'Smite evil 1/day', 'Aura of good · Detect evil'];
+    const gear = ['Longsword', 'Chain shirt', 'Heavy wooden shield', 'Backpack', 'Rope, hemp (50 ft)'];
+    const tip = s.tip;
+    return {
+      isScreen: s.view === 'screen', isPrint: s.view === 'print',
+      toScreen: () => this.setState({ view: 'screen' }), toPrint: () => this.setState({ view: 'print' }),
+      abilities, def, off, skills, feats, gear,
+      leaveTip: () => this.hideSoon(),
+      tipOpen: !!tip, tipStyle: tip ? `position:fixed;left:${tip.x}px;top:${tip.y}px;z-index:60` : '',
+      tipTitle: tip ? tip.title : '', tipLines: tip ? tip.lines : [],
+      tipPinned: !!(tip && tip.pinned),
+      closeTip: () => this.setState({ tip: null }),
+      cardEnter: () => clearTimeout(this.tid),
+      cardLeave: () => this.hideSoon()
+    };
+  }
+  componentDidMount() {
+    this.onKey = (e) => { if (e.key === 'Escape' && this.state.tip) this.setState({ tip: null }); };
+    window.addEventListener('keydown', this.onKey);
+  }
+  componentWillUnmount() { window.removeEventListener('keydown', this.onKey); }
+}
+</script>
+</body>
+</html>

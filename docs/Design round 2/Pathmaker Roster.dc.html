@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/nocturne-7be3073d-4769-4495-930e-a77ce614c276/styles.css">
+<script src="_ds/nocturne-7be3073d-4769-4495-930e-a77ce614c276/_ds_bundle.js"></script>
+<style>
+body{margin:0;background:var(--color-bg);color:var(--color-text)}
+a{color:var(--color-accent)}a:hover{color:var(--color-accent-300)}
+</style>
+</helmet>
+<div style="min-height:100vh;display:flex;flex-direction:column;font-size:14px">
+  <div style="display:flex;align-items:center;gap:16px;padding:14px 28px">
+    <span style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--color-accent)">Pathmaker</span>
+    <span class="text-muted" style="font-size:12px">Pathfinder 1e character workshop</span>
+    <span style="flex:1"></span>
+    <button onClick="{{ importJson }}" class="btn btn-secondary" style="font-size:12.5px">⭱ Import JSON</button>
+    <button onClick="{{ create }}" class="btn btn-primary" style="font-size:12.5px">+ New character</button>
+  </div>
+  <div style="padding:10px 28px 60px;max-width:1180px">
+
+    <sc-if value="{{ hasChars }}" hint-placeholder-val="{{ true }}">
+      <h3 style="font-size:22px;margin:14px 0 4px">Characters</h3>
+      <p class="text-muted" style="font-size:12px;margin:0 0 20px">Characters live in this browser. <span style="border-bottom:1px dotted var(--color-neutral-600);cursor:help" title="localStorage only — no accounts, no sync. Export JSON is your backup.">Export to back up</span> — Import restores on any machine.</p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px">
+        <sc-for list="{{ chars }}" as="c" hint-placeholder-count="3">
+          <div style="display:flex;flex-direction:column;gap:12px;padding:16px;border-radius:10px;background:var(--color-surface);box-shadow:var(--shadow-sm)" style-hover="box-shadow:var(--shadow-md)">
+            <div style="display:flex;gap:13px;align-items:center">
+              <div style="width:56px;height:56px;border-radius:10px;background:var(--color-neutral-900);display:grid;place-items:center;font-size:22px;font-family:var(--font-heading);font-weight:500;color:var(--color-neutral-500);flex:none" title="Portrait — coming later; space reserved">{{ c.initial }}</div>
+              <div style="flex:1;min-width:0">
+                <div style="font-family:var(--font-heading);font-weight:500;font-size:16px">{{ c.name }}</div>
+                <div class="text-muted" style="font-size:12px;margin-top:1px">{{ c.sub }}</div>
+              </div>
+              <sc-if value="{{ c.issues }}" hint-placeholder-val="{{ false }}">
+                <span style="font-size:10.5px;padding:3px 9px;border-radius:999px;background:color-mix(in srgb, oklch(0.7 0.11 25) 16%, transparent);color:oklch(0.8 0.09 25);flex:none">{{ c.issues }} issues</span>
+              </sc-if>
+              <sc-if value="{{ c.complete }}" hint-placeholder-val="{{ true }}">
+                <span style="font-size:10.5px;padding:3px 9px;border-radius:999px;background:var(--color-accent-900);color:var(--color-accent-300);flex:none">✓ ready</span>
+              </sc-if>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span class="text-muted" style="font-size:11px;flex:1">Edited {{ c.edited }}</span>
+              <a href="{{ c.href }}" class="btn btn-primary" style="font-size:11.5px">Open</a>
+              <button onClick="{{ c.duplicate }}" class="btn btn-ghost" style="font-size:11.5px">Duplicate</button>
+              <button onClick="{{ c.exportIt }}" class="btn btn-ghost" style="font-size:11.5px">Export</button>
+              <button onClick="{{ c.del }}" style="background:transparent;border:none;color:var(--color-neutral-500);cursor:pointer;font-size:11.5px;font-family:inherit;padding:4px 6px" style-hover="color:oklch(0.8 0.09 25)">Delete</button>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isEmpty }}" hint-placeholder-val="{{ false }}">
+      <div style="max-width:520px;margin:90px auto 0;text-align:center;display:flex;flex-direction:column;align-items:center;gap:14px">
+        <div style="width:72px;height:72px;border-radius:16px;background:var(--color-surface);display:grid;place-items:center;font-size:30px;color:var(--color-accent);box-shadow:var(--shadow-sm)">◈</div>
+        <h2 style="font-size:26px;margin:6px 0 0">Every hero starts at level 1</h2>
+        <p class="text-muted" style="font-size:13.5px;line-height:1.65;margin:0">Pathmaker walks you through building a Pathfinder 1e character — race, class, scores, feats, gear — with every rule explained and every number inspectable. Nothing ever locks: change your mind at any step.</p>
+        <div style="display:flex;gap:10px;margin-top:6px">
+          <button onClick="{{ create }}" class="btn btn-primary">+ Create your first character</button>
+          <button onClick="{{ importJson }}" class="btn btn-secondary">Import from JSON</button>
+        </div>
+        <p class="text-muted" style="font-size:11px;margin-top:10px">Characters are stored in this browser — export to JSON any time to back up or move machines.</p>
+      </div>
+    </sc-if>
+
+  </div>
+
+  <sc-if value="{{ confirmOpen }}" hint-placeholder-val="{{ false }}">
+    <div class="dialog-backdrop">
+      <div class="dialog">
+        <div class="dialog-title">Delete {{ confirmName }}?</div>
+        <div class="dialog-body">This permanently removes the character from this browser. There is no undo for deletion — export a JSON copy first if you might want them back.</div>
+        <div class="dialog-actions">
+          <button onClick="{{ confirmExport }}" class="btn btn-ghost" style="margin-right:auto">Export first</button>
+          <button onClick="{{ confirmCancel }}" class="btn btn-secondary">Cancel</button>
+          <button onClick="{{ confirmDelete }}" class="btn" style="color:oklch(0.8 0.09 25);border:1px solid oklch(0.7 0.11 25)" style-hover="background:color-mix(in srgb, oklch(0.7 0.11 25) 12%, transparent)">Delete character</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1280,&quot;height&quot;:720}}">
+class Component extends DCLogic {
+  state = {
+    chars: [
+      { id: 1, name: 'Valeria Kessler', sub: 'LN Human Paladin 1', issues: 3, edited: '2 minutes ago', href: 'Pathmaker Builder v2.dc.html' },
+      { id: 2, name: 'Aravel Thendriel', sub: 'CG Elf Wizard 1 · Evocation', issues: 1, edited: 'yesterday', href: 'Pathmaker Spells.dc.html' },
+      { id: 3, name: 'Borgrim Ironvow', sub: 'LG Dwarf Cleric 1 · Torag', issues: 0, edited: 'Jun 30', href: 'Pathmaker Builder v2.dc.html' }
+    ],
+    confirm: null, nextId: 4
+  };
+  renderVals() {
+    const s = this.state;
+    const chars = s.chars.map(c => ({
+      ...c, initial: c.name.charAt(0), complete: c.issues === 0,
+      duplicate: () => this.setState({ chars: [...s.chars, { ...c, id: s.nextId, name: c.name + ' (copy)', edited: 'just now' }], nextId: s.nextId + 1 }),
+      exportIt: () => {},
+      del: () => this.setState({ confirm: c.id })
+    }));
+    const confirmChar = s.chars.find(c => c.id === s.confirm);
+    return {
+      chars, hasChars: s.chars.length > 0, isEmpty: s.chars.length === 0,
+      create: () => this.setState({ chars: [...s.chars, { id: s.nextId, name: 'Unnamed hero', sub: 'No race · no class · level 1', issues: 0, edited: 'just now', href: 'Pathmaker Builder v2.dc.html' }], nextId: s.nextId + 1 }),
+      importJson: () => {},
+      confirmOpen: !!confirmChar,
+      confirmName: confirmChar ? confirmChar.name : '',
+      confirmCancel: () => this.setState({ confirm: null }),
+      confirmExport: () => {},
+      confirmDelete: () => this.setState({ chars: s.chars.filter(c => c.id !== s.confirm), confirm: null })
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:www.d20pfsrd.com)",
+      "WebSearch",
+      "PowerShell(\\(Get-Item \"C:\\\\Users\\\\fredr\\\\Downloads\\\\Pathfinder character creation UI\\\\design_handoff_pathmaker_builder\\\\Pathmaker Builder.dc.html\"\\).Length; \\(Get-Item \"C:\\\\Users\\\\fredr\\\\Downloads\\\\Pathfinder character creation UI\\\\design_handoff_pathmaker_builder\\\\Builder Shell Options.dc.html\"\\).Length)",
+      "PowerShell(node --version)",
+      "PowerShell(npm --version)",
+      "PowerShell(npm create vite@latest . -- --template react-ts)",
+      "PowerShell(npm install)"
+    ]
+  }
+}
