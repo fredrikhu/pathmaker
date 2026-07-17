@@ -642,3 +642,51 @@ describe('caster slot tables on the sheet (Part-2 depth)', () => {
     expect(r.sheet.spellSlots).toEqual([5, 5, 4, 2]);
   });
 });
+
+describe('bloodrager: four-level caster, no creation spell step', () => {
+  function bloodrager(level: number): CharacterDoc {
+    let d = newCharacter('t-blr', 'Crowe');
+    d = withDecision(d, 'ability-base', { str: 16, dex: 12, con: 14, int: 8, wis: 10, cha: 14 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['cha']); // Cha 16 -> +3
+    d = withDecision(d, 'alignment', 'CN');
+    d = withDecision(d, 'class', 'bloodrager');
+    return atLevel(d, level);
+  }
+  it('level 1: no caster level, no slots, no spells step', () => {
+    const r = resolve(bloodrager(1));
+    expect(r.sheet.casterLevel).toBeUndefined();
+    expect(r.steps).not.toContain('spells');
+  });
+  it('level 7 (Cha 16): caster level 4, 4-level slots incl. ability bonus, still no spells step', () => {
+    const r = resolve(bloodrager(7));
+    expect(r.sheet.casterLevel).toBe(4);
+    // four[7] = [0,1,0]; Cha +3 bonus: 1st 1+1=2, 2nd 0+1=1 → [0,2,1]
+    expect(r.sheet.spellSlots).toEqual([0, 2, 1]);
+    expect(r.steps).not.toContain('spells');
+  });
+});
+
+describe('per-level favored class bonus', () => {
+  function fcbFighter(level: number, fcbByLevel?: Record<number, 'hp' | 'skill'>): CharacterDoc {
+    let d = newCharacter('t-fcb', 'Rank');
+    d = withDecision(d, 'ability-base', { str: 14, dex: 12, con: 14, int: 12, wis: 10, cha: 8 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['str']);
+    d = withDecision(d, 'class', 'fighter');
+    d = withDecision(d, 'favored-class', 'fighter');
+    d = withDecision(d, 'fcb', 'hp'); // overall default
+    if (fcbByLevel) d = withDecision(d, 'fcb-by-level', fcbByLevel);
+    return atLevel(d, level);
+  }
+  it('all-HP default: 3 HP-FCB, 0 skill-FCB', () => {
+    const r = resolve(fcbFighter(3));
+    expect(r.sheet.stats['hp:max'].total).toBe(31); // 10 + 12 + Con(2)*3 + 3 FCB
+    expect(r.sheet.skillRanksTotal).toBe(12); // (2+1 Int+1 racial) * 3
+  });
+  it('mixing hp/skill per level moves the +1 between HP and skill ranks', () => {
+    const r = resolve(fcbFighter(3, { 1: 'hp', 2: 'skill', 3: 'hp' }));
+    expect(r.sheet.stats['hp:max'].total).toBe(30); // one fewer HP-FCB
+    expect(r.sheet.skillRanksTotal).toBe(13); // one extra skill-FCB
+  });
+});

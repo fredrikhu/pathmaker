@@ -154,7 +154,7 @@ describe('class progression coverage (Part B)', () => {
   it('only verified casters carry an encoded slot table (others show no slot numbers)', () => {
     const withTable = C.CLASSES.filter((c) => c.spellcasting?.table).map((c) => c.id).sort();
     expect(withTable).toEqual([
-      'alchemist', 'bard', 'cleric', 'druid', 'hunter', 'inquisitor', 'investigator', 'magus',
+      'alchemist', 'bard', 'bloodrager', 'cleric', 'druid', 'hunter', 'inquisitor', 'investigator', 'magus',
       'oracle', 'paladin', 'ranger', 'shaman', 'skald', 'sorcerer', 'summoner', 'warpriest', 'witch', 'wizard',
     ].sort());
     // Every class with a table also has a caster progression; none has a table but no progression.

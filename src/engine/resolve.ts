@@ -46,7 +46,8 @@ interface Decisions {
   deityId: string | null;
   classId: string | null;
   favoredClass: string | null;
-  fcbChoice: 'hp' | 'skill' | null;
+  fcbChoice: 'hp' | 'skill' | null; // overall default for levels without a per-level pick
+  fcbByLevel: Record<number, 'hp' | 'skill'>;
   classChoices: Record<string, string[]>; // slotSuffix -> selected ids
   feats: Record<string, string | null>; // slotKey -> featId
   traits: string[];
@@ -72,6 +73,7 @@ function readDecisions(doc: CharacterDoc): Decisions {
     classId: get<string | null>('class', null),
     favoredClass: get<string | null>('favored-class', null),
     fcbChoice: get<'hp' | 'skill' | null>('fcb', null),
+    fcbByLevel: get<Record<number, 'hp' | 'skill'>>('fcb-by-level', {}),
     classChoices: get<Record<string, string[]>>('class-choices', {}),
     feats: get<Record<string, string | null>>('feats', {}),
     traits: get<string[]>('traits', []),
@@ -255,7 +257,13 @@ export function resolve(doc: CharacterDoc): Resolution {
   // HP: level 1 = max hit die; each later level adds its rolled/average HP. Con mod applies to
   // every level (a level-up Con increase raises the modifier retroactively, per RAW, because we
   // use the final Con mod × total levels). FCB(hp) adds 1 per level when chosen. Plus Toughness.
-  const fcbHp = dec.favoredClass && dec.favoredClass === dec.classId && dec.fcbChoice === 'hp';
+  // Favored-class bonus, chosen per level (falling back to the overall default). Count how many
+  // levels put the +1 into HP vs skill ranks.
+  const favored = dec.favoredClass != null && dec.favoredClass === dec.classId;
+  const fcbAt = (l: number): 'hp' | 'skill' | null => dec.fcbByLevel[l] ?? dec.fcbChoice;
+  let fcbHpCount = 0;
+  let fcbSkillCount = 0;
+  if (favored) for (let l = 1; l <= level; l++) { const c = fcbAt(l); if (c === 'hp') fcbHpCount++; else if (c === 'skill') fcbSkillCount++; }
   const hpContribs: Contribution[] = [];
   if (klass) {
     hpContribs.push({ type: 'base', value: klass.hitDie, note: `Max hit die (${klass.name})` });
@@ -265,7 +273,7 @@ export function resolve(doc: CharacterDoc): Resolution {
   }
   const hpLevels = klass ? level : 1;
   hpContribs.push({ type: 'base', value: mods.con * hpLevels, note: hpLevels > 1 ? `Con modifier × ${hpLevels}` : 'Con modifier' });
-  if (fcbHp) hpContribs.push({ type: 'base', value: level, note: `Favored class bonus${level > 1 ? ` × ${level}` : ''}` });
+  if (fcbHpCount) hpContribs.push({ type: 'base', value: fcbHpCount, note: `Favored class bonus${fcbHpCount > 1 ? ` × ${fcbHpCount}` : ''}` });
   hpContribs.push(...unconds('hp:max'));
   stats['hp:max'] = makeStat('hp:max', 'Hit Points', hpContribs);
 
@@ -354,9 +362,8 @@ export function resolve(doc: CharacterDoc): Resolution {
     if (b) classSkillSet.add(b.classSkill);
   }
   const racialSkillPerLevel = standard.reduce((n, t) => n + (t.skillRanksPerLevel ?? 0), 0);
-  const fcbSkill = dec.favoredClass === dec.classId && dec.fcbChoice === 'skill';
   // Skill-rank budget summed over levels 1..N, using the Int modifier as of each level (an
-  // Int increase at level 4 raises ranks from level 4 onward), + favored-class skill bonus.
+  // Int increase at level 4 raises ranks from level 4 onward), + the favored-class skill bonuses.
   const skillRanksTotal = (() => {
     if (!klass) return 0;
     let total = 0;
@@ -364,7 +371,7 @@ export function resolve(doc: CharacterDoc): Resolution {
       const intAtL = abilityMod(finalAbilities(dec, l).int);
       total += Math.max(1, klass.skillRanks + intAtL + racialSkillPerLevel);
     }
-    return total + (fcbSkill ? level : 0);
+    return total + fcbSkillCount;
   })();
   const skillIds = C.SKILLS.map((s) => s.id);
   const classSkillIds: string[] = [];
@@ -485,8 +492,10 @@ function deriveSteps(klass?: C.ClassDef): string[] {
   // Only classes that make a spell selection at creation get a Spells step. Prepared-list
   // divine casters (cleric, druid, warpriest) prepare from their whole list daily — nothing
   // to choose at level 1 — so they get no creation-time Spells step.
+  // Four-level casters (paladin/ranger/bloodrager) gain no spells at 1st level, so they get no
+  // creation-time spell step even when spontaneous.
   const sc = klass?.spellcasting;
-  if (sc && (sc.kind === 'prepared-book' || sc.kind === 'spontaneous')) steps.push('spells');
+  if (sc && sc.progression !== 'four' && (sc.kind === 'prepared-book' || sc.kind === 'spontaneous')) steps.push('spells');
   steps.push('equipment', 'review');
   return steps;
 }
@@ -597,11 +606,18 @@ function buildSlotsAndIssues(
           issues.push({ severity: 'info', step: 'class', slot: slotId, message: `Choose ${label.toLowerCase()} (${selected.length}/${ch.count})` });
       }
     }
-    // Favored class + FCB
-    if (!dec.favoredClass)
+    // Favored class + per-level favored-class bonus
+    if (!dec.favoredClass) {
       issues.push({ severity: 'info', step: 'class', slot: 'favored-class', message: 'Pick your favored class' });
-    else if (dec.favoredClass === dec.classId && !dec.fcbChoice)
-      issues.push({ severity: 'info', step: 'class', slot: 'fcb', message: 'Choose favored class bonus: +1 HP or +1 skill rank' });
+    } else if (dec.favoredClass === dec.classId) {
+      let unset = 0;
+      for (let l = 1; l <= ctx.level; l++) if (!(dec.fcbByLevel[l] ?? dec.fcbChoice)) unset++;
+      if (unset > 0)
+        issues.push({
+          severity: 'info', step: 'advancement', slot: 'fcb',
+          message: unset >= ctx.level ? 'Choose your favored class bonus (+1 HP or +1 skill rank per level)' : `${unset} level${unset === 1 ? '' : 's'} have no favored class bonus chosen`,
+        });
+    }
   }
 
   // ---------- SKILLS ----------
@@ -669,7 +685,7 @@ function buildSlotsAndIssues(
   if (dec.traits.length > traitBudget) issues.push({ severity: 'error', step: 'feats', slot: 'traits', message: `${dec.traits.length} traits selected, only ${traitBudget} allowed` });
 
   // ---------- SPELLS ----------
-  if (klass?.spellcasting) {
+  if (klass?.spellcasting && klass.spellcasting.progression !== 'four') {
     const sc = klass.spellcasting;
     const listSpells = C.SPELLS.filter((s) => s.lists.includes(sc.list as C.SpellDef['lists'][number]));
     if (sc.kind === 'prepared-book') {

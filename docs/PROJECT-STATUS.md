@@ -103,12 +103,12 @@ Remaining Part-B deferrals / fidelity notes:
 - **Caster slot tables encoded for 18 classes** (`progression.ts` + `SpellcastingDef.table`, set via
   the `CASTER` map in `classes.ts`): full-9 (cleric/druid/wizard/witch/shaman + sorcerer/oracle),
   six-level bard (bard/skald), six-level spontaneous (inquisitor/hunter/summoner, own known table),
-  prepared-six (magus/warpriest), extract (alchemist/investigator), and four-level (paladin/ranger,
-  caster level = level − 3). Each verified against d20pfsrd and anchor-golden-tested. Paladin/ranger
-  gained minimal `spellcasting` blocks; a non-casting-yet paladin (levels 1–3) shows nothing. Display
-  filters spell levels whose total is 0 (hides the cantrip gap and 0-base levels). **Still deferred:**
-  arcanist (9-level, unique per-day grid) and vampire-hunter (`table` unset → no slot numbers), plus
-  bloodrager's 4-level table (its existing spell block needs review first).
+  prepared-six (magus/warpriest), extract (alchemist/investigator), and four-level (paladin/ranger/
+  bloodrager, caster level = level − 3). Each verified against d20pfsrd and anchor-golden-tested.
+  Paladin/ranger/bloodrager gained minimal `spellcasting` blocks; four-level casters never get a
+  creation-time spell step and show nothing before 4th level. Display filters spell levels whose total
+  is 0 (hides the cantrip gap and 0-base levels). **Still deferred:** arcanist (9-level, unique per-day
+  grid we couldn't verify from a clean source) and vampire-hunter (`table` unset → no slot numbers).
 - **Fixed a latent bard/skald bug:** the six-level per-day table was indexed from 1st level while the
   engine assumes index 0 = cantrips, so bard slots displayed one level off and skipped the Cha bonus
   spell. The table is now cantrip-indexed (cantrips at-will, hidden in display).
@@ -119,8 +119,9 @@ Remaining Part-B deferrals / fidelity notes:
   interactive slots.
 - **vampire-hunter** keeps only its level-1 `features1` fallback — its table couldn't be verified
   cleanly (same policy as the deferred Vigilante/Omdura classes).
-- **Favored-class bonus is applied uniformly at every level** (single `fcb` choice), not per level.
 - **Toughness** scales correctly (`max(3, level)` HP), special-cased in the engine.
+- **Favored-class bonus is now chosen per level** (`fcb-by-level` map; the overall `fcb` is the default
+  for unset levels) — the Advancement table has a per-level HP/skill FCB picker.
 
 Resolved follow-ups:
 - **Class-feature effects are now computed** — `collectEffects` folds in `classFeaturesUpTo` effects

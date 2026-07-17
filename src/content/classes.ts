@@ -28,6 +28,7 @@ const CASTER: Record<string, { progression: CasterProgression; table: SpellTable
   investigator: { progression: 'six', table: 'extract' },
   paladin: { progression: 'four', table: 'four' },
   ranger: { progression: 'four', table: 'four' },
+  bloodrager: { progression: 'four', table: 'four' },
 };
 
 // Class skill lists use the skill ids from skills.ts. Craft/Knowledge/Profession/Perform
@@ -386,6 +387,8 @@ export const CLASSES: ClassDef[] = [
       { id: 'blr-fast-movement', name: 'Fast Movement', desc: '+10 feet base land speed in light or medium armor.' },
     ],
     choices: [{ id: 'bloodline', label: 'Bloodline', kind: 'list', count: 1, options: BLOODRAGER_BLOODLINES }],
+    // Spontaneous arcane casting from 4th level (caster level = level − 3); no level-1 spells.
+    spellcasting: { kind: 'spontaneous', ability: 'cha', list: 'arcane', slots1: [] },
   },
   {
     id: 'brawler', name: 'Brawler', sub: 'Hybrid · d10 · martial flexibility',

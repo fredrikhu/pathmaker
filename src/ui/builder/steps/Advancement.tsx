@@ -35,6 +35,12 @@ export function AdvancementStep({ ch }: { ch: CharCtl }) {
 
   const totalHp = sheet.stats['hp:max']?.total ?? 0;
 
+  // Per-level favored-class bonus (only when your favored class is this class).
+  const favored = !!doc.decisions['favored-class'] && doc.decisions['favored-class'] === doc.decisions['class'];
+  const overallFcb = (doc.decisions['fcb'] as 'hp' | 'skill' | null) ?? null;
+  const fcbByLevel = (doc.decisions['fcb-by-level'] as Record<number, 'hp' | 'skill'>) ?? {};
+  const setFcb = (level: number, val: 'hp' | 'skill') => setDecision('fcb-by-level', { ...fcbByLevel, [level]: val });
+
   return (
     <div style={{ maxWidth: 900 }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 14, flexWrap: 'wrap', marginBottom: 6 }}>
@@ -70,6 +76,7 @@ export function AdvancementStep({ ch }: { ch: CharCtl }) {
               <th style={cell}>Will</th>
               <th style={{ ...cell, minWidth: 220 }}>Features &amp; feats</th>
               <th style={cell}>HP</th>
+              {favored && <th style={cell}>FCB</th>}
               <th style={cell}>Ability +1</th>
             </tr>
           </thead>
@@ -103,6 +110,17 @@ export function AdvancementStep({ ch }: { ch: CharCtl }) {
                       </span>
                     )}
                   </td>
+                  {favored && (
+                    <td style={cell}>
+                      <select className="input" style={{ padding: '3px 5px', fontSize: 12 }}
+                        value={fcbByLevel[row.level] ?? overallFcb ?? ''}
+                        onChange={(e) => setFcb(row.level, e.target.value as 'hp' | 'skill')}>
+                        <option value="" disabled>choose…</option>
+                        <option value="hp">+1 HP</option>
+                        <option value="skill">+1 skill</option>
+                      </select>
+                    </td>
+                  )}
                   <td style={cell}>
                     {ABILITY_INCREASE_LEVELS.has(row.level) ? (
                       <select className="input" style={{ padding: '3px 5px', fontSize: 12 }}
