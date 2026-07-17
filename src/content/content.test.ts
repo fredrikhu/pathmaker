@@ -151,9 +151,16 @@ describe('class progression coverage (Part B)', () => {
       expect(c.features!.some((f) => f.level === 1), `class ${c.id}: no level-1 feature`).toBe(true);
     }
   });
-  it('only verified casters carry a caster progression (others show no slot numbers)', () => {
-    const withProg = C.CLASSES.filter((c) => c.spellcasting?.progression).map((c) => c.id).sort();
-    expect(withProg).toEqual(['bard', 'cleric', 'druid', 'oracle', 'shaman', 'skald', 'sorcerer', 'witch', 'wizard'].sort());
+  it('only verified casters carry an encoded slot table (others show no slot numbers)', () => {
+    const withTable = C.CLASSES.filter((c) => c.spellcasting?.table).map((c) => c.id).sort();
+    expect(withTable).toEqual([
+      'alchemist', 'bard', 'cleric', 'druid', 'hunter', 'inquisitor', 'investigator', 'magus',
+      'oracle', 'paladin', 'ranger', 'shaman', 'skald', 'sorcerer', 'summoner', 'warpriest', 'witch', 'wizard',
+    ].sort());
+    // Every class with a table also has a caster progression; none has a table but no progression.
+    for (const c of C.CLASSES) {
+      if (c.spellcasting?.table) expect(c.spellcasting.progression, `${c.id}`).toBeTruthy();
+    }
   });
 });
 

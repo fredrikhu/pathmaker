@@ -101,9 +101,34 @@ const SPONTANEOUS_FULL: number[][] = [
 ];
 
 const SIX_LEVEL: number[][] = [
-  [1],
-  [2],
-  [3],
+  // Cantrip-indexed (leading 0 = at-will cantrips, hidden in display) so 1st-level spells sit at
+  // index 1 and receive the casting-ability bonus. Shared by bard, skald, inquisitor, hunter,
+  // and summoner (all standard 6-level spontaneous per-day progressions).
+  [0, 1],
+  [0, 2],
+  [0, 3],
+  [0, 3, 1],
+  [0, 4, 2],
+  [0, 4, 3],
+  [0, 4, 3, 1],
+  [0, 4, 4, 2],
+  [0, 5, 4, 3],
+  [0, 5, 4, 3, 1],
+  [0, 5, 4, 4, 2],
+  [0, 5, 5, 4, 3],
+  [0, 5, 5, 4, 3, 1],
+  [0, 5, 5, 4, 4, 2],
+  [0, 5, 5, 5, 4, 3],
+  [0, 5, 5, 5, 4, 3, 1],
+  [0, 5, 5, 5, 4, 4, 2],
+  [0, 5, 5, 5, 5, 4, 3],
+  [0, 5, 5, 5, 5, 5, 4],
+  [0, 5, 5, 5, 5, 5, 5],
+];
+
+// Prepared 6-level casters (magus, warpriest): cantrips at 0, spells 1st–6th. Verified against
+// the magus/warpriest tables (identical). Alchemist/investigator use this minus the cantrip column.
+const PREPARED_SIX: number[][] = [
   [3, 1],
   [4, 2],
   [4, 3],
@@ -119,8 +144,38 @@ const SIX_LEVEL: number[][] = [
   [5, 5, 5, 4, 3, 1],
   [5, 5, 5, 4, 4, 2],
   [5, 5, 5, 5, 4, 3],
-  [5, 5, 5, 5, 5, 4],
-  [5, 5, 5, 5, 5, 5],
+  [5, 5, 5, 5, 4, 3, 1],
+  [5, 5, 5, 5, 4, 4, 2],
+  [5, 5, 5, 5, 5, 4, 3],
+  [5, 5, 5, 5, 5, 5, 4],
+  [5, 5, 5, 5, 5, 5, 5],
+];
+
+// Alchemist / investigator extracts per day = PREPARED_SIX with no 0-level (cantrip) column.
+const EXTRACT_SIX: number[][] = PREPARED_SIX.map((r) => [0, ...r.slice(1)]);
+
+// Four-level casters (paladin, ranger): no cantrips; casting begins at class level 4. Verified
+// against the paladin/ranger Core table. A 0 base (e.g. 2nd level at 7th) is castable only with a
+// high enough ability bonus; display hides slot levels whose total is 0.
+const FOUR_LEVEL: number[][] = [
+  [], [], [],
+  [0, 0],
+  [0, 1],
+  [0, 1],
+  [0, 1, 0],
+  [0, 1, 1],
+  [0, 2, 1],
+  [0, 2, 1, 0],
+  [0, 2, 1, 1],
+  [0, 2, 2, 1],
+  [0, 3, 2, 1, 0],
+  [0, 3, 2, 1, 1],
+  [0, 3, 2, 2, 1],
+  [0, 3, 3, 2, 1],
+  [0, 4, 3, 2, 1],
+  [0, 4, 3, 2, 2],
+  [0, 4, 3, 3, 2],
+  [0, 4, 4, 3, 3],
 ];
 
 // ---- Spontaneous spells-known tables (fixed; unaffected by ability) --------------------
@@ -171,19 +226,48 @@ const BARD_KNOWN: number[][] = [
   [6, 6, 6, 6, 6, 5, 4],
 ];
 
-/** A caster's identity for slot lookup: which base table, and (for spontaneous) which known table. */
-export type SpellTable = 'prepared-full' | 'spontaneous-full' | 'bard';
+// Spells known for the 6-level spontaneous divine/arcane casters (inquisitor, hunter, summoner).
+const SPONT_SIX_KNOWN: number[][] = [
+  [4, 2],
+  [5, 3],
+  [6, 4],
+  [6, 4, 2],
+  [6, 4, 3],
+  [6, 4, 4],
+  [6, 5, 4, 2],
+  [6, 5, 4, 3],
+  [6, 5, 4, 4],
+  [6, 5, 5, 4, 2],
+  [6, 6, 5, 4, 3],
+  [6, 6, 5, 4, 4],
+  [6, 6, 5, 5, 4, 2],
+  [6, 6, 6, 5, 4, 3],
+  [6, 6, 6, 5, 4, 4],
+  [6, 6, 6, 5, 5, 4, 2],
+  [6, 6, 6, 6, 5, 4, 3],
+  [6, 6, 6, 6, 5, 4, 4],
+  [6, 6, 6, 6, 5, 5, 4],
+  [6, 6, 6, 6, 6, 5, 5],
+];
+
+/** A caster's slot/known identity. All arrays are indexed by absolute spell level (0 = cantrips). */
+export type SpellTable =
+  | 'prepared-full' | 'spontaneous-full' | 'bard' | 'spont-six' | 'prepared-six' | 'extract' | 'four';
 
 function baseSlotTable(table: SpellTable): number[][] {
   switch (table) {
     case 'prepared-full': return PREPARED_FULL;
     case 'spontaneous-full': return SPONTANEOUS_FULL;
-    case 'bard': return SIX_LEVEL;
+    case 'bard':
+    case 'spont-six': return SIX_LEVEL;
+    case 'prepared-six': return PREPARED_SIX;
+    case 'extract': return EXTRACT_SIX;
+    case 'four': return FOUR_LEVEL;
   }
 }
 
 /** Total spell slots per day at a class level: the base table plus ability bonus spells.
- *  Returns [] when the class has no table encoded yet (e.g. four-level casters, pre-Part-B). */
+ *  Returns [] when the class has no encoded table (e.g. arcanist / vampire-hunter). */
 export function spellSlotsPerDay(table: SpellTable | undefined, level: number, abilityMod: number): number[] {
   if (!table || level < 1) return [];
   const base = baseSlotTable(table)[Math.min(20, level) - 1] ?? [];
@@ -193,7 +277,10 @@ export function spellSlotsPerDay(table: SpellTable | undefined, level: number, a
 /** Spells known per spell level for a spontaneous caster (fixed; empty for prepared casters). */
 export function spellsKnownPerLevel(table: SpellTable | undefined, level: number): number[] {
   if (level < 1) return [];
-  const src = table === 'spontaneous-full' ? SORCERER_KNOWN : table === 'bard' ? BARD_KNOWN : null;
+  const src = table === 'spontaneous-full' ? SORCERER_KNOWN
+    : table === 'bard' ? BARD_KNOWN
+    : table === 'spont-six' ? SPONT_SIX_KNOWN
+    : null;
   if (!src) return [];
   return src[Math.min(20, level) - 1] ?? [];
 }

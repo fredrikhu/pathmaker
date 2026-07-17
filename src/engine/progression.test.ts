@@ -91,3 +91,33 @@ describe('spell slots', () => {
     expect(spellSlotsPerDay(undefined, 5, 3)).toEqual([]);
   });
 });
+
+describe('encoded slot tables (Part-2 depth)', () => {
+  it('four-level (paladin/ranger): no casting before 4, verified endpoints', () => {
+    expect(spellSlotsPerDay('four', 3, 0)).toEqual([]);
+    expect(spellSlotsPerDay('four', 4, 0)).toEqual([0, 0]);
+    expect(spellSlotsPerDay('four', 5, 0)).toEqual([0, 1]);
+    expect(spellSlotsPerDay('four', 20, 0)).toEqual([0, 4, 4, 3, 3]);
+  });
+  it('four-level applies ability bonus to a 0-base level', () => {
+    // Paladin 5, Cha +3: 1st-level base 1 + 1 bonus = 2.
+    expect(spellSlotsPerDay('four', 5, 3)).toEqual([0, 2]);
+  });
+  it('prepared-six (magus/warpriest): cantrips + 1st–6th, tops at 20', () => {
+    expect(spellSlotsPerDay('prepared-six', 1, 0)).toEqual([3, 1]);
+    expect(spellSlotsPerDay('prepared-six', 20, 0)).toEqual([5, 5, 5, 5, 5, 5, 5]);
+  });
+  it('extract (alchemist/investigator): no cantrips, else = prepared-six', () => {
+    expect(spellSlotsPerDay('extract', 1, 0)).toEqual([0, 1]);
+    expect(spellSlotsPerDay('extract', 20, 0)).toEqual([0, 5, 5, 5, 5, 5, 5]);
+  });
+  it('bard/spont-six per-day is cantrip-indexed so 1st-level gets the ability bonus', () => {
+    expect(spellSlotsPerDay('bard', 1, 0)).toEqual([0, 1]);
+    expect(spellSlotsPerDay('bard', 1, 2)).toEqual([0, 2]); // +1 bonus 1st from Cha +2
+    expect(spellSlotsPerDay('bard', 20, 0)).toEqual([0, 5, 5, 5, 5, 5, 5]);
+  });
+  it('spont-six known table (inquisitor/hunter/summoner)', () => {
+    expect(spellsKnownPerLevel('spont-six', 4)).toEqual([6, 4, 2]);
+    expect(spellsKnownPerLevel('spont-six', 20)).toEqual([6, 6, 6, 6, 6, 5, 5]);
+  });
+});

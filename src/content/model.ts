@@ -1,5 +1,5 @@
 import type { Ability, Alignment, Effect, Predicate } from '../engine/types';
-import type { BabProgression, CasterProgression } from '../engine/progression';
+import type { BabProgression, CasterProgression, SpellTable } from '../engine/progression';
 
 export interface RacialTraitDef {
   id: string;
@@ -51,9 +51,11 @@ export interface SpellcastingDef {
   kind: 'prepared-book' | 'spontaneous' | 'prepared-list';
   ability: Ability;
   list: 'arcane' | 'bard' | 'divine' | 'druid' | 'ranger' | 'paladin';
-  /** Slot/known progression speed. Defaults to 'full' (9-level) when omitted; bard/summoner
-   *  are 'six', paladin/ranger are 'four'. Drives caster level and slots-per-day tables. */
+  /** Slot/known progression speed ('full' 9-level, 'six', or 'four'). Drives caster level. */
   progression?: CasterProgression;
+  /** Which verified slot/known table this class uses. Only set when the table is encoded;
+   *  absent ⇒ no slot numbers are shown (e.g. arcanist, vampire-hunter). */
+  table?: SpellTable;
   /** Spell slots per day at class level 1, index = spell level. */
   slots1: number[];
   /** Spontaneous: spells known at level 1, index = spell level. */

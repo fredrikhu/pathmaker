@@ -47,13 +47,13 @@ export function AdvancementStep({ ch }: { ch: CharCtl }) {
         Ability score increases (levels 4, 8, 12, 16, 20) and a permanent Con boost raise hit points retroactively.
       </p>
 
-      {sheet.spellSlots && sheet.spellSlots.length > 0 && (
+      {sheet.spellSlots && sheet.spellSlots.some((n) => n > 0) && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, flexWrap: 'wrap', fontSize: 12.5 }}>
           <span className="micro">Spell slots/day</span>
-          {sheet.spellSlots.map((n, lvl) => (
+          {sheet.spellSlots.map((n, lvl) => ({ n, lvl })).filter((s) => s.n > 0).map(({ n, lvl }) => (
             <span key={lvl} style={{ padding: '3px 9px', borderRadius: 6, background: 'var(--color-surface)' }}>
               <span className="text-muted">L{lvl}</span> <span className="num" style={{ fontWeight: 600 }}>{n}</span>
-              {sheet.spellsKnown && sheet.spellsKnown[lvl] != null ? <span className="text-muted"> · {sheet.spellsKnown[lvl]} known</span> : null}
+              {sheet.spellsKnown && sheet.spellsKnown[lvl] ? <span className="text-muted"> · {sheet.spellsKnown[lvl]} known</span> : null}
             </span>
           ))}
         </div>

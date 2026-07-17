@@ -602,3 +602,43 @@ describe('repeated subsystem picks may not duplicate', () => {
     expect(r.issues.some((i) => /only once/i.test(i.message))).toBe(false);
   });
 });
+
+describe('caster slot tables on the sheet (Part-2 depth)', () => {
+  it('paladin 5 (Cha 16): caster level 2, 1st-level slots incl. the Cha bonus', () => {
+    let d = newCharacter('t-pal', 'Seelah');
+    d = withDecision(d, 'ability-base', { str: 14, dex: 10, con: 12, int: 8, wis: 10, cha: 16 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['cha']); // Cha 18 -> +4
+    d = withDecision(d, 'alignment', 'LG');
+    d = withDecision(d, 'class', 'paladin');
+    const r = resolve(atLevel(d, 5));
+    expect(r.sheet.casterLevel).toBe(2); // level - 3
+    // 1st-level base 1 + bonus for Cha +4 (floor((4-1)/4)+1 = 1) = 2; cantrips index 0 stays 0.
+    expect(r.sheet.spellSlots).toEqual([0, 2]);
+  });
+
+  it('paladin 3: not yet a caster (no caster level or slots shown)', () => {
+    let d = newCharacter('t-pal2', 'Alain');
+    d = withDecision(d, 'ability-base', { str: 14, dex: 10, con: 12, int: 8, wis: 10, cha: 14 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['cha']);
+    d = withDecision(d, 'alignment', 'LG');
+    d = withDecision(d, 'class', 'paladin');
+    const r = resolve(atLevel(d, 3));
+    expect(r.sheet.casterLevel).toBeUndefined();
+    expect(r.sheet.spellSlots).toBeUndefined();
+  });
+
+  it('magus 7 (Int 16): prepared-six slots with Int bonus', () => {
+    let d = newCharacter('t-magus', 'Seltyiel');
+    d = withDecision(d, 'ability-base', { str: 12, dex: 14, con: 12, int: 16, wis: 10, cha: 8 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['int']); // Int 18 -> +4
+    d = withDecision(d, 'alignment', 'N');
+    d = withDecision(d, 'class', 'magus');
+    const r = resolve(atLevel(d, 7));
+    expect(r.sheet.casterLevel).toBe(7);
+    // base [5,4,3,1] + Int +4 bonus: 1st+1=5, 2nd+1=4, 3rd+1=2 → [5,5,4,2]
+    expect(r.sheet.spellSlots).toEqual([5, 5, 4, 2]);
+  });
+});

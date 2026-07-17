@@ -9,7 +9,7 @@ import { evalPredicate, explainFailure, type PredicateCtx } from './predicates';
 import { stack, type Contribution } from './stack';
 import {
   babAt, saveBase, fixedHpPerLevel, generalFeatLevels, abilityIncreaseLevels,
-  casterLevel, spellSlotsPerDay, spellsKnownPerLevel, type SpellTable, type CasterProgression,
+  casterLevel, spellSlotsPerDay, spellsKnownPerLevel, type SpellTable,
 } from './progression';
 
 const POINT_BUY_COST: Record<number, number> = {
@@ -17,16 +17,10 @@ const POINT_BUY_COST: Record<number, number> = {
 };
 const POINT_BUY_TOTAL: Record<string, number> = { pb15: 15, pb20: 20, pb25: 25 };
 
-/** Which slot/known table a casting class uses. Only the fully-verified progressions
- *  ('full' 9-level and 'six' bard) return a table; every other caster — the four-level
- *  paladin/ranger and the many classes with unique 6-level/extract tables (magus, inquisitor,
- *  summoner, alchemist, warpriest, arcanist, hunter…) — returns undefined so the sheet shows
- *  no slot numbers rather than guessed ones, until their exact table is encoded. */
+/** The class's verified slot/known table, if one is encoded. Classes without a `table` (arcanist,
+ *  vampire-hunter) show no slot numbers rather than guessed ones. */
 function spellTableFor(sc: C.SpellcastingDef): SpellTable | undefined {
-  const prog: CasterProgression | undefined = sc.progression;
-  if (prog === 'six') return 'bard';
-  if (prog === 'full') return sc.kind === 'spontaneous' ? 'spontaneous-full' : 'prepared-full';
-  return undefined;
+  return sc.table;
 }
 
 const ORDINALS = ['0th', '1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th', '9th', '10th'];
@@ -465,8 +459,8 @@ export function resolve(doc: CharacterDoc): Resolution {
     gold,
     load: { current: load, light: carry.light, medium: carry.medium, heavy: carry.heavy, label: loadLabel },
     speed: { base: effectiveSpeed, ...(speedReduced ? { reducedFrom: baseSpeed } : {}), ...(race?.speeds ?? {}) },
-    ...(sc ? { casterLevel: clvl, spellSlots } : {}),
-    ...(spellsKnown ? { spellsKnown } : {}),
+    ...(sc && clvl > 0 ? { casterLevel: clvl, spellSlots } : {}),
+    ...(spellsKnown && spellsKnown.length ? { spellsKnown } : {}),
     progression,
     summaryLine,
   };

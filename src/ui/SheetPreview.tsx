@@ -77,7 +77,7 @@ export function SheetPreview({ id }: { id: string }) {
             {sheet.casterLevel != null && (
               <div className="text-muted" style={{ fontSize: 12, marginBottom: 4 }}>
                 Caster level {sheet.casterLevel}
-                {sheet.spellSlots && sheet.spellSlots.length > 0 && <> · slots/day {sheet.spellSlots.map((n, l) => `L${l}:${n}`).join('  ')}</>}
+                {sheet.spellSlots && sheet.spellSlots.some((n) => n > 0) && <> · slots/day {sheet.spellSlots.map((n, l) => ({ n, l })).filter((s) => s.n > 0).map(({ n, l }) => `L${l}:${n}`).join('  ')}</>}
               </div>
             )}
             <div className="text-muted" style={{ fontSize: 12, marginBottom: 4 }}>Cantrips and 1st-level selections</div>

@@ -5,14 +5,29 @@ import {
   SHIFTER_ASPECTS, SHAMAN_SPIRITS,
 } from './subsystems';
 import { CLASS_PROGRESSION } from './class-features';
-import type { CasterProgression } from '../engine/progression';
+import type { CasterProgression, SpellTable } from '../engine/progression';
 
-// Only classes whose exact slots/known table is verified and encoded in progression.ts get a
-// caster progression (and thus slot numbers on the sheet). The many classes with unique 6-level
-// or extract tables are intentionally omitted until their tables are authored — see resolve.ts.
-const CASTER_PROGRESSION: Record<string, CasterProgression> = {
-  cleric: 'full', druid: 'full', wizard: 'full', sorcerer: 'full', oracle: 'full', witch: 'full', shaman: 'full',
-  bard: 'six', skald: 'six',
+// Caster level progression + the verified slots/known table for each casting class. Classes with
+// unique tables not yet encoded (arcanist, vampire-hunter) are omitted → no slot numbers shown.
+const CASTER: Record<string, { progression: CasterProgression; table: SpellTable }> = {
+  cleric: { progression: 'full', table: 'prepared-full' },
+  druid: { progression: 'full', table: 'prepared-full' },
+  wizard: { progression: 'full', table: 'prepared-full' },
+  witch: { progression: 'full', table: 'prepared-full' },
+  shaman: { progression: 'full', table: 'prepared-full' },
+  sorcerer: { progression: 'full', table: 'spontaneous-full' },
+  oracle: { progression: 'full', table: 'spontaneous-full' },
+  bard: { progression: 'six', table: 'bard' },
+  skald: { progression: 'six', table: 'bard' },
+  inquisitor: { progression: 'six', table: 'spont-six' },
+  hunter: { progression: 'six', table: 'spont-six' },
+  summoner: { progression: 'six', table: 'spont-six' },
+  magus: { progression: 'six', table: 'prepared-six' },
+  warpriest: { progression: 'six', table: 'prepared-six' },
+  alchemist: { progression: 'six', table: 'extract' },
+  investigator: { progression: 'six', table: 'extract' },
+  paladin: { progression: 'four', table: 'four' },
+  ranger: { progression: 'four', table: 'four' },
 };
 
 // Class skill lists use the skill ids from skills.ts. Craft/Knowledge/Profession/Perform
@@ -112,6 +127,8 @@ export const CLASSES: ClassDef[] = [
       { id: 'paladin-smite', name: 'Smite Evil', desc: 'Once per day, add Cha modifier to attack rolls and paladin level to damage against an evil target.' },
       { id: 'paladin-aura', name: 'Aura of Good / Detect Evil', desc: 'Project a strong aura of good and detect evil at will.' },
     ],
+    // Divine casting from 4th level (caster level = paladin level − 3); no level-1 spell selection.
+    spellcasting: { kind: 'prepared-list', ability: 'cha', list: 'paladin', slots1: [] },
   },
   {
     id: 'ranger', name: 'Ranger', sub: 'Martial · d10 · favored enemy',
@@ -125,6 +142,8 @@ export const CLASSES: ClassDef[] = [
       { id: 'ranger-track', name: 'Track', desc: 'Add half level (minimum 1) to Survival checks to follow tracks.' },
       { id: 'ranger-wild-empathy', name: 'Wild Empathy', desc: 'Improve the attitude of an animal as though using Diplomacy.' },
     ],
+    // Divine casting from 4th level (caster level = ranger level − 3); no level-1 spell selection.
+    spellcasting: { kind: 'prepared-list', ability: 'wis', list: 'ranger', slots1: [] },
   },
   {
     id: 'rogue', name: 'Rogue', sub: 'Skill · d8 · sneak attack',
@@ -201,6 +220,8 @@ export const CLASSES: ClassDef[] = [
       { id: 'alch-mutagen', name: 'Mutagen', desc: 'Brew a mutagen granting +4 to one physical ability and +2 natural armor (with a mental penalty).' },
       { id: 'alch-throw', name: 'Throw Anything', desc: 'Gain Throw Anything as a bonus feat; add Int to splash damage.' },
     ],
+    // Extracts per day use the 6-level "extract" table (no 0-level); no creation-time selection.
+    spellcasting: { kind: 'prepared-list', ability: 'int', list: 'arcane', slots1: [] },
   },
   {
     id: 'cavalier', name: 'Cavalier', sub: 'Base · d10 · order & mount',
@@ -405,6 +426,8 @@ export const CLASSES: ClassDef[] = [
       { id: 'inv-inspiration', name: 'Inspiration', desc: 'A pool of ½ level + Int; spend to add 1d6 to a check.' },
       { id: 'inv-trapfinding', name: 'Trapfinding', desc: 'Add half your level to find and disable traps, including magical ones.' },
     ],
+    // Extracts per day use the 6-level "extract" table (no 0-level); no creation-time selection.
+    spellcasting: { kind: 'prepared-list', ability: 'int', list: 'arcane', slots1: [] },
   },
   {
     id: 'shaman', name: 'Shaman', sub: 'Hybrid · d8 · spirit',
@@ -472,7 +495,8 @@ for (const c of CLASSES) {
   if (prog.choices) c.choices = [...(c.choices ?? []), ...prog.choices];
 }
 for (const c of CLASSES) {
-  if (c.spellcasting && CASTER_PROGRESSION[c.id]) c.spellcasting.progression = CASTER_PROGRESSION[c.id];
+  const cfg = CASTER[c.id];
+  if (c.spellcasting && cfg) { c.spellcasting.progression = cfg.progression; c.spellcasting.table = cfg.table; }
 }
 
 export const classById = new Map(CLASSES.map((c) => [c.id, c]));

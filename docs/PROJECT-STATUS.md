@@ -100,10 +100,18 @@ Remaining Part-B deferrals / fidelity notes:
 - **Spell selection above level 1 is still blocked** — only level 0–1 spell content exists, so the
   picker offers L0–1 even for a level-7 caster (slots/day shown correctly for the verified casters).
   The L2–9 spell lists remain the large deferred content item.
-- **Slot tables shown only for verified casters.** The unique 6-level/extract/4-level tables
-  (magus, inquisitor, summoner, alchemist, investigator, warpriest, hunter, arcanist, paladin,
-  ranger, bloodrager, vampire-hunter) are intentionally not encoded — those classes show no slot
-  numbers rather than guessed ones (`spellTableFor` → undefined). Encoding them is a follow-up.
+- **Caster slot tables encoded for 18 classes** (`progression.ts` + `SpellcastingDef.table`, set via
+  the `CASTER` map in `classes.ts`): full-9 (cleric/druid/wizard/witch/shaman + sorcerer/oracle),
+  six-level bard (bard/skald), six-level spontaneous (inquisitor/hunter/summoner, own known table),
+  prepared-six (magus/warpriest), extract (alchemist/investigator), and four-level (paladin/ranger,
+  caster level = level − 3). Each verified against d20pfsrd and anchor-golden-tested. Paladin/ranger
+  gained minimal `spellcasting` blocks; a non-casting-yet paladin (levels 1–3) shows nothing. Display
+  filters spell levels whose total is 0 (hides the cantrip gap and 0-base levels). **Still deferred:**
+  arcanist (9-level, unique per-day grid) and vampire-hunter (`table` unset → no slot numbers), plus
+  bloodrager's 4-level table (its existing spell block needs review first).
+- **Fixed a latent bard/skald bug:** the six-level per-day table was indexed from 1st level while the
+  engine assumes index 0 = cantrips, so bard slots displayed one level off and skipped the Cha bonus
+  spell. The table is now cantrip-indexed (cantrips at-will, hidden in display).
 - **Subsystem-list approximations** (kept honest but not exhaustive): slayer & investigator talents
   reuse the rogue-talent list; shaman hexes reuse the witch-hex list; every option list is a
   core-scope subset. Source/choice-dependent picks (oracle revelations, sorcerer/bloodrager bloodline
