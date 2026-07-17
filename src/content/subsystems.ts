@@ -24,6 +24,16 @@ export const BARBARIAN_RAGE_POWERS: Opt[] = [
   opt('superstition', 'Superstition', 'Bonus on saves vs spells and spell-like abilities while raging.'),
   opt('surprise-accuracy', 'Surprise Accuracy', 'Once per rage, a morale bonus on one attack roll.'),
   opt('swift-foot', 'Swift Foot', 'Increase your base speed by 5 ft while raging.'),
+  opt('lesser-beast-totem', 'Lesser Beast Totem', 'Gain claw attacks while raging.'),
+  opt('beast-totem', 'Beast Totem', 'Your claws gain a natural armor bonus and improved crits.'),
+  opt('come-and-get-me', 'Come and Get Me', 'Provoke foes for extra damage at the cost of your defenses.'),
+  opt('terrifying-howl', 'Terrifying Howl', 'Shake enemies who fail a save against your rage.'),
+  opt('unexpected-strike', 'Unexpected Strike', 'Attack of opportunity against a foe that moves adjacent.'),
+  opt('ground-breaker', 'Ground Breaker', 'Smash the ground to knock nearby foes off balance.'),
+  opt('increased-dr', 'Increased Damage Reduction', 'Raise your damage reduction while raging.'),
+  opt('internal-fortitude', 'Internal Fortitude', 'Immune to sickened and nauseated while raging.'),
+  opt('roused-anger', 'Roused Anger', 'Enter a rage even while fatigued.'),
+  opt('fearless-rage', 'Fearless Rage', 'Immune to the shaken and frightened conditions while raging.'),
 ];
 
 export const ROGUE_TALENTS: Opt[] = [
@@ -42,6 +52,14 @@ export const ROGUE_TALENTS: Opt[] = [
   opt('surprise-attack', 'Surprise Attack', 'All foes are flat-footed to you during the surprise round.'),
   opt('trap-spotter', 'Trap Spotter', 'Automatically attempt Perception near traps.'),
   opt('weapon-training-talent', 'Weapon Training', 'Gain Weapon Focus as a bonus feat.'),
+  opt('fast-getaway', 'Fast Getaway', 'Withdraw as a move action after a sneak attack or theft.'),
+  opt('coax-information', 'Coax Information', 'Use Bluff or Intimidate in place of Diplomacy to gather info.'),
+  opt('expert-leaper', 'Expert Leaper', 'Treat jumps as running and reduce falling damage.'),
+  opt('nimble-climber', 'Nimble Climber', 'Catch yourself when a Climb check fails.'),
+  opt('positioning-attack', 'Positioning Attack', 'Move around a foe without provoking once per day.'),
+  opt('sniper-eye', "Sniper's Eye", 'Deliver sneak attacks at range and ignore some concealment.'),
+  opt('distracting-attack', 'Distracting Attack', 'Make a sneak-attacked foe flat-footed to an ally.'),
+  opt('cunning-trigger', 'Cunning Trigger', 'Trigger a known trap as a swift action from a distance.'),
 ];
 
 export const ROGUE_ADVANCED_TALENTS: Opt[] = [
@@ -256,6 +274,14 @@ export const WITCH_HEXES: Opt[] = [
   opt('misfortune', 'Misfortune', 'Force a foe to take the worse of two rolls.'),
   opt('slumber', 'Slumber', 'Send a creature into a deep sleep — a signature control hex.'),
   opt('ward', 'Ward', 'Grant a creature a bonus to AC and saves until it is hit.'),
+  opt('prehensile-hair', 'Prehensile Hair', 'Animate your hair to manipulate objects and strike at reach.'),
+  opt('ice-tomb', 'Ice Tomb', 'Encase a foe in ice, paralyzing and damaging it (major hex).'),
+  opt('retribution', 'Retribution', 'A foe that harms an ally takes sickening lash-back damage.'),
+  opt('tongues-hex', 'Tongues', 'Understand and speak any language for a time.'),
+  opt('water-lung', 'Water Lung', 'Let a creature breathe water (or air) for a time.'),
+  opt('vision', 'Vision', 'Grant a target a prophetic vision by touch.'),
+  opt('nails', 'Nails', 'Grow claws that deal scaling damage.'),
+  opt('disguise-hex', 'Disguise', 'Alter your appearance at will as disguise self.'),
 ];
 
 export const SUMMONER_EIDOLON_FORMS: Opt[] = [
