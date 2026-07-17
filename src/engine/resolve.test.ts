@@ -143,6 +143,106 @@ describe('elf wizard 1: opposition schools and spellbook', () => {
   });
 });
 
+describe('Dual Talent and the over-selection bug class', () => {
+  function human(): CharacterDoc {
+    let d = newCharacter('t-dt');
+    d = withDecision(d, 'ability-base', { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'class', 'fighter');
+    return d;
+  }
+
+  it('applies both +2 bonuses while Dual Talent is active, with no over-count issue', () => {
+    let d = human();
+    d = withDecision(d, 'alt-traits', ['human-dual-talent']);
+    d = withDecision(d, 'floating-bonus', ['str', 'dex']);
+    const r = resolve(d);
+    expect(r.sheet.stats['ability:str'].total).toBe(12);
+    expect(r.sheet.stats['ability:dex'].total).toBe(12);
+    expect(r.issues.some((i) => /only 1 allowed|only \d+ allowed/.test(i.message))).toBe(false);
+  });
+
+  it('suspends the excess bonus and flags an error when Dual Talent is dropped', () => {
+    let d = human();
+    d = withDecision(d, 'alt-traits', ['human-dual-talent']);
+    d = withDecision(d, 'floating-bonus', ['str', 'dex']);
+    d = withDecision(d, 'alt-traits', []); // drop Dual Talent → only 1 bonus allowed now
+    const r = resolve(d);
+    // Exactly one of the two picks still applies (the engine caps to the allowed count).
+    const boosted = ['str', 'dex'].filter((a) => r.sheet.stats[`ability:${a}`].total === 12);
+    expect(boosted).toHaveLength(1);
+    expect(r.issues.some((i) => i.severity === 'error' && /2 selected but only 1 allowed/.test(i.message))).toBe(true);
+  });
+
+  it('flags a cleric domain that the deity no longer grants after a deity change', () => {
+    let d = newCharacter('t-dom');
+    d = withDecision(d, 'ability-base', { str: 10, dex: 10, con: 10, int: 10, wis: 12, cha: 12 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'class', 'cleric');
+    d = withDecision(d, 'deity', 'torag'); // grants law, good, protection, earth, artifice
+    d = withDecision(d, 'class-choices', { domains: ['good', 'law'] });
+    expect(resolve(d).issues.some((i) => /no longer allowed/.test(i.message))).toBe(false);
+    d = withDecision(d, 'deity', 'desna'); // grants good, but NOT law
+    const r = resolve(d);
+    expect(r.issues.some((i) => i.severity === 'error' && /Law is no longer allowed/.test(i.message))).toBe(true);
+  });
+
+  it('flags an over-full spellbook after the Int bonus that sized it is removed', () => {
+    let d = newCharacter('t-book');
+    d = withDecision(d, 'ability-base', { str: 8, dex: 14, con: 12, int: 15, wis: 10, cha: 10 });
+    d = withDecision(d, 'race', 'elf'); // +2 Int → 17 → mod +3 → book of 3+3 = 6
+    d = withDecision(d, 'class', 'wizard');
+    d = withDecision(d, 'spell-picks', ['magic-missile', 'mage-armor', 'shield', 'burning-hands', 'grease', 'identify']);
+    expect(resolve(d).issues.some((i) => /only \d+ allowed/.test(i.message))).toBe(false);
+    d = withDecision(d, 'race', 'human'); // no Int bonus → Int 15 → mod +2 → book of 5
+    d = withDecision(d, 'floating-bonus', []); // don't re-add Int
+    const r = resolve(d);
+    expect(r.issues.some((i) => i.severity === 'error' && /selected but only 5 allowed/.test(i.message))).toBe(true);
+  });
+});
+
+describe('warpriest: deity-filtered blessings, ¾ BAB, no creation spells step', () => {
+  function warpriest(): CharacterDoc {
+    let d = newCharacter('t-wp', 'Kestrel');
+    d = withDecision(d, 'ability-base', { str: 15, dex: 12, con: 14, int: 10, wis: 14, cha: 8 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['str']);
+    d = withDecision(d, 'alignment', 'NG');
+    d = withDecision(d, 'deity', 'sarenrae'); // NG; domains: fire, glory, good, healing, sun
+    d = withDecision(d, 'class', 'warpriest');
+    d = withDecision(d, 'favored-class', 'warpriest');
+    d = withDecision(d, 'fcb', 'hp');
+    return d;
+  }
+  const r = resolve(warpriest());
+  const s = r.sheet.stats;
+
+  it('is ¾ BAB (0 at level 1) with good Fort and Will', () => {
+    expect(s['bab'].total).toBe(0);
+    expect(s['save:fort'].total).toBe(4); // +2 + 2 Con
+    expect(s['save:will'].total).toBe(4); // +2 + 2 Wis
+    expect(s['save:ref'].total).toBe(1);  // +0 + 1 Dex
+  });
+
+  it('HP = 8 (d8) + 2 Con + 1 FCB = 11', () => {
+    expect(s['hp:max'].total).toBe(11);
+  });
+
+  it('offers a 2-blessing slot filtered to the deity’s domains', () => {
+    const slot = r.slots.find((sl) => sl.id === 'blessings')!;
+    expect(slot.count).toBe(2);
+    expect(slot.options.find((o) => o.id === 'good')!.legal).toBe(true);
+    expect(slot.options.find((o) => o.id === 'healing')!.legal).toBe(true);
+    const war = slot.options.find((o) => o.id === 'war')!;
+    expect(war.legal).toBe(false);
+    expect(war.whyNot).toMatch(/blessing/); // uses blessing wording, not domain
+  });
+
+  it('has no creation-time spells step (prepared-list caster)', () => {
+    expect(r.steps).not.toContain('spells');
+  });
+});
+
 describe('elven immunities is an annotation, not folded into the save total', () => {
   it('keeps +2 vs enchantment out of the Will number', () => {
     let d = newCharacter('t-elf');

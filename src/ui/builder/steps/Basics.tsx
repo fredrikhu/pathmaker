@@ -36,9 +36,14 @@ export function BasicsStep({ ch }: { ch: CharCtl }) {
   const poolTotal = POINT_BUY_TOTAL[method] ?? 0;
   const poolLeft = poolTotal - spent;
 
+  // The floating +2 applies only up to the allowed count (Dual Talent → 2, else 1). Any
+  // leftover picks (e.g. after dropping Dual Talent) are shown as "excess" and don't apply,
+  // matching the engine — which also raises an Issue to remove them.
+  const cap = dualTalent ? 2 : 1;
+  const appliedFloat = floating.slice(-cap);
   const racialFor = (ab: Ability): number => {
     if (!race) return 0;
-    if (race.abilityMods === 'choice') return floating.includes(ab) ? 2 : 0;
+    if (race.abilityMods === 'choice') return appliedFloat.includes(ab) ? 2 : 0;
     return race.abilityMods[ab] ?? 0;
   };
   const finalScore = (ab: Ability) => base[ab] + racialFor(ab);
@@ -83,15 +88,26 @@ export function BasicsStep({ ch }: { ch: CharCtl }) {
             {ALIGNMENTS.map((al) => {
               const conflict = !!klass?.alignment && !klass.alignment.includes(al);
               const selected = alignment === al;
+              // Hard-disable only for single-alignment classes (paladin = LG). The currently
+              // selected cell always stays clickable, so changing class never silently rewrites
+              // your alignment — the conflict shows as an Issue instead.
+              const hardLock = !!klass?.alignment && klass.alignment.length === 1;
+              const disabled = hardLock && conflict && !selected;
               const border = selected ? (conflict ? 'var(--warn)' : 'var(--color-accent)') : 'var(--color-divider)';
               const bg = selected ? (conflict ? 'var(--warn-bg)' : 'rgba(145,132,217,.12)') : 'transparent';
-              const open = tip.card({ kicker: conflict ? 'Would raise an Issue' : 'Alignment', title: al, body: conflict ? `A ${klass!.name.toLowerCase()} must be ${klass!.alignment!.join(' / ')}. You can still choose ${al} — the conflict appears as an Issue, and nothing is lost if you change class later.` : `Set alignment to ${al}.` });
+              const open = tip.card({
+                kicker: conflict ? (disabled ? 'Not available' : 'Would raise an Issue') : 'Alignment',
+                title: al,
+                body: conflict
+                  ? `A ${klass!.name.toLowerCase()} must be ${klass!.alignment!.join(' / ')}.` + (disabled ? '' : ` You can still choose ${al} — the conflict appears as an Issue, and nothing is lost if you change class later.`)
+                  : `Set alignment to ${al}.`,
+              });
               return (
-                <button key={al} onClick={() => setDecision('alignment', al)}
+                <button key={al} disabled={disabled} onClick={() => setDecision('alignment', al)}
                   onMouseEnter={conflict ? open : undefined} onMouseLeave={conflict ? tip.leave : undefined}
-                  style={{ position: 'relative', padding: '8px 0', borderRadius: 7, border: `1px solid ${border}`, background: bg, color: 'var(--color-text)', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}>
+                  style={{ position: 'relative', padding: '8px 0', borderRadius: 7, border: `1px solid ${border}`, background: bg, color: 'var(--color-text)', fontSize: 12, fontWeight: 500, cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.4 : 1, fontFamily: 'inherit' }}>
                   {al}
-                  {conflict && <span style={{ position: 'absolute', top: 3, right: 3, width: 5, height: 5, borderRadius: 999, background: 'var(--warn)' }} />}
+                  {conflict && !disabled && <span style={{ position: 'absolute', top: 3, right: 3, width: 5, height: 5, borderRadius: 999, background: 'var(--warn)' }} />}
                 </button>
               );
             })}
@@ -146,6 +162,7 @@ export function BasicsStep({ ch }: { ch: CharCtl }) {
         {ABILITIES.map((ab) => {
           const isFloatRace = race?.abilityMods === 'choice';
           const rv = racialFor(ab);
+          const isExcessFloat = isFloatRace && rv === 0 && floating.includes(ab); // selected but over the cap
           return (
             <div key={ab} style={{ display: 'grid', gridTemplateColumns: '150px 130px 60px 110px 60px 50px', gap: 8, alignItems: 'center', padding: '7px 4px', borderBottom: '1px solid rgba(233,233,237,.06)' }}>
               <span style={{ fontSize: 14 }}>{AB_NAME[ab]} <span className="text-muted" style={{ fontSize: 11 }}>{ab.toUpperCase()}</span></span>
@@ -159,9 +176,11 @@ export function BasicsStep({ ch }: { ch: CharCtl }) {
                 {!race ? <span className="text-muted" style={{ fontSize: 12 }}>—</span>
                   : isFloatRace ? (
                     <button onClick={() => toggleFloating(ab)}
+                      title={isExcessFloat ? 'Extra pick — not applied. Click to remove.' : undefined}
                       style={rv ? { background: 'var(--color-accent-800)', color: 'var(--color-accent-100)', padding: '3px 9px', borderRadius: 6, fontSize: 11, cursor: 'pointer', border: 'none', fontFamily: 'inherit' }
+                        : isExcessFloat ? { background: 'var(--warn-bg)', color: 'var(--warn-fg)', padding: '3px 9px', borderRadius: 6, fontSize: 11, cursor: 'pointer', border: 'none', fontFamily: 'inherit' }
                         : { color: 'var(--color-neutral-700)', background: 'transparent', border: '1px dashed var(--color-neutral-700)', padding: '3px 9px', borderRadius: 6, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>
-                      {rv ? `+2 ${race.name}` : 'set +2'}
+                      {rv ? `+2 ${race.name}` : isExcessFloat ? '⚠ +2 remove' : 'set +2'}
                     </button>
                   ) : <span className="num" style={{ fontSize: 13, color: rv ? 'var(--color-text)' : 'var(--color-neutral-600)' }}>{rv ? fmtMod(rv) : '—'}</span>}
               </span>

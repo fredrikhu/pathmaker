@@ -33,7 +33,11 @@ export function RaceStep({ ch }: { ch: CharCtl }) {
         <h3 style={{ fontSize: 21, margin: '0 0 12px' }}>Race</h3>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
           {RACES.map((r) => (
-            <div key={r.id} onClick={() => setViewId(r.id)}
+            <div key={r.id} role="button" tabIndex={0}
+              onClick={() => setViewId(r.id)}
+              onDoubleClick={() => selectRace(r.id)}
+              onKeyDown={(e) => { if (e.key === 'Enter') { setViewId(r.id); selectRace(r.id); } else if (e.key === ' ') { e.preventDefault(); setViewId(r.id); } }}
+              title="Click to preview · double-click or Enter to select"
               style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 8, background: 'var(--color-surface)', cursor: 'pointer', boxShadow: `inset 0 0 0 1px ${viewId === r.id ? 'var(--color-accent)' : 'transparent'}` }}>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 13.5, fontWeight: 500 }}>{r.name}</div>

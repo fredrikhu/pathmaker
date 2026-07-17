@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { CharCtl } from '../../Builder';
 import { SKILLS, skillById } from '../../../content/index';
 import type { Ability } from '../../../engine/types';
@@ -11,6 +12,8 @@ export function SkillsStep({ ch }: { ch: CharCtl }) {
   const classSet = new Set(sheet.classSkillIds);
   const acpSet = new Set(sheet.acpSkillIds);
   const left = sheet.skillRanksTotal - sheet.skillRanksSpent;
+  const [classOnly, setClassOnly] = useState(false);
+  const [query, setQuery] = useState('');
 
   const setRank = (id: string, v: number) => {
     const next = { ...ranks };
@@ -18,17 +21,32 @@ export function SkillsStep({ ch }: { ch: CharCtl }) {
     setDecision('skill-ranks', next);
   };
 
+  const q = query.trim().toLowerCase();
+  const visible = SKILLS.filter((sk) => {
+    if (q && !sk.name.toLowerCase().includes(q)) return false;
+    // "Class skills only" is a view filter — but never hide a cross-class skill that already
+    // has ranks invested, so the player can't lose sight of it.
+    if (classOnly && !classSet.has(sk.id) && (ranks[sk.id] ?? 0) === 0) return false;
+    return true;
+  });
+
   return (
     <div style={{ maxWidth: 960 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginBottom: 14, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 14, flexWrap: 'wrap' }}>
         <h3 style={{ fontSize: 21, margin: 0 }}>Skills</h3>
         <span style={{ fontSize: 12, color: left > 0 ? 'var(--warn)' : left < 0 ? 'var(--err)' : 'var(--color-accent-300)' }}><strong>{left}</strong> of {sheet.skillRanksTotal} ranks left</span>
+        <input className="input" style={{ width: 180 }} placeholder="Search skills…" value={query} onChange={(e) => setQuery(e.target.value)} />
+        <label className="radio" style={{ fontSize: 12.5 }}>
+          <input type="checkbox" checked={classOnly} onChange={(e) => setClassOnly(e.target.checked)} />
+          <span className="dot" />
+          Class skills only
+        </label>
         <span className="text-muted" style={{ fontSize: 11.5 }}>● = <TermSpan id="classskill">class skill</TermSpan> · ▲ = <TermSpan id="acp">armor check penalty</TermSpan></span>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '260px 56px 140px 70px 70px 1fr', gap: 8, padding: '0 4px 7px' }} className="micro">
         <span>Skill</span><span>Abil</span><span><TermSpan id="rank">Ranks</TermSpan></span><span></span><span>Total</span><span></span>
       </div>
-      {SKILLS.map((sk) => {
+      {visible.map((sk) => {
         const stat = sheet.stats[`skill:${sk.id}`];
         const r = ranks[sk.id] ?? 0;
         const trainedUnusable = sk.trainedOnly && r === 0;

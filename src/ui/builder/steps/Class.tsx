@@ -37,7 +37,11 @@ export function ClassStep({ ch }: { ch: CharCtl }) {
         <h3 style={{ fontSize: 21, margin: '0 0 12px' }}>Class</h3>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           {CLASSES.map((c) => (
-            <div key={c.id} onClick={() => setViewId(c.id)}
+            <div key={c.id} role="button" tabIndex={0}
+              onClick={() => setViewId(c.id)}
+              onDoubleClick={() => setDecision('class', c.id)}
+              onKeyDown={(e) => { if (e.key === 'Enter') { setViewId(c.id); setDecision('class', c.id); } else if (e.key === ' ') { e.preventDefault(); setViewId(c.id); } }}
+              title="Click to preview · double-click or Enter to select"
               style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 8, background: 'var(--color-surface)', cursor: 'pointer', boxShadow: `inset 0 0 0 1px ${viewId === c.id ? 'var(--color-accent)' : 'transparent'}` }}>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 13.5, fontWeight: 500 }}>{c.name}</div>
@@ -80,14 +84,7 @@ export function ClassStep({ ch }: { ch: CharCtl }) {
             <h6 style={{ margin: '22px 0 8px', color: 'var(--color-neutral-500)' }}>Class choices</h6>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 620 }}>
               {classSlots.map((slot) => (
-                <div key={slot.id}>
-                  <div style={{ fontSize: 12.5, marginBottom: 6 }}>{slot.label} <span className="text-muted">({slot.selected.length}/{slot.count})</span></div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    {slot.options.map((o) => (
-                      <OptionCard key={o.id} option={o} selected={slot.selected.includes(o.id)} onToggle={() => toggleChoice(slot, o.id)} />
-                    ))}
-                  </div>
-                </div>
+                <ChoiceSlotView key={slot.id} slot={slot} onToggle={toggleChoice} />
               ))}
             </div>
           </>
@@ -119,4 +116,31 @@ export function ClassStep({ ch }: { ch: CharCtl }) {
 function TermBab() {
   const tip = useTip();
   return <span className="term" onMouseEnter={tip.term('bab')} onMouseLeave={tip.leave} onClick={tip.term('bab')}>BAB</span>;
+}
+
+/** One class-choice slot: search box when the list is long, and unselectable options
+ *  (e.g. domains a deity doesn't grant) sorted to the bottom. Closed lists only —
+ *  feats keep their natural order elsewhere. */
+function ChoiceSlotView({ slot, onToggle }: { slot: ChoiceSlot; onToggle: (slot: ChoiceSlot, id: string) => void }) {
+  const [q, setQ] = useState('');
+  const many = slot.options.length > 8;
+  const query = q.trim().toLowerCase();
+  const options = slot.options
+    .filter((o) => !query || o.name.toLowerCase().includes(query))
+    .slice()
+    .sort((a, b) => Number(b.legal) - Number(a.legal)); // stable: legal first, illegal sink
+
+  return (
+    <div>
+      <div style={{ fontSize: 12.5, marginBottom: 6 }}>{slot.label} <span className="text-muted">({slot.selected.length}/{slot.count})</span></div>
+      {many && (
+        <input className="input" style={{ width: 220, marginBottom: 8 }} placeholder={`Search ${slot.label.toLowerCase()}…`} value={q} onChange={(e) => setQ(e.target.value)} />
+      )}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        {options.map((o) => (
+          <OptionCard key={o.id} option={o} selected={slot.selected.includes(o.id)} onToggle={() => onToggle(slot, o.id)} />
+        ))}
+      </div>
+    </div>
+  );
 }

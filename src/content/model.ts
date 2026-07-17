@@ -54,6 +54,7 @@ export type ClassChoiceKind =
   | 'wizard-opposition'
   | 'arcane-bond'
   | 'cleric-domains'
+  | 'warpriest-blessings'
   | 'sorcerer-bloodline';
 
 export interface ClassChoiceDef {

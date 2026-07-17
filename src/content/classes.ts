@@ -138,6 +138,22 @@ export const CLASSES: ClassDef[] = [
     spellcasting: { kind: 'spontaneous', ability: 'cha', list: 'arcane', slots1: [999, 3], known1: [4, 2] },
   },
   {
+    id: 'warpriest', name: 'Warpriest', sub: 'Hybrid · d8 · blessings',
+    desc: 'A holy champion who fights with weapon and spell alike. Warpriests choose two blessings from their deity, wield the deity’s favored weapon with growing power, and prepare divine spells. Alignment must be within one step of the deity.',
+    hitDie: 8, bab: 'threequarter', goodSaves: ['fort', 'will'], skillRanks: 2,
+    classSkills: [...CRAFT_ALL, 'climb', 'diplomacy', 'handle-animal', 'heal', 'intimidate', 'know-engineering', 'know-religion', 'profession-any', 'ride', 'sense-motive', 'spellcraft', 'survival', 'swim'],
+    startingGold: 175,
+    proficiencies: { weapons: ['simple', 'martial'], armor: ['light', 'medium', 'heavy', 'shield'] },
+    features1: [
+      { id: 'warpriest-blessings', name: 'Blessings', desc: 'Choose two blessings from those granted by your deity (matching the deity’s domains). Each grants minor and major powers usable a few times per day.' },
+      { id: 'warpriest-focus-weapon', name: 'Focus Weapon', desc: 'Gain Weapon Focus with your deity’s favored weapon as a bonus feat.' },
+      { id: 'warpriest-sacred-weapon', name: 'Sacred Weapon', desc: 'Deal increased damage with your deity’s favored weapon, and later enhance it with fervor.' },
+      { id: 'warpriest-orisons', name: 'Orisons', desc: 'Prepare a number of 0-level spells that can be cast at will.' },
+    ],
+    choices: [{ id: 'blessings', label: 'Blessings', kind: 'warpriest-blessings', count: 2 }],
+    spellcasting: { kind: 'prepared-list', ability: 'wis', list: 'divine', slots1: [3, 1] },
+  },
+  {
     id: 'wizard', name: 'Wizard', sub: 'Arcane · d6 · school',
     desc: 'The scholar of magic. Choosing wizard opens an arcane-school choice; the school in turn opens two opposition-school choices. A prepared caster who learns spells into a spellbook.',
     hitDie: 6, bab: 'half', goodSaves: ['will'], skillRanks: 2,

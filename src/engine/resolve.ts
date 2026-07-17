@@ -79,12 +79,24 @@ function activeRacialTraits(dec: Decisions): { standard: C.RacialTraitDef[]; alt
   return { standard, alternates: chosenAlts };
 }
 
+/** How many floating +2 bonuses the race/trait config currently grants (Dual Talent → 2). */
+function floatingCap(dec: Decisions): number {
+  return dec.altTraits.includes('human-dual-talent') ? 2 : 1;
+}
+
+/** The floating ability picks actually applied — capped to the allowed count. Any excess
+ *  (e.g. left over after dropping Dual Talent) is suspended, like an orphaned feat, and
+ *  surfaced as a validation Issue rather than silently boosting a stat. */
+function appliedFloating(dec: Decisions): Ability[] {
+  return dec.floatingBonus.slice(-floatingCap(dec));
+}
+
 function finalAbilities(dec: Decisions): Record<Ability, number> {
   const race = dec.raceId ? C.raceById.get(dec.raceId) : undefined;
   const out = { ...dec.abilityBase };
   if (race) {
     if (race.abilityMods === 'choice') {
-      for (const ab of dec.floatingBonus) out[ab] += 2;
+      for (const ab of appliedFloating(dec)) out[ab] += 2;
     } else {
       for (const ab of ABILITIES) out[ab] += race.abilityMods[ab] ?? 0;
     }
@@ -190,7 +202,7 @@ export function resolve(doc: CharacterDoc): Resolution {
       ...(race && race.abilityMods !== 'choice' && race.abilityMods[ab]
         ? [{ type: 'racial' as const, value: race.abilityMods[ab]!, note: `${race.name} racial` }]
         : []),
-      ...(race && race.abilityMods === 'choice' && dec.floatingBonus.includes(ab)
+      ...(race && race.abilityMods === 'choice' && appliedFloating(dec).includes(ab)
         ? [{ type: 'racial' as const, value: 2, note: `${race.name} +2` }]
         : []),
     ]);
@@ -371,7 +383,11 @@ function carryingCapacity(str: number): { light: number; medium: number; heavy: 
 
 function deriveSteps(klass?: C.ClassDef): string[] {
   const steps = ['basics', 'race', 'class', 'skills', 'feats'];
-  if (klass?.spellcasting) steps.push('spells');
+  // Only classes that make a spell selection at creation get a Spells step. Prepared-list
+  // divine casters (cleric, druid, warpriest) prepare from their whole list daily — nothing
+  // to choose at level 1 — so they get no creation-time Spells step.
+  const sc = klass?.spellcasting;
+  if (sc && (sc.kind === 'prepared-book' || sc.kind === 'spontaneous')) steps.push('spells');
   steps.push('equipment', 'review');
   return steps;
 }
@@ -585,6 +601,37 @@ function buildSlotsAndIssues(
   if (ctx.gold < 0)
     issues.push({ severity: 'error', step: 'equipment', slot: 'gold', message: `Overspent by ${-ctx.gold} gp` });
 
+  // ---------- GENERIC SLOT INTEGRITY ----------
+  // Catch decisions that became over-count or reference now-illegal/removed options after an
+  // upstream change: dropping Dual Talent (2 ability picks → 1 allowed), changing deity
+  // (domains/blessings no longer granted), reusing a school as its own opposition, or lowering
+  // Int (spellbook/languages shrink). Feat slots are excluded — orphan/prerequisite handling
+  // above already covers them, and would double-report here.
+  for (const slot of slots) {
+    if (slot.auto || slot.id.startsWith('feat')) continue;
+    if (slot.selected.length > slot.count) {
+      const excess = slot.selected.length - slot.count;
+      issues.push({
+        severity: 'error', step: slot.step, slot: slot.id,
+        message: `${slot.label}: ${slot.selected.length} selected but only ${slot.count} allowed — remove ${excess}`,
+      });
+    }
+    for (const selId of slot.selected) {
+      const opt = slot.options.find((o) => o.id === selId);
+      if (!opt) {
+        issues.push({
+          severity: 'error', step: slot.step, slot: slot.id,
+          message: `${slot.label}: a selected option is no longer available — reselect`,
+        });
+      } else if (!opt.legal) {
+        issues.push({
+          severity: 'error', step: slot.step, slot: slot.id,
+          message: `${slot.label}: ${opt.name} is no longer allowed${opt.whyNot ? ` — ${opt.whyNot}` : ''}`,
+        });
+      }
+    }
+  }
+
   // Sort issues: severity then step order.
   const sevRank = { error: 0, warning: 1, info: 2 };
   const stepOrder = deriveSteps(klass);
@@ -653,13 +700,16 @@ function classChoiceOptions(ch: C.ClassChoiceDef, dec: Decisions): SlotOption[] 
         { id: 'familiar', name: 'Familiar', desc: 'A magical animal companion that grants a skill or save bonus.', legal: true },
         { id: 'bonded-object', name: 'Bonded object', desc: 'An amulet, ring, staff, wand, or weapon you can cast through.', legal: true },
       ];
-    case 'cleric-domains': {
+    case 'cleric-domains':
+    case 'warpriest-blessings': {
+      // Warpriest blessings are chosen from the deity's domains — same filter as cleric domains.
+      const noun = ch.kind === 'warpriest-blessings' ? 'blessing' : 'domain';
       const deity = dec.deityId ? C.deityById.get(dec.deityId) : undefined;
       const allowed = deity && deity.id !== 'none' ? new Set(deity.domains) : null;
       return C.DOMAINS.map((d) => ({
         id: d.id, name: d.name, desc: d.desc,
         legal: allowed ? allowed.has(d.id) : true,
-        whyNot: allowed && !allowed.has(d.id) ? `${deity!.name} does not grant the ${d.name} domain` : undefined,
+        whyNot: allowed && !allowed.has(d.id) ? `${deity!.name} does not grant the ${d.name} ${noun}` : undefined,
       }));
     }
     case 'sorcerer-bloodline':
