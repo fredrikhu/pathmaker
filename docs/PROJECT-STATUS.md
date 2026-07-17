@@ -4,6 +4,22 @@ Snapshot of where the project stands, what was deliberately deferred (and why), 
 phase roadmap. Written so context isn't lost across sessions/compaction. Companion to
 [DESIGN.md](DESIGN.md) (architecture) and the HANDOVER docs (UI).
 
+## ▶ Resume here (last session end)
+
+**Phases 1, 2, and 3 are all done and committed** (branch `master`, working tree clean, ~143 tests
+passing; run `npx tsc --noEmit && npx vitest run && npm run build` to confirm). Phase-3 breadth is
+substantially filled in (22 conditions with lose-Dex-to-AC, domain/school bonus slots, spell DCs,
+multiple resource pools per class, a play-sheet skills panel).
+
+**Next step is open** — the user was offered three directions and hadn't picked when the session
+compacted:
+1. Last Phase-3 nice-to-haves: **per-weapon attack lines** and **click-to-see-breakdown tooltips** on
+   the play sheet (the tooltip infra exists on the builder StatStrip — reuse it).
+2. Start **Phase 4** — time & campaign clock (buff durations that tick down, rest resets, initiative).
+3. More breadth (remaining class pools are mostly at-will/varied — honest to leave; see below).
+
+Everything below is the durable detail. When resuming, read this file, then `docs/DESIGN.md`.
+
 ## Phase 1 — Level-1 character creator: **complete**
 
 Working, verified (60 tests passing, typecheck clean):
