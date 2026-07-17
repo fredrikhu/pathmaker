@@ -29,6 +29,7 @@ export function SheetPreview({ id }: { id: string }) {
     <div style={{ minHeight: '100vh' }}>
       <div className="no-print" style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '12px 24px' }}>
         <button onClick={() => navigate({ name: 'builder', id })} className="btn btn-ghost" style={{ fontSize: 12 }}>← Back to builder</button>
+        <button onClick={() => navigate({ name: 'play', id })} className="btn btn-primary" style={{ fontSize: 12 }}>▶ Play</button>
         <span style={{ flex: 1 }} />
         <div style={{ display: 'inline-flex', border: '1px solid var(--color-divider)', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
           {(['screen', 'print'] as const).map((m) => (

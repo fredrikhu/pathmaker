@@ -68,7 +68,8 @@ export function Builder({ id }: { id: string }) {
         <span style={{ flex: 1 }} />
         <button className="btn btn-secondary" style={{ fontSize: 12 }} disabled={!ch.canUndo} onClick={ch.undo} title="Undo (Ctrl+Z)">↩ Undo</button>
         <span className="text-muted" style={{ fontSize: 11 }}>Saved</span>
-        <button className="btn btn-primary" style={{ fontSize: 12 }} onClick={() => navigate({ name: 'sheet', id })}>Sheet preview</button>
+        <button className="btn btn-secondary" style={{ fontSize: 12 }} onClick={() => navigate({ name: 'sheet', id })}>Sheet preview</button>
+        <button className="btn btn-primary" style={{ fontSize: 12 }} onClick={() => navigate({ name: 'play', id })}>▶ Play</button>
       </div>
 
       <StatStrip sheet={resolution.sheet} />

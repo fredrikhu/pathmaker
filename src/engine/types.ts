@@ -64,7 +64,23 @@ export interface CharacterDoc {
   purchases: Record<string, number>;
   goldSpent: number;
   equipped: { armor: string | null; mainHand: string | null; offHand: string | null };
+  /** Mutable in-play state layered over the resolved build (phase 3). Absent for fresh/legacy docs. */
+  play?: PlayState;
 }
+
+/** Session state that changes during play, kept separate from the build `decisions`. */
+export interface PlayState {
+  /** Damage taken from maximum HP; current HP = max − hpDamage. */
+  hpDamage: number;
+  tempHp: number;
+  nonlethal: number;
+  /** Spell slots expended so far, per spell level. */
+  usedSlots: Record<number, number>;
+  /** Active conditions (phase-3 increment 2). */
+  conditions: string[];
+}
+
+export const emptyPlayState = (): PlayState => ({ hpDamage: 0, tempHp: 0, nonlethal: 0, usedSlots: {}, conditions: [] });
 
 // ---------- Resolver outputs (the UI's entire diet) ----------
 

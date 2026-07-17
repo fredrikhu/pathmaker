@@ -31,38 +31,49 @@ Working, verified (60 tests passing, typecheck clean):
 - **New content is verified against d20pfsrd** before authoring (caught e.g. Warpriest ¾-BAB,
   Witch ½-BAB, Magus full-BAB).
 
-## Deferred backlog (conscious skips)
+## Deferred backlog — what's left out (current as of Phase 2 completion)
 
-### Classes
-- **Vigilante** — BAB changes with the level-1 specialization (Avenger full / Stalker ¾) and the
-  Warlock path adds psychic casting; needs choice-dependent progression the engine lacks.
-- **Omdura** — obscure supplement class; source gave an ambiguous BAB. Don't guess.
-- **Never in scope yet** (user chose Base+Hybrid): Occult (Kineticist, Medium, Mesmerist, Occultist,
-  Psychic, Spiritualist), Alternate (Antipaladin, Ninja, Samurai), NPC (Adept, Aristocrat, Commoner,
-  Expert, Warrior), Unchained variants (Barbarian/Monk/Rogue/Summoner).
-- **Alchemist & Investigator** are features-only (extract spell list not authored).
-- **Bloodrager, Vampire Hunter** cast from 4th level → no creation spell step (correct).
+### Blocked on verification (won't ship guessed numbers — need a trusted source)
+- **Arcanist** spells-per-day grid (unique 9-level table; the fetched values were ambiguous) →
+  `SpellcastingDef.table` unset, so no slot numbers shown for arcanist.
+- **Vampire Hunter** full class table (unverifiable) → keeps only its level-1 `features1` fallback.
+- **Lizardfolk** natural-armor value (source gave +1 vs the canonical +5) → race held.
+
+### Classes not in scope / deferred
+- **Vigilante** — level-1 specialization changes BAB (Avenger full / Stalker ¾) and the Warlock
+  path adds casting; needs choice-dependent progression the engine doesn't model.
+- **Omdura** — obscure; ambiguous BAB in the source.
+- **Never in scope** (user chose Base+Hybrid): Occult (Kineticist/Medium/Mesmerist/Occultist/
+  Psychic/Spiritualist), Alternate (Antipaladin/Ninja/Samurai), NPC classes, Unchained variants.
+- **Bloodrager bloodline-power names** are descriptive (per-level powers not named per bloodline);
+  the source-feature mechanism exists (`source-features.ts`) and could hold them if authored.
 
 ### Races
-- **Lizardfolk** — source returned an ambiguous natural-armor value (+1 vs canonical +5); held.
-- **Kasatha** — four arms is a combat mechanic, not data.
-- **Monster-tier (31+ RP)**: Drider, Gargoyle, Trox, Drow Noble — full monster stat blocks.
-- **Other advanced**: Lashunta (dual subtypes), Skinwalker (shapeshift heritages), Ghoran, Syrinx,
-  Wyrwood (construct), Wyvaran, Gathlain, Shabti, Triaxian, Monkey Goblin.
+- **Kasatha** (four arms is a combat mechanic), **monster-tier** (Drider, Gargoyle, Trox, Drow
+  Noble), and **advanced** (Lashunta, Skinwalker, Ghoran, Syrinx, Wyrwood, Wyvaran, Gathlain,
+  Shabti, Triaxian, Monkey Goblin) are not "just data" — they carry mechanics beyond stat/skill
+  bonuses, so they're deliberately not force-added.
 
-### Content breadth (all pure-data expansions)
-- Feats: only ~20 core feats. Spells: level 0–1 only. Traits: small sample. Equipment: core subset.
-- **Psychic/occult spell list** and **alchemist/investigator extract list** not authored.
-- Subsystem option lists (mysteries, patrons, bloodlines, orders, spirits, etc.) are representative
-  subsets, not exhaustive.
+### Content breadth (solid core coverage, not exhaustive)
+- **Feats**: 64 verified Core feats (combat/general/skill/spellcasting/metamagic/item-creation) —
+  not the full splatbook catalogue. **Spells**: ~130 across levels 0–9 (core-scope) — not exhaustive
+  full lists. **Subsystem option lists** (rage powers, talents, hexes, discoveries, arcana, mysteries,
+  revelations, etc.) are expanded core-scope sets, not exhaustive. **Traits/equipment**: core subset.
+- **Psychic/occult** spells not authored. **Extracts** (alchemist/investigator) are prepared from the
+  full list like other prepared-list casters — slots/day shown, no creation-time selection.
 
 ### Modeling simplifications (fidelity notes)
-- Spell-like abilities, darkvision, and energy resistances are **descriptive traits** (not computed).
-  Skill/save/stat bonuses **are** real effects.
+- **Single `level` per spell** — a spell whose level differs by list (e.g. many bard spells) is stored
+  at one level; bard is tagged only where its level matches. A per-list level map would fix it.
+- **Spellbook budget** is a soft nudge (free distribution across accessible levels), not a per-level cap.
+- **Metamagic / param feats** (Weapon Focus, Skill Focus) record the parameter but don't compute a
+  weapon/skill-specific bonus into the sheet.
+- Spell-like abilities, darkvision, energy resistances are **descriptive** (not computed). Skill/save/
+  stat bonuses (racial, feat, trait, class-feature) **are** real effects.
 - Racial **variant heritages** (Aasimar/Tiefling sub-bloodlines) not modeled — standard heritage only.
-- **Fly/swim/climb** speeds are display-only; only **land speed** is reduced by armor/encumbrance,
-  and that reduction doesn't yet handle non-proficiency or class-feature exceptions.
-- Race-level "pick one" traits (Samsaran Shards of the Past, Changeling hag heritage) are text.
+- **Fly/swim/climb** speeds are display-only; only **land speed** is reduced by armor/encumbrance, and
+  that reduction doesn't handle non-proficiency or class-feature exceptions.
+- Favored-class **racial** alternative bonuses (beyond +1 HP / +1 skill) not modeled.
 
 ## Phase roadmap
 
@@ -70,7 +81,7 @@ Working, verified (60 tests passing, typecheck clean):
 | --- | --- | --- |
 | 1 | Level-1 character creator | **done** |
 | 2 | **Level-up** — multi-level engine + per-level decisions | **done** (Part A engine/UI + Part B content, 30/31 classes) |
-| 3 | Interactive play sheet — one-click roll totals, spell/resource tracking, conditions, HP | designed-for (effect engine reused) |
+| 3 | Interactive play sheet — HP/resource/spell-slot tracking, conditions, rest | **in progress** |
 | 4 | Time & campaign clock — buff durations, rest resets | layers on phase 3 states |
 | 5 | Live inventory — consumables, charges, encumbrance in play | items are already entities |
 
@@ -148,3 +159,22 @@ Resolved follow-ups:
 
 Everything in phases 3–5 is additive on top of the effect engine (toggleable states with durations,
 a "used" counter layer on the stat nodes that already model pools). No rearchitecting anticipated.
+
+## Phase 3 — Interactive play sheet (in progress)
+
+Goal: turn the read-only sheet into a play surface that tracks the mutable state of a session on
+top of the resolved (immutable) build. Key idea: a separate **play state** layered over `resolve()`
+output — the build (`decisions`) stays the source of truth for maxima; play state holds the current
+values.
+
+- **Play state** lives on `CharacterDoc.play` (persisted, migration-safe optional field):
+  `{ hpDamage, tempHp, nonlethal, usedSlots: Record<spellLevel, number>, conditions: string[], … }`.
+- **Increment 1 (first):** HP tracker (current = max − damage, temp HP, take-damage/heal, nonlethal)
+  and spell-slot tracker (per level: used / remaining, tick off, restore) with a **Rest** action that
+  clears damage and used slots. Reuses `sheet.stats['hp:max']` and `sheet.spellSlots`.
+- **Increment 2:** conditions as toggles that feed effects back into `resolve()` (shaken −2, prone,
+  etc.) — the effect engine already stacks typed bonuses, so conditions are just another effect source.
+- **Increment 3:** resource pools (rage rounds, ki, channel, performance, lay-on-hands, grit,
+  panache…) — needs the engine to expose pool maxima (currently descriptive), then a used-counter layer.
+- **Increment 4+:** daily prepared-spell layer for prepared casters; one-click roll surfacing (the
+  breakdown tooltips already exist).
