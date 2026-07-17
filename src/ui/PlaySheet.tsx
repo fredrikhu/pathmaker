@@ -1,7 +1,7 @@
 import { loadCharacter } from '../storage/store';
 import { newCharacter } from '../engine/character';
 import { emptyPlayState, fmtMod, type PlayState } from '../engine/types';
-import { CONDITIONS, conditionById } from '../content/index';
+import { CONDITIONS, conditionById, SPELLS, spellById, classById } from '../content/index';
 import { useCharacter } from './useCharacter';
 import { navigate } from './App';
 
@@ -34,7 +34,26 @@ export function PlaySheet({ id }: { id: string }) {
   const usedAt = (l: number) => play.usedSlots[l] ?? 0;
   const setUsed = (l: number, v: number) => updatePlay((p) => ({ usedSlots: { ...p.usedSlots, [l]: Math.max(0, v) } }));
 
-  const rest = () => setPlay({ hpDamage: 0, nonlethal: 0, tempHp: 0, usedSlots: {}, usedPools: {} });
+  // Prepared casters (wizard/cleric/druid/magus/witch…) prepare specific spells into their slots.
+  const klass = doc.decisions['class'] ? classById.get(doc.decisions['class'] as string) : undefined;
+  const sc = klass?.spellcasting;
+  const isPrepared = !!sc && sc.kind !== 'spontaneous';
+  const spellsOnList = sc ? SPELLS.filter((s) => s.lists.includes(sc.list as never)) : [];
+  const rawBook = doc.decisions['spell-picks'];
+  const spellbook: Record<number, string[]> = Array.isArray(rawBook) ? { 1: rawBook as string[] } : ((rawBook as Record<number, string[]>) ?? {});
+  // The pool preparable at a spell level: the whole class list (prepared-list) or the spellbook (book).
+  const preparablePool = (level: number) =>
+    (sc?.kind === 'prepared-book' ? (spellbook[level] ?? []).map((id) => spellById.get(id)!).filter(Boolean) : spellsOnList.filter((s) => s.level === level))
+      .slice().sort((a, b) => a.name.localeCompare(b.name));
+
+  const preparedAt = (l: number) => play.prepared?.[l] ?? [];
+  const castAt = (l: number) => play.castPrepared?.[l] ?? [];
+  const setPreparedAt = (l: number, i: number, spell: string) =>
+    updatePlay((p) => { const arr = [...(p.prepared?.[l] ?? [])]; arr[i] = spell; return { prepared: { ...p.prepared, [l]: arr } }; });
+  const toggleCast = (l: number, i: number) =>
+    updatePlay((p) => { const set = new Set(p.castPrepared?.[l] ?? []); set.has(i) ? set.delete(i) : set.add(i); return { castPrepared: { ...p.castPrepared, [l]: [...set] } }; });
+
+  const rest = () => setPlay({ hpDamage: 0, nonlethal: 0, tempHp: 0, usedSlots: {}, usedPools: {}, castPrepared: {} });
 
   const pools = sheet.pools;
   const usedPoolAt = (id: string) => play.usedPools[id] ?? 0;
@@ -180,8 +199,8 @@ export function PlaySheet({ id }: { id: string }) {
         )}
       </div>
 
-      {/* Spell slots */}
-      {hasSlots && (
+      {/* Spontaneous casters: generic slot pips */}
+      {hasSlots && !isPrepared && (
         <div style={{ background: 'var(--color-surface)', borderRadius: 12, padding: 18, marginTop: 18 }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 12 }}>
             <div className="micro">Spell slots / day</div>
@@ -218,7 +237,54 @@ export function PlaySheet({ id }: { id: string }) {
         </div>
       )}
 
-      <p className="text-muted" style={{ fontSize: 11, marginTop: 16 }}>Play state (HP, temp, expended slots) is saved with the character. Rest clears damage and slots.</p>
+      {/* Prepared casters: prepare a spell into each slot, then tick as cast */}
+      {hasSlots && isPrepared && (
+        <div style={{ background: 'var(--color-surface)', borderRadius: 12, padding: 18, marginTop: 18 }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
+            <div className="micro">Prepared spells</div>
+            <span className="text-muted" style={{ fontSize: 11.5 }}>
+              {sc?.kind === 'prepared-book' ? 'prepare from your spellbook, then tick as you cast' : 'prepare from your class list, then tick as you cast'} · cantrips are at-will
+            </span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {slots.map((total, level) => {
+              if (total <= 0 || level === 0) return null;
+              const pool = preparablePool(level);
+              const prep = preparedAt(level);
+              const cast = new Set(castAt(level));
+              return (
+                <div key={level}>
+                  <div className="micro" style={{ marginBottom: 6 }}>Level {level} · <span className="num">{total - cast.size}</span>/{total} unspent</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 8 }}>
+                    {Array.from({ length: total }).map((_, i) => {
+                      const casted = cast.has(i);
+                      const filled = !!prep[i];
+                      return (
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <select className="input" style={{ flex: 1, padding: '4px 6px', fontSize: 12, opacity: casted ? 0.5 : 1, textDecoration: casted ? 'line-through' : 'none' }}
+                            value={prep[i] ?? ''} onChange={(e) => setPreparedAt(level, i, e.target.value)}>
+                            <option value="">— empty —</option>
+                            {pool.map((sp) => <option key={sp.id} value={sp.id}>{sp.name}</option>)}
+                          </select>
+                          <button className="btn btn-ghost" style={{ fontSize: 11, flex: 'none', color: casted ? 'var(--color-accent-300)' : undefined }}
+                            disabled={!filled} title={casted ? 'restore' : 'mark cast'} onClick={() => toggleCast(level, i)}>
+                            {casted ? '↺' : 'cast'}
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          {sc?.kind === 'prepared-book' && Object.values(spellbook).flat().length === 0 && (
+            <p className="text-muted" style={{ fontSize: 11.5, marginTop: 10 }}>Your spellbook is empty — add spells in the builder's Spells step, then prepare them here.</p>
+          )}
+        </div>
+      )}
+
+      <p className="text-muted" style={{ fontSize: 11, marginTop: 16 }}>Play state (HP, conditions, resources, prepared/expended spells) is saved with the character. Rest clears damage, resources, and cast spells.</p>
     </div>
   );
 }

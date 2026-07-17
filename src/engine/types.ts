@@ -80,9 +80,13 @@ export interface PlayState {
   conditions: string[];
   /** Resource pool points/uses/rounds expended so far, per pool id. */
   usedPools: Record<string, number>;
+  /** Prepared casters: the spell prepared in each slot, per spell level (index = slot). */
+  prepared?: Record<number, string[]>;
+  /** Prepared casters: which prepared slot indices have been cast, per spell level. */
+  castPrepared?: Record<number, number[]>;
 }
 
-export const emptyPlayState = (): PlayState => ({ hpDamage: 0, tempHp: 0, nonlethal: 0, usedSlots: {}, conditions: [], usedPools: {} });
+export const emptyPlayState = (): PlayState => ({ hpDamage: 0, tempHp: 0, nonlethal: 0, usedSlots: {}, conditions: [], usedPools: {}, prepared: {}, castPrepared: {} });
 
 // ---------- Resolver outputs (the UI's entire diet) ----------
 

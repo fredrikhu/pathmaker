@@ -81,7 +81,7 @@ Working, verified (60 tests passing, typecheck clean):
 | --- | --- | --- |
 | 1 | Level-1 character creator | **done** |
 | 2 | **Level-up** — multi-level engine + per-level decisions | **done** (Part A engine/UI + Part B content, 30/31 classes) |
-| 3 | Interactive play sheet — HP/resource/spell-slot tracking, conditions, rest | **in progress** |
+| 3 | Interactive play sheet — HP/resource/spell tracking, conditions, prepared spells, rest | **done** |
 | 4 | Time & campaign clock — buff durations, rest resets | layers on phase 3 states |
 | 5 | Live inventory — consumables, charges, encumbrance in play | items are already entities |
 
@@ -184,5 +184,12 @@ values.
   alchemist bombs, investigator inspiration, inquisitor judgment, cavalier challenge. The play sheet
   tracks used/remaining per pool (pips for ≤10, a counter for larger), cleared by Rest. Murky/varied
   pools (oracle, sorcerer, witch, druid wild shape, ranger) omitted for now.
-- **Increment 4+:** daily prepared-spell layer for prepared casters; one-click roll surfacing (the
-  breakdown tooltips already exist).
+- **Increment 4 (done):** daily prepared-spell layer. Prepared casters (kind ≠ spontaneous) get a
+  per-slot picker on the play sheet — prepare from the spellbook (prepared-book) or the class list
+  (prepared-list), then tick each as cast; Rest clears cast (keeps the prep). Spontaneous casters keep
+  the generic slot pips. Play state gains `prepared` / `castPrepared` (both optional).
+
+Phase 3 is **complete**: the play sheet tracks HP (damage/temp/nonlethal), spell slots (spontaneous)
+or prepared spells (prepared), resource pools, and conditions (which fold into the resolved stats),
+all persisted and reset by Rest. Remaining niceties (one-click roll surfacing — the breakdown tooltips
+already exist; buff durations/campaign clock) belong to phases 4–5.
