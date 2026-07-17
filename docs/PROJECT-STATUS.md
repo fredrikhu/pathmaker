@@ -72,8 +72,10 @@ Working, verified (60 tests passing, typecheck clean):
   bonuses, so they're deliberately not force-added.
 
 ### Content breadth (solid core coverage, not exhaustive)
-- **Feats**: 64 verified Core feats (combat/general/skill/spellcasting/metamagic/item-creation) —
-  not the full splatbook catalogue. **Spells**: ~130 across levels 0–9 (core-scope) — not exhaustive
+- **Weapons**: 39 core simple/martial weapons (verified against d20pfsrd — damage/crit/type/range/cost/
+  weight), feeding the equipment step and the play-sheet attack lines. Exotic weapons and magic
+  enhancements not yet modeled. **Feats**: 64 verified Core feats (combat/general/skill/spellcasting/
+  metamagic/item-creation) — not the full splatbook catalogue. **Spells**: ~130 across levels 0–9 (core-scope) — not exhaustive
   full lists. **Subsystem option lists** (rage powers, talents, hexes, discoveries, arcana, mysteries,
   revelations, etc.) are expanded core-scope sets, not exhaustive. **Traits/equipment**: core subset.
 - **Psychic/occult** spells not authored. **Extracts** (alchemist/investigator) are prepared from the

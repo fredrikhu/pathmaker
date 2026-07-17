@@ -1,18 +1,48 @@
 import type { ArmorDef, GearDef, WeaponDef } from './model';
 
+// Core-rulebook weapon table, verified against d20pfsrd (Medium damage, crit, cost, weight, type).
 export const WEAPONS: WeaponDef[] = [
+  // --- Simple ---
   { id: 'dagger', name: 'Dagger', cost: 2, weight: 1, dmg: '1d4', crit: '19–20/×2', range: 10, dmgType: 'P or S', group: 'simple', hands: 'light' },
-  { id: 'quarterstaff', name: 'Quarterstaff', cost: 0, weight: 4, dmg: '1d6/1d6', crit: '×2', dmgType: 'B', group: 'simple', hands: 'two' },
+  { id: 'sickle', name: 'Sickle', cost: 6, weight: 2, dmg: '1d6', crit: '×2', dmgType: 'S', group: 'simple', hands: 'light' },
+  { id: 'light-mace', name: 'Mace, light', cost: 5, weight: 4, dmg: '1d6', crit: '×2', dmgType: 'B', group: 'simple', hands: 'light' },
   { id: 'club', name: 'Club', cost: 0, weight: 3, dmg: '1d6', crit: '×2', range: 10, dmgType: 'B', group: 'simple', hands: 'one' },
+  { id: 'heavy-mace', name: 'Mace, heavy', cost: 12, weight: 8, dmg: '1d8', crit: '×2', dmgType: 'B', group: 'simple', hands: 'one' },
+  { id: 'morningstar', name: 'Morningstar', cost: 8, weight: 6, dmg: '1d8', crit: '×2', dmgType: 'B and P', group: 'simple', hands: 'one' },
+  { id: 'shortspear', name: 'Shortspear', cost: 1, weight: 3, dmg: '1d6', crit: '×2', range: 20, dmgType: 'P', group: 'simple', hands: 'one' },
+  { id: 'quarterstaff', name: 'Quarterstaff', cost: 0, weight: 4, dmg: '1d6/1d6', crit: '×2', dmgType: 'B', group: 'simple', hands: 'two' },
+  { id: 'spear', name: 'Spear', cost: 2, weight: 6, dmg: '1d8', crit: '×3', range: 20, dmgType: 'P', group: 'simple', hands: 'two' },
+  { id: 'longspear', name: 'Longspear', cost: 5, weight: 9, dmg: '1d8', crit: '×3', dmgType: 'P', group: 'simple', hands: 'two' },
+  { id: 'dart', name: 'Dart', cost: 0.5, weight: 0.5, dmg: '1d4', crit: '×2', range: 20, dmgType: 'P', group: 'simple', hands: 'ranged' },
+  { id: 'javelin', name: 'Javelin', cost: 1, weight: 2, dmg: '1d6', crit: '×2', range: 30, dmgType: 'P', group: 'simple', hands: 'ranged' },
+  { id: 'sling', name: 'Sling', cost: 0, weight: 0, dmg: '1d4', crit: '×2', range: 50, dmgType: 'B', group: 'simple', hands: 'ranged' },
   { id: 'light-crossbow', name: 'Crossbow, light', cost: 35, weight: 4, dmg: '1d8', crit: '19–20/×2', range: 80, dmgType: 'P', group: 'simple', hands: 'ranged' },
+  { id: 'heavy-crossbow', name: 'Crossbow, heavy', cost: 50, weight: 8, dmg: '1d10', crit: '19–20/×2', range: 120, dmgType: 'P', group: 'simple', hands: 'ranged' },
+  // --- Martial ---
+  { id: 'handaxe', name: 'Handaxe', cost: 6, weight: 3, dmg: '1d6', crit: '×3', dmgType: 'S', group: 'martial', hands: 'light' },
+  { id: 'kukri', name: 'Kukri', cost: 8, weight: 2, dmg: '1d4', crit: '18–20/×2', dmgType: 'S', group: 'martial', hands: 'light' },
+  { id: 'short-sword', name: 'Sword, short', cost: 10, weight: 2, dmg: '1d6', crit: '19–20/×2', dmgType: 'P', group: 'martial', hands: 'light' },
+  { id: 'light-pick', name: 'Pick, light', cost: 4, weight: 3, dmg: '1d4', crit: '×4', dmgType: 'P', group: 'martial', hands: 'light' },
   { id: 'longsword', name: 'Longsword', cost: 15, weight: 4, dmg: '1d8', crit: '19–20/×2', dmgType: 'S', group: 'martial', hands: 'one' },
-  { id: 'greataxe', name: 'Greataxe', cost: 20, weight: 12, dmg: '1d12', crit: '×3', dmgType: 'S', group: 'martial', hands: 'two' },
-  { id: 'falchion', name: 'Falchion', cost: 75, weight: 8, dmg: '2d4', crit: '18–20/×2', dmgType: 'S', group: 'martial', hands: 'two' },
   { id: 'scimitar', name: 'Scimitar', cost: 15, weight: 4, dmg: '1d6', crit: '18–20/×2', dmgType: 'S', group: 'martial', hands: 'one' },
+  { id: 'battleaxe', name: 'Battleaxe', cost: 10, weight: 6, dmg: '1d8', crit: '×3', dmgType: 'S', group: 'martial', hands: 'one' },
   { id: 'warhammer', name: 'Warhammer', cost: 12, weight: 5, dmg: '1d8', crit: '×3', dmgType: 'B', group: 'martial', hands: 'one' },
   { id: 'rapier', name: 'Rapier', cost: 20, weight: 2, dmg: '1d6', crit: '18–20/×2', dmgType: 'P', group: 'martial', hands: 'one' },
+  { id: 'flail', name: 'Flail', cost: 8, weight: 5, dmg: '1d8', crit: '×2', dmgType: 'B', group: 'martial', hands: 'one' },
+  { id: 'heavy-pick', name: 'Pick, heavy', cost: 8, weight: 6, dmg: '1d6', crit: '×4', dmgType: 'P', group: 'martial', hands: 'one' },
+  { id: 'trident', name: 'Trident', cost: 15, weight: 4, dmg: '1d8', crit: '×2', range: 10, dmgType: 'P', group: 'martial', hands: 'one' },
+  { id: 'lance', name: 'Lance', cost: 10, weight: 10, dmg: '1d8', crit: '×3', dmgType: 'P', group: 'martial', hands: 'one' },
+  { id: 'greatsword', name: 'Greatsword', cost: 50, weight: 8, dmg: '2d6', crit: '19–20/×2', dmgType: 'S', group: 'martial', hands: 'two' },
+  { id: 'greataxe', name: 'Greataxe', cost: 20, weight: 12, dmg: '1d12', crit: '×3', dmgType: 'S', group: 'martial', hands: 'two' },
+  { id: 'falchion', name: 'Falchion', cost: 75, weight: 8, dmg: '2d4', crit: '18–20/×2', dmgType: 'S', group: 'martial', hands: 'two' },
+  { id: 'greatclub', name: 'Greatclub', cost: 5, weight: 8, dmg: '1d10', crit: '×2', dmgType: 'B', group: 'martial', hands: 'two' },
+  { id: 'heavy-flail', name: 'Flail, heavy', cost: 15, weight: 10, dmg: '1d10', crit: '19–20/×2', dmgType: 'B', group: 'martial', hands: 'two' },
+  { id: 'glaive', name: 'Glaive', cost: 8, weight: 10, dmg: '1d10', crit: '×3', dmgType: 'S', group: 'martial', hands: 'two' },
+  { id: 'halberd', name: 'Halberd', cost: 10, weight: 12, dmg: '1d10', crit: '×3', dmgType: 'P or S', group: 'martial', hands: 'two' },
   { id: 'shortbow', name: 'Shortbow', cost: 30, weight: 2, dmg: '1d6', crit: '×3', range: 60, dmgType: 'P', group: 'martial', hands: 'ranged' },
+  { id: 'comp-shortbow', name: 'Shortbow, composite', cost: 75, weight: 2, dmg: '1d6', crit: '×3', range: 70, dmgType: 'P', group: 'martial', hands: 'ranged' },
   { id: 'longbow', name: 'Longbow', cost: 75, weight: 3, dmg: '1d8', crit: '×3', range: 100, dmgType: 'P', group: 'martial', hands: 'ranged' },
+  { id: 'comp-longbow', name: 'Longbow, composite', cost: 100, weight: 3, dmg: '1d8', crit: '×3', range: 110, dmgType: 'P', group: 'martial', hands: 'ranged' },
 ];
 
 export const ARMORS: ArmorDef[] = [
