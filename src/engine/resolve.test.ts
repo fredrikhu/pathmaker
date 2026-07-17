@@ -690,3 +690,25 @@ describe('per-level favored class bonus', () => {
     expect(r.sheet.skillRanksTotal).toBe(13); // one extra skill-FCB
   });
 });
+
+describe('expanded feats (Core batch)', () => {
+  it('Alertness applies +2 to Perception and Sense Motive', () => {
+    let d = humanFighter1();
+    d = withDecision(d, 'feats', { 'feat-1': 'alertness' });
+    const r = resolve(d);
+    expect(r.sheet.stats['skill:perception'].lines.some((l) => /Alertness/.test(l.label))).toBe(true);
+    expect(r.sheet.stats['skill:sense-motive'].total).toBeGreaterThanOrEqual(2);
+  });
+  it('Great Cleave is illegal without its chain (Cleave, Str 13, BAB +4)', () => {
+    const r = resolve(humanFighter1()); // BAB +1, no Cleave
+    const slot = r.slots.find((s) => s.id === 'feat-1')!;
+    const gc = slot.options.find((o) => o.id === 'great-cleave')!;
+    expect(gc.legal).toBe(false);
+    expect(gc.whyNot).toBeTruthy();
+  });
+  it('Craft Wand requires caster level 5 — illegal for a level-1 fighter', () => {
+    const r = resolve(humanFighter1());
+    const slot = r.slots.find((s) => s.id === 'feat-1')!;
+    expect(slot.options.find((o) => o.id === 'craft-wand')!.legal).toBe(false);
+  });
+});
