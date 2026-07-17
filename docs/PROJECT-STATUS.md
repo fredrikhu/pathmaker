@@ -11,12 +11,13 @@ passing; run `npx tsc --noEmit && npx vitest run && npm run build` to confirm). 
 substantially filled in (22 conditions with lose-Dex-to-AC, domain/school bonus slots, spell DCs,
 multiple resource pools per class, a play-sheet skills panel).
 
-**Next step is open** — the user was offered three directions and hadn't picked when the session
-compacted:
-1. Last Phase-3 nice-to-haves: **per-weapon attack lines** and **click-to-see-breakdown tooltips** on
-   the play sheet (the tooltip infra exists on the builder StatStrip — reuse it).
-2. Start **Phase 4** — time & campaign clock (buff durations that tick down, rest resets, initiative).
-3. More breadth (remaining class pools are mostly at-will/varied — honest to leave; see below).
+**Phase-3 nice-to-haves are now done** — the play sheet has **per-weapon attack lines** (iteratives
+from BAB, Str-scaled damage, crit/type/range, per-weapon breakdown tooltip) and **click-to-see-breakdown
+tooltips** on the At-a-glance stats, HP, and trained skills (reusing the builder StatStrip tooltip infra).
+`Sheet.attacks: AttackLine[]` is computed in `resolve.ts` (`weaponAttacks`), golden-tested.
+
+**Next step in progress: more breadth.** After that, the remaining big direction is:
+- Start **Phase 4** — time & campaign clock (buff durations that tick down, rest resets, initiative).
 
 Everything below is the durable detail. When resuming, read this file, then `docs/DESIGN.md`.
 
@@ -219,6 +220,12 @@ all persisted and reset by Rest.
 - **Multiple pools per class**: paladin now has lay-on-hands **and** smite-evil; monk has ki **and**
   stunning fist. Added druid **wild shape** uses (4th–19th). A **skills panel** (trained skills + totals)
   is on the play sheet.
+- **Per-weapon attack lines & breakdown tooltips: done.** The play sheet shows an attack line per
+  equipped/carried weapon (main hand, off hand, then purchased weapons) with the iterative sequence
+  (`+9/+4`), Str-scaled damage (one-handed +Str, two-handed +1½×, off-hand +½×; ranged adds no Str),
+  crit/damage-type/range, and a click/hover breakdown card. At-a-glance stats, HP, and skills got the
+  same breakdown tooltips. Not folded (noted, not computed): Weapon Focus/Training, magic enhancement,
+  Power Attack, two-weapon-fighting penalties, composite-bow Str, thrown-weapon Dex.
 - **Still thin:** resource pools still omit oracle/sorcerer/witch/ranger/hunter/summoner/shaman/slayer/
-  brawler (varied or at-will resources); no per-weapon attack lines or click-to-see-breakdown tooltips
-  on the play sheet yet; the domain/school slot is a count approximation (restriction not enforced).
+  brawler (varied or at-will resources); the domain/school slot is a count approximation (restriction
+  not enforced).

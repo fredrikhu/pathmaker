@@ -946,3 +946,42 @@ describe('multiple resource pools per class', () => {
     expect(ids).toEqual(['ki', 'stunning-fist']);
   });
 });
+
+describe('per-weapon attack lines (fighter 6, Str 17)', () => {
+  // humanFighter1: Str 15 + human floating +2 = 17 (+3). No ability increase set at 4th,
+  // so Str stays 17 at level 6. BAB +6 → two iteratives.
+  const base = humanFighter1();
+  const d: CharacterDoc = {
+    ...atLevel(base, 6),
+    equipped: { armor: null, mainHand: 'longsword', offHand: null },
+    purchases: { greataxe: 1, longbow: 1 },
+  };
+  const atk = resolve(d).sheet.attacks;
+  const byId = (id: string) => atk.find((a) => a.id === id)!;
+
+  it('lists the equipped weapon first, then carried weapons (deduped)', () => {
+    expect(atk.map((a) => a.id)).toEqual(['longsword', 'greataxe', 'longbow']);
+    expect(byId('longsword').slot).toBe('main');
+    expect(byId('greataxe').slot).toBe('carried');
+  });
+
+  it('longsword: +6 BAB + 3 Str = +9, iterative +4, one-handed damage 1d8+3', () => {
+    const l = byId('longsword');
+    expect(l.kind).toBe('melee');
+    expect(l.bonuses).toEqual([9, 4]);
+    expect(l.damage).toBe('1d8+3');
+    expect(l.crit).toBe('19–20/×2');
+  });
+
+  it('greataxe two-handed adds 1½× Str: 1d12+4', () => {
+    expect(byId('greataxe').damage).toBe('1d12+4');
+  });
+
+  it('longbow: ranged uses Dex (+2) not Str, no Str to damage', () => {
+    const b = byId('longbow');
+    expect(b.kind).toBe('ranged');
+    expect(b.bonuses).toEqual([8, 3]); // 6 BAB + 2 Dex
+    expect(b.damage).toBe('1d8');
+    expect(b.notes.some((n) => n.includes('no Str to damage'))).toBe(true);
+  });
+});

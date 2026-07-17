@@ -3,16 +3,25 @@ import { newCharacter } from '../engine/character';
 import { emptyPlayState, fmtMod, abilityMod, type PlayState } from '../engine/types';
 import { CONDITIONS, conditionById, SPELLS, spellById, classById, skillById } from '../content/index';
 import { useCharacter } from './useCharacter';
+import { useTip } from './Tooltip';
 import { navigate } from './App';
 
 const SPELL_LEVEL = (l: number) => (l === 0 ? '0' : String(l));
+const attackLabel = (bonuses: number[]) => bonuses.map(fmtMod).join('/');
 
 export function PlaySheet({ id }: { id: string }) {
   const initial = loadCharacter(id) ?? newCharacter(id);
   const ch = useCharacter(initial);
+  const tip = useTip();
   const { doc, resolution } = ch;
   const sheet = resolution.sheet;
   const play: PlayState = doc.play ?? emptyPlayState();
+
+  // Open a stat's breakdown card (reuses the builder StatStrip tooltip infra).
+  const statTip = (key: string, shown: string) => {
+    const st = sheet.stats[key];
+    return st ? tip.card({ kicker: 'Breakdown', title: `${st.label} ${shown}`, lines: st.lines, annotations: st.annotations }) : undefined;
+  };
 
   // Functional update — reads the freshest play state so rapid clicks don't clobber each other.
   const updatePlay = (fn: (p: PlayState) => Partial<PlayState>) =>
@@ -95,7 +104,9 @@ export function PlaySheet({ id }: { id: string }) {
           <div className="micro" style={{ marginBottom: 8 }}>Hit Points</div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
             <span className="num" style={{ fontSize: 44, fontWeight: 700, color: hpColor }}>{currentHp}</span>
-            <span className="text-muted" style={{ fontSize: 18 }}>/ {maxHp}</span>
+            <span className="text-muted" style={{ fontSize: 18, cursor: 'pointer' }}
+              onMouseEnter={statTip('hp:max', String(maxHp))} onMouseLeave={tip.leave} onClick={statTip('hp:max', String(maxHp))}
+              title="max HP breakdown">/ {maxHp}</span>
             {play.tempHp > 0 && <span style={{ fontSize: 14, color: 'var(--color-accent-300)' }}>+{play.tempHp} temp</span>}
           </div>
           {currentHp <= 0 && <div style={{ fontSize: 12, color: 'var(--err)', marginTop: 2 }}>{currentHp <= -maxHp ? 'Dead' : 'Dying / disabled'}</div>}
@@ -129,10 +140,12 @@ export function PlaySheet({ id }: { id: string }) {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px 8px' }}>
             {([['AC', 'ac', false], ['Touch', 'ac:touch', false], ['FF', 'ac:ff', false], ['Fort', 'save:fort', true], ['Ref', 'save:ref', true], ['Will', 'save:will', true], ['BAB', 'bab', true], ['Init', 'init', true], ['CMD', 'cmd', false]] as const).map(([label, key, mod]) => {
               const st = sheet.stats[key]; if (!st) return null;
+              const shown = mod ? fmtMod(st.total) : String(st.total);
+              const open = statTip(key, shown);
               return (
-                <div key={key}>
+                <div key={key} onMouseEnter={open} onMouseLeave={tip.leave} onClick={open} style={{ cursor: 'pointer' }}>
                   <div className="micro">{label}</div>
-                  <div className="num" style={{ fontSize: 18, fontWeight: 600 }}>{mod ? fmtMod(st.total) : st.total}</div>
+                  <div className="num" style={{ fontSize: 18, fontWeight: 600 }}>{shown}</div>
                 </div>
               );
             })}
@@ -141,16 +154,55 @@ export function PlaySheet({ id }: { id: string }) {
         </div>
       </div>
 
+      {/* Attacks (per equipped/carried weapon) */}
+      {sheet.attacks.length > 0 && (
+        <div style={{ background: 'var(--color-surface)', borderRadius: 12, padding: 18, marginTop: 18 }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
+            <div className="micro">Attacks</div>
+            <span className="text-muted" style={{ fontSize: 11.5 }}>iteratives from BAB · hover an attack bonus for its breakdown · situational feats/magic not folded</span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {sheet.attacks.map((atk) => {
+              const label = attackLabel(atk.bonuses);
+              const open = tip.card({
+                kicker: atk.kind === 'ranged' ? 'Ranged attack' : 'Melee attack',
+                title: `${atk.name} ${label}`,
+                lines: atk.attackLines,
+                body: `Damage ${atk.damage} · crit ${atk.crit} · ${atk.dmgType}${atk.range ? ` · range ${atk.range} ft` : ''}`,
+                annotations: atk.notes,
+              });
+              return (
+                <div key={`${atk.slot}:${atk.id}`} onMouseEnter={open} onMouseLeave={tip.leave} onClick={open}
+                  style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', cursor: 'pointer', padding: '4px 0', borderBottom: '1px solid rgba(233,233,237,.05)' }}>
+                  <span style={{ width: 150, fontSize: 13.5, fontWeight: 500 }}>
+                    {atk.name}
+                    {atk.slot !== 'main' && <span className="text-muted" style={{ fontSize: 10.5, marginLeft: 5 }}>{atk.slot === 'off' ? 'off-hand' : 'carried'}</span>}
+                  </span>
+                  <span className="num" style={{ fontSize: 16, fontWeight: 600, color: 'var(--color-accent-300)', minWidth: 84 }}>{label}</span>
+                  <span className="num" style={{ fontSize: 13 }}>{atk.damage}</span>
+                  <span className="text-muted" style={{ fontSize: 12 }}>{atk.crit} · {atk.dmgType}{atk.kind === 'ranged' && atk.range ? ` · ${atk.range} ft` : ''}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Skills (trained) */}
       {trainedSkills.length > 0 && (
         <div style={{ background: 'var(--color-surface)', borderRadius: 12, padding: 18, marginTop: 18 }}>
           <div className="micro" style={{ marginBottom: 10 }}>Skills</div>
           <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
-            {trainedSkills.map((sid) => (
-              <span key={sid} style={{ padding: '5px 11px', borderRadius: 999, fontSize: 12.5, background: 'var(--color-neutral-800)' }}>
-                {skillById.get(sid)?.name} <span className="num" style={{ fontWeight: 600, color: 'var(--color-accent-300)' }}>{fmtMod(sheet.stats[`skill:${sid}`]?.total ?? 0)}</span>
-              </span>
-            ))}
+            {trainedSkills.map((sid) => {
+              const shown = fmtMod(sheet.stats[`skill:${sid}`]?.total ?? 0);
+              const open = statTip(`skill:${sid}`, shown);
+              return (
+                <span key={sid} onMouseEnter={open} onMouseLeave={tip.leave} onClick={open}
+                  style={{ padding: '5px 11px', borderRadius: 999, fontSize: 12.5, background: 'var(--color-neutral-800)', cursor: 'pointer' }}>
+                  {skillById.get(sid)?.name} <span className="num" style={{ fontWeight: 600, color: 'var(--color-accent-300)' }}>{shown}</span>
+                </span>
+              );
+            })}
           </div>
         </div>
       )}

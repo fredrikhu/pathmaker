@@ -3,7 +3,7 @@ import type {
   Ability, Alignment, CharacterDoc, ChoiceSlot, Effect, Issue, Resolution,
   Sheet, SlotOption, Stat,
 } from './types';
-import type { ProgressionRow, ResourcePool } from './types';
+import type { AttackLine, BreakdownLine, ProgressionRow, ResourcePool } from './types';
 import { ABILITIES, abilityMod } from './types';
 import { evalPredicate, explainFailure, type PredicateCtx } from './predicates';
 import { stack, type Contribution } from './stack';
@@ -555,12 +555,62 @@ export function resolve(doc: CharacterDoc): Resolution {
     ...(spellsKnown && spellsKnown.length ? { spellsKnown } : {}),
     progression,
     pools: classPools(klass, level, mods),
+    attacks: weaponAttacks(doc, stats, bab, mods.str),
     summaryLine,
   };
   return { sheet, slots, issues, steps };
 }
 
 function fmtSigned(v: number): string { return v >= 0 ? `+${v}` : `−${Math.abs(v)}`; }
+
+/** Iterative attack bonuses from a primary bonus and BAB: +6 → [6,1], +11 → [11,6,1], etc. */
+function iterativeBonuses(primary: number, bab: number): number[] {
+  const count = Math.max(1, Math.min(4, Math.floor((bab + 4) / 5)));
+  return Array.from({ length: count }, (_, i) => primary - 5 * i);
+}
+
+/** Ready-to-use attack lines for the character's wielded/carried weapons.
+ *  The per-weapon attack bonus reuses the generic melee/ranged totals (weapon-specific feats like
+ *  Weapon Focus and magic enhancements aren't computed — noted, not folded); this adds the iterative
+ *  sequence, Strength-scaled damage, and the weapon's own dice/crit for at-the-table use. */
+function weaponAttacks(doc: CharacterDoc, stats: Record<string, Stat>, bab: number, strMod: number): AttackLine[] {
+  const melee = stats['attack:melee'];
+  const ranged = stats['attack:ranged'];
+  if (!melee || !ranged) return [];
+  const seen = new Set<string>();
+  const lines: AttackLine[] = [];
+  const add = (id: string | null, slot: AttackLine['slot']): void => {
+    if (!id || seen.has(id)) return;
+    const w = C.weaponById.get(id);
+    if (!w) return;
+    seen.add(id);
+    const kind: 'melee' | 'ranged' = w.hands === 'ranged' ? 'ranged' : 'melee';
+    const base = kind === 'ranged' ? ranged : melee;
+    const bonuses = iterativeBonuses(base.total, bab);
+    let dmgMod = 0;
+    const notes: string[] = [];
+    if (kind === 'ranged') {
+      notes.push('Ranged: no Str to damage (composite bows and slings excepted).');
+    } else if (slot === 'off') {
+      dmgMod = Math.floor(strMod * 0.5);
+      notes.push('Off-hand: ½× Str to damage; two-weapon-fighting penalties apply.');
+    } else if (w.hands === 'two') {
+      dmgMod = Math.floor(strMod * 1.5);
+      notes.push('Two-handed: 1½× Str to damage.');
+    } else {
+      dmgMod = strMod;
+    }
+    if (kind === 'melee' && w.range) notes.push(`Can be thrown (${w.range} ft): thrown attacks use Dex and add Str to damage.`);
+    const damage = dmgMod !== 0 ? `${w.dmg}${fmtSigned(dmgMod)}` : w.dmg;
+    const scaleNote = w.hands === 'two' && slot !== 'off' ? ' (1½×)' : slot === 'off' ? ' (½×)' : '';
+    const damageLines: BreakdownLine[] = kind === 'ranged' ? [] : [{ label: `Str modifier${scaleNote}`, value: dmgMod }];
+    lines.push({ id: w.id, name: w.name, kind, slot, bonuses, attackLines: base.lines, damage, damageLines, crit: w.crit, dmgType: w.dmgType, range: w.range, notes });
+  };
+  add(doc.equipped.mainHand, 'main');
+  add(doc.equipped.offHand, 'off');
+  for (const pid of Object.keys(doc.purchases)) add(pid, 'carried');
+  return lines;
+}
 
 function carryingCapacity(str: number): { light: number; medium: number; heavy: number } {
   // Core carrying-capacity table (heavy load column), medium/light = /2, /3 rounded.

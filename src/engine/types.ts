@@ -168,6 +168,28 @@ export interface ResourcePool {
   unit: 'rounds' | 'uses' | 'points';
 }
 
+/** A ready-to-use attack line for a wielded/carried weapon (for the play sheet). */
+export interface AttackLine {
+  id: string;
+  name: string;
+  kind: 'melee' | 'ranged';
+  /** Where the weapon sits: main hand, off hand, or otherwise carried. */
+  slot: 'main' | 'off' | 'carried';
+  /** Iterative attack bonuses, highest first (e.g. [6, 1] = "+6/+1"). */
+  bonuses: number[];
+  /** Breakdown of the primary (highest) attack bonus. */
+  attackLines: BreakdownLine[];
+  /** Full damage string including the ability modifier, e.g. "1d8+4". */
+  damage: string;
+  /** Numeric contributions to the damage modifier (Str-based). */
+  damageLines: BreakdownLine[];
+  crit: string;
+  dmgType: string;
+  range?: number;
+  /** Rules caveats not folded into the numbers (thrown, two-handed Str, TWF penalties…). */
+  notes: string[];
+}
+
 export interface Sheet {
   level: number;
   stats: Record<string, Stat>;
@@ -191,6 +213,8 @@ export interface Sheet {
   progression: ProgressionRow[];
   /** Class resource pools with computed maxima (for the play sheet). */
   pools: ResourcePool[];
+  /** Per-weapon attack lines for wielded/carried weapons (for the play sheet). */
+  attacks: AttackLine[];
   summaryLine: string; // "LN Human Fighter 1"
 }
 
