@@ -78,9 +78,11 @@ export interface PlayState {
   usedSlots: Record<number, number>;
   /** Active conditions (phase-3 increment 2). */
   conditions: string[];
+  /** Resource pool points/uses/rounds expended so far, per pool id. */
+  usedPools: Record<string, number>;
 }
 
-export const emptyPlayState = (): PlayState => ({ hpDamage: 0, tempHp: 0, nonlethal: 0, usedSlots: {}, conditions: [] });
+export const emptyPlayState = (): PlayState => ({ hpDamage: 0, tempHp: 0, nonlethal: 0, usedSlots: {}, conditions: [], usedPools: {} });
 
 // ---------- Resolver outputs (the UI's entire diet) ----------
 
@@ -154,6 +156,14 @@ export interface ProgressionRow {
   hp: number;
 }
 
+/** A class resource with a per-day/points maximum (rage rounds, ki, channel, grit…). */
+export interface ResourcePool {
+  id: string;
+  name: string;
+  max: number;
+  unit: 'rounds' | 'uses' | 'points';
+}
+
 export interface Sheet {
   level: number;
   stats: Record<string, Stat>;
@@ -175,6 +185,8 @@ export interface Sheet {
   spellsKnown?: number[];
   /** Per-level advancement table for the Advancement view and sheet. */
   progression: ProgressionRow[];
+  /** Class resource pools with computed maxima (for the play sheet). */
+  pools: ResourcePool[];
   summaryLine: string; // "LN Human Fighter 1"
 }
 

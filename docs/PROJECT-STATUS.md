@@ -178,7 +178,11 @@ values.
   blinded, stunned. Required wiring **ability-score effects** into the engine (apply `ability:*`
   effects before deriving mods; show in the breakdown) — foundational, also enables future items.
   Non-numeric parts (can't-act, lose-Dex-to-AC, 50% miss) are noted in the description, not computed.
-- **Increment 3:** resource pools (rage rounds, ki, channel, performance, lay-on-hands, grit,
-  panache…) — needs the engine to expose pool maxima (currently descriptive), then a used-counter layer.
+- **Increment 3 (done):** resource pools. The engine computes pool maxima (`classPools` → `sheet.pools`)
+  for barbarian/bloodrager rage, monk ki, cleric channel, warpriest fervor, paladin lay-on-hands,
+  bard/skald performance, gunslinger grit, swashbuckler panache, magus arcane pool, arcanist reservoir,
+  alchemist bombs, investigator inspiration, inquisitor judgment, cavalier challenge. The play sheet
+  tracks used/remaining per pool (pips for ≤10, a counter for larger), cleared by Rest. Murky/varied
+  pools (oracle, sorcerer, witch, druid wild shape, ranger) omitted for now.
 - **Increment 4+:** daily prepared-spell layer for prepared casters; one-click roll surfacing (the
   breakdown tooltips already exist).

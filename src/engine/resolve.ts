@@ -3,7 +3,7 @@ import type {
   Ability, Alignment, CharacterDoc, ChoiceSlot, Effect, Issue, Resolution,
   Sheet, SlotOption, Stat,
 } from './types';
-import type { ProgressionRow } from './types';
+import type { ProgressionRow, ResourcePool } from './types';
 import { ABILITIES, abilityMod } from './types';
 import { evalPredicate, explainFailure, type PredicateCtx } from './predicates';
 import { stack, type Contribution } from './stack';
@@ -221,6 +221,35 @@ function maxDexBonus(doc: CharacterDoc): number | null {
 function makeStat(id: string, label: string, contribs: Contribution[], annotations: string[] = []): Stat {
   const { total, lines } = stack(contribs);
   return { id, label, total, lines, annotations };
+}
+
+/** Class resource pools (rage rounds, ki, channel, grit…) with computed maxima. Verified formulas;
+ *  classes with murky/varied pools (oracle, sorcerer, witch, druid wild shape) are omitted for now. */
+function classPools(klass: C.ClassDef | undefined, level: number, mods: Record<Ability, number>): ResourcePool[] {
+  if (!klass) return [];
+  const out: ResourcePool[] = [];
+  const add = (id: string, name: string, max: number, unit: ResourcePool['unit']) => { if (max > 0) out.push({ id, name, max, unit }); };
+  const half = Math.floor(level / 2);
+  const per3 = 1 + Math.floor((level - 1) / 3); // 1/day, +1 at 4/7/10/13/16/19
+  switch (klass.id) {
+    case 'barbarian': add('rage', 'Rage', 4 + mods.con + 2 * (level - 1), 'rounds'); break;
+    case 'bloodrager': add('bloodrage', 'Bloodrage', 4 + mods.con + 2 * (level - 1), 'rounds'); break;
+    case 'monk': if (level >= 4) add('ki', 'Ki pool', half + mods.wis, 'points'); break;
+    case 'cleric': add('channel', 'Channel energy', 3 + mods.cha, 'uses'); break;
+    case 'warpriest': add('fervor', 'Fervor', half + mods.wis, 'uses'); break;
+    case 'paladin': if (level >= 2) add('lay-on-hands', 'Lay on hands', half + mods.cha, 'uses'); break;
+    case 'bard': add('performance', 'Bardic performance', 4 + mods.cha + 2 * (level - 1), 'rounds'); break;
+    case 'skald': add('raging-song', 'Raging song', 4 + mods.cha + 2 * (level - 1), 'rounds'); break;
+    case 'gunslinger': add('grit', 'Grit', Math.max(1, mods.wis), 'points'); break;
+    case 'swashbuckler': add('panache', 'Panache', Math.max(1, mods.cha), 'points'); break;
+    case 'magus': add('arcane-pool', 'Arcane pool', Math.max(1, half + mods.int), 'points'); break;
+    case 'arcanist': add('reservoir', 'Arcane reservoir', 3 + half, 'points'); break;
+    case 'alchemist': add('bombs', 'Bombs', level + mods.int, 'uses'); break;
+    case 'investigator': add('inspiration', 'Inspiration', Math.max(1, half + mods.int), 'points'); break;
+    case 'inquisitor': add('judgment', 'Judgment', per3, 'uses'); break;
+    case 'cavalier': add('challenge', 'Challenge', per3, 'uses'); break;
+  }
+  return out;
 }
 
 export function resolve(doc: CharacterDoc): Resolution {
@@ -506,6 +535,7 @@ export function resolve(doc: CharacterDoc): Resolution {
     ...(sc && clvl > 0 ? { casterLevel: clvl, spellSlots } : {}),
     ...(spellsKnown && spellsKnown.length ? { spellsKnown } : {}),
     progression,
+    pools: classPools(klass, level, mods),
     summaryLine,
   };
   return { sheet, slots, issues, steps };

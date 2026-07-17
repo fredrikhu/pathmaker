@@ -34,7 +34,15 @@ export function PlaySheet({ id }: { id: string }) {
   const usedAt = (l: number) => play.usedSlots[l] ?? 0;
   const setUsed = (l: number, v: number) => updatePlay((p) => ({ usedSlots: { ...p.usedSlots, [l]: Math.max(0, v) } }));
 
-  const rest = () => setPlay({ hpDamage: 0, nonlethal: 0, tempHp: 0, usedSlots: {} });
+  const rest = () => setPlay({ hpDamage: 0, nonlethal: 0, tempHp: 0, usedSlots: {}, usedPools: {} });
+
+  const pools = sheet.pools;
+  const usedPoolAt = (id: string) => play.usedPools[id] ?? 0;
+  const setUsedPool = (id: string, v: number, max: number) =>
+    updatePlay((p) => ({ usedPools: { ...p.usedPools, [id]: Math.max(0, Math.min(max, v)) } }));
+  // Delta-based (reads fresh state) so rapid spend/restore clicks accumulate correctly.
+  const adjustPool = (id: string, delta: number, max: number) =>
+    updatePlay((p) => ({ usedPools: { ...p.usedPools, [id]: Math.max(0, Math.min(max, (p.usedPools[id] ?? 0) + delta)) } }));
 
   const conditions = play.conditions;
   const toggleCondition = (id: string) =>
@@ -107,6 +115,43 @@ export function PlaySheet({ id }: { id: string }) {
           <div className="text-muted" style={{ fontSize: 11.5, marginTop: 12 }}>Speed {sheet.speed.base} ft{sheet.casterLevel ? ` · caster level ${sheet.casterLevel}` : ''}</div>
         </div>
       </div>
+
+      {/* Resource pools */}
+      {pools.length > 0 && (
+        <div style={{ background: 'var(--color-surface)', borderRadius: 12, padding: 18, marginTop: 18 }}>
+          <div className="micro" style={{ marginBottom: 12 }}>Resources</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {pools.map((pool) => {
+              const used = usedPoolAt(pool.id);
+              const remaining = pool.max - used;
+              return (
+                <div key={pool.id} style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                  <span style={{ width: 148, fontSize: 13, fontWeight: 500 }}>{pool.name}</span>
+                  {pool.max <= 10 ? (
+                    <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                      {Array.from({ length: pool.max }).map((_, i) => {
+                        const spent = i < used;
+                        return (
+                          <button key={i} title={spent ? 'restore' : 'spend'}
+                            onClick={() => setUsedPool(pool.id, spent ? i : i + 1, pool.max)}
+                            style={{ width: 22, height: 22, borderRadius: 6, cursor: 'pointer', border: '1px solid var(--color-divider)', background: spent ? 'transparent' : 'var(--color-accent)', opacity: spent ? 0.5 : 1 }} />
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                      <button className="stepper" style={{ width: 26, height: 26 }} disabled={remaining <= 0} onClick={() => adjustPool(pool.id, 1, pool.max)}>−</button>
+                      <button className="stepper" style={{ width: 26, height: 26 }} disabled={used <= 0} onClick={() => adjustPool(pool.id, -1, pool.max)}>+</button>
+                    </div>
+                  )}
+                  <span className="num" style={{ fontSize: 14, fontWeight: 600, color: remaining <= 0 ? 'var(--warn-fg)' : undefined }}>{remaining}</span>
+                  <span className="text-muted" style={{ fontSize: 12 }}>/ {pool.max} {pool.unit}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Conditions */}
       <div style={{ background: 'var(--color-surface)', borderRadius: 12, padding: 18, marginTop: 18 }}>

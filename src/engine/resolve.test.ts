@@ -820,7 +820,7 @@ describe('9th-level spell access at the top', () => {
 });
 
 describe('conditions (play state) fold into the resolved sheet', () => {
-  const play = (conditions: string[]) => ({ hpDamage: 0, tempHp: 0, nonlethal: 0, usedSlots: {}, conditions });
+  const play = (conditions: string[]) => ({ hpDamage: 0, tempHp: 0, nonlethal: 0, usedSlots: {}, conditions, usedPools: {} });
   it('shaken applies −2 to attacks and saves', () => {
     const d = { ...humanFighter1(), play: play(['shaken']) };
     const r = resolve(d);
@@ -838,5 +838,40 @@ describe('conditions (play state) fold into the resolved sheet', () => {
   });
   it('no conditions → unchanged sheet', () => {
     expect(resolve({ ...humanFighter1(), play: play([]) }).sheet.stats['attack:melee'].total).toBe(4);
+  });
+});
+
+describe('resource pools (play sheet)', () => {
+  it('barbarian rage rounds = 4 + Con mod + 2/level after 1st', () => {
+    // humanFighter1 template but as barbarian, Con 14 (+2). At level 5: 4 + 2 + 2×4 = 14.
+    let d = newCharacter('t-barb-p', 'Grug');
+    d = withDecision(d, 'ability-base', { str: 15, dex: 12, con: 14, int: 8, wis: 10, cha: 8 });
+    d = withDecision(d, 'race', 'half-orc');
+    d = withDecision(d, 'alignment', 'CN');
+    d = withDecision(d, 'class', 'barbarian');
+    const rage = resolve(atLevel(d, 5)).sheet.pools.find((p) => p.id === 'rage')!;
+    expect(rage.max).toBe(14);
+    expect(rage.unit).toBe('rounds');
+  });
+  it('cleric channel = 3 + Cha mod; monk gets no ki before level 4', () => {
+    let cle = newCharacter('t-cle-p', 'Kore');
+    cle = withDecision(cle, 'ability-base', { str: 10, dex: 12, con: 12, int: 10, wis: 14, cha: 16 });
+    cle = withDecision(cle, 'race', 'human');
+    cle = withDecision(cle, 'floating-bonus', ['wis']);
+    cle = withDecision(cle, 'class', 'cleric');
+    expect(resolve(cle).sheet.pools.find((p) => p.id === 'channel')!.max).toBe(6); // 3 + Cha +3
+
+    let monk = newCharacter('t-monk-p', 'Sun');
+    monk = withDecision(monk, 'ability-base', { str: 12, dex: 14, con: 12, int: 10, wis: 15, cha: 8 });
+    monk = withDecision(monk, 'race', 'human');
+    monk = withDecision(monk, 'floating-bonus', ['wis']);
+    monk = withDecision(monk, 'class', 'monk');
+    monk = withDecision(monk, 'alignment', 'LN');
+    expect(resolve(atLevel(monk, 3)).sheet.pools.some((p) => p.id === 'ki')).toBe(false);
+    // Level 4: ki = 2 (half level) + Wis +3 = 5.
+    expect(resolve(atLevel(monk, 4)).sheet.pools.find((p) => p.id === 'ki')!.max).toBe(5);
+  });
+  it('a fighter has no resource pools', () => {
+    expect(resolve(humanFighter1()).sheet.pools.length).toBe(0);
   });
 });
