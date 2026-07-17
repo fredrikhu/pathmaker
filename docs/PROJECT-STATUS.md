@@ -101,9 +101,11 @@ Remaining Part-B deferrals / fidelity notes:
   castable level: spontaneous casters get a per-level "known" slot capped by the known table;
   prepared-book casters get a per-level spellbook with a total free-distribution budget
   (3 + Int at 1st, +2/level) and an over-budget error. `spell-picks` migrated from a flat array to
-  `Record<spellLevel, string[]>`. **Spell content**: levels 0–3 authored (arcane/divine/druid/bard
-  core); levels 4–9 are being filled in progressively — accessible levels without options simply show
-  none yet.
+  `Record<spellLevel, string[]>`. **Spell content**: a core-scope set now spans **levels 0–9**
+  across the arcane/divine/druid lists (bard tagged where its level matches), ~130 spells — every
+  caster can select spells at every level they can cast. Fuller (exhaustive) lists remain a breadth
+  expansion; the single `level` per spell is a known model limitation for spells whose level differs
+  by list (e.g. bard).
 - **Caster slot tables encoded for 18 classes** (`progression.ts` + `SpellcastingDef.table`, set via
   the `CASTER` map in `classes.ts`): full-9 (cleric/druid/wizard/witch/shaman + sorcerer/oracle),
   six-level bard (bard/skald), six-level spontaneous (inquisitor/hunter/summoner, own known table),

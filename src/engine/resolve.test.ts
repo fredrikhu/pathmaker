@@ -804,3 +804,17 @@ describe('high-level spell access', () => {
     expect(l6!.options.some((o) => o.id === 'disintegrate')).toBe(true);
   });
 });
+
+describe('9th-level spell access at the top', () => {
+  it('a level-20 wizard reaches 9th-level spells (Wish)', () => {
+    let d = newCharacter('t-wiz20', 'Ezren');
+    d = withDecision(d, 'ability-base', { str: 8, dex: 14, con: 12, int: 19, wis: 12, cha: 10 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['int']);
+    d = withDecision(d, 'class', 'wizard');
+    const r = resolve(atLevel(d, 20));
+    const l9 = r.slots.find((s) => s.id === 'spell-picks-L9');
+    expect(l9).toBeTruthy();
+    expect(l9!.options.some((o) => o.id === 'wish')).toBe(true);
+  });
+});
