@@ -17,7 +17,10 @@ export function SheetPreview({ id }: { id: string }) {
   const ranks = (doc.decisions['skill-ranks'] as Record<string, number>) ?? {};
   const trainedSkills = sheet.skillIds.filter((sid) => ranks[sid] > 0);
   const feats = Object.values((doc.decisions['feats'] as Record<string, string | null>) ?? {}).filter(Boolean) as string[];
-  const spells = (doc.decisions['spell-picks'] as string[]) ?? [];
+  const spellPicksByLevel = (doc.decisions['spell-picks'] as Record<number, string[]> | string[] | undefined);
+  const spells: string[] = Array.isArray(spellPicksByLevel)
+    ? spellPicksByLevel
+    : Object.keys(spellPicksByLevel ?? {}).sort((a, b) => Number(a) - Number(b)).flatMap((k) => (spellPicksByLevel as Record<string, string[]>)[k]);
   const gear = Object.entries(doc.purchases).filter(([, q]) => q > 0);
 
   if (mode === 'print') return <PrintSheet doc={doc} onExit={() => setMode('screen')} />;

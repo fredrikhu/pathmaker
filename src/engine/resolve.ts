@@ -25,6 +25,7 @@ function spellTableFor(sc: C.SpellcastingDef): SpellTable | undefined {
 
 const ORDINALS = ['0th', '1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th', '9th', '10th'];
 const ordinal = (n: number): string => ORDINALS[n] ?? `${n}th`;
+const spellLevelLabel = (L: number): string => (L === 0 ? 'Cantrips' : `${ordinal(L)}-level spells`);
 
 /** A friendly display name for any content id (for whyNot messages). */
 function displayName(id: string): string {
@@ -54,7 +55,7 @@ interface Decisions {
   drawback: string | null;
   skillRanks: Record<string, number>;
   languages: string[];
-  spellPicks: string[];
+  spellPicks: Record<number, string[]>; // spell level -> chosen spell ids
   hpRolls: Record<number, number>; // level -> hp gained (levels >= 2)
   abilityIncreases: Record<number, Ability>; // level (4/8/12/16/20) -> chosen ability
 }
@@ -80,7 +81,12 @@ function readDecisions(doc: CharacterDoc): Decisions {
     drawback: get<string | null>('drawback', null),
     skillRanks: get<Record<string, number>>('skill-ranks', {}),
     languages: get<string[]>('languages', []),
-    spellPicks: get<string[]>('spell-picks', []),
+    // Per spell level. Legacy value was a flat array of 1st-level picks — migrate to { 1: [...] }.
+    spellPicks: (() => {
+      const raw = d['spell-picks'];
+      if (Array.isArray(raw)) return { 1: raw as string[] };
+      return (raw as Record<number, string[]>) ?? {};
+    })(),
     hpRolls: get<Record<number, number>>('hp-rolls', {}),
     abilityIncreases: get<Record<number, Ability>>('ability-increases', {}),
   };
@@ -459,10 +465,14 @@ export function resolve(doc: CharacterDoc): Resolution {
     }
   }
 
+  // Highest spell level with at least one slot per day (0 if not a caster).
+  const maxSpellLevel = spellSlots ? spellSlots.reduce((m, n, i) => (n > 0 ? i : m), 0) : 0;
+
   // ---- Slots + issues ----
   const { slots, issues } = buildSlotsAndIssues(doc, dec, {
     race, klass, abilities, mods, predCtx, skillRanksTotal, skillRanksSpent,
     standard, alternates, gold, load, carry, activeAcp: acp.total, level,
+    spellSlots, spellsKnown, maxSpellLevel,
   });
 
   const steps = deriveSteps(klass);
@@ -529,6 +539,9 @@ interface SlotCtx {
   carry: { light: number; medium: number; heavy: number };
   activeAcp: number;
   level: number;
+  spellSlots?: number[];
+  spellsKnown?: number[];
+  maxSpellLevel: number;
 }
 
 function buildSlotsAndIssues(
@@ -698,40 +711,57 @@ function buildSlotsAndIssues(
   const traitBudget = 2 + (dec.drawback ? 1 : 0);
   if (dec.traits.length > traitBudget) issues.push({ severity: 'error', step: 'feats', slot: 'traits', message: `${dec.traits.length} traits selected, only ${traitBudget} allowed` });
 
-  // ---------- SPELLS ----------
+  // ---------- SPELLS (per accessible spell level) ----------
   if (klass?.spellcasting && klass.spellcasting.progression !== 'four') {
     const sc = klass.spellcasting;
     const listSpells = C.SPELLS.filter((s) => s.lists.includes(sc.list as C.SpellDef['lists'][number]));
-    if (sc.kind === 'prepared-book') {
-      const picks1 = 3 + Math.max(0, ctx.mods.int);
-      const opposed = new Set((dec.classChoices['opposition'] ?? []).map((o) => C.schoolById.get(o)?.name ?? o));
-      const lvl1 = listSpells.filter((s) => s.level === 1);
-      slots.push({
-        id: 'spell-picks', step: 'spells', label: `1st-level spellbook (${dec.spellPicks.length}/${picks1})`, count: picks1, multi: true,
-        selected: dec.spellPicks,
-        options: lvl1.map((s) => ({
-          id: s.id, name: s.name, desc: s.summary, tags: [s.school],
-          legal: true, caution: opposed.has(s.school) ? 'opposed — double slot' : undefined,
-          meta: { level: s.level, school: s.school },
-        })),
-      });
-      if (dec.spellPicks.length < picks1)
-        issues.push({ severity: 'info', step: 'spells', slot: 'spell-picks', message: `Add ${picks1 - dec.spellPicks.length} more spell(s) to your spellbook` });
-      for (const pid of dec.spellPicks) {
+    const spellsAt = (lvl: number) => listSpells.filter((s) => s.level === lvl);
+    const opposed = new Set((dec.classChoices['opposition'] ?? []).map((o) => C.schoolById.get(o)?.name ?? o));
+    const optFor = (s: C.SpellDef): SlotOption => ({
+      id: s.id, name: s.name, desc: s.summary, tags: [s.school],
+      legal: true, caution: opposed.has(s.school) ? 'opposed — double slot' : undefined,
+      meta: { level: s.level, school: s.school },
+    });
+    const M = ctx.maxSpellLevel;
+
+    if (sc.kind === 'spontaneous') {
+      // A hard "spells known" cap per spell level, from the known table.
+      const known = ctx.spellsKnown ?? [];
+      for (let L = 0; L <= M; L++) {
+        const cnt = known[L] ?? 0;
+        if (cnt <= 0) continue;
+        const sel = dec.spellPicks[L] ?? [];
+        slots.push({
+          id: `spell-picks-L${L}`, step: 'spells', label: `${spellLevelLabel(L)} known (${sel.length}/${cnt})`,
+          count: cnt, multi: true, selected: sel, options: spellsAt(L).map(optFor),
+        });
+        if (sel.length < cnt)
+          issues.push({ severity: 'info', step: 'spells', slot: `spell-picks-L${L}`, message: `Choose ${cnt - sel.length} more ${spellLevelLabel(L).toLowerCase()} spell(s)` });
+      }
+    } else if (sc.kind === 'prepared-book') {
+      // Spellbook: cantrips are all known; 1st..M are a free-distribution book with a total budget
+      // of 3 + Int at 1st, plus 2 new spells per level thereafter.
+      if (M >= 0) {
+        const cantrips = spellsAt(0);
+        slots.push({ id: 'spell-picks-L0', step: 'spells', label: 'Cantrips (all in spellbook)', count: cantrips.length, multi: true, selected: cantrips.map((s) => s.id), options: cantrips.map(optFor), auto: true });
+      }
+      let totalPicked = 0;
+      for (let L = 1; L <= M; L++) {
+        const opts = spellsAt(L);
+        const sel = dec.spellPicks[L] ?? [];
+        totalPicked += sel.length;
+        slots.push({ id: `spell-picks-L${L}`, step: 'spells', label: `${spellLevelLabel(L)} spellbook`, count: opts.length, multi: true, selected: sel, options: opts.map(optFor) });
+      }
+      const budget = 3 + Math.max(0, ctx.mods.int) + 2 * Math.max(0, ctx.level - 1);
+      if (totalPicked > budget)
+        issues.push({ severity: 'error', step: 'spells', slot: 'spell-picks-L1', message: `Spellbook: ${totalPicked} spells exceeds your ${budget} — remove ${totalPicked - budget}` });
+      else if (totalPicked < budget)
+        issues.push({ severity: 'info', step: 'spells', slot: 'spell-picks-L1', message: `Spellbook: ${totalPicked}/${budget} spells — add ${budget - totalPicked} more (any accessible level)` });
+      for (const [L, ids] of Object.entries(dec.spellPicks)) for (const pid of ids) {
         const sp = C.spellById.get(pid);
         if (sp && opposed.has(sp.school))
-          issues.push({ severity: 'info', step: 'spells', slot: 'spell-picks', message: `${sp.name} is from an opposition school — it will cost two slots to prepare` });
+          issues.push({ severity: 'info', step: 'spells', slot: `spell-picks-L${L}`, message: `${sp.name} is from an opposition school — it costs two slots to prepare` });
       }
-    } else if (sc.kind === 'spontaneous') {
-      const known1 = (sc.known1?.[1] ?? 0);
-      const lvl1 = listSpells.filter((s) => s.level === 1);
-      slots.push({
-        id: 'spell-picks', step: 'spells', label: `1st-level spells known (${dec.spellPicks.length}/${known1})`, count: known1, multi: true,
-        selected: dec.spellPicks,
-        options: lvl1.map((s) => ({ id: s.id, name: s.name, desc: s.summary, tags: [s.school], legal: true, meta: { level: s.level, school: s.school } })),
-      });
-      if (dec.spellPicks.length < known1)
-        issues.push({ severity: 'info', step: 'spells', slot: 'spell-picks', message: `Choose ${known1 - dec.spellPicks.length} more spell(s) known` });
     }
   }
 

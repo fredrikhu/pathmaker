@@ -120,14 +120,15 @@ describe('elf wizard 1: opposition schools and spellbook', () => {
     expect(s['skill:perception'].lines.some((l) => /Keen Senses/.test(l.label))).toBe(true);
   });
 
-  it('has a spells step and a spellbook slot of 3 + Int mod = 6 picks', () => {
+  it('has a spells step, a 1st-level spellbook slot, and a 3 + Int mod = 6 budget', () => {
     expect(r.steps).toContain('spells');
-    const spellSlot = r.slots.find((sl) => sl.id === 'spell-picks')!;
-    expect(spellSlot.count).toBe(6); // 3 + 3 (Int 17)
+    expect(r.slots.some((sl) => sl.id === 'spell-picks-L1')).toBe(true);
+    // Empty spellbook nudges toward the budget of 6 (3 + Int 17).
+    expect(r.issues.some((i) => /Spellbook:.*\/6/.test(i.message))).toBe(true);
   });
 
   it('marks opposition-school spells with a caution, not a lock', () => {
-    const spellSlot = r.slots.find((sl) => sl.id === 'spell-picks')!;
+    const spellSlot = r.slots.find((sl) => sl.id === 'spell-picks-L1')!;
     const sleep = spellSlot.options.find((o) => o.id === 'sleep')!; // Enchantment (opposed)
     expect(sleep.legal).toBe(true);
     expect(sleep.caution).toMatch(/double slot/);
@@ -228,16 +229,16 @@ describe('new Base/Hybrid classes', () => {
     expect(r.sheet.stats['save:fort'].total).toBe(4); // +2 + 2 Con
     expect(r.sheet.stats['save:will'].total).toBe(3); // +2 + 1 Wis
     expect(r.steps).toContain('spells');
-    const book = r.slots.find((s) => s.id === 'spell-picks')!;
-    expect(book.count).toBe(5); // 3 + Int mod (16 → +3)? Int 14+2 racial = 16 → +3
+    expect(r.slots.some((s) => s.id === 'spell-picks-L1')).toBe(true); // 1st-level spellbook
+    expect(r.issues.some((i) => /Spellbook:/.test(i.message))).toBe(true);
   });
 
   it('Oracle: ¾ BAB (+0), spontaneous divine, and mystery + curse choices', () => {
     const r = resolve(human('oracle'));
     expect(r.sheet.stats['bab'].total).toBe(0);
     expect(r.steps).toContain('spells');
-    const known = r.slots.find((s) => s.id === 'spell-picks')!;
-    expect(known.count).toBe(2); // known1[1]
+    const known = r.slots.find((s) => s.id === 'spell-picks-L1')!;
+    expect(known.count).toBe(2); // spells known at 1st level
     expect(r.slots.some((s) => s.id === 'mystery')).toBe(true);
     expect(r.slots.some((s) => s.id === 'curse')).toBe(true);
   });
@@ -321,7 +322,7 @@ describe('Dual Talent and the over-selection bug class', () => {
     d = withDecision(d, 'race', 'human'); // no Int bonus → Int 15 → mod +2 → book of 5
     d = withDecision(d, 'floating-bonus', []); // don't re-add Int
     const r = resolve(d);
-    expect(r.issues.some((i) => i.severity === 'error' && /selected but only 5 allowed/.test(i.message))).toBe(true);
+    expect(r.issues.some((i) => i.severity === 'error' && /exceeds your 5/.test(i.message))).toBe(true);
   });
 });
 
@@ -759,5 +760,33 @@ describe('source-dependent features appear in the progression by chosen source',
     d = withDecision(d, 'class', 'sorcerer');
     const r = resolve(atLevel(d, 3));
     expect(r.sheet.progression[0].features).not.toContain('Claws');
+  });
+});
+
+describe('multi-level spell selection', () => {
+  it('a level-5 wizard has spellbook slots for spell levels 1–3, with real options', () => {
+    let d = newCharacter('t-wiz5', 'Ezren');
+    d = withDecision(d, 'ability-base', { str: 8, dex: 14, con: 12, int: 16, wis: 12, cha: 10 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['int']);
+    d = withDecision(d, 'alignment', 'N');
+    d = withDecision(d, 'class', 'wizard');
+    const r = resolve(atLevel(d, 5));
+    const ids = r.slots.filter((s) => s.step === 'spells').map((s) => s.id);
+    expect(ids).toEqual(expect.arrayContaining(['spell-picks-L0', 'spell-picks-L1', 'spell-picks-L2', 'spell-picks-L3']));
+    const l3 = r.slots.find((s) => s.id === 'spell-picks-L3')!;
+    expect(l3.options.some((o) => o.id === 'fireball')).toBe(true);
+  });
+  it('a level-5 sorcerer has per-level "known" slots capped by the known table', () => {
+    let d = newCharacter('t-sorc5', 'Seoni');
+    d = withDecision(d, 'ability-base', { str: 8, dex: 14, con: 12, int: 10, wis: 10, cha: 16 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['cha']);
+    d = withDecision(d, 'class', 'sorcerer');
+    const r = resolve(atLevel(d, 5));
+    const l2 = r.slots.find((s) => s.id === 'spell-picks-L2');
+    expect(l2, 'sorcerer 5 should access 2nd-level spells').toBeTruthy();
+    expect(l2!.count).toBeGreaterThan(0);
+    expect(l2!.options.some((o) => o.id === 'scorching-ray')).toBe(true);
   });
 });
