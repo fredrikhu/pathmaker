@@ -7,7 +7,7 @@
 import type { LeveledFeatureDef, ClassChoiceDef } from './model';
 import {
   BARBARIAN_RAGE_POWERS, ROGUE_TALENTS, ROGUE_ADVANCED_TALENTS, PALADIN_MERCIES, PALADIN_DIVINE_BOND,
-  ALCHEMIST_DISCOVERIES, MAGUS_ARCANA, ORACLE_MYSTERIES, ORACLE_CURSES, WITCH_PATRONS, WITCH_HEXES,
+  ALCHEMIST_DISCOVERIES, MAGUS_ARCANA, WITCH_HEXES,
   ARCANIST_EXPLOITS, SHIFTER_ASPECTS,
 } from './subsystems';
 
@@ -299,9 +299,10 @@ export const CLASS_PROGRESSION: Record<string, ClassProgression> = {
       f(1, 'oracle-revelation', 'Revelation', 'A power from your mystery; gain more at 3rd, 7th, 11th, 15th, 19th.'),
       f(20, 'oracle-final-revelation', 'Final Revelation', 'A capstone power unique to your mystery.'),
     ],
+    // mystery + curse are defined inline on the class; here we add only the per-level revelation
+    // pick, whose options are source-dependent on the chosen mystery (see classChoiceOptions).
     choices: [
-      { id: 'mystery', label: 'Mystery', kind: 'list', count: 1, options: ORACLE_MYSTERIES },
-      { id: 'curse', label: "Oracle's curse", kind: 'list', count: 1, options: ORACLE_CURSES },
+      { id: 'revelation', label: 'Revelation', kind: 'oracle-revelation', count: 1, levels: [1, 3, 7, 11, 15, 19] },
     ],
   },
   summoner: {
@@ -332,9 +333,10 @@ export const CLASS_PROGRESSION: Record<string, ClassProgression> = {
       f(10, 'witch-major-hex', 'Major Hex', 'Unlock more powerful major hexes.'),
       f(18, 'witch-grand-hex', 'Grand Hex', 'Unlock the most powerful grand hexes.'),
     ],
+    // patron + the level-1 hex are defined inline on the class; here we add the recurring hexes
+    // gained at 2nd and every even level after (same `hex` series → uniqueness enforced).
     choices: [
-      { id: 'witch-patron', label: 'Patron', kind: 'list', count: 1, options: WITCH_PATRONS },
-      { id: 'hex', label: 'Hex', kind: 'list', count: 1, levels: [1, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20], options: WITCH_HEXES },
+      { id: 'hex', label: 'Hex', kind: 'list', count: 1, levels: [2, 4, 6, 8, 10, 12, 14, 16, 18, 20], options: WITCH_HEXES },
     ],
   },
   warpriest: {

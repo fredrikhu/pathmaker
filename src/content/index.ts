@@ -11,5 +11,6 @@ export {
   BLOODLINES, bloodlineById, LANGUAGES,
 } from './deities';
 export { SPELLS, spellById } from './spells';
+export { ORACLE_REVELATIONS } from './subsystems';
 
 export const CONTENT_VERSION = 'core-0.1';

@@ -114,9 +114,10 @@ Remaining Part-B deferrals / fidelity notes:
   spell. The table is now cantrip-indexed (cantrips at-will, hidden in display).
 - **Subsystem-list approximations** (kept honest but not exhaustive): slayer & investigator talents
   reuse the rogue-talent list; shaman hexes reuse the witch-hex list; every option list is a
-  core-scope subset. Source/choice-dependent picks (oracle revelations, sorcerer/bloodrager bloodline
-  powers, cavalier order abilities, gunslinger deeds) are modeled as descriptive features, not
-  interactive slots.
+  core-scope subset. **Oracle revelations are now interactive** — a source-dependent `oracle-revelation`
+  choice filters options by the chosen mystery (`ORACLE_REVELATIONS` per mystery). Still descriptive
+  (not yet per-source interactive): sorcerer/bloodrager bloodline powers, cavalier order abilities,
+  gunslinger deeds (these are fixed-per-source, so they need per-source display, not a dropdown).
 - **vampire-hunter** keeps only its level-1 `features1` fallback — its table couldn't be verified
   cleanly (same policy as the deferred Vigilante/Omdura classes).
 - **Toughness** scales correctly (`max(3, level)` HP), special-cased in the engine.

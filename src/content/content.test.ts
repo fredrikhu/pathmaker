@@ -16,7 +16,8 @@ const BONUS_TYPES = new Set([
 ]);
 const SPELL_LISTS = new Set(['arcane', 'bard', 'divine', 'druid', 'ranger', 'paladin']);
 const CHOICE_KINDS = new Set([
-  'wizard-school', 'wizard-opposition', 'arcane-bond', 'cleric-domains', 'warpriest-blessings', 'sorcerer-bloodline', 'list',
+  'wizard-school', 'wizard-opposition', 'arcane-bond', 'cleric-domains', 'warpriest-blessings',
+  'sorcerer-bloodline', 'oracle-revelation', 'list',
 ]);
 
 const skillIds = new Set(C.SKILLS.map((s) => s.id));
@@ -132,6 +133,16 @@ describe('classes', () => {
         const optIds = (ch.options ?? []).map((o) => o.id);
         expect(new Set(optIds).size, `class ${c.id}/${ch.id}: duplicate option ids`).toBe(optIds.length);
       }
+      // No two choices may emit the same slot: choices sharing an id must have disjoint levels
+      // (catches an inline choice colliding with a CLASS_PROGRESSION one at the same level).
+      const levelsById = new Map<string, number[]>();
+      for (const ch of c.choices ?? []) {
+        const prev = levelsById.get(ch.id) ?? [];
+        levelsById.set(ch.id, [...prev, ...(ch.levels ?? [1])]);
+      }
+      for (const [cid, lvls] of levelsById) {
+        expect(new Set(lvls).size, `class ${c.id}: choice "${cid}" is granted twice at the same level`).toBe(lvls.length);
+      }
       if (c.spellcasting) {
         expect(SPELL_LISTS.has(c.spellcasting.list), `class ${c.id}: unknown spell list`).toBe(true);
         expect(ABILITIES, `${c.id} casting ability`).toContain(c.spellcasting.ability);
@@ -160,6 +171,18 @@ describe('class progression coverage (Part B)', () => {
     // Every class with a table also has a caster progression; none has a table but no progression.
     for (const c of C.CLASSES) {
       if (c.spellcasting?.table) expect(c.spellcasting.progression, `${c.id}`).toBeTruthy();
+    }
+  });
+});
+
+describe('oracle revelations (source-dependent picks)', () => {
+  it('every mystery has a revelation list with unique ids and matches a real mystery', () => {
+    const mysteryIds = new Set(['battle', 'bones', 'flame', 'heavens', 'life', 'lore', 'nature', 'stone', 'waves', 'wind']);
+    for (const [mid, revs] of Object.entries(C.ORACLE_REVELATIONS)) {
+      expect(mysteryIds.has(mid), `revelations for unknown mystery "${mid}"`).toBe(true);
+      expect(revs.length, `${mid}: no revelations`).toBeGreaterThan(0);
+      const ids = revs.map((r) => r.id);
+      expect(new Set(ids).size, `${mid}: duplicate revelation ids`).toBe(ids.length);
     }
   });
 });

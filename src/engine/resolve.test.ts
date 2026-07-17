@@ -712,3 +712,28 @@ describe('expanded feats (Core batch)', () => {
     expect(slot.options.find((o) => o.id === 'craft-wand')!.legal).toBe(false);
   });
 });
+
+describe('oracle revelations are filtered by the chosen mystery', () => {
+  function oracle(mystery?: string): CharacterDoc {
+    let d = newCharacter('t-orc', 'Sibyl');
+    d = withDecision(d, 'ability-base', { str: 10, dex: 12, con: 12, int: 10, wis: 10, cha: 16 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['cha']);
+    d = withDecision(d, 'alignment', 'N');
+    d = withDecision(d, 'class', 'oracle');
+    if (mystery) d = withDecision(d, 'class-choices', { mystery: [mystery] });
+    return atLevel(d, 3);
+  }
+  it('with the Life mystery, revelation slots offer Life revelations at levels 1 and 3', () => {
+    const r = resolve(oracle('life'));
+    const revSlots = r.slots.filter((s) => s.step === 'class' && s.id.startsWith('revelation'));
+    expect(revSlots.map((s) => s.id).sort()).toEqual(['revelation', 'revelation-L3']);
+    expect(revSlots[0].options.some((o) => o.id === 'life-link')).toBe(true);
+    expect(revSlots[0].options.some((o) => o.id === 'earth-glide')).toBe(false); // Stone-only
+  });
+  it('with no mystery chosen, the revelation slot has no options', () => {
+    const r = resolve(oracle());
+    const rev = r.slots.find((s) => s.id === 'revelation')!;
+    expect(rev.options.length).toBe(0);
+  });
+});

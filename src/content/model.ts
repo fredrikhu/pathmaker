@@ -71,6 +71,7 @@ export type ClassChoiceKind =
   | 'cleric-domains'
   | 'warpriest-blessings'
   | 'sorcerer-bloodline'
+  | 'oracle-revelation'
   | 'list';
 
 export interface ClassChoiceDef {

@@ -55,6 +55,91 @@ export const ROGUE_ADVANCED_TALENTS: Opt[] = [
   opt('advanced-feat', 'Feat', 'Gain a bonus feat of your choice.'),
 ];
 
+/** Oracle revelations, keyed by mystery id — the options for the source-dependent revelation
+ *  pick (levels 1/3/7/11/15/19). Core-scope representative sets per mystery. */
+export const ORACLE_REVELATIONS: Record<string, Opt[]> = {
+  battle: [
+    opt('war-sight', 'War Sight', 'Roll initiative twice and take the better result.'),
+    opt('battlecry', 'Battlecry', 'A shout grants allies a morale bonus on attacks and saves.'),
+    opt('weapon-mastery', 'Weapon Mastery', 'Gain bonus combat feats with a chosen weapon.'),
+    opt('skill-at-arms', 'Skill at Arms', 'Gain proficiency with all martial weapons and heavy armor.'),
+    opt('surprising-charge', 'Surprising Charge', 'Move as an immediate action once per day (more as you level).'),
+    opt('iron-skin', 'Iron Skin', 'Once/day, your skin hardens as stoneskin.'),
+  ],
+  bones: [
+    opt('armor-of-bones', 'Armor of Bones', 'Conjure protective bones for an armor bonus to AC.'),
+    opt('bleeding-wounds', 'Bleeding Wounds', 'Creatures you damage take ongoing bleed damage.'),
+    opt('deaths-touch', "Death's Touch", 'A touch attack deals negative energy (heals undead).'),
+    opt('near-death', 'Near Death', 'Bonus on saves vs disease, death effects, and poison.'),
+    opt('raise-the-dead', 'Raise the Dead', 'Summon an undead servant to fight for you.'),
+    opt('undead-servitude', 'Undead Servitude', 'Command undead as a bonus feat, usable several times a day.'),
+  ],
+  flame: [
+    opt('touch-of-flame', 'Touch of Flame', 'A melee touch deals fire damage, scaling with level.'),
+    opt('firestorm', 'Firestorm', 'Once/day, wreath an area in flame that spares your allies.'),
+    opt('form-of-flame', 'Form of Flame', 'Assume the form of a fire elemental.'),
+    opt('gaze-of-flames', 'Gaze of Flames', 'See through fire, smoke, and fog; later gain fire sight.'),
+    opt('heat-aura', 'Heat Aura', 'Burst of heat damages and dazzles nearby foes.'),
+    opt('cinder-dance', 'Cinder Dance', 'Increase your base speed; later gain Nimble Moves.'),
+  ],
+  heavens: [
+    opt('awesome-display', 'Awesome Display', 'Your illusion (pattern) spells treat foes as lower-HD.'),
+    opt('coat-of-many-stars', 'Coat of Many Stars', 'Conjure a starry coat granting an armor bonus.'),
+    opt('lure-of-the-heavens', 'Lure of the Heavens', 'Hover above the ground; later gain flight.'),
+    opt('moonlight-bridge', 'Moonlight Bridge', 'Create a bridge of moonlight you can cross.'),
+    opt('spray-of-stars', 'Spray of Shooting Stars', 'Loose a burst of stars dealing fire damage.'),
+    opt('star-chart', 'Star Chart', 'Reference a chart to gain commune-like guidance.'),
+  ],
+  life: [
+    opt('channel', 'Channel', 'Channel positive energy as a cleric of your level.'),
+    opt('enhanced-cures', 'Enhanced Cures', 'Your cure spells heal as though you were higher level.'),
+    opt('healing-hands', 'Healing Hands', 'Bonus on Heal checks and faster, better first aid.'),
+    opt('life-link', 'Life Link', 'Bond to allies to share and absorb their wounds.'),
+    opt('lifesense', 'Lifesense', 'Sense living creatures around you without sight.'),
+    opt('safe-curing', 'Safe Curing', 'Your healing spells provoke no attacks of opportunity.'),
+  ],
+  lore: [
+    opt('lore-keeper', 'Lore Keeper', 'Use Charisma for Knowledge checks by touch.'),
+    opt('sidestep-secret', 'Sidestep Secret', 'Use Charisma instead of Dexterity for AC and Reflex.'),
+    opt('brain-drain', 'Brain Drain', 'Psychically ransack a foe\'s mind for damage and knowledge.'),
+    opt('focused-trance', 'Focused Trance', 'Enter a trance for a bonus on saves and a skill check.'),
+    opt('mental-acuity', 'Mental Acuity', 'Gain a permanent, scaling bonus to Intelligence.'),
+    opt('think-on-it', 'Think On It', 'Reroll a failed Knowledge check once per day.'),
+  ],
+  nature: [
+    opt('bonded-mount', 'Bonded Mount', 'Gain an animal companion mount.'),
+    opt('friend-to-animals', 'Friend to the Animals', 'Nearby animals gain bonuses on saves; they won\'t attack you.'),
+    opt('natures-whispers', "Nature's Whispers", 'Use Charisma instead of Dexterity for AC and Reflex.'),
+    opt('natural-divination', 'Natural Divination', 'Read the natural world for bonuses and insights.'),
+    opt('erosion-touch', 'Erosion Touch', 'A touch deals damage to objects and constructs.'),
+    opt('spirit-of-nature', 'Spirit of Nature', 'Gain fast healing when near death in natural settings.'),
+  ],
+  stone: [
+    opt('earth-glide', 'Earth Glide', 'Move through earth and stone as a fish swims water.'),
+    opt('rock-throwing', 'Rock Throwing', 'Hurl rocks for scaling damage at range.'),
+    opt('stone-stability', 'Stone Stability', 'Bonus to resist bull rush and trip; later slow fall.'),
+    opt('mighty-pebble', 'Mighty Pebble', 'Charge and throw a pebble that bursts on impact.'),
+    opt('crystal-sight', 'Crystal Sight', 'See through earth and stone up to a range.'),
+    opt('steelbreaker-skin', 'Steelbreaker Skin', 'Your skin damages weapons that strike you.'),
+  ],
+  waves: [
+    opt('water-sight', 'Water Sight', 'Scry through bodies of water; later gain water-based sight.'),
+    opt('fluid-nature', 'Fluid Nature', 'Bonus to resist combat maneuvers; gain Dodge.'),
+    opt('fluid-travel', 'Fluid Travel', 'Walk on or move swiftly through water.'),
+    opt('ice-armor', 'Ice Armor', 'Conjure armor of ice for an armor bonus to AC.'),
+    opt('wintry-touch', 'Wintry Touch', 'A touch deals cold damage, scaling with level.'),
+    opt('freezing-spells', 'Freezing Spells', 'Foes failing saves vs your spells are staggered by cold.'),
+  ],
+  wind: [
+    opt('air-barrier', 'Air Barrier', 'Conjure swirling winds for an armor bonus and deflection.'),
+    opt('wings-of-air', 'Wings of Air', 'Sprout wings granting a fly speed.'),
+    opt('lightning-breath', 'Lightning Breath', 'Breathe a line of electricity for scaling damage.'),
+    opt('touch-of-electricity', 'Touch of Electricity', 'A touch deals electricity damage, scaling with level.'),
+    opt('thunderburst', 'Thunderburst', 'A burst of sound and force deafens and knocks foes prone.'),
+    opt('wind-sight', 'Wind Sight', 'Ignore concealment from wind and see at a distance.'),
+  ],
+};
+
 export const PALADIN_MERCIES: Opt[] = [
   opt('fatigued', 'Fatigued', 'Lay on hands also removes the fatigued condition.'),
   opt('shaken', 'Shaken', 'Lay on hands also removes the shaken condition.'),

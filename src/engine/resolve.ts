@@ -900,6 +900,13 @@ function classChoiceOptions(ch: C.ClassChoiceDef, dec: Decisions): SlotOption[] 
     }
     case 'sorcerer-bloodline':
       return C.BLOODLINES.map((b) => ({ id: b.id, name: b.name, desc: b.desc, legal: true, meta: { classSkill: b.classSkill } }));
+    case 'oracle-revelation': {
+      // Source-dependent: revelations come from the chosen mystery.
+      const mystery = (dec.classChoices['mystery'] ?? [])[0];
+      const list = mystery ? C.ORACLE_REVELATIONS[mystery] : undefined;
+      if (!list) return [];
+      return list.map((o) => ({ id: o.id, name: o.name, desc: o.desc, legal: true }));
+    }
     case 'list':
       return (ch.options ?? []).map((o) => ({ id: o.id, name: o.name, desc: o.desc, legal: true }));
     default:
