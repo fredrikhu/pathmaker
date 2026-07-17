@@ -128,11 +128,25 @@ function finalAbilities(dec: Decisions, uptoLevel = Infinity): Record<Ability, n
 }
 
 /** Normalized class features gained at or below `level` (uses per-level `features`, else the
- *  level-1 `features1` fallback while Part B authoring is in progress). */
-function classFeaturesUpTo(klass: C.ClassDef | undefined, level: number): C.LeveledFeatureDef[] {
+ *  level-1 `features1` fallback while Part B authoring is in progress). Includes source-dependent
+ *  abilities fixed by an earlier choice (sorcerer bloodline, cavalier order). */
+function classFeaturesUpTo(klass: C.ClassDef | undefined, level: number, dec?: Decisions): C.LeveledFeatureDef[] {
   if (!klass) return [];
   const src: C.LeveledFeatureDef[] = klass.features ?? klass.features1.map((f) => ({ ...f, level: 1 }));
-  return src.filter((f) => f.level <= level).sort((a, b) => a.level - b.level);
+  const extra = dec ? sourceFeatures(dec) : [];
+  return [...src, ...extra].filter((f) => f.level <= level).sort((a, b) => a.level - b.level);
+}
+
+/** Per-level abilities fixed by a chosen source (bloodline/order) — injected into the progression. */
+function sourceFeatures(dec: Decisions): C.LeveledFeatureDef[] {
+  const out: C.LeveledFeatureDef[] = [];
+  const add = (map: Record<string, C.SourceFeature[]>, sourceId: string | undefined, prefix: string) => {
+    const list = sourceId ? map[sourceId] : undefined;
+    if (list) for (const p of list) out.push({ level: p.level, id: `${prefix}-${sourceId}-${p.level}`, name: p.name, desc: p.desc });
+  };
+  if (dec.classId === 'sorcerer') add(C.SORCERER_BLOODLINE_POWERS, dec.classChoices['bloodline']?.[0], 'sorc-bl');
+  if (dec.classId === 'cavalier') add(C.CAVALIER_ORDER_ABILITIES, dec.classChoices['order']?.[0], 'cav-ord');
+  return out;
 }
 
 /** Feat ids sitting in a currently-valid slot. Orphaned feats (slot removed by an
@@ -437,7 +451,7 @@ export function resolve(doc: CharacterDoc): Resolution {
         fort: saveBase(klass.goodSaves.includes('fort'), l),
         ref: saveBase(klass.goodSaves.includes('ref'), l),
         will: saveBase(klass.goodSaves.includes('will'), l),
-        features: classFeaturesUpTo(klass, l).filter((f) => f.level === l).map((f) => f.name),
+        features: classFeaturesUpTo(klass, l, dec).filter((f) => f.level === l).map((f) => f.name),
         featSlots: featSlotKeys.filter((fs) => fs.level === l).map((fs) => fs.label),
         abilityIncrease: dec.abilityIncreases[l],
         hp: l === 1 ? klass.hitDie : (dec.hpRolls[l] ?? fixedHpPerLevel(klass.hitDie)),

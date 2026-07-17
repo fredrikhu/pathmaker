@@ -187,6 +187,28 @@ describe('oracle revelations (source-dependent picks)', () => {
   });
 });
 
+describe('source-dependent features (bloodline powers, order abilities)', () => {
+  it('every source has valid levels and unique per-level abilities', () => {
+    const sources: [string, Record<string, { level: number; name: string }[]>][] = [
+      ['sorcerer bloodline', C.SORCERER_BLOODLINE_POWERS],
+      ['cavalier order', C.CAVALIER_ORDER_ABILITIES],
+    ];
+    for (const [label, map] of sources) {
+      for (const [sid, feats] of Object.entries(map)) {
+        expect(feats.length, `${label} ${sid}: empty`).toBeGreaterThan(0);
+        const levels = feats.map((f) => f.level);
+        for (const l of levels) { expect(l, `${label} ${sid} level`).toBeGreaterThanOrEqual(1); expect(l, `${label} ${sid} level`).toBeLessThanOrEqual(20); }
+        expect(new Set(levels).size, `${label} ${sid}: two abilities at the same level`).toBe(levels.length);
+      }
+    }
+  });
+  it('bloodline power keys reference real sorcerer bloodlines', () => {
+    for (const bid of Object.keys(C.SORCERER_BLOODLINE_POWERS)) {
+      expect(C.bloodlineById.has(bid), `bloodline power for unknown bloodline "${bid}"`).toBe(true);
+    }
+  });
+});
+
 describe('feats', () => {
   it('prerequisites reference real ids and effects are well-formed', () => {
     for (const f of C.FEATS) {

@@ -737,3 +737,27 @@ describe('oracle revelations are filtered by the chosen mystery', () => {
     expect(rev.options.length).toBe(0);
   });
 });
+
+describe('source-dependent features appear in the progression by chosen source', () => {
+  it('a draconic sorcerer shows Claws at 1 and Wings at 15', () => {
+    let d = newCharacter('t-sorc', 'Seoni');
+    d = withDecision(d, 'ability-base', { str: 8, dex: 12, con: 12, int: 10, wis: 10, cha: 16 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['cha']);
+    d = withDecision(d, 'alignment', 'N');
+    d = withDecision(d, 'class', 'sorcerer');
+    d = withDecision(d, 'class-choices', { bloodline: ['draconic'] });
+    const r = resolve(atLevel(d, 15));
+    expect(r.sheet.progression[0].features).toContain('Claws'); // level 1
+    expect(r.sheet.progression[14].features).toContain('Wings'); // level 15
+  });
+  it('without a bloodline chosen, no specific bloodline power is shown', () => {
+    let d = newCharacter('t-sorc2', 'Nyx');
+    d = withDecision(d, 'ability-base', { str: 8, dex: 12, con: 12, int: 10, wis: 10, cha: 16 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['cha']);
+    d = withDecision(d, 'class', 'sorcerer');
+    const r = resolve(atLevel(d, 3));
+    expect(r.sheet.progression[0].features).not.toContain('Claws');
+  });
+});

@@ -12,5 +12,7 @@ export {
 } from './deities';
 export { SPELLS, spellById } from './spells';
 export { ORACLE_REVELATIONS } from './subsystems';
+export { SORCERER_BLOODLINE_POWERS, CAVALIER_ORDER_ABILITIES } from './source-features';
+export type { SourceFeature } from './source-features';
 
 export const CONTENT_VERSION = 'core-0.1';

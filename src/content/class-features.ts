@@ -239,7 +239,12 @@ export const CLASS_PROGRESSION: Record<string, ClassProgression> = {
   gunslinger: {
     bonusFeats: { levels: [4, 8, 12, 16, 20], label: 'Gunslinger bonus feat' },
     features: [
-      f(1, 'gun-deeds', 'Deeds', 'Spend grit on daring feats; more deeds unlock at 3rd, 7th, 11th, 15th, 19th.'),
+      f(1, 'gun-deeds-1', "Deeds: Deadeye, Gunslinger's Dodge, Quick Clear", 'Spend grit on daring feats.'),
+      f(3, 'gun-deeds-3', 'Deeds: Gunslinger Initiative, Pistol-Whip, Utility Shot', 'New deeds unlock.'),
+      f(7, 'gun-deeds-7', 'Deeds: Dead Shot, Startling Shot, Targeting', 'New deeds unlock.'),
+      f(11, 'gun-deeds-11', 'Deeds: Bleeding Wound, Expert Loading, Lightning Reload', 'New deeds unlock.'),
+      f(15, 'gun-deeds-15', "Deeds: Menacing Shot, Slinger's Reload", 'New deeds unlock.'),
+      f(19, 'gun-deeds-19', "Deeds: Cheat Death, Death's Shot, Stunning Shot", 'New deeds unlock.'),
       f(1, 'gun-grit', 'Grit', 'A Wis-based pool, refreshed by crits and killing blows, that powers deeds.'),
       f(1, 'gun-gunsmith', 'Gunsmith', 'Gain a battered firearm and Gunsmithing to build and repair guns.'),
       f(2, 'gun-nimble', 'Nimble +1', 'Dodge bonus to AC in light/no armor, +1 every 4 levels to +5.'),

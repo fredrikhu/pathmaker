@@ -115,9 +115,11 @@ Remaining Part-B deferrals / fidelity notes:
 - **Subsystem-list approximations** (kept honest but not exhaustive): slayer & investigator talents
   reuse the rogue-talent list; shaman hexes reuse the witch-hex list; every option list is a
   core-scope subset. **Oracle revelations are now interactive** — a source-dependent `oracle-revelation`
-  choice filters options by the chosen mystery (`ORACLE_REVELATIONS` per mystery). Still descriptive
-  (not yet per-source interactive): sorcerer/bloodrager bloodline powers, cavalier order abilities,
-  gunslinger deeds (these are fixed-per-source, so they need per-source display, not a dropdown).
+  choice filters options by the chosen mystery (`ORACLE_REVELATIONS` per mystery). **Sorcerer
+  bloodline powers and cavalier order abilities now display per source** — `source-features.ts`
+  holds the fixed per-level abilities; the engine injects the chosen source's into the advancement
+  progression (`sourceFeatures` in resolve.ts). **Gunslinger deeds** are named per level. Still
+  descriptive (specific ability names not authored yet): bloodrager bloodline powers.
 - **vampire-hunter** keeps only its level-1 `features1` fallback — its table couldn't be verified
   cleanly (same policy as the deferred Vigilante/Omdura classes).
 - **Toughness** scales correctly (`max(3, level)` HP), special-cased in the engine.
