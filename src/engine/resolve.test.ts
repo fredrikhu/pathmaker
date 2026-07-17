@@ -790,3 +790,17 @@ describe('multi-level spell selection', () => {
     expect(l2!.options.some((o) => o.id === 'scorching-ray')).toBe(true);
   });
 });
+
+describe('high-level spell access', () => {
+  it('a level-11 wizard can access 6th-level spells (Disintegrate)', () => {
+    let d = newCharacter('t-wiz11', 'Ezren');
+    d = withDecision(d, 'ability-base', { str: 8, dex: 14, con: 12, int: 18, wis: 12, cha: 10 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['int']);
+    d = withDecision(d, 'class', 'wizard');
+    const r = resolve(atLevel(d, 11));
+    const l6 = r.slots.find((s) => s.id === 'spell-picks-L6');
+    expect(l6, 'wizard 11 should access 6th-level spells').toBeTruthy();
+    expect(l6!.options.some((o) => o.id === 'disintegrate')).toBe(true);
+  });
+});
