@@ -156,6 +156,10 @@ function collectEffects(dec: Decisions, doc: CharacterDoc, level: number): Effec
   const { standard, alternates } = activeRacialTraits(dec);
   for (const t of [...standard, ...alternates]) if (t.effects) effects.push(...t.effects);
 
+  // Class features gained so far (e.g. druid Nature Sense's +2 to Nature/Survival).
+  const klass = dec.classId ? C.classById.get(dec.classId) : undefined;
+  for (const feat of classFeaturesUpTo(klass, level)) if (feat.effects) effects.push(...feat.effects);
+
   // Feats (orphaned feats suspended — see validFeatIds)
   for (const fid of validFeatIds(dec, level)) {
     const f = C.featById.get(fid);
@@ -724,6 +728,30 @@ function buildSlotsAndIssues(
     issues.push({ severity: 'warning', step: 'equipment', slot: 'load', message: `Overloaded: ${ctx.load} lb exceeds your heavy load of ${ctx.carry.heavy} lb` });
   if (ctx.gold < 0)
     issues.push({ severity: 'error', step: 'equipment', slot: 'gold', message: `Overspent by ${-ctx.gold} gp` });
+
+  // ---------- REPEATED-PICK UNIQUENESS ----------
+  // A recurring subsystem choice (rage power at 2/4/6…, hex, talent, arcana…) may not select the
+  // same option twice across its per-level slots. Slots share a series once their `-L<n>` suffix
+  // is stripped; flag any option chosen in more than one slot of the same series.
+  const seriesPicks = new Map<string, Map<string, number>>(); // seriesId -> optionId -> count
+  for (const slot of slots) {
+    if (slot.auto || slot.id.startsWith('feat')) continue;
+    const series = slot.id.replace(/-L\d+$/, '');
+    const counts = seriesPicks.get(series) ?? new Map<string, number>();
+    for (const sel of slot.selected) counts.set(sel, (counts.get(sel) ?? 0) + 1);
+    seriesPicks.set(series, counts);
+  }
+  for (const [series, counts] of seriesPicks) {
+    for (const [optId, n] of counts) {
+      if (n <= 1) continue;
+      const slot = slots.find((s) => s.id === series || s.id.startsWith(`${series}-L`));
+      const optName = slot?.options.find((o) => o.id === optId)?.name ?? optId;
+      issues.push({
+        severity: 'error', step: slot?.step ?? 'class', slot: series,
+        message: `${slot?.label ?? series}: "${optName}" is chosen ${n} times — each may be taken only once`,
+      });
+    }
+  }
 
   // ---------- GENERIC SLOT INTEGRITY ----------
   // Catch decisions that became over-count or reference now-illegal/removed options after an

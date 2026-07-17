@@ -565,3 +565,40 @@ describe('per-level subsystem picks (Part B content)', () => {
     expect(r.sheet.spellSlots && r.sheet.spellSlots.length).toBeGreaterThan(0);
   });
 });
+
+describe('class-feature effects are computed (druid Nature Sense)', () => {
+  it("applies +2 to Nature and Survival from the druid's Nature Sense feature", () => {
+    let d = newCharacter('t-druid', 'Thornne');
+    d = withDecision(d, 'ability-base', { str: 12, dex: 12, con: 12, int: 10, wis: 16, cha: 8 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['wis']);
+    d = withDecision(d, 'alignment', 'N');
+    d = withDecision(d, 'class', 'druid');
+    const r = resolve(atLevel(d, 1));
+    expect(r.sheet.stats['skill:survival'].lines.some((l) => /Nature Sense/.test(l.label))).toBe(true);
+    expect(r.sheet.stats['skill:know-nature'].lines.some((l) => /Nature Sense/.test(l.label))).toBe(true);
+  });
+});
+
+describe('repeated subsystem picks may not duplicate', () => {
+  it('flags the same rage power chosen at two levels', () => {
+    let d = newCharacter('t-barb2', 'Grok');
+    d = withDecision(d, 'ability-base', { str: 16, dex: 14, con: 14, int: 8, wis: 10, cha: 8 });
+    d = withDecision(d, 'race', 'half-orc');
+    d = withDecision(d, 'alignment', 'CN');
+    d = withDecision(d, 'class', 'barbarian');
+    d = withDecision(d, 'class-choices', { 'rage-power-L2': ['superstition'], 'rage-power-L4': ['superstition'] });
+    const r = resolve(atLevel(d, 4));
+    expect(r.issues.some((i) => i.severity === 'error' && /chosen 2 times|only once/i.test(i.message))).toBe(true);
+  });
+  it('allows two different rage powers', () => {
+    let d = newCharacter('t-barb3', 'Krag');
+    d = withDecision(d, 'ability-base', { str: 16, dex: 14, con: 14, int: 8, wis: 10, cha: 8 });
+    d = withDecision(d, 'race', 'half-orc');
+    d = withDecision(d, 'alignment', 'CN');
+    d = withDecision(d, 'class', 'barbarian');
+    d = withDecision(d, 'class-choices', { 'rage-power-L2': ['superstition'], 'rage-power-L4': ['reckless-abandon'] });
+    const r = resolve(atLevel(d, 4));
+    expect(r.issues.some((i) => /only once/i.test(i.message))).toBe(false);
+  });
+});

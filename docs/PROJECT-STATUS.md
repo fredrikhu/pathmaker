@@ -111,12 +111,14 @@ Remaining Part-B deferrals / fidelity notes:
   interactive slots.
 - **vampire-hunter** keeps only its level-1 `features1` fallback — its table couldn't be verified
   cleanly (same policy as the deferred Vigilante/Omdura classes).
-- **Repeated subsystem picks don't enforce cross-slot uniqueness** yet (you could pick the same rage
-  power at two levels). A per-series uniqueness pass is a small follow-up.
 - **Favored-class bonus is applied uniformly at every level** (single `fcb` choice), not per level.
-- **Class-feature effects are still not collected** into stats (e.g. druid Nature Sense) — only
-  racial/feat/trait/armor effects are. Wiring feature effects is a follow-up with tests.
 - **Toughness** scales correctly (`max(3, level)` HP), special-cased in the engine.
+
+Resolved follow-ups:
+- **Class-feature effects are now computed** — `collectEffects` folds in `classFeaturesUpTo` effects
+  (e.g. druid Nature Sense's +2 to Nature/Survival), alongside racial/feat/trait/armor effects.
+- **Repeated subsystem picks enforce per-series uniqueness** — choosing the same rage power/talent/
+  hex/exploit at two levels raises an error Issue (`-L<n>` suffix defines the series).
 
 ### Phase 2, concretely (the real work)
 1. Give `CharacterDoc.decisions` a **level dimension** (per-level records; creation = levels 1..N via
