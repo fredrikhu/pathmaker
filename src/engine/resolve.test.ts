@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { resolve } from './resolve';
+import { resolve, doubleThreatRange } from './resolve';
 import { newCharacter, withDecision } from './character';
 import type { CharacterDoc } from './types';
 import { emptyPlayState } from './types';
@@ -1429,5 +1429,83 @@ describe('masterwork and magic enhancement', () => {
   it('ignores quality on an item that is not owned', () => {
     const d = armed({ falchion: { masterwork: true, enhancement: 5 } });
     expect(resolve(d).sheet.gold).toBe(resolve(armed({})).sheet.gold);
+  });
+});
+
+describe('named weapon properties', () => {
+  function armed(quality: Record<string, unknown>): CharacterDoc {
+    let d = newCharacter('t-props', 'Valeria');
+    d = withDecision(d, 'ability-base', { str: 15, dex: 14, con: 14, int: 10, wis: 12, cha: 8 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['str']); // Str 17 → +3
+    d = withDecision(d, 'alignment', 'LN');
+    d = withDecision(d, 'class', 'fighter');
+    d = withDecision(d, 'item-quality', quality);
+    return {
+      ...atLevel(d, 6),
+      purchases: { longsword: 1, greataxe: 1 },
+      equipped: { armor: null, mainHand: 'longsword', offHand: null },
+    };
+  }
+  const line = (d: CharacterDoc, id: string) => resolve(d).sheet.attacks.find((a) => a.id === id)!;
+
+  it('adds unconditional energy damage to the damage line', () => {
+    const d = armed({ longsword: { masterwork: true, enhancement: 1, properties: ['flaming'] } });
+    // Fighter 6: BAB +6, Str +3, +1 enhancement → +10/+5; damage 1d8+4 plus the fire dice.
+    expect(line(d, 'longsword').damage).toBe('1d8+4 + 1d6 fire');
+    expect(line(d, 'longsword').properties).toEqual(['Flaming']);
+  });
+
+  it('keen doubles the threat range without touching the multiplier', () => {
+    expect(doubleThreatRange('×2')).toBe('19–20/×2');
+    expect(doubleThreatRange('19–20/×2')).toBe('17–20/×2');
+    expect(doubleThreatRange('18–20/×2')).toBe('15–20/×2');
+    expect(doubleThreatRange('×3')).toBe('19–20/×3'); // multiplier untouched
+    const d = armed({ longsword: { masterwork: true, enhancement: 1, properties: ['keen'] } });
+    expect(line(d, 'longsword').crit).toBe('17–20/×2'); // longsword is 19–20/×2
+    expect(line(d, 'greataxe').crit).toBe('×3'); // untouched
+  });
+
+  it('speed adds an extra attack at full bonus', () => {
+    const plain = armed({ longsword: { masterwork: true, enhancement: 1 } });
+    expect(line(plain, 'longsword').bonuses).toEqual([10, 5]);
+    const fast = armed({ longsword: { masterwork: true, enhancement: 1, properties: ['speed'] } });
+    expect(line(fast, 'longsword').bonuses).toEqual([10, 10, 5]);
+  });
+
+  it('keeps conditional abilities out of the damage line, as notes', () => {
+    const d = armed({ longsword: { masterwork: true, enhancement: 1, properties: ['holy'] } });
+    // Holy is +2d6 vs evil only — it must not inflate the flat damage.
+    expect(line(d, 'longsword').damage).toBe('1d8+4');
+    expect(line(d, 'longsword').notes.some((n) => n.startsWith('Holy:'))).toBe(true);
+  });
+
+  it('prices from the total effective bonus', () => {
+    const base = resolve(armed({})).sheet.gold;
+    // +1 flaming prices as a +2 weapon: 300 masterwork + 2² × 2,000 = 8,300.
+    const flaming = resolve(armed({ longsword: { masterwork: true, enhancement: 1, properties: ['flaming'] } })).sheet.gold;
+    expect(base - flaming).toBe(8300);
+    // A plain +2 costs the same.
+    const plusTwo = resolve(armed({ longsword: { masterwork: true, enhancement: 2 } })).sheet.gold;
+    expect(base - plusTwo).toBe(8300);
+    // +1 holy prices as +3: 300 + 9 × 2,000 = 18,300.
+    const holy = resolve(armed({ longsword: { masterwork: true, enhancement: 1, properties: ['holy'] } })).sheet.gold;
+    expect(base - holy).toBe(18300);
+  });
+
+  it('flags an ability on a weapon with no enhancement bonus', () => {
+    const r = resolve(armed({ longsword: { masterwork: true, properties: ['flaming'] } }));
+    expect(r.issues.some((i) => i.step === 'equipment' && /at least a \+1 enhancement/.test(i.message))).toBe(true);
+  });
+
+  it('flags a combined bonus above +10', () => {
+    // +5 with vorpal (+5) and flaming (+1) is +11.
+    const r = resolve(armed({ longsword: { masterwork: true, enhancement: 5, properties: ['vorpal', 'flaming'] } }));
+    expect(r.issues.some((i) => i.step === 'equipment' && /exceeds the \+10 maximum/.test(i.message))).toBe(true);
+  });
+
+  it('stacks multiple energy properties on the damage line', () => {
+    const d = armed({ longsword: { masterwork: true, enhancement: 1, properties: ['flaming', 'frost'] } });
+    expect(line(d, 'longsword').damage).toBe('1d8+4 + 1d6 fire + 1d6 cold');
   });
 });

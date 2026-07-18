@@ -291,6 +291,9 @@ export function PlaySheet({ id }: { id: string }) {
                   <span className="num" style={{ fontSize: 16, fontWeight: 600, color: 'var(--color-accent-300)', minWidth: 84 }}>{label}</span>
                   <span className="num" style={{ fontSize: 13 }}>{atk.damage}</span>
                   <span className="text-muted" style={{ fontSize: 12 }}>{atk.crit} · {atk.dmgType}{atk.kind === 'ranged' && atk.range ? ` · ${atk.range} ft` : ''}</span>
+                  {atk.properties?.map((p) => (
+                    <span key={p} className="tag tag-neutral" style={{ fontSize: 10 }}>{p}</span>
+                  ))}
                 </div>
               );
             })}

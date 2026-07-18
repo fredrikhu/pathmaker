@@ -111,8 +111,17 @@ Still open from that audit:
   - **Cost is derived, not transacted**: masterwork 300/150 gp, weapon enhancement bonus² × 2,000,
     armour bonus² × 1,000, subtracted from gold by the engine — so lowering or clearing an upgrade
     refunds it, and quality on an item you don't own costs nothing.
-  - Not modelled: **named weapon properties** (flaming, keen…), specific magic items, and slotted
-    wondrous items.
+- **Named weapon properties** (`src/content/weapon-properties.ts`): 20 core special abilities with
+  equivalents, costs and mechanics verified against d20pfsrd's individual ability pages.
+  - **Priced from the total effective bonus** (enhancement + all equivalents), so a +1 flaming sword
+    costs the same as a +2 (both price at +2). The two rules constraints are enforced as Issues:
+    an ability needs at least a +1 enhancement, and the combined bonus is capped at +10.
+  - **Computed**: unconditional extra damage rides on the damage line (`1d8+4 + 1d6 fire`), **keen**
+    doubles the threat range (19–20 → 17–20, multiplier untouched), **speed** inserts an extra attack
+    at full bonus. **Conditional** abilities (bane, holy, anarchic, the burst line, wounding…) carry a
+    `condition` and are surfaced as notes — never folded into the flat damage, which would overstate
+    it against everything that isn't the special case.
+  - Not modelled: **armour** special abilities, specific magic items, and slotted wondrous items.
 - **Starting gold uses Character Wealth by Level** above 1st (`startingWealth` in `progression.ts`,
   table verified against d20pfsrd): a 3rd-level character starts with 3,000 gp, not the class's
   1st-level roll. Trait gold (Rich Parents) still only replaces the 1st-level figure.

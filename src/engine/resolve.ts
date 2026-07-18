@@ -8,8 +8,8 @@ import { ABILITIES, abilityMod } from './types';
 import { evalPredicate, explainFailure, type PredicateCtx } from './predicates';
 import { stack, type Contribution } from './stack';
 import {
-  armorCheckPenaltyReduction, armorQualityBonus, qualityCost, qualityPrefix, weaponQualityBonus,
-  type ItemQuality,
+  armorCheckPenaltyReduction, armorQualityBonus, qualityCost, qualityPrefix, qualityProblem,
+  weaponQualityBonus, type ItemQuality,
 } from './items';
 import {
   babAt, saveBase, fixedHpPerLevel, generalFeatLevels, abilityIncreaseLevels,
@@ -243,9 +243,14 @@ function collectEffects(dec: Decisions, doc: CharacterDoc, level: number): Effec
 }
 
 /** Total armor check penalty from equipped armor + shield. */
-/** Item quality (masterwork / magic enhancement) per owned item id. */
+/** Item quality (masterwork / magic enhancement / named properties) per owned item id. */
 function itemQuality(doc: CharacterDoc): Record<string, ItemQuality> {
   return (doc.decisions['item-quality'] as Record<string, ItemQuality>) ?? {};
+}
+
+/** Price-bonus equivalent of a named weapon property (0 if unknown). */
+export function propertyEquivalent(id: string): number {
+  return C.weaponPropertyById.get(id)?.equivalent ?? 0;
 }
 
 function armorCheckPenalty(doc: CharacterDoc): { total: number; sources: string[] } {
@@ -552,7 +557,7 @@ export function resolve(doc: CharacterDoc): Resolution {
   const qualitySpend = Object.entries(itemQuality(doc)).reduce((sum, [id, q]) => {
     const kind = C.weaponById.has(id) ? 'weapon' : C.armorById.has(id) ? 'armor' : null;
     if (!kind || !(doc.purchases[id] ?? 0)) return sum;
-    return sum + qualityCost(kind, q);
+    return sum + qualityCost(kind, q, propertyEquivalent);
   }, 0);
   const gold = Math.round((startGold - doc.goldSpent - qualitySpend) * 100) / 100;
 
@@ -759,6 +764,16 @@ function buildInventory(doc: CharacterDoc): InventoryItem[] {
   return out.sort((x, y) => rank(x) - rank(y) || x.name.localeCompare(y.name));
 }
 
+/** Double a weapon's threat range for keen: "×2" → "19–20/×2", "19–20/×2" → "17–20/×2".
+ *  The multiplier is untouched — keen widens the range, it never raises the multiplier. */
+export function doubleThreatRange(crit: string): string {
+  const m = crit.match(/^(?:(\d+)\s*[–-]\s*20\s*\/\s*)?(×\d+)$/);
+  if (!m) return crit;
+  const low = m[1] ? Number(m[1]) : 20;
+  const widened = 20 - (20 - low + 1) * 2 + 1; // 20 → 19–20; 19 → 17–20; 18 → 15–20
+  return `${widened}–20/${m[2]}`;
+}
+
 /** Iterative attack bonuses from a primary bonus and BAB: +6 → [6,1], +11 → [11,6,1], etc. */
 function iterativeBonuses(primary: number, bab: number): number[] {
   const count = Math.max(1, Math.min(4, Math.floor((bab + 4) / 5)));
@@ -787,7 +802,11 @@ function weaponAttacks(doc: CharacterDoc, stats: Record<string, Stat>, bab: numb
     const q = quality[w.id];
     const qb = weaponQualityBonus(q);
     const qualityLines: BreakdownLine[] = qb.attack ? [{ label: qb.label === 'mwk' ? 'Masterwork' : `Enhancement ${qb.label}`, value: qb.attack }] : [];
-    const bonuses = iterativeBonuses(base.total + (fb?.attack ?? 0) + qb.attack, bab);
+    const props = (q?.properties ?? []).map((id) => C.weaponPropertyById.get(id)).filter(Boolean) as C.WeaponPropertyDef[];
+    const attackTotal = base.total + (fb?.attack ?? 0) + qb.attack;
+    const bonuses = iterativeBonuses(attackTotal, bab);
+    // Speed grants one extra attack at full BAB on a full attack.
+    if (props.some((p) => p.extraAttack)) bonuses.splice(1, 0, attackTotal);
     // Strength contribution, scaled by how the weapon is held; feat damage adds on top.
     let strDamage = 0;
     const notes: string[] = [];
@@ -804,7 +823,15 @@ function weaponAttacks(doc: CharacterDoc, stats: Record<string, Stat>, bab: numb
     }
     const dmgMod = strDamage + (fb?.damage ?? 0) + qb.damage;
     if (kind === 'melee' && w.range) notes.push(`Can be thrown (${w.range} ft): thrown attacks use Dex and add Str to damage.`);
-    const damage = dmgMod !== 0 ? `${w.dmg}${fmtSigned(dmgMod)}` : w.dmg;
+    // Unconditional property damage rides on the damage string; conditional ones become notes.
+    const extraDice = props.map((p) => p.damageDice).filter(Boolean) as string[];
+    const baseDamage = dmgMod !== 0 ? `${w.dmg}${fmtSigned(dmgMod)}` : w.dmg;
+    const damage = extraDice.length ? `${baseDamage} + ${extraDice.join(' + ')}` : baseDamage;
+    for (const p of props) {
+      if (p.condition) notes.push(`${p.name}: ${p.desc}`);
+      else if (!p.damageDice && !p.extraAttack && !p.doublesThreat) notes.push(`${p.name}: ${p.desc}`);
+      if (p.restriction) notes.push(`${p.name} applies to ${p.restriction}.`);
+    }
     const scaleNote = w.hands === 'two' && slot !== 'off' ? ' (1½×)' : slot === 'off' ? ' (½×)' : '';
     const damageLines: BreakdownLine[] = [
       ...(kind === 'ranged' ? [] : [{ label: `Str modifier${scaleNote}`, value: strDamage }]),
@@ -814,8 +841,11 @@ function weaponAttacks(doc: CharacterDoc, stats: Record<string, Stat>, bab: numb
     lines.push({
       id: w.id, name: w.name, kind, slot, bonuses,
       attackLines: [...base.lines, ...(fb?.attackLines ?? []), ...qualityLines],
-      damage, damageLines, crit: w.crit, dmgType: w.dmgType, range: w.range,
+      damage, damageLines,
+      crit: props.some((p) => p.doublesThreat) ? doubleThreatRange(w.crit) : w.crit,
+      dmgType: w.dmgType, range: w.range,
       ...(qb.label ? { qualityLabel: qb.label } : {}),
+      ...(props.length ? { properties: props.map((p) => p.name) } : {}),
       notes,
     });
   };
@@ -1107,6 +1137,15 @@ function buildSlotsAndIssues(
     issues.push({ severity: 'warning', step: 'equipment', slot: 'load', message: `Overloaded: ${ctx.load} lb exceeds your heavy load of ${ctx.carry.heavy} lb` });
   if (ctx.gold < 0)
     issues.push({ severity: 'error', step: 'equipment', slot: 'gold', message: `Overspent by ${-ctx.gold} gp` });
+  // Named weapon abilities need a +1 enhancement, and the combined bonus caps at +10.
+  for (const [id, q] of Object.entries(itemQuality(doc))) {
+    if (!(doc.purchases[id] ?? 0)) continue;
+    const problem = qualityProblem(q, propertyEquivalent);
+    if (problem) {
+      const name = C.weaponById.get(id)?.name ?? C.armorById.get(id)?.name ?? id;
+      issues.push({ severity: 'error', step: 'equipment', slot: 'item-quality', message: `${name}: ${problem}` });
+    }
+  }
 
   // ---------- REPEATED-PICK UNIQUENESS ----------
   // A recurring subsystem choice (rage power at 2/4/6…, hex, talent, arcana…) may not select the

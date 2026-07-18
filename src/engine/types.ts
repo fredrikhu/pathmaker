@@ -248,6 +248,8 @@ export interface AttackLine {
   range?: number;
   /** "+1" / "mwk" when the weapon is magical or masterwork; empty otherwise. */
   qualityLabel?: string;
+  /** Named special abilities on this weapon (display names), e.g. ["Flaming", "Keen"]. */
+  properties?: string[];
   /** Rules caveats not folded into the numbers (thrown, two-handed Str, TWF penalties…). */
   notes: string[];
 }

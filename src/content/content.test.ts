@@ -248,6 +248,18 @@ describe('deities and bloodlines', () => {
       expect(skillIds.has(b.classSkill), `bloodline ${b.id}: unknown class skill "${b.classSkill}"`).toBe(true);
     }
   });
+  it('weapon properties have sane equivalents and unique ids', () => {
+    const ids = new Set<string>();
+    for (const p of C.WEAPON_PROPERTIES) {
+      expect(ids.has(p.id), `duplicate weapon property "${p.id}"`).toBe(false);
+      ids.add(p.id);
+      expect(p.equivalent, `${p.id}: equivalent out of 1..5`).toBeGreaterThanOrEqual(1);
+      expect(p.equivalent, `${p.id}: equivalent out of 1..5`).toBeLessThanOrEqual(5);
+      expect(p.desc.length, `${p.id}: empty description`).toBeGreaterThan(0);
+      // Unconditional damage dice must read as dice, since they are concatenated onto the damage line.
+      if (p.damageDice) expect(p.damageDice, `${p.id}: damageDice`).toMatch(/^\d+d\d+/);
+    }
+  });
   it('every domain has two granted powers with sane levels and a composed description', () => {
     for (const d of C.DOMAINS) {
       expect(d.powers.length, `domain ${d.id}: expected 2 granted powers`).toBe(2);

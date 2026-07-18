@@ -14,14 +14,29 @@ export const ARMOR_ENHANCEMENT_COST = [0, 1_000, 4_000, 9_000, 16_000, 25_000];
 
 export const MAX_ENHANCEMENT = 5;
 
+/** Enhancement + special-ability equivalents may not exceed this on one weapon. */
+export const MAX_TOTAL_BONUS = 10;
+
 /** Quality of one owned item. An enhancement implies masterwork (all magic gear is masterwork). */
 export interface ItemQuality {
   masterwork?: boolean;
   /** 1–5; absent or 0 means non-magical. */
   enhancement?: number;
+  /** Named weapon special abilities (ids from WEAPON_PROPERTIES). Require an enhancement bonus. */
+  properties?: string[];
 }
 
 const clampEnh = (n: number | undefined): number => Math.max(0, Math.min(MAX_ENHANCEMENT, Math.round(n ?? 0)));
+
+/** Sum of the price-bonus equivalents of an item's named properties. */
+export function propertyEquivalents(q: ItemQuality | undefined, equivalentOf: (id: string) => number): number {
+  return (q?.properties ?? []).reduce((n, id) => n + equivalentOf(id), 0);
+}
+
+/** Enhancement + property equivalents — the figure both the price and the +10 cap work from. */
+export function totalBonus(q: ItemQuality | undefined, equivalentOf: (id: string) => number): number {
+  return clampEnh(q?.enhancement) + propertyEquivalents(q, equivalentOf);
+}
 
 /** Is this item magical or masterwork at all? */
 export function hasQuality(q: ItemQuality | undefined): boolean {
@@ -29,14 +44,26 @@ export function hasQuality(q: ItemQuality | undefined): boolean {
 }
 
 /** Extra gp this quality adds to a weapon or armour piece. Magic gear is masterwork, so the
- *  masterwork surcharge is included once and never double-counted with the enhancement price. */
-export function qualityCost(kind: 'weapon' | 'armor', q: ItemQuality | undefined): number {
+ *  masterwork surcharge is included once and never double-counted with the enhancement price.
+ *  Named properties are priced by raising the *total* effective bonus, which is why a +1 flaming
+ *  sword costs the same as a +2 one (both price at +2): bonus² × 2,000 for weapons, ×1,000 for armour. */
+export function qualityCost(kind: 'weapon' | 'armor', q: ItemQuality | undefined, equivalentOf: (id: string) => number = () => 0): number {
   if (!q) return 0;
-  const enh = clampEnh(q.enhancement);
+  const total = totalBonus(q, equivalentOf);
   const mwkCost = kind === 'weapon' ? MASTERWORK_WEAPON_COST : MASTERWORK_ARMOR_COST;
-  const table = kind === 'weapon' ? WEAPON_ENHANCEMENT_COST : ARMOR_ENHANCEMENT_COST;
-  if (enh > 0) return mwkCost + table[enh];
+  const perBonus = kind === 'weapon' ? 2_000 : 1_000;
+  if (total > 0) return mwkCost + total * total * perBonus;
   return q.masterwork ? mwkCost : 0;
+}
+
+/** Why this item's quality is illegal, or null. Named abilities need an enhancement bonus, and the
+ *  combined bonus is capped at +10. */
+export function qualityProblem(q: ItemQuality | undefined, equivalentOf: (id: string) => number): string | null {
+  if (!q?.properties?.length) return null;
+  if (clampEnh(q.enhancement) < 1) return 'A weapon with a special ability must also have at least a +1 enhancement bonus.';
+  const total = totalBonus(q, equivalentOf);
+  if (total > MAX_TOTAL_BONUS) return `Combined bonus +${total} exceeds the +${MAX_TOTAL_BONUS} maximum.`;
+  return null;
 }
 
 /** Attack/damage bonus a weapon's quality grants. Masterwork gives +1 to attack only, and does not
