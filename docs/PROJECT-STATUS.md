@@ -16,8 +16,8 @@ from BAB, Str-scaled damage, crit/type/range, per-weapon breakdown tooltip) and 
 tooltips** on the At-a-glance stats, HP, and trained skills (reusing the builder StatStrip tooltip infra).
 `Sheet.attacks: AttackLine[]` is computed in `resolve.ts` (`weaponAttacks`), golden-tested.
 
-**Next step in progress: more breadth.** After that, the remaining big direction is:
-- Start **Phase 4** — time & campaign clock (buff durations that tick down, rest resets, initiative).
+**Phase 4 (time & campaign clock) is done** — see its section below. The remaining roadmap item is
+**Phase 5** (live inventory: consumables, charges, encumbrance in play).
 
 Everything below is the durable detail. When resuming, read this file, then `docs/DESIGN.md`.
 
@@ -126,7 +126,7 @@ Still open from that audit:
 | 1 | Level-1 character creator | **done** |
 | 2 | **Level-up** — multi-level engine + per-level decisions | **done** (Part A engine/UI + Part B content, 30/31 classes) |
 | 3 | Interactive play sheet — HP/resource/spell tracking, conditions, prepared spells, rest | **done** |
-| 4 | Time & campaign clock — buff durations, rest resets | layers on phase 3 states |
+| 4 | Time & campaign clock — buff durations, rest resets | **done** |
 | 5 | Live inventory — consumables, charges, encumbrance in play | items are already entities |
 
 ### Phase 2 status (level-up)
@@ -236,6 +236,33 @@ values.
 Phase 3 is **complete**: the play sheet tracks HP (damage/temp/nonlethal), spell slots (spontaneous)
 or prepared spells (prepared), resource pools, and conditions (which fold into the resolved stats),
 all persisted and reset by Rest.
+
+## Phase 4 — Time & campaign clock: **complete**
+
+A pure clock module (`src/engine/clock.ts`) over `PlayState`, dispatched by the play sheet — the UI
+still does zero rules math. **Everything is stored in combat rounds** (1 min = 10, 1 hr = 600,
+1 day = 14,400) so the clock has a single unit; the UI converts at the edges.
+
+- **Timers** (`PlayState.timers`): `{ id, label, remaining, conditionId? }`. A timer may drive a
+  condition — when it expires the condition is cleared, so timed conditions flow back through
+  `resolve()` with no engine changes (the existing `conditions` → `collectEffects` path does the work).
+  A condition stays active while *any* live timer still drives it.
+- **Encounter**: `round` (0 = not in combat) + `initiative`. "Roll initiative & start" rolls d20 +
+  the sheet's init modifier and opens at round 1 (starting combat does not burn timer time);
+  "Next round" ticks the counter and every timer down by one; "End encounter" resets round/initiative
+  but **keeps durations running** (a buff cast before the fight is still up).
+- **Advance time** (+1 min / +10 min / +1 hr) counts timers down without touching the round counter.
+- **Rest** restores the daily resources (HP, slots, pools, cast-prepared) and then lets **8 hours pass**,
+  so running effects expire naturally rather than being cleared by fiat. Prepared spells are kept —
+  rest clears what was *cast*, not the preparation. Conditions the user set by hand are left alone:
+  cancelling a countdown (✕) is deliberately **not** the same as the effect ending.
+- Older saved docs predate these fields, so `normalizePlayState()` fills defaults on read (no schema bump).
+- 17 unit tests in `clock.test.ts` cover unit conversion, labels, expiry, multi-timer conditions,
+  encounter start/end, rest, and legacy play states.
+
+Not modelled: initiative *order* for a whole party (this tracks one character), per-timer effects of
+their own (a timer drives a condition or is just a labelled countdown — it can't add arbitrary bonuses),
+and calendar dates.
 
 ### Phase 3 breadth fill-in (ongoing)
 - **Conditions** expanded 11 → 22 (added panicked, deafened, cowering, pinned, flat-footed, helpless,

@@ -68,6 +68,17 @@ export interface CharacterDoc {
   play?: PlayState;
 }
 
+/** A running duration on a condition or buff, counted in combat rounds (phase 4).
+ *  Everything is stored in rounds so the clock has a single unit; the UI converts. */
+export interface Timer {
+  id: string;
+  label: string;
+  /** Rounds left. Counts down as the clock advances; at 0 the timer expires. */
+  remaining: number;
+  /** When set, expiring this timer also clears that condition from `conditions`. */
+  conditionId?: string;
+}
+
 /** Session state that changes during play, kept separate from the build `decisions`. */
 export interface PlayState {
   /** Damage taken from maximum HP; current HP = max − hpDamage. */
@@ -84,9 +95,21 @@ export interface PlayState {
   prepared?: Record<number, string[]>;
   /** Prepared casters: which prepared slot indices have been cast, per spell level. */
   castPrepared?: Record<number, number[]>;
+  /** Current combat round; 0 when not in an encounter (phase 4). */
+  round: number;
+  /** Initiative rolled for the current encounter, or null outside one. */
+  initiative: number | null;
+  /** Running durations on conditions and buffs. */
+  timers: Timer[];
 }
 
-export const emptyPlayState = (): PlayState => ({ hpDamage: 0, tempHp: 0, nonlethal: 0, usedSlots: {}, conditions: [], usedPools: {}, prepared: {}, castPrepared: {} });
+export const emptyPlayState = (): PlayState => ({
+  hpDamage: 0, tempHp: 0, nonlethal: 0, usedSlots: {}, conditions: [], usedPools: {},
+  prepared: {}, castPrepared: {}, round: 0, initiative: null, timers: [],
+});
+
+/** Play state with defaults filled in — older saved docs predate the phase-4 fields. */
+export const normalizePlayState = (p: PlayState | undefined): PlayState => ({ ...emptyPlayState(), ...p });
 
 // ---------- Resolver outputs (the UI's entire diet) ----------
 

@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { resolve } from './resolve';
 import { newCharacter, withDecision } from './character';
 import type { CharacterDoc } from './types';
+import { emptyPlayState } from './types';
 
 // Golden characters — numbers hand-computed against the PF1e core rules.
 
@@ -820,7 +821,7 @@ describe('9th-level spell access at the top', () => {
 });
 
 describe('conditions (play state) fold into the resolved sheet', () => {
-  const play = (conditions: string[]) => ({ hpDamage: 0, tempHp: 0, nonlethal: 0, usedSlots: {}, conditions, usedPools: {} });
+  const play = (conditions: string[]) => ({ ...emptyPlayState(), conditions });
   it('shaken applies −2 to attacks and saves', () => {
     const d = { ...humanFighter1(), play: play(['shaken']) };
     const r = resolve(d);
@@ -877,7 +878,7 @@ describe('resource pools (play sheet)', () => {
 });
 
 describe('conditions that remove Dex to AC', () => {
-  const play = (conditions: string[]) => ({ hpDamage: 0, tempHp: 0, nonlethal: 0, usedSlots: {}, conditions, usedPools: {} });
+  const play = (conditions: string[]) => ({ ...emptyPlayState(), conditions });
   it('flat-footed drops the +2 Dex from AC, touch, and CMD (Dex 14)', () => {
     const r = resolve({ ...humanFighter1(), play: play(['flat-footed']) });
     expect(r.sheet.stats['ac'].total).toBe(10); // 12 − 2 Dex

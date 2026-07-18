@@ -1,6 +1,11 @@
+import { useState } from 'react';
 import { loadCharacter } from '../storage/store';
 import { newCharacter } from '../engine/character';
-import { emptyPlayState, fmtMod, abilityMod, type PlayState } from '../engine/types';
+import { emptyPlayState, normalizePlayState, fmtMod, abilityMod, type PlayState, type Timer } from '../engine/types';
+import {
+  advanceTime, nextRound, startEncounter, endEncounter, addTimer, removeTimer, rest as restPlay,
+  durationLabel, ROUNDS_PER_MINUTE, ROUNDS_PER_HOUR,
+} from '../engine/clock';
 import { CONDITIONS, conditionById, SPELLS, spellById, classById, skillById } from '../content/index';
 import { useCharacter } from './useCharacter';
 import { useTip } from './Tooltip';
@@ -15,7 +20,8 @@ export function PlaySheet({ id }: { id: string }) {
   const tip = useTip();
   const { doc, resolution } = ch;
   const sheet = resolution.sheet;
-  const play: PlayState = doc.play ?? emptyPlayState();
+  // Older saved docs predate the phase-4 clock fields, so fill defaults in on read.
+  const play: PlayState = normalizePlayState(doc.play);
 
   // Open a stat's breakdown card (reuses the builder StatStrip tooltip infra).
   const statTip = (key: string, shown: string) => {
@@ -27,6 +33,9 @@ export function PlaySheet({ id }: { id: string }) {
   const updatePlay = (fn: (p: PlayState) => Partial<PlayState>) =>
     ch.patch((d) => { const p = { ...emptyPlayState(), ...d.play }; return { ...d, play: { ...p, ...fn(p) } }; });
   const setPlay = (patch: Partial<PlayState>) => updatePlay(() => patch);
+  /** Apply a pure clock action (engine does the arithmetic; this just stores the result). */
+  const applyClock = (fn: (p: PlayState) => PlayState) =>
+    ch.patch((d) => ({ ...d, play: fn(normalizePlayState(d.play)) }));
 
   const maxHp = sheet.stats['hp:max']?.total ?? 0;
   const currentHp = maxHp - play.hpDamage;
@@ -65,7 +74,40 @@ export function PlaySheet({ id }: { id: string }) {
   const castMod = sc ? abilityMod(sheet.stats[`ability:${sc.ability}`]?.total ?? 10) : 0;
   const dcNote = `save DC 10 + spell level ${fmtMod(castMod)}`;
 
-  const rest = () => setPlay({ hpDamage: 0, nonlethal: 0, tempHp: 0, usedSlots: {}, usedPools: {}, castPrepared: {} });
+  // Rest restores the daily resources and lets 8 hours pass, so running effects expire on their own.
+  const rest = () => applyClock((p) => restPlay(p).play);
+
+  // ---- Encounter & time (phase 4) ----
+  const initMod = sheet.stats['init']?.total ?? 0;
+  const rollInitiative = () => Math.floor(Math.random() * 20) + 1 + initMod;
+  const inEncounter = play.round > 0;
+  const [timerLabel, setTimerLabel] = useState('');
+  const [timerAmount, setTimerAmount] = useState(1);
+  const [timerUnit, setTimerUnit] = useState<'rounds' | 'minutes' | 'hours'>('minutes');
+  const [timerCondition, setTimerCondition] = useState('');
+  const unitRounds = { rounds: 1, minutes: ROUNDS_PER_MINUTE, hours: ROUNDS_PER_HOUR };
+
+  const submitTimer = () => {
+    const rounds = Math.max(1, Math.round(timerAmount)) * unitRounds[timerUnit];
+    const label = timerLabel.trim() || (timerCondition ? conditionById.get(timerCondition)?.name ?? 'Effect' : 'Effect');
+    const t: Timer = {
+      id: `t${Date.now()}${Math.random().toString(36).slice(2, 6)}`,
+      label, remaining: rounds,
+      ...(timerCondition ? { conditionId: timerCondition } : {}),
+    };
+    applyClock((p) => {
+      const withTimer = addTimer(p, t);
+      // Timing a condition implies it is active now.
+      return timerCondition && !withTimer.conditions.includes(timerCondition)
+        ? { ...withTimer, conditions: [...withTimer.conditions, timerCondition] }
+        : withTimer;
+    });
+    setTimerLabel(''); setTimerAmount(1); setTimerCondition('');
+  };
+
+  /** Shortest remaining timer driving a condition, for the badge on its chip. */
+  const timerFor = (conditionId: string): Timer | undefined =>
+    play.timers.filter((t) => t.conditionId === conditionId).sort((a, b) => a.remaining - b.remaining)[0];
 
   const pools = sheet.pools;
   const usedPoolAt = (id: string) => play.usedPools[id] ?? 0;
@@ -95,7 +137,70 @@ export function PlaySheet({ id }: { id: string }) {
         <span style={{ flex: 1 }} />
         <button className="btn btn-secondary" style={{ fontSize: 12 }} onClick={() => navigate({ name: 'builder', id })}>Edit build</button>
         <button className="btn btn-secondary" style={{ fontSize: 12 }} onClick={() => navigate({ name: 'sheet', id })}>Sheet</button>
-        <button className="btn btn-primary" style={{ fontSize: 12 }} onClick={rest} title="Clear damage and expended slots">🌙 Rest</button>
+        <button className="btn btn-primary" style={{ fontSize: 12 }} onClick={rest} title="Restore daily resources and let 8 hours pass">🌙 Rest</button>
+      </div>
+
+      {/* Encounter & time */}
+      <div style={{ background: 'var(--color-surface)', borderRadius: 12, padding: 18, marginBottom: 18 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <div className="micro">Encounter</div>
+          {inEncounter ? (
+            <>
+              <span style={{ fontSize: 13 }}>Round <span className="num" style={{ fontSize: 19, fontWeight: 700, color: 'var(--color-accent-300)' }}>{play.round}</span></span>
+              {play.initiative !== null && <span className="text-muted" style={{ fontSize: 12 }}>initiative {play.initiative}</span>}
+              <button className="btn btn-primary" style={{ fontSize: 12 }} onClick={() => applyClock((p) => nextRound(p).play)}>Next round ▶</button>
+              <button className="btn btn-ghost" style={{ fontSize: 11.5 }} onClick={() => applyClock(endEncounter)}>End encounter</button>
+            </>
+          ) : (
+            <>
+              <span className="text-muted" style={{ fontSize: 12 }}>not in combat · initiative {fmtMod(initMod)}</span>
+              <button className="btn btn-secondary" style={{ fontSize: 12 }} onClick={() => applyClock((p) => startEncounter(p, rollInitiative()))}>🎲 Roll initiative &amp; start</button>
+            </>
+          )}
+          <span style={{ flex: 1 }} />
+          <span className="text-muted" style={{ fontSize: 11.5 }}>Advance time</span>
+          {([['1 min', ROUNDS_PER_MINUTE], ['10 min', 10 * ROUNDS_PER_MINUTE], ['1 hr', ROUNDS_PER_HOUR]] as const).map(([label, rounds]) => (
+            <button key={label} className="btn btn-ghost" style={{ fontSize: 11.5 }} onClick={() => applyClock((p) => advanceTime(p, rounds).play)}>+{label}</button>
+          ))}
+        </div>
+
+        {/* Running durations */}
+        <div style={{ marginTop: 14 }}>
+          <div className="micro" style={{ marginBottom: 8 }}>Running effects</div>
+          {play.timers.length === 0 ? (
+            <p className="text-muted" style={{ fontSize: 11.5, margin: '0 0 10px' }}>Nothing running. Add a buff or a timed condition below — it counts down as rounds and time pass.</p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
+              {play.timers.map((t) => (
+                <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12.5 }}>
+                  <span style={{ minWidth: 170, fontWeight: 500 }}>{t.label}</span>
+                  <span className="num" style={{ color: t.remaining <= 3 ? 'var(--warn-fg)' : 'var(--color-accent-300)', minWidth: 90 }}>{durationLabel(t.remaining)}</span>
+                  {t.conditionId && <span className="tag tag-neutral" style={{ fontSize: 10 }}>{conditionById.get(t.conditionId)?.name}</span>}
+                  <span style={{ flex: 1 }} />
+                  <button className="btn btn-ghost" style={{ fontSize: 11 }} title="Cancel this countdown (leaves any condition set)"
+                    onClick={() => applyClock((p) => removeTimer(p, t.id))}>✕</button>
+                </div>
+              ))}
+            </div>
+          )}
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+            <input className="input" style={{ width: 160, fontSize: 12, padding: '4px 7px' }} placeholder="Effect name…"
+              value={timerLabel} onChange={(e) => setTimerLabel(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') submitTimer(); }} />
+            <input className="input" style={{ width: 56, fontSize: 12, padding: '4px 7px', textAlign: 'center' }} type="number" min={1}
+              value={timerAmount} onChange={(e) => setTimerAmount(Math.max(1, Math.round(Number(e.target.value) || 1)))} />
+            <select className="input" style={{ fontSize: 12, padding: '4px 7px' }} value={timerUnit} onChange={(e) => setTimerUnit(e.target.value as typeof timerUnit)}>
+              <option value="rounds">rounds</option>
+              <option value="minutes">minutes</option>
+              <option value="hours">hours</option>
+            </select>
+            <select className="input" style={{ fontSize: 12, padding: '4px 7px' }} value={timerCondition} onChange={(e) => setTimerCondition(e.target.value)}>
+              <option value="">— no condition —</option>
+              {CONDITIONS.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+            <button className="btn btn-secondary" style={{ fontSize: 12 }} onClick={submitTimer}>Start timer</button>
+          </div>
+        </div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 18 }}>
@@ -253,6 +358,7 @@ export function PlaySheet({ id }: { id: string }) {
         <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
           {CONDITIONS.map((c) => {
             const on = conditions.includes(c.id);
+            const t = on ? timerFor(c.id) : undefined;
             return (
               <button key={c.id} onClick={() => toggleCondition(c.id)} title={c.desc}
                 style={{ padding: '5px 12px', borderRadius: 999, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit',
@@ -260,6 +366,7 @@ export function PlaySheet({ id }: { id: string }) {
                   background: on ? 'var(--warn)' : 'transparent',
                   color: on ? 'var(--warn-fg)' : 'var(--color-text)' }}>
                 {c.name}
+                {t && <span className="num" style={{ marginLeft: 6, fontSize: 10.5, opacity: 0.85 }}>⏱ {durationLabel(t.remaining)}</span>}
               </button>
             );
           })}
