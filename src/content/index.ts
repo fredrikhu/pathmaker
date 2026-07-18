@@ -19,6 +19,8 @@ export { WEAPON_PROPERTIES, weaponPropertyById } from './weapon-properties';
 export type { WeaponPropertyDef } from './weapon-properties';
 export { ARMOR_PROPERTIES, armorPropertyById } from './armor-properties';
 export type { ArmorPropertyDef } from './armor-properties';
+export { WONDROUS_ITEMS, wondrousItemById, BODY_SLOTS, SLOT_CAPACITY } from './wondrous';
+export type { WondrousItemDef, BodySlot } from './wondrous';
 export type { ConditionDef } from './conditions';
 
 export const CONTENT_VERSION = 'core-0.1';

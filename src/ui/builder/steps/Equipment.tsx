@@ -4,7 +4,7 @@ import type { CharacterDoc } from '../../../engine/types';
 import { TermSpan } from '../../Tooltip';
 import { qualityCost, qualityPrefix, totalBonus, MAX_ENHANCEMENT, MAX_TOTAL_BONUS, type ItemQuality } from '../../../engine/items';
 import { propertyPrice } from '../../../engine/resolve';
-import { WEAPON_PROPERTIES, ARMOR_PROPERTIES, armorById as armorLookup } from '../../../content/index';
+import { WEAPON_PROPERTIES, ARMOR_PROPERTIES, WONDROUS_ITEMS, armorById as armorLookup } from '../../../content/index';
 
 /** Abilities offered for an item: weapon abilities on weapons, and the matching
  *  armour/shield list on armour — a shield can't take Shadow, and armour can't take Bashing. */
@@ -131,6 +131,12 @@ export function EquipmentStep({ ch }: { ch: CharCtl }) {
     );
   };
 
+  // ---- Worn magic items ----
+  // Declarative like item quality: the engine derives the cost, so removing one refunds it.
+  const worn = (doc.decisions['worn-items'] as string[]) ?? [];
+  const addWorn = (id: string) => ch.setDecision('worn-items', [...worn, id]);
+  const removeWorn = (index: number) => ch.setDecision('worn-items', worn.filter((_, i) => i !== index));
+
   const owned = Object.entries(purchases).filter(([, q]) => q > 0);
   const loadPct = Math.min(100, Math.round((sheet.load.current / Math.max(1, sheet.load.heavy)) * 100));
 
@@ -205,6 +211,31 @@ export function EquipmentStep({ ch }: { ch: CharCtl }) {
             })}
           </div>
           <p className="text-muted" style={{ fontSize: 11, marginTop: 12 }}>Selling refunds the full price — during creation it just undoes a purchase. Equipping armor or a shield changes AC and armor check penalty; watch the strip and the Skills step.</p>
+
+          <h6 style={{ margin: '20px 0 8px', color: 'var(--color-neutral-500)' }}>Worn magic items</h6>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 8 }}>
+            {sheet.worn.length === 0 && <span className="text-muted" style={{ fontSize: 12.5 }}>Nothing worn.</span>}
+            {sheet.worn.map((w, i) => (
+              <div key={`${w.id}-${i}`} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 12px', borderRadius: 8, background: 'var(--color-surface)', opacity: w.active ? 1 : 0.55 }}>
+                <span style={{ flex: 1, fontSize: 13 }}>
+                  {w.name}
+                  <span className="text-muted" style={{ fontSize: 11 }}> · {w.slot}</span>
+                  {!w.active && <span style={{ fontSize: 11, color: 'var(--warn-fg)' }}> · slot full, no effect</span>}
+                </span>
+                <span className="num text-muted" style={{ fontSize: 11.5 }}>{w.cost.toLocaleString()} gp</span>
+                <button onClick={() => removeWorn(i)} style={{ background: 'transparent', border: 'none', color: 'var(--color-neutral-500)', cursor: 'pointer', fontSize: 11.5, fontFamily: 'inherit' }}>Remove</button>
+              </div>
+            ))}
+          </div>
+          <select className="input" style={{ fontSize: 12, padding: '4px 6px', width: '100%' }} value=""
+            onChange={(e) => { if (e.target.value) addWorn(e.target.value); }}>
+            <option value="">Add a worn item…</option>
+            {WONDROUS_ITEMS.map((w) => (
+              <option key={w.id} value={w.id} disabled={w.cost > sheet.gold}>
+                {w.name} · {w.slot} · {w.cost.toLocaleString()} gp{w.cost > sheet.gold ? ' — too costly' : ''}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
     </div>

@@ -282,6 +282,23 @@ describe('deities and bloodlines', () => {
       }
     }
   });
+  it('wondrous items have unique ids, a real slot, a positive cost and effects', () => {
+    const ids = new Set<string>();
+    for (const w of C.WONDROUS_ITEMS) {
+      expect(ids.has(w.id), `duplicate wondrous item "${w.id}"`).toBe(false);
+      ids.add(w.id);
+      expect(C.BODY_SLOTS, `${w.id}: unknown slot "${w.slot}"`).toContain(w.slot);
+      expect(w.cost, `${w.id}: cost`).toBeGreaterThan(0);
+      expect(w.effects.length, `${w.id}: no effects`).toBeGreaterThan(0);
+      checkEffects(w.effects, `wondrous ${w.id}`);
+      // Cost follows bonus² × per-bonus, so a mistyped tier shows up as a broken curve.
+      expect(w.cost % (w.bonus * w.bonus), `${w.id}: cost is not bonus² × a round figure`).toBe(0);
+    }
+  });
+  it('every body slot has a capacity', () => {
+    for (const s of C.BODY_SLOTS) expect(C.SLOT_CAPACITY[s], `slot ${s}`).toBeGreaterThanOrEqual(1);
+    expect(C.SLOT_CAPACITY.ring, 'a character can wear two magic rings').toBe(2);
+  });
   it('every domain has two granted powers with sane levels and a composed description', () => {
     for (const d of C.DOMAINS) {
       expect(d.powers.length, `domain ${d.id}: expected 2 granted powers`).toBe(2);

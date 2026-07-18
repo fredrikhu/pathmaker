@@ -288,6 +288,8 @@ export interface Sheet {
   grantedFeats: GrantedFeat[];
   /** Carried items with play-time quantities/charges; `load` is computed from these. */
   inventory: InventoryItem[];
+  /** Worn magic items. `active` false means a full body slot is suppressing it. */
+  worn: { id: string; name: string; slot: string; cost: number; desc: string; active: boolean }[];
   summaryLine: string; // "LN Human Fighter 1"
 }
 

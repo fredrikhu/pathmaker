@@ -1589,3 +1589,74 @@ describe('armour and shield special abilities', () => {
     expect(inv.find((i) => i.id === 'heavy-shield')!.properties).toEqual(['Bashing']);
   });
 });
+
+describe('worn magic items', () => {
+  function worn(items: string[]): CharacterDoc {
+    let d = newCharacter('t-worn', 'Valeria');
+    d = withDecision(d, 'ability-base', { str: 15, dex: 14, con: 14, int: 10, wis: 12, cha: 8 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['str']); // Str 17
+    d = withDecision(d, 'alignment', 'LN');
+    d = withDecision(d, 'class', 'fighter');
+    d = withDecision(d, 'worn-items', items);
+    return atLevel(d, 12);
+  }
+  const st = (d: CharacterDoc, k: string) => resolve(d).sheet.stats[k];
+
+  it('a stat belt raises the ability and everything derived from it', () => {
+    const before = resolve(worn([])).sheet;
+    const after = resolve(worn(['belt-strength-4'])).sheet;
+    expect(after.stats['ability:str'].total - before.stats['ability:str'].total).toBe(4);
+    // Str 17 → 21, so the modifier goes +3 → +5: melee attack gains 2.
+    expect(after.stats['attack:melee'].total - before.stats['attack:melee'].total).toBe(2);
+  });
+
+  it('a Con belt raises hit points retroactively across all levels', () => {
+    const before = resolve(worn([])).sheet.stats['hp:max'].total;
+    const after = resolve(worn(['belt-constitution-2'])).sheet.stats['hp:max'].total;
+    expect(after - before).toBe(12); // +1 Con modifier × 12 levels
+  });
+
+  it('cloak of resistance adds to every save', () => {
+    const d = worn(['cloak-resistance-3']);
+    for (const s of ['save:fort', 'save:ref', 'save:will']) {
+      expect(st(d, s).lines).toContainEqual({ label: 'Cloak of resistance +3', value: 3 });
+    }
+  });
+
+  it('ring of protection and amulet of natural armor stack (different bonus types)', () => {
+    const base = resolve(worn([])).sheet.stats['ac'].total;
+    const both = resolve(worn(['ring-protection-2', 'amulet-natural-armor-3'])).sheet.stats['ac'].total;
+    expect(both - base).toBe(5);
+  });
+
+  it('charges for worn items and refunds when removed', () => {
+    const base = resolve(worn([])).sheet.gold;
+    expect(base - resolve(worn(['belt-strength-4'])).sheet.gold).toBe(16000);
+    expect(base - resolve(worn(['cloak-resistance-5'])).sheet.gold).toBe(25000);
+    expect(resolve(worn([])).sheet.gold).toBe(base);
+  });
+
+  it('a second item in a one-item slot is worn but does nothing', () => {
+    const r = resolve(worn(['belt-strength-2', 'belt-dexterity-2']));
+    expect(r.sheet.stats['ability:str'].total).toBe(19); // first belt works
+    expect(r.sheet.stats['ability:dex'].total).toBe(14); // second does not
+    expect(r.sheet.worn.map((w) => w.active)).toEqual([true, false]);
+    expect(r.issues.some((i) => /belt slot is already full/.test(i.message))).toBe(true);
+    // You still paid for it.
+    expect(resolve(worn([])).sheet.gold - r.sheet.gold).toBe(8000);
+  });
+
+  it('allows two rings but not three', () => {
+    const two = resolve(worn(['ring-protection-1', 'ring-protection-1']));
+    expect(two.sheet.worn.map((w) => w.active)).toEqual([true, true]);
+    // Deflection is the same type, so two +1 rings do not stack to +2.
+    expect(two.sheet.stats['ac'].total - resolve(worn([])).sheet.stats['ac'].total).toBe(1);
+    const three = resolve(worn(['ring-protection-1', 'ring-protection-1', 'ring-protection-1']));
+    expect(three.sheet.worn.map((w) => w.active)).toEqual([true, true, false]);
+  });
+
+  it('ignores an unknown item id', () => {
+    expect(resolve(worn(['no-such-item'])).sheet.worn).toEqual([]);
+  });
+});

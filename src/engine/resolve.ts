@@ -216,6 +216,9 @@ function collectEffects(dec: Decisions, doc: CharacterDoc, level: number): Effec
   // Parameterised feats whose bonus lands on a specific stat (Skill Focus → that skill).
   effects.push(...paramFeatEffects(doc, dec, klass, level));
 
+  // Worn magic items — only those the body slots can actually support.
+  for (const { item, active } of wornItemsWithStatus(doc)) if (active) effects.push(...item.effects);
+
   // Traits + drawback
   for (const tid of [...dec.traits, dec.drawback].filter(Boolean) as string[]) {
     const t = C.traitById.get(tid);
@@ -249,6 +252,26 @@ function collectEffects(dec: Decisions, doc: CharacterDoc, level: number): Effec
 }
 
 /** Total armor check penalty from equipped armor + shield. */
+/** Worn magic items (cloak of resistance, stat belts…), in the order the user added them.
+ *  Like item quality these are declarative: cost is derived, so removing one refunds it. */
+function wornItems(doc: CharacterDoc): C.WondrousItemDef[] {
+  const ids = (doc.decisions['worn-items'] as string[]) ?? [];
+  return ids.map((id) => C.wondrousItemById.get(id)).filter(Boolean) as C.WondrousItemDef[];
+}
+
+/** Worn items tagged with whether they actually function: a slot only supports so many (rings two,
+ *  the rest one). Extras beyond the capacity are kept but contribute nothing, and raise an Issue.
+ *  Tagged per position rather than per id, so two identical rings are handled correctly. */
+function wornItemsWithStatus(doc: CharacterDoc): { item: C.WondrousItemDef; active: boolean }[] {
+  const used = new Map<string, number>();
+  return wornItems(doc).map((item) => {
+    const n = used.get(item.slot) ?? 0;
+    const active = n < C.SLOT_CAPACITY[item.slot];
+    if (active) used.set(item.slot, n + 1);
+    return { item, active };
+  });
+}
+
 /** Item quality (masterwork / magic enhancement / named properties) per owned item id. */
 function itemQuality(doc: CharacterDoc): Record<string, ItemQuality> {
   return (doc.decisions['item-quality'] as Record<string, ItemQuality>) ?? {};
@@ -570,7 +593,9 @@ export function resolve(doc: CharacterDoc): Resolution {
     if (!kind || !(doc.purchases[id] ?? 0)) return sum;
     return sum + qualityCost(kind, q, propertyPrice);
   }, 0);
-  const gold = Math.round((startGold - doc.goldSpent - qualitySpend) * 100) / 100;
+  // Worn items are charged whether or not a slot conflict suppresses them — you still bought them.
+  const wornSpend = wornItems(doc).reduce((sum, item) => sum + item.cost, 0);
+  const gold = Math.round((startGold - doc.goldSpent - qualitySpend - wornSpend) * 100) / 100;
 
   // ---- Caster level + spell slots ----
   const sc = klass?.spellcasting;
@@ -649,6 +674,8 @@ export function resolve(doc: CharacterDoc): Resolution {
     attacks: weaponAttacks(doc, stats, bab, mods.str, weaponFeatBonuses(activeFeatParams(doc, dec, klass, level)), itemQuality(doc)),
     grantedFeats: grantedFeatsFor(klass, level, (doc.decisions['feat-params'] as Record<string, string>) ?? {}),
     inventory,
+    worn: wornItemsWithStatus(doc).map(({ item, active }) =>
+      ({ id: item.id, name: item.name, slot: item.slot, cost: item.cost, desc: item.desc, active })),
     summaryLine,
   };
   return { sheet, slots, issues, steps };
@@ -1152,6 +1179,14 @@ function buildSlotsAndIssues(
     issues.push({ severity: 'warning', step: 'equipment', slot: 'load', message: `Overloaded: ${ctx.load} lb exceeds your heavy load of ${ctx.carry.heavy} lb` });
   if (ctx.gold < 0)
     issues.push({ severity: 'error', step: 'equipment', slot: 'gold', message: `Overspent by ${-ctx.gold} gp` });
+  // A body slot only supports so many items; extras are worn but do nothing.
+  for (const { item, active } of wornItemsWithStatus(doc)) {
+    if (active) continue;
+    issues.push({
+      severity: 'warning', step: 'equipment', slot: 'worn-items',
+      message: `${item.name} does nothing — your ${item.slot} slot is already full.`,
+    });
+  }
   // Named weapon abilities need a +1 enhancement, and the combined bonus caps at +10.
   for (const [id, q] of Object.entries(itemQuality(doc))) {
     if (!(doc.purchases[id] ?? 0)) continue;

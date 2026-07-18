@@ -132,7 +132,19 @@ Still open from that audit:
     the shield abilities) are surfaced on the item, never totalled.
   - The ability list offered is filtered by item: weapon abilities on weapons, armour abilities on
     armour, shield abilities on shields.
-  - Not modelled: specific magic items and slotted wondrous items.
+- **Worn magic items** (`src/content/wondrous.ts`): the "big six" ability boosters (belts of
+  strength/dexterity/constitution, headbands of intelligence/wisdom/charisma, +2/+4/+6) plus the
+  defensive trio (cloak of resistance, ring of protection, amulet of natural armor, +1…+5) — slots,
+  costs and bonus types verified per item page. Families are **generated from one definition each**,
+  so a cost curve or bonus type can only be wrong in one place.
+  - **Body slots are enforced**: one item per slot, **two rings**. An item beyond a slot's capacity
+    is kept and still costs gold (you bought it) but contributes nothing and raises a warning Issue.
+  - Effects are ordinary typed bonuses, so they compose with everything else — a Con belt raises HP
+    retroactively across all levels, and deflection/natural-armor stack while two rings of protection
+    (same type) do not.
+  - Cost is derived like item quality, so removing an item refunds it.
+  - Not modelled: specific magic items (named weapons/armour), consumable wondrous items, and the
+    rest of the wondrous catalogue (boots, gloves, eyes, hands, wrists slots have no items yet).
 - **Starting gold uses Character Wealth by Level** above 1st (`startingWealth` in `progression.ts`,
   table verified against d20pfsrd): a 3rd-level character starts with 3,000 gp, not the class's
   1st-level roll. Trait gold (Rich Parents) still only replaces the 1st-level figure.
