@@ -18,8 +18,9 @@ defensive trio, bracers of armor, and the standard skill items) with body slots 
 
 From here the work is breadth and polish rather than new phases. The open items are the deferral
 backlog below (blocked content, unmodelled subsystems) and whatever the table turns up in real use.
-**The largest gaps a player actually hits:** Power Attack and two-weapon-fighting penalties are not
-yet folded into attack lines, and multiclass is model-ready but not implemented.
+**The largest gap a player actually hits** is multiclass: model-ready (the progression formulas take a
+list of `{prog, levels}`) but not implemented. Power Attack and two-weapon fighting are now folded in
+as play-sheet toggles.
 
 Everything below is the durable detail. When resuming, read this file, then `docs/DESIGN.md`.
 
@@ -402,8 +403,21 @@ item weight for coins, and per-arrow ammunition.
   equipped/carried weapon (main hand, off hand, then purchased weapons) with the iterative sequence
   (`+9/+4`), Str-scaled damage (one-handed +Str, two-handed +1½×, off-hand +½×; ranged adds no Str),
   crit/damage-type/range, and a click/hover breakdown card. At-a-glance stats, HP, and skills got the
-  same breakdown tooltips. Not folded (noted, not computed): Weapon Focus/Training, magic enhancement,
-  Power Attack, two-weapon-fighting penalties, composite-bow Str, thrown-weapon Dex.
+  same breakdown tooltips. Not folded (noted, not computed): composite-bow Str, thrown-weapon Dex.
+- **Power Attack & two-weapon fighting: done** (`src/engine/combat.ts`, numbers verified against both
+  feat pages). These are **declared per attack**, not passive, so they live in play state
+  (`PlayState.powerAttack` / `twoWeapon`) as play-sheet toggles and are folded in **only while on** —
+  a character who owns Power Attack but isn't using it must still see their honest attack bonus.
+  - Power Attack: −1/+2, worsening at BAB +4 and every 4 after; ×1½ damage two-handed, ×½ off-hand;
+    melee only. Requires the feat.
+  - Two-weapon: −6/−10, or −4/−8 with a light off-hand weapon; the feat lessens the primary by 2 and
+    the off hand by 6. The off hand gets **one** attack (plus Improved/Greater at −5/−10), not the BAB
+    iteratives. Both hands are penalised; carried weapons are not.
+  - **Gated in the engine, not just the UI.** The flags can outlive their preconditions (unequip the
+    off-hand weapon with the toggle still on), and a stale flag must never alter a number — this was
+    a real bug caught in browser verification, where a one-weapon fighter showed +3/−2 instead of
+    +9/+4. The toggle's lit state now mirrors what the engine actually applied.
+  - `Sheet.combatOptions` reports availability, so the UI still does zero rules math.
 - **Still thin:** resource pools still omit oracle/sorcerer/witch/ranger/hunter/summoner/shaman/slayer/
   brawler (varied or at-will resources); the domain/school slot is a count approximation (restriction
   not enforced).

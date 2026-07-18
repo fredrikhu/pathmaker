@@ -15,6 +15,7 @@ import {
   babAt, saveBase, fixedHpPerLevel, generalFeatLevels, abilityIncreaseLevels,
   casterLevel, spellSlotsPerDay, spellsKnownPerLevel, startingWealth, type SpellTable,
 } from './progression';
+import { powerAttackAmounts, twoWeaponPenalties, offHandAttackBonuses, type PowerAttackScale } from './combat';
 
 const POINT_BUY_COST: Record<number, number> = {
   7: -4, 8: -2, 9: -1, 10: 0, 11: 1, 12: 2, 13: 3, 14: 5, 15: 7, 16: 10, 17: 13, 18: 17,
@@ -677,7 +678,11 @@ export function resolve(doc: CharacterDoc): Resolution {
     ...(spellsKnown && spellsKnown.length ? { spellsKnown } : {}),
     progression,
     pools: classPools(klass, level, mods),
-    attacks: weaponAttacks(doc, stats, bab, mods.str, weaponFeatBonuses(activeFeatParams(doc, dec, klass, level)), itemQuality(doc)),
+    attacks: weaponAttacks(doc, stats, bab, mods.str, weaponFeatBonuses(activeFeatParams(doc, dec, klass, level)), itemQuality(doc), new Set(featIds)),
+    combatOptions: {
+      canPowerAttack: featIds.includes('power-attack'),
+      canTwoWeapon: Boolean(doc.equipped.mainHand && doc.equipped.offHand),
+    },
     grantedFeats: grantedFeatsFor(klass, level, (doc.decisions['feat-params'] as Record<string, string>) ?? {}),
     inventory,
     worn: wornItemsWithStatus(doc).map(({ item, active }) =>
@@ -831,12 +836,20 @@ function iterativeBonuses(primary: number, bab: number): number[] {
 /** Ready-to-use attack lines for the character's wielded/carried weapons: the iterative sequence,
  *  Strength-scaled damage, the weapon's own dice/crit, and any weapon-parameterised feat bonuses
  *  (Weapon Focus & co.) that name this specific weapon. Magic enhancement is still not modelled. */
-function weaponAttacks(doc: CharacterDoc, stats: Record<string, Stat>, bab: number, strMod: number, featBonuses: Map<string, WeaponFeatBonus>, quality: Record<string, ItemQuality>): AttackLine[] {
+function weaponAttacks(doc: CharacterDoc, stats: Record<string, Stat>, bab: number, strMod: number, featBonuses: Map<string, WeaponFeatBonus>, quality: Record<string, ItemQuality>, featIds: Set<string>): AttackLine[] {
   const melee = stats['attack:melee'];
   const ranged = stats['attack:ranged'];
   if (!melee || !ranged) return [];
   const seen = new Set<string>();
   const lines: AttackLine[] = [];
+  // Declared combat options. Power Attack needs the feat; two-weapon penalties apply to anyone
+  // wielding two weapons, with the feat only reducing them.
+  const usingPowerAttack = (doc.play?.powerAttack ?? false) && featIds.has('power-attack');
+  const offHandWeapon = doc.equipped.offHand ? C.weaponById.get(doc.equipped.offHand) : null;
+  // Gated on actually holding two weapons: the flag can outlive the off-hand weapon (unequip it
+  // while the toggle is on) and a stale flag must not penalise a single-weapon attack.
+  const usingTwoWeapon = (doc.play?.twoWeapon ?? false) && Boolean(doc.equipped.mainHand && offHandWeapon);
+  const twp = twoWeaponPenalties(featIds.has('two-weapon-fighting'), offHandWeapon?.hands === 'light');
   const add = (id: string | null, slot: AttackLine['slot']): void => {
     if (!id || seen.has(id)) return;
     const w = C.weaponById.get(id);
@@ -851,8 +864,20 @@ function weaponAttacks(doc: CharacterDoc, stats: Record<string, Stat>, bab: numb
     const qb = weaponQualityBonus(q);
     const qualityLines: BreakdownLine[] = qb.attack ? [{ label: qb.label === 'mwk' ? 'Masterwork' : `Enhancement ${qb.label}`, value: qb.attack }] : [];
     const props = (q?.properties ?? []).map((id) => C.weaponPropertyById.get(id)).filter(Boolean) as C.WeaponPropertyDef[];
-    const attackTotal = base.total + (fb?.attack ?? 0) + qb.attack;
-    const bonuses = iterativeBonuses(attackTotal, bab);
+    // Power Attack is melee-only and scales with how the weapon is held; two-weapon penalties hit
+    // both hands, so a carried (unwielded) weapon takes neither.
+    const paScale: PowerAttackScale = slot === 'off' ? 'half' : w.hands === 'two' ? 'oneAndHalf' : 'normal';
+    const pa = usingPowerAttack && kind === 'melee' ? powerAttackAmounts(bab, paScale) : null;
+    const twfPenalty = usingTwoWeapon && slot === 'main' ? twp.primary : usingTwoWeapon && slot === 'off' ? twp.off : 0;
+    const optionLines: BreakdownLine[] = [
+      ...(pa ? [{ label: 'Power Attack', value: pa.penalty }] : []),
+      ...(twfPenalty ? [{ label: slot === 'off' ? 'Two-weapon (off hand)' : 'Two-weapon (primary)', value: twfPenalty }] : []),
+    ];
+    const attackTotal = base.total + (fb?.attack ?? 0) + qb.attack + (pa?.penalty ?? 0) + twfPenalty;
+    // The off hand gets one attack (plus Improved/Greater), not the BAB iteratives.
+    const bonuses = usingTwoWeapon && slot === 'off'
+      ? offHandAttackBonuses(attackTotal, featIds.has('improved-two-weapon-fighting'), featIds.has('greater-two-weapon-fighting'))
+      : iterativeBonuses(attackTotal, bab);
     // Speed grants one extra attack at full BAB on a full attack.
     if (props.some((p) => p.extraAttack)) bonuses.splice(1, 0, attackTotal);
     // Strength contribution, scaled by how the weapon is held; feat damage adds on top.
@@ -862,14 +887,16 @@ function weaponAttacks(doc: CharacterDoc, stats: Record<string, Stat>, bab: numb
       notes.push('Ranged: no Str to damage (composite bows and slings excepted).');
     } else if (slot === 'off') {
       strDamage = Math.floor(strMod * 0.5);
-      notes.push('Off-hand: ½× Str to damage; two-weapon-fighting penalties apply.');
+      notes.push(usingTwoWeapon
+        ? 'Off-hand: ½× Str to damage; two-weapon penalties are folded in below.'
+        : 'Off-hand: ½× Str to damage. Switch on two-weapon fighting to apply its penalties.');
     } else if (w.hands === 'two') {
       strDamage = Math.floor(strMod * 1.5);
       notes.push('Two-handed: 1½× Str to damage.');
     } else {
       strDamage = strMod;
     }
-    const dmgMod = strDamage + (fb?.damage ?? 0) + qb.damage;
+    const dmgMod = strDamage + (fb?.damage ?? 0) + qb.damage + (pa?.damage ?? 0);
     if (kind === 'melee' && w.range) notes.push(`Can be thrown (${w.range} ft): thrown attacks use Dex and add Str to damage.`);
     // Unconditional property damage rides on the damage string; conditional ones become notes.
     const extraDice = props.map((p) => p.damageDice).filter(Boolean) as string[];
@@ -885,10 +912,11 @@ function weaponAttacks(doc: CharacterDoc, stats: Record<string, Stat>, bab: numb
       ...(kind === 'ranged' ? [] : [{ label: `Str modifier${scaleNote}`, value: strDamage }]),
       ...(fb?.damageLines ?? []),
       ...(qb.damage ? [{ label: `Enhancement ${qb.label}`, value: qb.damage }] : []),
+      ...(pa ? [{ label: `Power Attack${paScale === 'oneAndHalf' ? ' (1½×)' : paScale === 'half' ? ' (½×)' : ''}`, value: pa.damage }] : []),
     ];
     lines.push({
       id: w.id, name: w.name, kind, slot, bonuses,
-      attackLines: [...base.lines, ...(fb?.attackLines ?? []), ...qualityLines],
+      attackLines: [...base.lines, ...(fb?.attackLines ?? []), ...qualityLines, ...optionLines],
       damage, damageLines,
       crit: props.some((p) => p.doublesThreat) ? doubleThreatRange(w.crit) : w.crit,
       dmgType: w.dmgType, range: w.range,

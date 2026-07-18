@@ -268,7 +268,20 @@ export function PlaySheet({ id }: { id: string }) {
         <div style={{ background: 'var(--color-surface)', borderRadius: 12, padding: 18, marginTop: 18 }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
             <div className="micro">Attacks</div>
-            <span className="text-muted" style={{ fontSize: 11.5 }}>iteratives from BAB · weapon feats and masterwork/magic enhancement folded in · hover for the breakdown</span>
+            <span className="text-muted" style={{ fontSize: 11.5 }}>iteratives from BAB · weapon feats, enhancement and any declared option folded in · hover for the breakdown</span>
+            <span style={{ flex: 1 }} />
+            {/* Declared options: off by default, because a character who owns Power Attack but
+                isn't using it should see their honest attack bonus. */}
+            {/* `on` reflects what the engine actually applied, so a stale flag never shows as
+                active while the attack lines ignore it. */}
+            <OptionToggle label="Power Attack" on={play.powerAttack && sheet.combatOptions.canPowerAttack}
+              disabled={!sheet.combatOptions.canPowerAttack}
+              title={sheet.combatOptions.canPowerAttack ? 'Trade attack for damage on every melee attack' : 'Requires the Power Attack feat'}
+              onClick={() => setPlay({ powerAttack: !play.powerAttack })} />
+            <OptionToggle label="Two-weapon" on={play.twoWeapon && sheet.combatOptions.canTwoWeapon}
+              disabled={!sheet.combatOptions.canTwoWeapon}
+              title={sheet.combatOptions.canTwoWeapon ? 'Apply two-weapon penalties to both hands' : 'Requires a weapon in each hand'}
+              onClick={() => setPlay({ twoWeapon: !play.twoWeapon })} />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {sheet.attacks.map((atk) => {
@@ -532,5 +545,25 @@ export function PlaySheet({ id }: { id: string }) {
 
       <p className="text-muted" style={{ fontSize: 11, marginTop: 16 }}>Play state (HP, conditions, resources, prepared/expended spells) is saved with the character. Rest clears damage, resources, and cast spells.</p>
     </div>
+  );
+}
+
+/** A declared combat option (Power Attack, two-weapon fighting): a pressed-in toggle whose
+ *  state is part of play, not the build. Disabled when the character can't take the option. */
+function OptionToggle({ label, on, disabled, title, onClick }: {
+  label: string; on: boolean; disabled: boolean; title: string; onClick: () => void;
+}) {
+  return (
+    <button className="btn btn-ghost" title={title} disabled={disabled} onClick={onClick}
+      style={{
+        fontSize: 11, padding: '3px 9px', borderRadius: 999,
+        opacity: disabled ? 0.4 : 1,
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        background: on ? 'var(--color-accent-300)' : 'transparent',
+        color: on ? 'var(--color-bg)' : 'var(--color-neutral-500)',
+        border: `1px solid ${on ? 'var(--color-accent-300)' : 'rgba(233,233,237,.14)'}`,
+      }}>
+      {on ? '● ' : ''}{label}
+    </button>
   );
 }

@@ -105,12 +105,16 @@ export interface PlayState {
   consumed: Record<string, number>;
   /** Charges spent from charged items (wands): item id → charges used. */
   usedCharges: Record<string, number>;
+  /** Declaring Power Attack: folds its penalty/bonus into every melee attack line. */
+  powerAttack: boolean;
+  /** Fighting with both weapons this full attack: applies two-weapon penalties to both hands. */
+  twoWeapon: boolean;
 }
 
 export const emptyPlayState = (): PlayState => ({
   hpDamage: 0, tempHp: 0, nonlethal: 0, usedSlots: {}, conditions: [], usedPools: {},
   prepared: {}, castPrepared: {}, round: 0, initiative: null, timers: [],
-  consumed: {}, usedCharges: {},
+  consumed: {}, usedCharges: {}, powerAttack: false, twoWeapon: false,
 });
 
 /** Play state with defaults filled in — older saved docs predate the phase-4 fields. */
@@ -288,6 +292,9 @@ export interface Sheet {
   grantedFeats: GrantedFeat[];
   /** Carried items with play-time quantities/charges; `load` is computed from these. */
   inventory: InventoryItem[];
+  /** Which declared combat options this character can actually use, so the UI never has to ask
+   *  the rules. Power Attack needs the feat; two-weapon fighting needs a weapon in each hand. */
+  combatOptions: { canPowerAttack: boolean; canTwoWeapon: boolean };
   /** Worn magic items. `active` false means a full body slot is suppressing it. */
   worn: { id: string; name: string; slot: string; cost: number; desc: string; active: boolean }[];
   summaryLine: string; // "LN Human Fighter 1"

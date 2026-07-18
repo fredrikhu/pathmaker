@@ -1590,6 +1590,92 @@ describe('armour and shield special abilities', () => {
   });
 });
 
+describe('Power Attack and two-weapon fighting (declared options)', () => {
+  // Fighter 6, Str 17 (+3), BAB +6. Longsword main hand, short sword (light) off hand.
+  function fighter(feats: Record<string, string>, play: Partial<CharacterDoc['play']> = {}): CharacterDoc {
+    let d = atLevel(humanFighter1(), 6);
+    d = withDecision(d, 'feats', feats);
+    return {
+      ...d,
+      equipped: { armor: null, mainHand: 'longsword', offHand: 'short-sword' },
+      play: { ...emptyPlayState(), ...play } as CharacterDoc['play'],
+    };
+  }
+  const line = (d: CharacterDoc, id: string) => resolve(d).sheet.attacks.find((a) => a.id === id)!;
+  const PA = { 'feat-1': 'power-attack' };
+  const TWF = { 'feat-1': 'two-weapon-fighting' };
+
+  it('changes nothing until the option is switched on', () => {
+    const off = line(fighter(PA), 'longsword');
+    expect(off.bonuses).toEqual([9, 4]);
+    expect(off.damage).toBe('1d8+3');
+  });
+
+  it('Power Attack at BAB 6 costs 2 attack for 4 damage', () => {
+    const l = line(fighter(PA, { powerAttack: true }), 'longsword');
+    expect(l.bonuses).toEqual([7, 2]);
+    expect(l.damage).toBe('1d8+7'); // 3 Str + 4
+    expect(l.attackLines.some((b) => b.label === 'Power Attack' && b.value === -2)).toBe(true);
+  });
+
+  it('a two-handed weapon gets half again the damage for the same penalty', () => {
+    const d = { ...fighter(PA, { powerAttack: true }), purchases: { greataxe: 1 } };
+    const g = line(d, 'greataxe');
+    expect(g.damage).toBe('1d12+10'); // 4 (1½× Str 3) + 6 (1½× 4)
+    expect(g.bonuses[0]).toBe(7); // same -2 penalty as the longsword
+  });
+
+  it('does nothing to a ranged weapon', () => {
+    const d = { ...fighter(PA, { powerAttack: true }), purchases: { longbow: 1 } };
+    const b = line(d, 'longbow');
+    expect(b.attackLines.some((x) => x.label === 'Power Attack')).toBe(false);
+  });
+
+  it('is ignored without the feat, however the toggle is set', () => {
+    const l = line(fighter({ 'feat-1': 'toughness' }, { powerAttack: true }), 'longsword');
+    expect(l.bonuses).toEqual([9, 4]);
+  });
+
+  it('a stale two-weapon flag does not penalise a character holding one weapon', () => {
+    // Unequipping the off-hand weapon while the toggle is on must not leave a -6 hanging on the
+    // primary attack. The engine gates on the equipment, not on the flag alone.
+    const d = fighter(TWF, { twoWeapon: true });
+    const oneHanded = { ...d, equipped: { ...d.equipped, offHand: null } };
+    expect(line(oneHanded, 'longsword').bonuses).toEqual([9, 4]);
+  });
+
+  it('two-weapon fighting penalises both hands; a light off-hand weapon softens it', () => {
+    // No feat, light off-hand weapon: -4 primary / -8 off hand.
+    const d = fighter({ 'feat-1': 'toughness' }, { twoWeapon: true });
+    expect(line(d, 'longsword').bonuses).toEqual([5, 0]);
+    // Off hand: +6 BAB + 3 Str - 8 = +1, and a single attack rather than iteratives.
+    expect(line(d, 'short-sword').bonuses).toEqual([1]);
+  });
+
+  it('the feat lessens the primary penalty by 2 and the off-hand one by 6', () => {
+    const d = fighter(TWF, { twoWeapon: true });
+    expect(line(d, 'longsword').bonuses).toEqual([7, 2]); // -2 with a light off-hand weapon
+    expect(line(d, 'short-sword').bonuses).toEqual([7]);
+  });
+
+  it('the off hand gets one attack, not the BAB iteratives', () => {
+    const d = fighter(TWF, { twoWeapon: true });
+    expect(line(d, 'short-sword').bonuses).toHaveLength(1);
+    // Without the option the off-hand weapon is just a held weapon and keeps its own iteratives.
+    expect(line(fighter(TWF), 'short-sword').bonuses.length).toBeGreaterThan(1);
+  });
+
+  it('both options stack onto the same attack', () => {
+    const d = fighter({ 'feat-1': 'power-attack', 'feat-L3': 'two-weapon-fighting' },
+      { powerAttack: true, twoWeapon: true });
+    // +9 base, -2 Power Attack, -2 two-weapon (light off hand, with feat) = +5.
+    expect(line(d, 'longsword').bonuses).toEqual([5, 0]);
+    expect(line(d, 'longsword').damage).toBe('1d8+7');
+    // Off hand: +6 BAB + 1 (½× Str 3) ... attack +9 -2 -2 = +5; damage ½× Str + ½× PA.
+    expect(line(d, 'short-sword').damage).toBe('1d6+3'); // 1 (½×3) + 2 (½×4)
+  });
+});
+
 describe('worn magic items', () => {
   function worn(items: string[]): CharacterDoc {
     let d = newCharacter('t-worn', 'Valeria');
