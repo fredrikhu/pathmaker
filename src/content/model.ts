@@ -134,8 +134,10 @@ export interface FeatDef {
   benefit: string;
   prerequisites?: Predicate;
   effects?: Effect[];
-  /** Feat takes a parameter (Weapon Focus, Skill Focus…). */
-  param?: { label: string; options: string[] };
+  /** Feat takes a parameter (Weapon Focus, Skill Focus…). Options carry a stable `id` (a weapon or
+   *  skill id) alongside the display name, so the stored choice survives a rename and can be matched
+   *  against the catalogue rather than string-matched on a label. */
+  param?: { label: string; options: { id: string; name: string }[] };
 }
 
 export interface TraitDef {

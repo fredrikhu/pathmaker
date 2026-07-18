@@ -3,11 +3,14 @@ import { WEAPONS } from './equipment';
 import { SKILLS } from './skills';
 
 // Parameter option lists are derived from the catalogues rather than hand-listed, so a feat like
-// Weapon Focus offers every weapon we know about instead of a frozen subset of eight.
-const WEAPON_OPTIONS = WEAPONS.map((w) => w.name).sort((a, b) => a.localeCompare(b));
-const SKILL_OPTIONS = SKILLS.map((s) => s.name).sort((a, b) => a.localeCompare(b));
-const CROSSBOW_OPTIONS = WEAPONS.filter((w) => w.id.includes('crossbow')).map((w) => w.name);
-const SCHOOL_OPTIONS = ['Abjuration', 'Conjuration', 'Divination', 'Enchantment', 'Evocation', 'Illusion', 'Necromancy', 'Transmutation'];
+// Weapon Focus offers every weapon we know about instead of a frozen subset of eight. Each option
+// keeps the catalogue id so the engine can match the pick to a weapon/skill without string-matching.
+const byName = (a: { name: string }, b: { name: string }) => a.name.localeCompare(b.name);
+const WEAPON_OPTIONS = WEAPONS.map((w) => ({ id: w.id, name: w.name })).sort(byName);
+const SKILL_OPTIONS = SKILLS.map((s) => ({ id: s.id, name: s.name })).sort(byName);
+const CROSSBOW_OPTIONS = WEAPONS.filter((w) => w.id.includes('crossbow')).map((w) => ({ id: w.id, name: w.name }));
+const SCHOOL_OPTIONS = ['Abjuration', 'Conjuration', 'Divination', 'Enchantment', 'Evocation', 'Illusion', 'Necromancy', 'Transmutation']
+  .map((n) => ({ id: n.toLowerCase(), name: n }));
 
 // Core feats. prerequisites use the predicate DSL; effects fold into the stat graph.
 export const FEATS: FeatDef[] = [

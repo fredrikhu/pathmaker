@@ -265,7 +265,7 @@ export function PlaySheet({ id }: { id: string }) {
         <div style={{ background: 'var(--color-surface)', borderRadius: 12, padding: 18, marginTop: 18 }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
             <div className="micro">Attacks</div>
-            <span className="text-muted" style={{ fontSize: 11.5 }}>iteratives from BAB · hover an attack bonus for its breakdown · situational feats/magic not folded</span>
+            <span className="text-muted" style={{ fontSize: 11.5 }}>iteratives from BAB · Weapon Focus &amp; Specialization folded in · hover for the breakdown · magic enhancement not modelled</span>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {sheet.attacks.map((atk) => {

@@ -1149,14 +1149,20 @@ describe('granted feats that take a parameter', () => {
     expect(g.featId).toBe('weapon-focus');
     expect(g.param?.label).toBe('Weapon');
     expect(g.param?.value).toBeNull();
-    // Options come from the weapon catalogue, not a frozen list of eight.
+    // Options come from the weapon catalogue, not a frozen list of eight, and carry stable ids.
     expect(g.param!.options.length).toBeGreaterThan(30);
-    expect(g.param!.options).toContain('Greatsword');
+    expect(g.param!.options).toContainEqual({ id: 'greatsword', name: 'Greatsword' });
   });
 
-  it('reflects the chosen weapon', () => {
+  it('reflects the chosen weapon by id', () => {
+    const g = resolve(warpriest({ 'granted:weapon-focus:1': 'longsword' })).sheet.grantedFeats[0];
+    expect(g.param?.value).toBe('longsword');
+  });
+
+  it('maps a legacy name-valued param back to its id', () => {
+    // Params were briefly stored as display names; those docs must not lose the pick.
     const g = resolve(warpriest({ 'granted:weapon-focus:1': 'Longsword' })).sheet.grantedFeats[0];
-    expect(g.param?.value).toBe('Longsword');
+    expect(g.param?.value).toBe('longsword');
   });
 });
 
@@ -1169,5 +1175,75 @@ describe('content ordering', () => {
       expect(names(C.CLASSES)).toEqual(sorted(names(C.CLASSES)));
       expect(names(C.RACES)).toEqual(sorted(names(C.RACES)));
     });
+  });
+});
+
+describe('weapon feats fold into the per-weapon attack lines', () => {
+  function fighter(level: number, feats: Record<string, string>, params: Record<string, string>): CharacterDoc {
+    let d = newCharacter('t-wfeat', 'Valeria');
+    d = withDecision(d, 'ability-base', { str: 15, dex: 14, con: 14, int: 10, wis: 12, cha: 8 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['str']); // Str 17 → +3
+    d = withDecision(d, 'alignment', 'LN');
+    d = withDecision(d, 'class', 'fighter');
+    d = withDecision(d, 'feats', feats);
+    d = withDecision(d, 'feat-params', params);
+    return {
+      ...atLevel(d, level),
+      purchases: { longsword: 1, greataxe: 1 },
+      equipped: { armor: null, mainHand: 'longsword', offHand: null },
+    };
+  }
+
+  const line = (d: CharacterDoc, id: string) => resolve(d).sheet.attacks.find((a) => a.id === id)!;
+
+  it('Weapon Focus adds +1 to the named weapon only', () => {
+    const d = fighter(1, { 'feat-1': 'weapon-focus' }, { 'feat-1': 'longsword' });
+    // BAB +1 + Str +3 = +4 baseline; Weapon Focus makes the longsword +5.
+    expect(line(d, 'longsword').bonuses).toEqual([5]);
+    expect(line(d, 'greataxe').bonuses).toEqual([4]);
+  });
+
+  it('shows the feat in the attack breakdown', () => {
+    const d = fighter(1, { 'feat-1': 'weapon-focus' }, { 'feat-1': 'longsword' });
+    expect(line(d, 'longsword').attackLines).toContainEqual({ label: 'Weapon Focus', value: 1 });
+    expect(line(d, 'greataxe').attackLines).not.toContainEqual({ label: 'Weapon Focus', value: 1 });
+  });
+
+  it('Weapon Specialization adds +2 damage to the named weapon, stacking with Str', () => {
+    const d = fighter(4, { 'feat-1': 'weapon-focus', 'feat-L3': 'weapon-specialization' },
+      { 'feat-1': 'longsword', 'feat-L3': 'longsword' });
+    // Longsword one-handed: 1d8 + 3 Str + 2 spec.
+    expect(line(d, 'longsword').damage).toBe('1d8+5');
+    expect(line(d, 'longsword').damageLines).toContainEqual({ label: 'Weapon Specialization', value: 2 });
+    // Greataxe untouched: two-handed 1.5x Str = +4.
+    expect(line(d, 'greataxe').damage).toBe('1d12+4');
+  });
+
+  it('Greater Weapon Focus stacks with Weapon Focus', () => {
+    const d = fighter(8, { 'feat-1': 'weapon-focus', 'feat-L3': 'greater-weapon-focus' },
+      { 'feat-1': 'longsword', 'feat-L3': 'longsword' });
+    // BAB +8 → two iteratives; +3 Str, +2 from the two focus feats = +13/+8.
+    expect(line(d, 'longsword').bonuses).toEqual([13, 8]);
+    expect(line(d, 'greataxe').bonuses).toEqual([11, 6]);
+  });
+
+  it('applies to a class-granted Weapon Focus too', () => {
+    let d = newCharacter('t-wp-focus', 'Kadric');
+    d = withDecision(d, 'ability-base', { str: 15, dex: 12, con: 14, int: 10, wis: 14, cha: 10 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['str']); // Str 17 → +3
+    d = withDecision(d, 'alignment', 'LG');
+    d = withDecision(d, 'class', 'warpriest');
+    d = withDecision(d, 'feat-params', { 'granted:weapon-focus:1': 'greataxe' });
+    const doc: CharacterDoc = { ...d, purchases: { longsword: 1, greataxe: 1 }, equipped: { armor: null, mainHand: 'greataxe', offHand: null } };
+    // Warpriest 1: BAB +0, Str +3 → +3; the granted focus lifts the greataxe to +4.
+    expect(line(doc, 'greataxe').bonuses).toEqual([4]);
+    expect(line(doc, 'longsword').bonuses).toEqual([3]);
+  });
+
+  it('an unset parameter grants nothing', () => {
+    const d = fighter(1, { 'feat-1': 'weapon-focus' }, {});
+    expect(line(d, 'longsword').bonuses).toEqual([4]);
   });
 });

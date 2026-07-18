@@ -27,14 +27,21 @@ export function FeatsStep({ ch }: { ch: CharCtl }) {
   const featParams = (doc.decisions['feat-params'] as Record<string, string>) ?? {};
   const setParam = (key: string, value: string) => setDecision('feat-params', { ...featParams, [key]: value });
 
-  const ParamPicker = ({ pKey, label, options, value }: { pKey: string; label: string; options: string[]; value: string | null }) => (
+  type ParamOption = { id: string; name: string };
+  const ParamPicker = ({ pKey, label, options, value }: { pKey: string; label: string; options: ParamOption[]; value: string | null }) => (
     <select className="input" style={{ fontSize: 11.5, padding: '2px 5px', maxWidth: 190 }}
       value={value ?? ''} onChange={(e) => setParam(pKey, e.target.value)}
       onClick={(e) => e.stopPropagation()}>
       <option value="">choose {label.toLowerCase()}…</option>
-      {options.map((o) => <option key={o} value={o}>{o}</option>)}
+      {options.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
     </select>
   );
+  /** Stored params are ids; show the human name. Tolerates a legacy name-valued param. */
+  const paramName = (featId: string, value: string | undefined): string | undefined => {
+    if (!value) return undefined;
+    const opts = featById.get(featId)?.param?.options;
+    return opts?.find((o) => o.id === value)?.name ?? value;
+  };
 
   const pick = (opt: SlotOption) => {
     if (!opt.legal) return;
@@ -100,7 +107,7 @@ export function FeatsStep({ ch }: { ch: CharCtl }) {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span style={{ fontSize: 13, fontWeight: 500, color: fid ? 'var(--color-text)' : 'var(--color-neutral-600)' }}>
                       {fid ? featById.get(fid)?.name : (isTarget ? 'Selecting…' : 'Empty')}
-                      {fid && featParams[s.id] ? <span className="text-muted" style={{ fontWeight: 400 }}> ({featParams[s.id]})</span> : null}
+                      {fid && featParams[s.id] ? <span className="text-muted" style={{ fontWeight: 400 }}> ({paramName(fid, featParams[s.id])})</span> : null}
                     </span>
                     <span style={{ flex: 1 }} />
                     {fid && <button onClick={(e) => { e.stopPropagation(); setFeat(s.id, null); }} style={{ background: 'transparent', border: 'none', color: 'var(--color-neutral-500)', cursor: 'pointer', fontSize: 12 }}>✕</button>}
@@ -130,7 +137,7 @@ export function FeatsStep({ ch }: { ch: CharCtl }) {
               return (
                 <div key={`${g.featId}-${g.level}`} style={{ padding: '9px 12px', borderRadius: 8, background: 'var(--color-surface)', boxShadow: 'inset 0 0 0 1px var(--color-divider)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: 13, fontWeight: 500 }}>{g.name}{g.param?.value ? ` (${g.param.value})` : ''}</span>
+                    <span style={{ fontSize: 13, fontWeight: 500 }}>{g.name}{g.param?.value ? ` (${paramName(g.featId, g.param.value)})` : ''}</span>
                     <span className="tag tag-neutral" style={{ fontSize: 10 }}>bonus · level {g.level}</span>
                   </div>
                   {g.param && (

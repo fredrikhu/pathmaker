@@ -81,12 +81,19 @@ Still open from that audit:
 
 ### Session feedback fixes (2026-07)
 
-- **Feat parameters are now selectable.** `FeatDef.param` existed in content but was never rendered
-  anywhere, so Weapon Focus (and Skill/Spell Focus, Rapid Reload) had no weapon/skill/school picker —
-  including the warpriest's granted one. Params now store under a `feat-params` decision, keyed by
-  slot for chosen feats and `granted:<featId>:<level>` for class-granted ones; `GrantedFeat.param`
-  carries the option list and current pick. Option lists derive from the catalogues (all 39 weapons,
-  all skills) instead of the frozen eight that were hand-listed.
+- **Feat parameters are now selectable *and computed*.** `FeatDef.param` existed in content but was
+  never rendered anywhere, so Weapon Focus (and Skill/Spell Focus, Rapid Reload) had no picker —
+  including the warpriest's granted one. Params store under a `feat-params` decision, keyed by slot
+  for chosen feats and `granted:<featId>:<level>` for class-granted ones; `GrantedFeat.param` carries
+  the option list and current pick. Option lists derive from the catalogues (all 39 weapons, all
+  skills) and carry **stable ids** — the stored value is a weapon/skill id, not a display label, so
+  the pick survives a rename and is matched against the catalogue rather than string-matched.
+  `normalizeParam` maps a legacy name-valued param back to its id so early docs don't lose the pick.
+- **Weapon feats fold into the play sheet's attack lines.** `weaponFeatBonuses` applies Weapon Focus
+  (+1 attack), Greater Weapon Focus (+1 more), Weapon Specialization (+2 damage) and Greater Weapon
+  Specialization (+2 more) **to the named weapon only** — from chosen *and* class-granted feats. The
+  bonus shows as its own row in the attack/damage breakdown tooltip. **Still not computed:** magic
+  weapon enhancement, and the non-weapon param feats (Skill Focus's +3, Spell Focus's +1 DC).
 - **Starting gold uses Character Wealth by Level** above 1st (`startingWealth` in `progression.ts`,
   table verified against d20pfsrd): a 3rd-level character starts with 3,000 gp, not the class's
   1st-level roll. Trait gold (Rich Parents) still only replaces the 1st-level figure.
@@ -135,8 +142,9 @@ Still open from that audit:
 - **Single `level` per spell** — a spell whose level differs by list (e.g. many bard spells) is stored
   at one level; bard is tagged only where its level matches. A per-list level map would fix it.
 - **Spellbook budget** is a soft nudge (free distribution across accessible levels), not a per-level cap.
-- **Metamagic / param feats** (Weapon Focus, Skill Focus) record the parameter but don't compute a
-  weapon/skill-specific bonus into the sheet.
+- **Param feats**: the *weapon* ones (Weapon Focus / Specialization and their Greater forms) are now
+  computed into the per-weapon attack lines. **Skill Focus (+3) and Spell Focus (+1 DC) still are
+  not** — they record the parameter but don't feed the skill total or spell DC yet.
 - Spell-like abilities, darkvision, energy resistances are **descriptive** (not computed). Skill/save/
   stat bonuses (racial, feat, trait, class-feature) **are** real effects.
 - Racial **variant heritages** (Aasimar/Tiefling sub-bloodlines) not modeled — standard heritage only.

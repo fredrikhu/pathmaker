@@ -182,7 +182,7 @@ function grantedFeatsFor(klass: C.ClassDef | undefined, level: number, params: R
       const key = grantedParamKey(g.feat, g.level);
       return {
         level: g.level, featId: g.feat, name: def?.name ?? g.feat, note: g.note,
-        ...(def?.param ? { param: { key, label: def.param.label, options: def.param.options, value: params[key] ?? null } } : {}),
+        ...(def?.param ? { param: { key, label: def.param.label, options: def.param.options, value: normalizeParam(g.feat, params[key]) } } : {}),
       };
     });
 }
@@ -586,7 +586,7 @@ export function resolve(doc: CharacterDoc): Resolution {
     ...(spellsKnown && spellsKnown.length ? { spellsKnown } : {}),
     progression,
     pools: classPools(klass, level, mods),
-    attacks: weaponAttacks(doc, stats, bab, mods.str),
+    attacks: weaponAttacks(doc, stats, bab, mods.str, weaponFeatBonuses(activeFeatParams(doc, dec, klass, level))),
     grantedFeats: grantedFeatsFor(klass, level, (doc.decisions['feat-params'] as Record<string, string>) ?? {}),
     inventory,
     summaryLine,
@@ -595,6 +595,58 @@ export function resolve(doc: CharacterDoc): Resolution {
 }
 
 function fmtSigned(v: number): string { return v >= 0 ? `+${v}` : `−${Math.abs(v)}`; }
+
+/** Every feat the character actually has (chosen in a live slot, or class-granted), paired with its
+ *  chosen parameter. Values are catalogue ids; a legacy display name is tolerated and mapped back. */
+function activeFeatParams(doc: CharacterDoc, dec: Decisions, klass: C.ClassDef | undefined, level: number): { featId: string; param: string | null }[] {
+  const params = (doc.decisions['feat-params'] as Record<string, string>) ?? {};
+  const race = dec.raceId ? C.raceById.get(dec.raceId) : undefined;
+  const slotKeys = new Set(featSlots(dec, race, klass, level).map((s) => s.key));
+  const out: { featId: string; param: string | null }[] = [];
+  for (const [key, fid] of Object.entries(dec.feats)) {
+    if (!fid || !slotKeys.has(key)) continue;
+    out.push({ featId: fid, param: normalizeParam(fid, params[key]) });
+  }
+  for (const g of klass?.grantedFeats ?? []) {
+    if (g.level > level) continue;
+    out.push({ featId: g.feat, param: normalizeParam(g.feat, params[grantedParamKey(g.feat, g.level)]) });
+  }
+  return out;
+}
+
+/** Params are stored as catalogue ids. Docs saved before that change hold the display name, so fall
+ *  back to a name lookup rather than silently dropping the user's pick. */
+function normalizeParam(featId: string, raw: string | undefined): string | null {
+  if (!raw) return null;
+  const opts = C.featById.get(featId)?.param?.options;
+  if (!opts) return raw;
+  if (opts.some((o) => o.id === raw)) return raw;
+  return opts.find((o) => o.name === raw)?.id ?? raw;
+}
+
+/** Per-weapon attack/damage bonuses from weapon-parameterised feats. Keyed by weapon id. */
+interface WeaponFeatBonus { attack: number; damage: number; attackLines: BreakdownLine[]; damageLines: BreakdownLine[] }
+
+const WEAPON_FEAT_BONUSES: Record<string, { attack?: number; damage?: number }> = {
+  'weapon-focus': { attack: 1 },
+  'greater-weapon-focus': { attack: 1 },
+  'weapon-specialization': { damage: 2 },
+  'greater-weapon-specialization': { damage: 2 },
+};
+
+function weaponFeatBonuses(entries: { featId: string; param: string | null }[]): Map<string, WeaponFeatBonus> {
+  const map = new Map<string, WeaponFeatBonus>();
+  for (const { featId, param } of entries) {
+    const spec = WEAPON_FEAT_BONUSES[featId];
+    if (!spec || !param) continue;
+    const name = C.featById.get(featId)?.name ?? featId;
+    const cur = map.get(param) ?? { attack: 0, damage: 0, attackLines: [], damageLines: [] };
+    if (spec.attack) { cur.attack += spec.attack; cur.attackLines.push({ label: name, value: spec.attack }); }
+    if (spec.damage) { cur.damage += spec.damage; cur.damageLines.push({ label: name, value: spec.damage }); }
+    map.set(param, cur);
+  }
+  return map;
+}
 
 /** Everything the character is carrying, with play-time quantities and charges applied.
  *  Consumed items drop out of the load, so spending torches or drinking potions lightens you. */
@@ -637,11 +689,10 @@ function iterativeBonuses(primary: number, bab: number): number[] {
   return Array.from({ length: count }, (_, i) => primary - 5 * i);
 }
 
-/** Ready-to-use attack lines for the character's wielded/carried weapons.
- *  The per-weapon attack bonus reuses the generic melee/ranged totals (weapon-specific feats like
- *  Weapon Focus and magic enhancements aren't computed — noted, not folded); this adds the iterative
- *  sequence, Strength-scaled damage, and the weapon's own dice/crit for at-the-table use. */
-function weaponAttacks(doc: CharacterDoc, stats: Record<string, Stat>, bab: number, strMod: number): AttackLine[] {
+/** Ready-to-use attack lines for the character's wielded/carried weapons: the iterative sequence,
+ *  Strength-scaled damage, the weapon's own dice/crit, and any weapon-parameterised feat bonuses
+ *  (Weapon Focus & co.) that name this specific weapon. Magic enhancement is still not modelled. */
+function weaponAttacks(doc: CharacterDoc, stats: Record<string, Stat>, bab: number, strMod: number, featBonuses: Map<string, WeaponFeatBonus>): AttackLine[] {
   const melee = stats['attack:melee'];
   const ranged = stats['attack:ranged'];
   if (!melee || !ranged) return [];
@@ -654,25 +705,36 @@ function weaponAttacks(doc: CharacterDoc, stats: Record<string, Stat>, bab: numb
     seen.add(id);
     const kind: 'melee' | 'ranged' = w.hands === 'ranged' ? 'ranged' : 'melee';
     const base = kind === 'ranged' ? ranged : melee;
-    const bonuses = iterativeBonuses(base.total, bab);
-    let dmgMod = 0;
+    // Weapon-parameterised feats (Weapon Focus & co.) apply only to the weapon they name.
+    const fb = featBonuses.get(w.id);
+    const bonuses = iterativeBonuses(base.total + (fb?.attack ?? 0), bab);
+    // Strength contribution, scaled by how the weapon is held; feat damage adds on top.
+    let strDamage = 0;
     const notes: string[] = [];
     if (kind === 'ranged') {
       notes.push('Ranged: no Str to damage (composite bows and slings excepted).');
     } else if (slot === 'off') {
-      dmgMod = Math.floor(strMod * 0.5);
+      strDamage = Math.floor(strMod * 0.5);
       notes.push('Off-hand: ½× Str to damage; two-weapon-fighting penalties apply.');
     } else if (w.hands === 'two') {
-      dmgMod = Math.floor(strMod * 1.5);
+      strDamage = Math.floor(strMod * 1.5);
       notes.push('Two-handed: 1½× Str to damage.');
     } else {
-      dmgMod = strMod;
+      strDamage = strMod;
     }
+    const dmgMod = strDamage + (fb?.damage ?? 0);
     if (kind === 'melee' && w.range) notes.push(`Can be thrown (${w.range} ft): thrown attacks use Dex and add Str to damage.`);
     const damage = dmgMod !== 0 ? `${w.dmg}${fmtSigned(dmgMod)}` : w.dmg;
     const scaleNote = w.hands === 'two' && slot !== 'off' ? ' (1½×)' : slot === 'off' ? ' (½×)' : '';
-    const damageLines: BreakdownLine[] = kind === 'ranged' ? [] : [{ label: `Str modifier${scaleNote}`, value: dmgMod }];
-    lines.push({ id: w.id, name: w.name, kind, slot, bonuses, attackLines: base.lines, damage, damageLines, crit: w.crit, dmgType: w.dmgType, range: w.range, notes });
+    const damageLines: BreakdownLine[] = [
+      ...(kind === 'ranged' ? [] : [{ label: `Str modifier${scaleNote}`, value: strDamage }]),
+      ...(fb?.damageLines ?? []),
+    ];
+    lines.push({
+      id: w.id, name: w.name, kind, slot, bonuses,
+      attackLines: [...base.lines, ...(fb?.attackLines ?? [])],
+      damage, damageLines, crit: w.crit, dmgType: w.dmgType, range: w.range, notes,
+    });
   };
   add(doc.equipped.mainHand, 'main');
   add(doc.equipped.offHand, 'off');
