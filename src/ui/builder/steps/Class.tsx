@@ -32,7 +32,7 @@ export function ClassStep({ ch }: { ch: CharCtl }) {
   };
 
   return (
-    <div style={{ display: 'flex', gap: 28, maxWidth: 1120, height: '100%' }}>
+    <div style={{ display: 'flex', gap: 28, height: '100%' }}>
       <div style={{ flex: 'none', width: 280, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
         <h3 style={{ fontSize: 21, margin: '0 0 12px' }}>Class</h3>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, overflowY: 'auto', minHeight: 0, paddingRight: 6 }}>
@@ -70,10 +70,12 @@ export function ClassStep({ ch }: { ch: CharCtl }) {
           <span>Good saves <strong>{view.goodSaves.map((s) => s.charAt(0).toUpperCase() + s.slice(1)).join(', ')}</strong></span>
           <span>Skill ranks <strong>{view.skillRanks} + Int</strong></span>
         </div>
-        <p style={{ fontSize: 13.5, lineHeight: 1.65, color: 'var(--color-neutral-300)', maxWidth: 620 }}>{view.desc}</p>
+        {/* Body prose keeps a measure-based cap so lines stay readable on a wide window; the
+            structured lists below are free to use the full panel. */}
+        <p style={{ fontSize: 13.5, lineHeight: 1.65, color: 'var(--color-neutral-300)', maxWidth: '68ch' }}>{view.desc}</p>
 
         <h6 style={{ margin: '18px 0 8px', color: 'var(--color-neutral-500)' }}>Level 1 features</h6>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxWidth: 620 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxWidth: '92ch' }}>
           {view.features1.map((f) => (
             <div key={f.id} style={{ fontSize: 13, lineHeight: 1.55 }}><span style={{ fontWeight: 500 }}>{f.name}</span> <span style={{ color: 'var(--color-neutral-400)' }}>— {f.desc}</span></div>
           ))}
@@ -82,7 +84,7 @@ export function ClassStep({ ch }: { ch: CharCtl }) {
         {selectedClass === view.id && classSlots.length > 0 && (
           <>
             <h6 style={{ margin: '22px 0 8px', color: 'var(--color-neutral-500)' }}>Class choices</h6>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 620 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               {classSlots.map((slot) => (
                 <ChoiceSlotView key={slot.id} slot={slot} onToggle={toggleChoice} />
               ))}
@@ -136,7 +138,9 @@ function ChoiceSlotView({ slot, onToggle }: { slot: ChoiceSlot; onToggle: (slot:
       {many && (
         <input className="input" style={{ width: 220, marginBottom: 8 }} placeholder={`Search ${slot.label.toLowerCase()}…`} value={q} onChange={(e) => setQ(e.target.value)} />
       )}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      {/* Auto-fill grid: one column when narrow, more as the panel widens — long option lists
+          (33 blessings/domains) otherwise stack into a very tall scroll. */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(330px, 1fr))', gap: 6, alignItems: 'start' }}>
         {options.map((o) => (
           <OptionCard key={o.id} option={o} selected={slot.selected.includes(o.id)} onToggle={() => onToggle(slot, o.id)} />
         ))}

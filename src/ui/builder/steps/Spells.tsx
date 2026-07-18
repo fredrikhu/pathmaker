@@ -52,7 +52,7 @@ export function SpellsStep({ ch }: { ch: CharCtl }) {
   const view = viewId ? spellById.get(viewId) : null;
 
   return (
-    <div style={{ display: 'flex', gap: 24, maxWidth: 1120 }}>
+    <div style={{ display: 'flex', gap: 24 }}>
       <div style={{ flex: 1, minWidth: 420 }}>
         <h3 style={{ fontSize: 21, margin: '0 0 12px' }}>Spells</h3>
 

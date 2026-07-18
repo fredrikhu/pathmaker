@@ -28,7 +28,7 @@ export function RaceStep({ ch }: { ch: CharCtl }) {
   };
 
   return (
-    <div style={{ display: 'flex', gap: 28, maxWidth: 1120, height: '100%' }}>
+    <div style={{ display: 'flex', gap: 28, height: '100%' }}>
       <div style={{ flex: 'none', width: 280, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
         <h3 style={{ fontSize: 21, margin: '0 0 12px' }}>Race</h3>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 7, overflowY: 'auto', minHeight: 0, paddingRight: 6 }}>
@@ -56,10 +56,11 @@ export function RaceStep({ ch }: { ch: CharCtl }) {
             {selectedRace === view.id ? '✓ Selected' : 'Select race'}
           </button>
         </div>
-        <p style={{ fontSize: 13.5, lineHeight: 1.65, color: 'var(--color-neutral-300)', maxWidth: 620 }}>{view.desc}</p>
+        {/* Prose keeps a measure-based cap; the structured lists below use the full panel. */}
+        <p style={{ fontSize: 13.5, lineHeight: 1.65, color: 'var(--color-neutral-300)', maxWidth: '68ch' }}>{view.desc}</p>
 
         <h6 style={{ margin: '18px 0 8px', color: 'var(--color-neutral-500)' }}>Racial traits</h6>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxWidth: 620 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxWidth: '92ch' }}>
           {view.traits.map((t) => {
             const open = tip.card({ kicker: 'Racial trait', title: t.name, body: t.desc });
             return (
@@ -74,7 +75,7 @@ export function RaceStep({ ch }: { ch: CharCtl }) {
         {view.altTraits.length > 0 && (
           <>
             <h6 style={{ margin: '22px 0 8px', color: 'var(--color-neutral-500)' }}>Alternate racial traits</h6>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 620 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(330px, 1fr))', gap: 8, alignItems: 'start' }}>
               {view.altTraits.map((a) => {
                 const opt = altSlot?.options.find((o) => o.id === a.id);
                 if (!opt) return null;
