@@ -50,6 +50,26 @@ Working, verified (60 tests passing, typecheck clean):
 
 ## Deferred backlog — what's left out (current as of Phase 2 completion)
 
+### Option descriptions & class-granted feats (audit, 2026-07)
+
+Two related gaps were found and closed:
+- **Warpriest blessings now show their real effect.** `BLESSINGS` in `deities.ts` holds all 33
+  blessings (keyed by the matching domain id) with the **minor power (1st)** and **major power (10th)**,
+  verified against d20pfsrd's blessing list; the `warpriest-blessings` choice renders both instead of
+  the generic domain blurb.
+- **Class-granted fixed feats are now surfaced.** New `ClassDef.grantedFeats` (`{level, feat, note}`)
+  → `Sheet.grantedFeats`, rendered read-only under "Granted by your class" in the Feats step and folded
+  into the prerequisite feat set. Authored: **warpriest** Weapon Focus (deity's favored weapon, 1st),
+  **monk** Improved Unarmed Strike + Stunning Fist (1st), **wizard** Scribe Scroll (1st), **alchemist**
+  Brew Potion + Throw Anything (1st), **ranger** Endurance (3rd). Added the missing `throw-anything` feat.
+
+Still open from that audit:
+- **Cleric domain granted powers** are the one remaining generated-placeholder description ("The X domain
+  grants a granted power and one bonus spell per spell level"). Same shape as the blessing fix, but each
+  domain's two powers live on its own d20pfsrd page (~33 lookups), so they were not authored from memory.
+- **Gunslinger's Gunsmithing** is the only unmodelled granted feat — the feat isn't in the catalogue and
+  firearms aren't modelled at all, so adding it would dangle. The class feature text already describes it.
+
 ### Blocked on verification (won't ship guessed numbers — need a trusted source)
 - **Arcanist** spells-per-day grid (unique 9-level table; the fetched values were ambiguous) →
   `SpellcastingDef.table` unset, so no slot numbers shown for arcanist.

@@ -985,3 +985,79 @@ describe('per-weapon attack lines (fighter 6, Str 17)', () => {
     expect(b.notes.some((n) => n.includes('no Str to damage'))).toBe(true);
   });
 });
+
+describe('class-granted fixed feats', () => {
+  function warpriest1(): CharacterDoc {
+    let d = newCharacter('t-wp', 'Kadric');
+    d = withDecision(d, 'ability-base', { str: 15, dex: 12, con: 14, int: 10, wis: 14, cha: 10 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['str']);
+    d = withDecision(d, 'alignment', 'LG');
+    d = withDecision(d, 'class', 'warpriest');
+    d = withDecision(d, 'deity', 'iomedae');
+    return d;
+  }
+
+  it('warpriest gets Weapon Focus (favored weapon) as a granted feat at 1st', () => {
+    const g = resolve(warpriest1()).sheet.grantedFeats;
+    expect(g.map((x) => x.featId)).toEqual(['weapon-focus']);
+    expect(g[0].note).toMatch(/favored weapon/);
+    expect(g[0].name).toBe('Weapon Focus');
+  });
+
+  it('monk gets Improved Unarmed Strike + Stunning Fist granted at 1st', () => {
+    let d = newCharacter('t-monk', 'Sui');
+    d = withDecision(d, 'ability-base', { str: 14, dex: 15, con: 13, int: 10, wis: 14, cha: 8 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['dex']);
+    d = withDecision(d, 'alignment', 'LN');
+    d = withDecision(d, 'class', 'monk');
+    const ids = resolve(d).sheet.grantedFeats.map((g) => g.featId).sort();
+    expect(ids).toEqual(['improved-unarmed-strike', 'stunning-fist']);
+  });
+
+  it('wizard gets Scribe Scroll granted at 1st', () => {
+    let d = newCharacter('t-wiz', 'Ellis');
+    d = withDecision(d, 'ability-base', { str: 8, dex: 14, con: 13, int: 16, wis: 12, cha: 10 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['int']);
+    d = withDecision(d, 'alignment', 'N');
+    d = withDecision(d, 'class', 'wizard');
+    expect(resolve(d).sheet.grantedFeats.map((g) => g.featId)).toContain('scribe-scroll');
+  });
+
+  it('warpriest blessing options carry the minor + major power text', () => {
+    const slot = resolve(warpriest1()).slots.find((s) => s.id === 'blessings')!;
+    const glory = slot.options.find((o) => o.id === 'glory')!; // Iomedae grants Glory
+    expect(glory.legal).toBe(true);
+    expect(glory.desc).toMatch(/Minor \(1st\)/);
+    expect(glory.desc).toMatch(/Major \(10th\)/);
+  });
+});
+
+describe('granted feats respect the level they are gained at', () => {
+  function ranger(level: number): CharacterDoc {
+    let d = newCharacter('t-ranger', 'Sylla');
+    d = withDecision(d, 'ability-base', { str: 14, dex: 15, con: 13, int: 10, wis: 13, cha: 8 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['dex']);
+    d = withDecision(d, 'alignment', 'NG');
+    d = withDecision(d, 'class', 'ranger');
+    return atLevel(d, level);
+  }
+
+  it('ranger has no granted Endurance at 2nd but does at 3rd', () => {
+    expect(resolve(ranger(2)).sheet.grantedFeats).toEqual([]);
+    expect(resolve(ranger(3)).sheet.grantedFeats.map((g) => g.featId)).toEqual(['endurance']);
+  });
+
+  it('alchemist gets Brew Potion + Throw Anything at 1st', () => {
+    let d = newCharacter('t-alch', 'Fen');
+    d = withDecision(d, 'ability-base', { str: 10, dex: 14, con: 13, int: 16, wis: 12, cha: 8 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['int']);
+    d = withDecision(d, 'alignment', 'CN');
+    d = withDecision(d, 'class', 'alchemist');
+    expect(resolve(d).sheet.grantedFeats.map((g) => g.featId).sort()).toEqual(['brew-potion', 'throw-anything']);
+  });
+});

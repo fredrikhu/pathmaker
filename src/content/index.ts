@@ -7,7 +7,7 @@ export { TRAITS, traitById } from './traits';
 export { WEAPONS, ARMORS, GEAR, weaponById, armorById, gearById, anyItemById } from './equipment';
 export type { AnyItem } from './equipment';
 export {
-  DEITIES, deityById, DOMAINS, domainById, SCHOOLS, schoolById,
+  DEITIES, deityById, DOMAINS, domainById, BLESSINGS, blessingById, SCHOOLS, schoolById,
   BLOODLINES, bloodlineById, LANGUAGES,
 } from './deities';
 export { SPELLS, spellById } from './spells';

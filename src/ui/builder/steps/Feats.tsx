@@ -96,6 +96,26 @@ export function FeatsStep({ ch }: { ch: CharCtl }) {
       ))}
       {allFull && <p style={{ fontSize: 11.5, color: 'var(--warn-fg)', marginTop: -6, marginBottom: 12 }}>All feat slots are full — clear one to pick a different feat.</p>}
 
+      {resolution.sheet.grantedFeats.length > 0 && (
+        <div style={{ marginBottom: 16 }}>
+          <div className="micro" style={{ marginBottom: 6, color: 'var(--color-accent-300)' }}>Granted by your class</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 8 }}>
+            {resolution.sheet.grantedFeats.map((g) => {
+              const f = featById.get(g.featId);
+              return (
+                <div key={`${g.featId}-${g.level}`} style={{ padding: '9px 12px', borderRadius: 8, background: 'var(--color-surface)', boxShadow: 'inset 0 0 0 1px var(--color-divider)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: 13, fontWeight: 500 }}>{g.name}{g.note ? ` (${g.note})` : ''}</span>
+                    <span className="tag tag-neutral" style={{ fontSize: 10 }}>bonus · level {g.level}</span>
+                  </div>
+                  {f && <div style={{ fontSize: 12, color: 'var(--color-neutral-400)', marginTop: 2, lineHeight: 1.5 }}>{f.benefit}</div>}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12, flexWrap: 'wrap' }}>
         <input className="input" style={{ width: 230 }} placeholder="Search feats…" value={query} onChange={(e) => setQuery(e.target.value)} />
         <div style={{ display: 'flex', gap: 6 }}>

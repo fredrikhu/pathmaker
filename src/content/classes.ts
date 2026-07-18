@@ -495,6 +495,7 @@ for (const c of CLASSES) {
   if (!prog) continue;
   c.features = prog.features;
   if (prog.bonusFeats) c.bonusFeats = prog.bonusFeats;
+  if (prog.grantedFeats) c.grantedFeats = prog.grantedFeats;
   if (prog.choices) c.choices = [...(c.choices ?? []), ...prog.choices];
 }
 for (const c of CLASSES) {

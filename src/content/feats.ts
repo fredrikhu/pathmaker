@@ -51,6 +51,8 @@ export const FEATS: FeatDef[] = [
     param: { label: 'School', options: ['Evocation', 'Conjuration', 'Enchantment', 'Illusion', 'Necromancy', 'Transmutation', 'Abjuration', 'Divination'] } },
   { id: 'improved-unarmed-strike', name: 'Improved Unarmed Strike', types: ['combat'], reqText: '—',
     benefit: 'Deal lethal damage with unarmed strikes and are always considered armed.' },
+  { id: 'throw-anything', name: 'Throw Anything', types: ['combat'], reqText: '—',
+    benefit: 'No penalty for using an improvised ranged weapon, and +1 circumstance bonus on attack rolls with thrown splash weapons.' },
   { id: 'weapon-specialization', name: 'Weapon Specialization', types: ['combat'], reqText: 'Weapon Focus, Fighter 4',
     benefit: '+2 bonus on damage rolls with the selected weapon.',
     prerequisites: { all: [{ feat: 'weapon-focus' }, { classId: 'fighter' }] } },

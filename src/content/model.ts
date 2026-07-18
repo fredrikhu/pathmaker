@@ -110,6 +110,10 @@ export interface ClassDef {
   features?: LeveledFeatureDef[];
   /** Class bonus feat slots, e.g. fighter at every even level, wizard at 5/10/15/20. */
   bonusFeats?: { levels: number[]; combatOnly?: boolean; label?: string };
+  /** Fixed feats the class confers automatically (not player choices), e.g. warpriest's Weapon
+   *  Focus, wizard's Scribe Scroll, monk's Improved Unarmed Strike / Stunning Fist. Shown read-only
+   *  in the Feats step and folded into the character's feat set for prerequisites. */
+  grantedFeats?: { level: number; feat: string; note?: string }[];
   choices?: ClassChoiceDef[];
   spellcasting?: SpellcastingDef;
 }
@@ -210,6 +214,15 @@ export interface DomainDef {
   id: string;
   name: string;
   desc: string;
+}
+
+/** Warpriest blessing (keyed by the matching domain id): the minor power granted at 1st level and
+ *  the major power granted at 10th. Usable a shared 3 + ½ level times/day (the blessing pool). */
+export interface BlessingDef {
+  id: string;
+  name: string;
+  minor: string;
+  major: string;
 }
 
 export interface BloodlineDef {

@@ -16,6 +16,8 @@ const ROGUE_TALENTS_ALL = [...ROGUE_TALENTS, ...ROGUE_ADVANCED_TALENTS];
 export interface ClassProgression {
   features: LeveledFeatureDef[];
   bonusFeats?: { levels: number[]; combatOnly?: boolean; label?: string };
+  /** Fixed feats the class grants automatically (not player picks) — shown read-only in Feats. */
+  grantedFeats?: { level: number; feat: string; note?: string }[];
   /** Per-level subsystem picks, merged after the class's level-1 choices. */
   choices?: ClassChoiceDef[];
 }
@@ -53,6 +55,10 @@ export const CLASS_PROGRESSION: Record<string, ClassProgression> = {
   },
   monk: {
     bonusFeats: { levels: [1, 2, 6, 10, 14, 18], label: 'Monk bonus feat' },
+    grantedFeats: [
+      { level: 1, feat: 'improved-unarmed-strike' },
+      { level: 1, feat: 'stunning-fist' },
+    ],
     features: [
       f(1, 'monk-flurry', 'Flurry of Blows', 'Extra attacks with unarmed strikes or monk weapons as a full attack.'),
       f(1, 'monk-unarmed', 'Unarmed Strike', 'Deal lethal 1d6 unarmed damage (scaling), always armed; gain Improved Unarmed Strike.'),
@@ -94,6 +100,7 @@ export const CLASS_PROGRESSION: Record<string, ClassProgression> = {
   },
   ranger: {
     bonusFeats: { levels: [2, 6, 10, 14, 18], label: 'Combat style feat' },
+    grantedFeats: [{ level: 3, feat: 'endurance' }],
     features: [
       f(1, 'ranger-favored-enemy', 'Favored Enemy', '+2 (scaling) attack/damage and skills vs one creature type; add another at 5th, 10th, 15th, 20th.'),
       f(1, 'ranger-track', 'Track', 'Add half level to Survival to follow tracks.'),
@@ -162,6 +169,7 @@ export const CLASS_PROGRESSION: Record<string, ClassProgression> = {
   },
   wizard: {
     bonusFeats: { levels: [5, 10, 15, 20], label: 'Wizard bonus feat' },
+    grantedFeats: [{ level: 1, feat: 'scribe-scroll' }],
     features: [
       f(1, 'wizard-arcane-bond', 'Arcane Bond', 'Bond with a familiar or an object to cast through.'),
       f(1, 'wizard-arcane-school', 'Arcane School', 'Specialize in a school (or universalist) for powers and bonus spells.'),
@@ -202,6 +210,10 @@ export const CLASS_PROGRESSION: Record<string, ClassProgression> = {
 
   // ---------------------------------------------------------------- Base classes
   alchemist: {
+    grantedFeats: [
+      { level: 1, feat: 'brew-potion' },
+      { level: 1, feat: 'throw-anything' },
+    ],
     features: [
       f(1, 'alch-alchemy', 'Alchemy', 'Brew extracts (personal spell-in-a-bottle) and identify potions with a bonus.'),
       f(1, 'alch-bomb', 'Bomb 1d6', 'Throw splash bombs for 1d6 + Int, scaling +1d6 every odd level.'),
@@ -346,6 +358,7 @@ export const CLASS_PROGRESSION: Record<string, ClassProgression> = {
   },
   warpriest: {
     bonusFeats: { levels: [3, 6, 9, 12, 15, 18], label: 'Warpriest bonus feat' },
+    grantedFeats: [{ level: 1, feat: 'weapon-focus', note: "deity's favored weapon" }],
     features: [
       f(1, 'wp-aura', 'Aura', "Project your deity's alignment aura."),
       f(1, 'wp-blessings', 'Blessings', 'Two minor blessings from your deity\'s domains; major versions at 10th.'),

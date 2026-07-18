@@ -3,7 +3,7 @@ import type {
   Ability, Alignment, CharacterDoc, ChoiceSlot, Effect, Issue, Resolution,
   Sheet, SlotOption, Stat,
 } from './types';
-import type { AttackLine, BreakdownLine, ProgressionRow, ResourcePool } from './types';
+import type { AttackLine, BreakdownLine, GrantedFeat, ProgressionRow, ResourcePool } from './types';
 import { ABILITIES, abilityMod } from './types';
 import { evalPredicate, explainFailure, type PredicateCtx } from './predicates';
 import { stack, type Contribution } from './stack';
@@ -162,9 +162,20 @@ function validFeatIds(dec: Decisions, level: number): string[] {
   const race = dec.raceId ? C.raceById.get(dec.raceId) : undefined;
   const klass = dec.classId ? C.classById.get(dec.classId) : undefined;
   const keys = new Set(featSlots(dec, race, klass, level).map((s) => s.key));
-  return Object.entries(dec.feats)
+  const chosen = Object.entries(dec.feats)
     .filter(([k, v]) => v && keys.has(k))
     .map(([, v]) => v as string);
+  // Class-granted fixed feats count toward the feat set for prerequisites (e.g. monk's Improved
+  // Unarmed Strike enabling Stunning Fist, warpriest's Weapon Focus).
+  return [...chosen, ...grantedFeatsFor(klass, level).map((g) => g.featId)];
+}
+
+/** Fixed feats a class confers automatically up through `level`, resolved to display names. */
+function grantedFeatsFor(klass: C.ClassDef | undefined, level: number): GrantedFeat[] {
+  if (!klass?.grantedFeats) return [];
+  return klass.grantedFeats
+    .filter((g) => g.level <= level)
+    .map((g) => ({ level: g.level, featId: g.feat, name: C.featById.get(g.feat)?.name ?? g.feat, note: g.note }));
 }
 
 function collectEffects(dec: Decisions, doc: CharacterDoc, level: number): Effect[] {
@@ -556,6 +567,7 @@ export function resolve(doc: CharacterDoc): Resolution {
     progression,
     pools: classPools(klass, level, mods),
     attacks: weaponAttacks(doc, stats, bab, mods.str),
+    grantedFeats: grantedFeatsFor(klass, level),
     summaryLine,
   };
   return { sheet, slots, issues, steps };
@@ -1045,14 +1057,19 @@ function classChoiceOptions(ch: C.ClassChoiceDef, dec: Decisions): SlotOption[] 
     case 'cleric-domains':
     case 'warpriest-blessings': {
       // Warpriest blessings are chosen from the deity's domains — same filter as cleric domains.
-      const noun = ch.kind === 'warpriest-blessings' ? 'blessing' : 'domain';
+      const isBlessing = ch.kind === 'warpriest-blessings';
+      const noun = isBlessing ? 'blessing' : 'domain';
       const deity = dec.deityId ? C.deityById.get(dec.deityId) : undefined;
       const allowed = deity && deity.id !== 'none' ? new Set(deity.domains) : null;
-      return C.DOMAINS.map((d) => ({
-        id: d.id, name: d.name, desc: d.desc,
-        legal: allowed ? allowed.has(d.id) : true,
-        whyNot: allowed && !allowed.has(d.id) ? `${deity!.name} does not grant the ${d.name} ${noun}` : undefined,
-      }));
+      return C.DOMAINS.map((d) => {
+        const bless = isBlessing ? C.blessingById.get(d.id) : undefined;
+        const desc = bless ? `Minor (1st): ${bless.minor}  ·  Major (10th): ${bless.major}` : d.desc;
+        return {
+          id: d.id, name: d.name, desc,
+          legal: allowed ? allowed.has(d.id) : true,
+          whyNot: allowed && !allowed.has(d.id) ? `${deity!.name} does not grant the ${d.name} ${noun}` : undefined,
+        };
+      });
     }
     case 'sorcerer-bloodline':
       return C.BLOODLINES.map((b) => ({ id: b.id, name: b.name, desc: b.desc, legal: true, meta: { classSkill: b.classSkill } }));

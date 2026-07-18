@@ -168,6 +168,15 @@ export interface ResourcePool {
   unit: 'rounds' | 'uses' | 'points';
 }
 
+/** A feat conferred automatically by the class (not a player choice), shown read-only in Feats. */
+export interface GrantedFeat {
+  level: number;
+  featId: string;
+  name: string;
+  /** Extra qualifier, e.g. "deity's favored weapon" for warpriest Weapon Focus. */
+  note?: string;
+}
+
 /** A ready-to-use attack line for a wielded/carried weapon (for the play sheet). */
 export interface AttackLine {
   id: string;
@@ -215,6 +224,8 @@ export interface Sheet {
   pools: ResourcePool[];
   /** Per-weapon attack lines for wielded/carried weapons (for the play sheet). */
   attacks: AttackLine[];
+  /** Feats granted automatically by the class up to this level (read-only in Feats). */
+  grantedFeats: GrantedFeat[];
   summaryLine: string; // "LN Human Fighter 1"
 }
 

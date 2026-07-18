@@ -122,6 +122,11 @@ describe('classes', () => {
         expect(l, `class ${c.id} bonusFeat level out of 1..20`).toBeGreaterThanOrEqual(1);
         expect(l, `class ${c.id} bonusFeat level out of 1..20`).toBeLessThanOrEqual(20);
       }
+      for (const g of c.grantedFeats ?? []) {
+        expect(C.featById.get(g.feat), `class ${c.id}: grantedFeat "${g.feat}" not a real feat`).toBeTruthy();
+        expect(g.level, `class ${c.id} grantedFeat ${g.feat}: level out of 1..20`).toBeGreaterThanOrEqual(1);
+        expect(g.level, `class ${c.id} grantedFeat ${g.feat}: level out of 1..20`).toBeLessThanOrEqual(20);
+      }
       for (const ch of c.choices ?? []) {
         expect(CHOICE_KINDS.has(ch.kind), `class ${c.id}: unknown choice kind "${ch.kind}"`).toBe(true);
         expect(ch.count, `${c.id}/${ch.id} count`).toBeGreaterThan(0);
@@ -241,6 +246,14 @@ describe('deities and bloodlines', () => {
   it('bloodline class-skill grants reference real skills', () => {
     for (const b of C.BLOODLINES) {
       expect(skillIds.has(b.classSkill), `bloodline ${b.id}: unknown class skill "${b.classSkill}"`).toBe(true);
+    }
+  });
+  it('every domain has a matching warpriest blessing with minor + major powers', () => {
+    for (const d of C.DOMAINS) {
+      const b = C.blessingById.get(d.id);
+      expect(b, `domain ${d.id}: no matching blessing`).toBeTruthy();
+      expect(b!.minor.length, `blessing ${d.id}: empty minor power`).toBeGreaterThan(0);
+      expect(b!.major.length, `blessing ${d.id}: empty major power`).toBeGreaterThan(0);
     }
   });
 });
