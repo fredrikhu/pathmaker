@@ -289,10 +289,15 @@ describe('deities and bloodlines', () => {
       ids.add(w.id);
       expect(C.BODY_SLOTS, `${w.id}: unknown slot "${w.slot}"`).toContain(w.slot);
       expect(w.cost, `${w.id}: cost`).toBeGreaterThan(0);
-      expect(w.effects.length, `${w.id}: no effects`).toBeGreaterThan(0);
       checkEffects(w.effects, `wondrous ${w.id}`);
-      // Cost follows bonus² × per-bonus, so a mistyped tier shows up as a broken curve.
-      expect(w.cost % (w.bonus * w.bonus), `${w.id}: cost is not bonus² × a round figure`).toBe(0);
+      // An item with no modelled effect must at least say what it does, so it is never a
+      // silent gold sink.
+      expect(w.desc.length, `${w.id}: no description`).toBeGreaterThan(0);
+      if (w.tiered) {
+        // Tiered families follow bonus² × per-bonus, so a mistyped tier breaks the curve.
+        expect(w.bonus, `${w.id}: tiered item needs a bonus`).toBeGreaterThan(0);
+        expect(w.cost % (w.bonus * w.bonus), `${w.id}: cost is not bonus² × a round figure`).toBe(0);
+      }
     }
   });
   it('every body slot has a capacity', () => {

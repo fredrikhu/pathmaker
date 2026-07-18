@@ -143,8 +143,25 @@ Still open from that audit:
     retroactively across all levels, and deflection/natural-armor stack while two rings of protection
     (same type) do not.
   - Cost is derived like item quality, so removing an item refunds it.
-  - Not modelled: specific magic items (named weapons/armour), consumable wondrous items, and the
-    rest of the wondrous catalogue (boots, gloves, eyes, hands, wrists slots have no items yet).
+  - **The rest of the catalogue** now fills the remaining slots, every price and bonus type read off
+    the item's own page: bracers of armor +1…+8 (wrists), and flat-priced items — boots of elvenkind,
+    cloak of elvenkind, eyes of the eagle, gloves of swimming and climbing, vest of escape (chest),
+    circlet of persuasion (head, covering every Cha-based skill).
+    - **Bracers of armor grant an *armor* bonus**, so the engine's same-type rule already stops them
+      stacking with a worn suit — the higher of the two simply wins. No special case needed.
+    - **Boots of striding and springing** add +10 ft. to speed as a real total; their +5 Acrobatics is
+      jump-only, so it is carried as a `condition` and shown as an annotation, never in the total.
+      This required a small engine change: `speed` is now an effect target (applied after any
+      armour/load reduction, which is computed from base land speed).
+    - **Boots of speed and goggles of night** are carried with an empty `effects` list: the engine
+      does not model haste or darkvision as a number, so they cost gold and claim a slot but claim
+      no bonus anywhere. A content test requires every such item to carry a description, so an item
+      with no modelled effect can never be a silent gold sink.
+    - `WondrousItemDef.tiered` distinguishes +N families (checked against the bonus² curve by a
+      content test) from flat-priced items, which have no curve to check.
+  - Not modelled: specific magic items (named weapons/armour) and consumable wondrous items. The
+    amulet of mighty fists is deliberately absent — it buffs unarmed/natural attacks, which the
+    attack-line engine does not yet model, and listing it would imply a bonus that never appears.
 - **Starting gold uses Character Wealth by Level** above 1st (`startingWealth` in `progression.ts`,
   table verified against d20pfsrd): a 3rd-level character starts with 3,000 gp, not the class's
   1st-level roll. Trait gold (Rich Parents) still only replaces the 1st-level figure.

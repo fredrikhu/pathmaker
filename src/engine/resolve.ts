@@ -575,7 +575,11 @@ export function resolve(doc: CharacterDoc): Resolution {
   const encumberingLoad = loadLabel === 'Medium' || loadLabel === 'Heavy' || loadLabel === 'Overloaded';
   const baseSpeed = race?.speed ?? 30;
   const speedReduced = !race?.speedNeverReduced && (encumberingArmor || encumberingLoad);
-  const effectiveSpeed = speedReduced ? baseSpeed - Math.floor(baseSpeed / 3 / 5) * 5 : baseSpeed;
+  const reducedSpeed = speedReduced ? baseSpeed - Math.floor(baseSpeed / 3 / 5) * 5 : baseSpeed;
+  // Speed-boosting items (boots of striding and springing) add on top, after any armor/load
+  // reduction — the reduction is computed from base land speed, not from the boosted figure.
+  const speedBonus = stack(unconds('speed')).total;
+  const effectiveSpeed = reducedSpeed + speedBonus;
 
   // ---- Gold ----
   // A character built above 1st level uses Character Wealth by Level, not the class's 1st-level
@@ -595,7 +599,9 @@ export function resolve(doc: CharacterDoc): Resolution {
   }, 0);
   // Worn items are charged whether or not a slot conflict suppresses them — you still bought them.
   const wornSpend = wornItems(doc).reduce((sum, item) => sum + item.cost, 0);
-  const gold = Math.round((startGold - doc.goldSpent - qualitySpend - wornSpend) * 100) / 100;
+  // `?? 0` guards imported documents that omit goldSpent — without it the whole gold figure
+  // silently becomes NaN rather than merely being wrong.
+  const gold = Math.round((startGold - (doc.goldSpent ?? 0) - qualitySpend - wornSpend) * 100) / 100;
 
   // ---- Caster level + spell slots ----
   const sc = klass?.spellcasting;
@@ -665,7 +671,7 @@ export function resolve(doc: CharacterDoc): Resolution {
     skillRanksTotal, skillRanksSpent,
     gold,
     load: { current: load, light: carry.light, medium: carry.medium, heavy: carry.heavy, label: loadLabel },
-    speed: { base: effectiveSpeed, ...(speedReduced ? { reducedFrom: baseSpeed } : {}), ...(race?.speeds ?? {}) },
+    speed: { base: effectiveSpeed, ...(speedReduced ? { reducedFrom: baseSpeed + speedBonus } : {}), ...(race?.speeds ?? {}) },
     spellFocus,
     ...(sc && clvl > 0 ? { casterLevel: clvl, spellSlots } : {}),
     ...(spellsKnown && spellsKnown.length ? { spellsKnown } : {}),

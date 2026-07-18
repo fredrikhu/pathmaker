@@ -1659,4 +1659,57 @@ describe('worn magic items', () => {
   it('ignores an unknown item id', () => {
     expect(resolve(worn(['no-such-item'])).sheet.worn).toEqual([]);
   });
+
+  it('a document missing goldSpent resolves to a number, not NaN', () => {
+    // Imported/hand-written JSON can omit goldSpent; gold must degrade to "nothing spent"
+    // rather than poisoning the whole figure.
+    const d = worn(['bracers-armor-4']);
+    const bare = { ...d, goldSpent: undefined } as unknown as CharacterDoc;
+    expect(Number.isNaN(resolve(bare).sheet.gold)).toBe(false);
+    expect(resolve(bare).sheet.gold).toBe(resolve({ ...d, goldSpent: 0 }).sheet.gold);
+  });
+
+  it('bracers of armor grant an armor bonus that does not stack with worn armor', () => {
+    // Same bonus type, so the higher of the two wins rather than adding.
+    const bare = resolve(worn([])).sheet.stats['ac'].total;
+    const bracers = resolve(worn(['bracers-armor-5'])).sheet.stats['ac'].total;
+    expect(bracers - bare).toBe(5);
+    // Chain shirt is +4 armor: the +5 bracers replace it, they do not make +9.
+    let armored = worn([]);
+    armored = { ...armored, equipped: { ...armored.equipped, armor: 'chain-shirt' } };
+    const withBoth = { ...armored, decisions: { ...armored.decisions, 'worn-items': ['bracers-armor-5'] } } as CharacterDoc;
+    expect(resolve(withBoth).sheet.stats['ac'].total - resolve(armored).sheet.stats['ac'].total).toBe(1);
+  });
+
+  it('a skill item adds a competence bonus to each skill it names', () => {
+    const before = resolve(worn([])).sheet.stats;
+    const after = resolve(worn(['vest-of-escape'])).sheet.stats;
+    expect(after['skill:escape-artist'].total - before['skill:escape-artist'].total).toBe(6);
+    expect(after['skill:disable-device'].total - before['skill:disable-device'].total).toBe(4);
+    expect(after['skill:stealth'].total).toBe(before['skill:stealth'].total);
+  });
+
+  it('the circlet of persuasion covers every Charisma-based skill', () => {
+    const before = resolve(worn([])).sheet.stats;
+    const after = resolve(worn(['circlet-of-persuasion'])).sheet.stats;
+    for (const id of ['bluff', 'diplomacy', 'intimidate', 'use-magic-device']) {
+      expect(after[`skill:${id}`].total - before[`skill:${id}`].total).toBe(3);
+    }
+    expect(after['skill:perception'].total).toBe(before['skill:perception'].total);
+  });
+
+  it('boots of striding and springing raise speed but leave the Acrobatics total alone', () => {
+    const before = resolve(worn([])).sheet;
+    const after = resolve(worn(['boots-striding-springing'])).sheet;
+    expect(after.speed.base - before.speed.base).toBe(10);
+    // The +5 is jump-only, so it is an annotation, never part of the total.
+    expect(after.stats['skill:acrobatics'].total).toBe(before.stats['skill:acrobatics'].total);
+    expect(after.stats['skill:acrobatics'].annotations.join(' ')).toContain('to jump');
+  });
+
+  it('an item with no modelled bonus still costs gold and claims its slot', () => {
+    const r = resolve(worn(['goggles-of-night', 'eyes-of-the-eagle']));
+    expect(resolve(worn([])).sheet.gold - r.sheet.gold).toBe(12000 + 2500);
+    expect(r.sheet.worn.map((w) => w.active)).toEqual([true, false]);
+  });
 });

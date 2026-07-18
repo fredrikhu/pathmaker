@@ -4,7 +4,7 @@ import type { CharacterDoc } from '../../../engine/types';
 import { TermSpan } from '../../Tooltip';
 import { qualityCost, qualityPrefix, totalBonus, MAX_ENHANCEMENT, MAX_TOTAL_BONUS, type ItemQuality } from '../../../engine/items';
 import { propertyPrice } from '../../../engine/resolve';
-import { WEAPON_PROPERTIES, ARMOR_PROPERTIES, WONDROUS_ITEMS, armorById as armorLookup } from '../../../content/index';
+import { WEAPON_PROPERTIES, ARMOR_PROPERTIES, WONDROUS_ITEMS, BODY_SLOTS, armorById as armorLookup } from '../../../content/index';
 
 /** Abilities offered for an item: weapon abilities on weapons, and the matching
  *  armour/shield list on armour — a shield can't take Shadow, and armour can't take Bashing. */
@@ -216,7 +216,7 @@ export function EquipmentStep({ ch }: { ch: CharCtl }) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 8 }}>
             {sheet.worn.length === 0 && <span className="text-muted" style={{ fontSize: 12.5 }}>Nothing worn.</span>}
             {sheet.worn.map((w, i) => (
-              <div key={`${w.id}-${i}`} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 12px', borderRadius: 8, background: 'var(--color-surface)', opacity: w.active ? 1 : 0.55 }}>
+              <div key={`${w.id}-${i}`} title={w.desc} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 12px', borderRadius: 8, background: 'var(--color-surface)', opacity: w.active ? 1 : 0.55 }}>
                 <span style={{ flex: 1, fontSize: 13 }}>
                   {w.name}
                   <span className="text-muted" style={{ fontSize: 11 }}> · {w.slot}</span>
@@ -230,10 +230,14 @@ export function EquipmentStep({ ch }: { ch: CharCtl }) {
           <select className="input" style={{ fontSize: 12, padding: '4px 6px', width: '100%' }} value=""
             onChange={(e) => { if (e.target.value) addWorn(e.target.value); }}>
             <option value="">Add a worn item…</option>
-            {WONDROUS_ITEMS.map((w) => (
-              <option key={w.id} value={w.id} disabled={w.cost > sheet.gold}>
-                {w.name} · {w.slot} · {w.cost.toLocaleString()} gp{w.cost > sheet.gold ? ' — too costly' : ''}
-              </option>
+            {BODY_SLOTS.filter((slot) => WONDROUS_ITEMS.some((w) => w.slot === slot)).map((slot) => (
+              <optgroup key={slot} label={slot}>
+                {WONDROUS_ITEMS.filter((w) => w.slot === slot).map((w) => (
+                  <option key={w.id} value={w.id} disabled={w.cost > sheet.gold}>
+                    {w.name} · {w.cost.toLocaleString()} gp{w.cost > sheet.gold ? ' — too costly' : ''}
+                  </option>
+                ))}
+              </optgroup>
             ))}
           </select>
         </div>
