@@ -63,12 +63,17 @@ Two related gaps were found and closed:
   **monk** Improved Unarmed Strike + Stunning Fist (1st), **wizard** Scribe Scroll (1st), **alchemist**
   Brew Potion + Throw Anything (1st), **ranger** Endurance (3rd). Added the missing `throw-anything` feat.
 
+- **Cleric domain granted powers are now authored too.** `DomainDef` gained `powers: {name, level, desc}[]`;
+  all 33 domains carry their **two** granted powers (the second at 4th/6th/8th depending on domain), each
+  verified against that domain's own d20pfsrd page. `desc` is composed from them ("Fire Bolt (1st): … ·
+  Fire Resistance (6th): …"), so the cleric domain picker explains itself. This removed the last
+  generated-placeholder description in the content set.
+
 Still open from that audit:
-- **Cleric domain granted powers** are the one remaining generated-placeholder description ("The X domain
-  grants a granted power and one bonus spell per spell level"). Same shape as the blessing fix, but each
-  domain's two powers live on its own d20pfsrd page (~33 lookups), so they were not authored from memory.
 - **Gunslinger's Gunsmithing** is the only unmodelled granted feat — the feat isn't in the catalogue and
   firearms aren't modelled at all, so adding it would dangle. The class feature text already describes it.
+- **Bonus domain spells** are still not modelled per-spell (the extra domain slot is a +1 count
+  approximation in the engine); only the granted powers are authored.
 
 ### Blocked on verification (won't ship guessed numbers — need a trusted source)
 - **Arcanist** spells-per-day grid (unique 9-level table; the fetched values were ambiguous) →

@@ -213,7 +213,10 @@ export interface SchoolDef {
 export interface DomainDef {
   id: string;
   name: string;
+  /** Composed from `powers` — "Name (1st): effect · Name (8th): effect". */
   desc: string;
+  /** The domain's two granted powers (cleric). Bonus domain spells are not modelled. */
+  powers: { name: string; level: number; desc: string }[];
 }
 
 /** Warpriest blessing (keyed by the matching domain id): the minor power granted at 1st level and

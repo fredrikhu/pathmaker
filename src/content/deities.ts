@@ -24,12 +24,54 @@ export const DEITIES: DeityDef[] = [
 
 export const deityById = new Map(DEITIES.map((d) => [d.id, d]));
 
-export const DOMAINS: DomainDef[] = [
-  'air', 'animal', 'artifice', 'chaos', 'charm', 'community', 'darkness', 'death', 'destruction',
-  'earth', 'evil', 'fire', 'glory', 'good', 'healing', 'knowledge', 'law', 'liberation', 'luck',
-  'madness', 'magic', 'nobility', 'plant', 'protection', 'repose', 'rune', 'strength', 'sun',
-  'travel', 'trickery', 'war', 'water', 'weather',
-].map((id) => ({ id, name: id.charAt(0).toUpperCase() + id.slice(1), desc: `The ${id} domain grants a granted power and one bonus spell per spell level.` }));
+// Cleric domain granted powers, verified against d20pfsrd's per-domain pages. Each domain grants two
+// powers (the second at 4th/6th/8th depending on the domain). Bonus domain spells are not modelled;
+// the extra domain spell slot is applied as a +1 count in the engine.
+const p = (name: string, level: number, desc: string) => ({ name, level, desc });
+const ordinalLevel = (l: number) => (l === 1 ? '1st' : l === 2 ? '2nd' : l === 3 ? '3rd' : `${l}th`);
+
+const DOMAIN_POWERS: Record<string, ReturnType<typeof p>[]> = {
+  air: [p('Lightning Arc', 1, 'Ranged touch attack for 1d6 electricity +1 per two cleric levels; 3 + Wis/day.'), p('Electricity Resistance', 6, 'Resist electricity 10, rising to 20 at 12th and immunity at 20th.')],
+  animal: [p('Speak with Animals', 1, 'Speak with animals for 3 + cleric level rounds/day.'), p('Animal Companion', 4, 'Gain an animal companion at an effective druid level of your cleric level − 3.')],
+  artifice: [p("Artificer's Touch", 1, 'Cast mending at will; melee touch damages objects and constructs for 1d6 +1 per two levels; 3 + Wis/day.'), p('Dancing Weapons', 8, 'Give a touched weapon the dancing quality for 4 rounds; 1/day, +1 per four levels after 8th.')],
+  chaos: [p('Touch of Chaos', 1, 'Melee touch makes the target roll twice and take the worse result for 1 round; 3 + Wis/day.'), p('Chaos Blade', 8, 'Give a touched weapon the anarchic quality for ½ cleric level rounds; 1/day, +1 per four levels after 8th.')],
+  charm: [p('Dazing Touch', 1, 'Melee touch dazes a creature with fewer HD than your level for 1 round; 3 + Wis/day.'), p('Charming Smile', 8, 'Cast charm person as a swift action, one target at a time; cleric level rounds/day.')],
+  community: [p('Calming Touch', 1, 'Touch heals 1d6 nonlethal +1 per level and removes fatigued, shaken, and sickened; 3 + Wis/day.'), p('Unity', 8, 'Allies within 30 ft may use your saving throw against an effect targeting you and them; 1/day, +1 per four levels after 8th.')],
+  darkness: [p('Touch of Darkness', 1, 'Melee touch gives the target a 20% miss chance for ½ cleric level rounds; 3 + Wis/day.'), p('Eyes of Darkness', 8, 'See normally regardless of darkness for ½ cleric level rounds/day.')],
+  death: [p('Bleeding Touch', 1, 'Melee touch deals 1d6 damage per round for ½ cleric level rounds; 3 + Wis/day.'), p("Death's Embrace", 8, 'You heal from channeled negative energy as undead do.')],
+  destruction: [p('Destructive Smite', 1, 'One melee attack gains a morale damage bonus equal to ½ your level (min 1); 3 + Wis/day.'), p('Destructive Aura', 8, '30-ft aura: attacks gain ½-level morale damage and all critical threats auto-confirm; cleric level rounds/day.')],
+  earth: [p('Acid Dart', 1, 'Ranged touch attack for 1d6 acid +1 per two cleric levels; 3 + Wis/day.'), p('Acid Resistance', 6, 'Resist acid 10, rising to 20 at 12th and immunity at 20th.')],
+  evil: [p('Touch of Evil', 1, 'Melee touch sickens a creature for ½ cleric level rounds; 3 + Wis/day.'), p('Scythe of Evil', 8, 'Give a touched weapon the unholy quality for ½ cleric level rounds; 1/day, +1 per four levels after 8th.')],
+  fire: [p('Fire Bolt', 1, 'Ranged touch attack for 1d6 fire +1 per two cleric levels; 3 + Wis/day.'), p('Fire Resistance', 6, 'Resist fire 10, rising to 20 at 12th and immunity at 20th.')],
+  glory: [p('Touch of Glory', 1, 'Touch grants a bonus equal to your cleric level on one Charisma-based check; 3 + Wis/day.'), p('Divine Presence', 8, '30-ft aura grants allies sanctuary; cleric level rounds/day, ending if anyone in it attacks.')],
+  good: [p('Touch of Good', 1, 'Touch grants a sacred bonus of ½ your level (min 1) on attacks, checks, and saves for 1 round; 3 + Wis/day.'), p('Holy Lance', 8, 'Give a touched weapon the holy quality for ½ cleric level rounds; 1/day, +1 per four levels after 8th.')],
+  healing: [p('Rebuke Death', 1, 'Touch a creature below 0 HP to heal 1d4 +1 per two cleric levels; 3 + Wis/day.'), p("Healer's Blessing", 6, 'All your cure spells are treated as empowered (+50% healing).')],
+  knowledge: [p('Lore Keeper', 1, "Touch a creature to learn its abilities as a Knowledge check of 15 + cleric level + Wis."), p('Remote Viewing', 6, 'Use clairaudience/clairvoyance for cleric level rounds/day.')],
+  law: [p('Touch of Law', 1, 'Touch lets a willing creature treat d20 rolls as an 11 for 1 round; 3 + Wis/day.'), p('Staff of Order', 8, 'Give a touched weapon the axiomatic quality for ½ cleric level rounds; 1/day, +1 per four levels after 8th.')],
+  liberation: [p('Liberation', 1, 'Move normally despite magic that impedes movement; cleric level rounds/day.'), p("Freedom's Call", 8, '30-ft aura suppresses confused, grappled, frightened, panicked, paralyzed, pinned, and shaken for allies; cleric level rounds/day.')],
+  luck: [p('Bit of Luck', 1, 'Touch lets a willing creature roll twice and take the better result for 1 round; 3 + Wis/day.'), p('Good Fortune', 6, 'Reroll one d20 as an immediate action; 1/day, +1 per six levels after 6th.')],
+  madness: [p('Vision of Madness', 1, 'Melee touch grants a bonus to one roll type and a penalty to the others; 3 + Wis/day.'), p('Aura of Madness', 8, '30-ft confusion aura (Will negates); cleric level rounds/day.')],
+  magic: [p('Hand of the Acolyte', 1, 'Make a melee weapon attack at 30 ft using your Wis modifier to hit; 3 + Wis/day.'), p('Dispelling Touch', 8, 'Use targeted dispel magic as a melee touch attack; 1/day, +1 per four levels after 8th.')],
+  nobility: [p('Inspiring Word', 1, 'A creature within 30 ft gains +2 morale on attacks, checks, and saves for ½ level rounds (min 1); 3 + Wis/day.'), p('Leadership', 8, 'Gain the Leadership feat as a bonus feat, plus +2 to your leadership score.')],
+  plant: [p('Wooden Fist', 1, 'Unarmed strikes deal lethal damage with a bonus equal to ½ your cleric level; 3 + Wis rounds/day.'), p('Bramble Armor', 6, 'Melee attackers take 1d6 + ½ cleric level piercing damage; cleric level rounds/day.')],
+  protection: [p('Resistant Touch', 1, 'Touch an ally to grant it your resistance bonus for 1 minute; 3 + Wis/day.'), p('Aura of Protection', 8, '30-ft aura grants allies +1 deflection AC and energy resistance 5 (scaling); cleric level rounds/day.')],
+  repose: [p('Gentle Rest', 1, 'Touch staggers a living creature for 1 round, or puts it to sleep if already staggered; 3 + Wis/day.'), p('Ward Against Death', 8, '30-ft aura grants immunity to death effects and energy drain; cleric level rounds/day.')],
+  rune: [p('Blast Rune', 1, 'Create a rune in an adjacent square dealing 1d6 +1 per two cleric levels; 3 + Wis/day.'), p('Spell Rune', 8, 'Attach a spell you cast to a blast rune so it also affects the triggering creature.')],
+  strength: [p('Strength Surge', 1, 'Touch grants an enhancement bonus to melee attacks and Str checks for 1 round; 3 + Wis/day.'), p('Might of the Gods', 8, 'Add your cleric level as an enhancement bonus to Strength checks; cleric level rounds/day.')],
+  sun: [p("Sun's Blessing", 1, 'Add your cleric level to positive-energy channel damage against undead, ignoring their channel resistance.'), p('Nimbus of Light', 8, '30-ft daylight sphere damages undead for your cleric level each round and dispels darkness; cleric level rounds/day.')],
+  travel: [p('Agile Feet', 1, 'Ignore difficult terrain for 1 round as a free action; 3 + Wis/day.'), p('Dimensional Hop', 8, 'Teleport up to 10 ft per cleric level per day as a move action, in 5-ft increments.')],
+  trickery: [p('Copycat', 1, 'Create a single mirror image lasting cleric level rounds; 3 + Wis/day.'), p("Master's Illusion", 8, 'Veil-like illusion disguises you and allies within 30 ft; ½ character level rounds/day.')],
+  war: [p('Battle Rage', 1, 'Touch grants a melee damage bonus equal to ½ your cleric level (min +1) for 1 round; 3 + Wis/day.'), p('Weapon Master', 8, 'Activate one combat feat you qualify for as a swift action; cleric level rounds/day.')],
+  water: [p('Icicle', 1, 'Ranged touch attack for 1d6 cold +1 per two cleric levels; 3 + Wis/day.'), p('Cold Resistance', 6, 'Resist cold 10, rising to 20 at 12th and immunity at 20th.')],
+  weather: [p('Storm Burst', 1, 'Ranged touch attack for 1d6 nonlethal +1 per two cleric levels; 3 + Wis/day.'), p('Lightning Lord', 8, 'Call down bolts of lightning (as call lightning); cleric level bolts/day.')],
+};
+
+export const DOMAINS: DomainDef[] = Object.entries(DOMAIN_POWERS).map(([id, powers]) => ({
+  id,
+  name: id.charAt(0).toUpperCase() + id.slice(1),
+  powers,
+  desc: powers.map((pw) => `${pw.name} (${ordinalLevel(pw.level)}): ${pw.desc}`).join(' · '),
+}));
 
 export const domainById = new Map(DOMAINS.map((d) => [d.id, d]));
 

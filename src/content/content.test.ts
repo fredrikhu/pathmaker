@@ -248,6 +248,21 @@ describe('deities and bloodlines', () => {
       expect(skillIds.has(b.classSkill), `bloodline ${b.id}: unknown class skill "${b.classSkill}"`).toBe(true);
     }
   });
+  it('every domain has two granted powers with sane levels and a composed description', () => {
+    for (const d of C.DOMAINS) {
+      expect(d.powers.length, `domain ${d.id}: expected 2 granted powers`).toBe(2);
+      for (const pw of d.powers) {
+        expect(pw.name.length, `domain ${d.id}: unnamed power`).toBeGreaterThan(0);
+        expect(pw.desc.length, `domain ${d.id}/${pw.name}: empty effect`).toBeGreaterThan(0);
+        expect(pw.level, `domain ${d.id}/${pw.name}: level out of 1..20`).toBeGreaterThanOrEqual(1);
+        expect(pw.level, `domain ${d.id}/${pw.name}: level out of 1..20`).toBeLessThanOrEqual(20);
+      }
+      // The first power is always the 1st-level one; the second comes later.
+      expect(d.powers[0].level, `domain ${d.id}: first power should be 1st level`).toBe(1);
+      expect(d.powers[1].level, `domain ${d.id}: second power should come after the first`).toBeGreaterThan(1);
+      expect(d.desc, `domain ${d.id}: desc should name its first power`).toContain(d.powers[0].name);
+    }
+  });
   it('every domain has a matching warpriest blessing with minor + major powers', () => {
     for (const d of C.DOMAINS) {
       const b = C.blessingById.get(d.id);

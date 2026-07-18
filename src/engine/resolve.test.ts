@@ -1061,3 +1061,24 @@ describe('granted feats respect the level they are gained at', () => {
     expect(resolve(d).sheet.grantedFeats.map((g) => g.featId).sort()).toEqual(['brew-potion', 'throw-anything']);
   });
 });
+
+describe('cleric domain options carry their granted powers', () => {
+  it('shows both granted powers with the level each is gained', () => {
+    let d = newCharacter('t-cleric-dom', 'Ansa');
+    d = withDecision(d, 'ability-base', { str: 12, dex: 10, con: 14, int: 10, wis: 16, cha: 12 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['wis']);
+    d = withDecision(d, 'alignment', 'NG');
+    d = withDecision(d, 'class', 'cleric');
+    d = withDecision(d, 'deity', 'sarenrae'); // fire, glory, good, healing, sun
+    const slot = resolve(d).slots.find((s) => s.id === 'domains')!;
+    const fire = slot.options.find((o) => o.id === 'fire')!;
+    expect(fire.legal).toBe(true);
+    expect(fire.desc).toContain('Fire Bolt (1st)');
+    expect(fire.desc).toContain('Fire Resistance (6th)');
+    // A domain Sarenrae does not grant stays illegal but still explains itself.
+    const death = slot.options.find((o) => o.id === 'death')!;
+    expect(death.legal).toBe(false);
+    expect(death.desc).toContain('Bleeding Touch (1st)');
+  });
+});
