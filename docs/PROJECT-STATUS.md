@@ -99,7 +99,20 @@ Still open from that audit:
   **Spell Focus / Greater Spell Focus are school-specific, so they are listed alongside** in
   `Sheet.spellFocus` and as stat annotations rather than inflating the flat number — the play sheet
   reads "save DC 13 + spell level (+1 Evocation)". The play sheet no longer computes the DC itself.
-  **Still not computed:** magic weapon enhancement.
+- **Masterwork and magic enhancement are modelled** (`src/engine/items.ts`, costs and mechanics
+  verified against d20pfsrd). Quality is a property of the **owned item** (an `item-quality` decision:
+  `{ masterwork?, enhancement? }` per item id) rather than 39 weapons × 5 catalogue entries — which is
+  also how the rules read, since any weapon can be made masterwork or given a +1…+5 bonus.
+  - **Weapons**: masterwork = +1 attack only; an enhancement = +N to attack **and** damage, and the
+    masterwork bonus does **not** stack with it (a +1 weapon is +1/+1). Applies to that weapon's
+    attack line only, with its own breakdown row, and the item reads "+1 Longsword".
+  - **Armour/shields**: the enhancement is its own bonus type, so it stacks with the item's armour or
+    shield bonus; masterwork (and therefore all magic armour) cuts the armour check penalty by 1.
+  - **Cost is derived, not transacted**: masterwork 300/150 gp, weapon enhancement bonus² × 2,000,
+    armour bonus² × 1,000, subtracted from gold by the engine — so lowering or clearing an upgrade
+    refunds it, and quality on an item you don't own costs nothing.
+  - Not modelled: **named weapon properties** (flaming, keen…), specific magic items, and slotted
+    wondrous items.
 - **Starting gold uses Character Wealth by Level** above 1st (`startingWealth` in `progression.ts`,
   table verified against d20pfsrd): a 3rd-level character starts with 3,000 gp, not the class's
   1st-level roll. Trait gold (Rich Parents) still only replaces the 1st-level figure.

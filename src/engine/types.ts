@@ -246,6 +246,8 @@ export interface AttackLine {
   crit: string;
   dmgType: string;
   range?: number;
+  /** "+1" / "mwk" when the weapon is magical or masterwork; empty otherwise. */
+  qualityLabel?: string;
   /** Rules caveats not folded into the numbers (thrown, two-handed Str, TWF penalties…). */
   notes: string[];
 }

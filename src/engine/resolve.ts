@@ -8,6 +8,10 @@ import { ABILITIES, abilityMod } from './types';
 import { evalPredicate, explainFailure, type PredicateCtx } from './predicates';
 import { stack, type Contribution } from './stack';
 import {
+  armorCheckPenaltyReduction, armorQualityBonus, qualityCost, qualityPrefix, weaponQualityBonus,
+  type ItemQuality,
+} from './items';
+import {
   babAt, saveBase, fixedHpPerLevel, generalFeatLevels, abilityIncreaseLevels,
   casterLevel, spellSlotsPerDay, spellsKnownPerLevel, startingWealth, type SpellTable,
 } from './progression';
@@ -222,6 +226,14 @@ function collectEffects(dec: Decisions, doc: CharacterDoc, level: number): Effec
   const shield = doc.equipped.offHand ? C.armorById.get(doc.equipped.offHand) : null;
   if (armor) effects.push({ target: 'ac', type: 'armor', value: armor.acBonus, note: `${armor.name} (armor)` });
   if (shield && shield.slot === 'shield') effects.push({ target: 'ac', type: 'shield', value: shield.acBonus, note: `${shield.name} (shield)` });
+  // Magic armour/shield: the enhancement is its own bonus type, so it stacks with the item's own
+  // armour or shield bonus.
+  const quality = itemQuality(doc);
+  for (const [slotId, item] of [[doc.equipped.armor, armor], [doc.equipped.offHand, shield]] as const) {
+    if (!slotId || !item) continue;
+    const enh = armorQualityBonus(quality[slotId]);
+    if (enh > 0) effects.push({ target: 'ac', type: 'enhancement', value: enh, note: `${item.name} +${enh}` });
+  }
   // Active conditions (play state).
   for (const cid of doc.play?.conditions ?? []) {
     const c = C.conditionById.get(cid);
@@ -231,12 +243,21 @@ function collectEffects(dec: Decisions, doc: CharacterDoc, level: number): Effec
 }
 
 /** Total armor check penalty from equipped armor + shield. */
+/** Item quality (masterwork / magic enhancement) per owned item id. */
+function itemQuality(doc: CharacterDoc): Record<string, ItemQuality> {
+  return (doc.decisions['item-quality'] as Record<string, ItemQuality>) ?? {};
+}
+
 function armorCheckPenalty(doc: CharacterDoc): { total: number; sources: string[] } {
   let total = 0;
   const sources: string[] = [];
+  const quality = itemQuality(doc);
   for (const slot of [doc.equipped.armor, doc.equipped.offHand]) {
     const a = slot ? C.armorById.get(slot) : null;
-    if (a && a.acp < 0) { total += a.acp; sources.push(a.name); }
+    if (!a || a.acp >= 0) continue;
+    // Masterwork (and therefore all magic) armour reduces the penalty by 1, never past zero.
+    const reduced = Math.min(0, a.acp + armorCheckPenaltyReduction(quality[slot!]));
+    if (reduced < 0) { total += reduced; sources.push(a.name); }
   }
   return { total, sources };
 }
@@ -526,7 +547,14 @@ export function resolve(doc: CharacterDoc): Resolution {
     if (t?.bonusGold) startGold = t.bonusGold;
   }
   startGold = klass ? startingWealth(level, startGold) : startGold;
-  const gold = Math.round((startGold - doc.goldSpent) * 100) / 100;
+  // Masterwork/magic upgrades are a declarative property of an owned item rather than a purchase
+  // transaction, so their cost is derived here — toggling an enhancement off refunds it.
+  const qualitySpend = Object.entries(itemQuality(doc)).reduce((sum, [id, q]) => {
+    const kind = C.weaponById.has(id) ? 'weapon' : C.armorById.has(id) ? 'armor' : null;
+    if (!kind || !(doc.purchases[id] ?? 0)) return sum;
+    return sum + qualityCost(kind, q);
+  }, 0);
+  const gold = Math.round((startGold - doc.goldSpent - qualitySpend) * 100) / 100;
 
   // ---- Caster level + spell slots ----
   const sc = klass?.spellcasting;
@@ -602,7 +630,7 @@ export function resolve(doc: CharacterDoc): Resolution {
     ...(spellsKnown && spellsKnown.length ? { spellsKnown } : {}),
     progression,
     pools: classPools(klass, level, mods),
-    attacks: weaponAttacks(doc, stats, bab, mods.str, weaponFeatBonuses(activeFeatParams(doc, dec, klass, level))),
+    attacks: weaponAttacks(doc, stats, bab, mods.str, weaponFeatBonuses(activeFeatParams(doc, dec, klass, level)), itemQuality(doc)),
     grantedFeats: grantedFeatsFor(klass, level, (doc.decisions['feat-params'] as Record<string, string>) ?? {}),
     inventory,
     summaryLine,
@@ -698,6 +726,7 @@ function weaponFeatBonuses(entries: { featId: string; param: string | null }[]):
 function buildInventory(doc: CharacterDoc): InventoryItem[] {
   const consumed = doc.play?.consumed ?? {};
   const usedCharges = doc.play?.usedCharges ?? {};
+  const quality = itemQuality(doc);
   const { armor, mainHand, offHand } = doc.equipped;
   const out: InventoryItem[] = [];
   for (const [id, purchased] of Object.entries(doc.purchases)) {
@@ -713,8 +742,10 @@ function buildInventory(doc: CharacterDoc): InventoryItem[] {
     const equipped: InventoryItem['equipped'] | undefined =
       id === armor ? (a?.slot === 'shield' ? 'shield' : 'armor') : id === mainHand ? 'main' : id === offHand ? 'off' : undefined;
     const maxCharges = g?.charges;
+    // Masterwork / magic gear reads as "+1 Longsword" in the carried list.
+    const qName = `${qualityPrefix(quality[id])}${base.name}`;
     out.push({
-      id, name: base.name, kind, purchased, qty,
+      id, name: qName, kind, purchased, qty,
       weightEach: base.weight,
       weight: Math.round(base.weight * qty * 100) / 100,
       consumable: isConsumable,
@@ -737,7 +768,7 @@ function iterativeBonuses(primary: number, bab: number): number[] {
 /** Ready-to-use attack lines for the character's wielded/carried weapons: the iterative sequence,
  *  Strength-scaled damage, the weapon's own dice/crit, and any weapon-parameterised feat bonuses
  *  (Weapon Focus & co.) that name this specific weapon. Magic enhancement is still not modelled. */
-function weaponAttacks(doc: CharacterDoc, stats: Record<string, Stat>, bab: number, strMod: number, featBonuses: Map<string, WeaponFeatBonus>): AttackLine[] {
+function weaponAttacks(doc: CharacterDoc, stats: Record<string, Stat>, bab: number, strMod: number, featBonuses: Map<string, WeaponFeatBonus>, quality: Record<string, ItemQuality>): AttackLine[] {
   const melee = stats['attack:melee'];
   const ranged = stats['attack:ranged'];
   if (!melee || !ranged) return [];
@@ -752,7 +783,11 @@ function weaponAttacks(doc: CharacterDoc, stats: Record<string, Stat>, bab: numb
     const base = kind === 'ranged' ? ranged : melee;
     // Weapon-parameterised feats (Weapon Focus & co.) apply only to the weapon they name.
     const fb = featBonuses.get(w.id);
-    const bonuses = iterativeBonuses(base.total + (fb?.attack ?? 0), bab);
+    // Masterwork / magic enhancement on this specific weapon.
+    const q = quality[w.id];
+    const qb = weaponQualityBonus(q);
+    const qualityLines: BreakdownLine[] = qb.attack ? [{ label: qb.label === 'mwk' ? 'Masterwork' : `Enhancement ${qb.label}`, value: qb.attack }] : [];
+    const bonuses = iterativeBonuses(base.total + (fb?.attack ?? 0) + qb.attack, bab);
     // Strength contribution, scaled by how the weapon is held; feat damage adds on top.
     let strDamage = 0;
     const notes: string[] = [];
@@ -767,18 +802,21 @@ function weaponAttacks(doc: CharacterDoc, stats: Record<string, Stat>, bab: numb
     } else {
       strDamage = strMod;
     }
-    const dmgMod = strDamage + (fb?.damage ?? 0);
+    const dmgMod = strDamage + (fb?.damage ?? 0) + qb.damage;
     if (kind === 'melee' && w.range) notes.push(`Can be thrown (${w.range} ft): thrown attacks use Dex and add Str to damage.`);
     const damage = dmgMod !== 0 ? `${w.dmg}${fmtSigned(dmgMod)}` : w.dmg;
     const scaleNote = w.hands === 'two' && slot !== 'off' ? ' (1½×)' : slot === 'off' ? ' (½×)' : '';
     const damageLines: BreakdownLine[] = [
       ...(kind === 'ranged' ? [] : [{ label: `Str modifier${scaleNote}`, value: strDamage }]),
       ...(fb?.damageLines ?? []),
+      ...(qb.damage ? [{ label: `Enhancement ${qb.label}`, value: qb.damage }] : []),
     ];
     lines.push({
       id: w.id, name: w.name, kind, slot, bonuses,
-      attackLines: [...base.lines, ...(fb?.attackLines ?? [])],
-      damage, damageLines, crit: w.crit, dmgType: w.dmgType, range: w.range, notes,
+      attackLines: [...base.lines, ...(fb?.attackLines ?? []), ...qualityLines],
+      damage, damageLines, crit: w.crit, dmgType: w.dmgType, range: w.range,
+      ...(qb.label ? { qualityLabel: qb.label } : {}),
+      notes,
     });
   };
   add(doc.equipped.mainHand, 'main');

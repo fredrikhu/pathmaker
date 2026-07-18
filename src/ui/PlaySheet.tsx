@@ -268,7 +268,7 @@ export function PlaySheet({ id }: { id: string }) {
         <div style={{ background: 'var(--color-surface)', borderRadius: 12, padding: 18, marginTop: 18 }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
             <div className="micro">Attacks</div>
-            <span className="text-muted" style={{ fontSize: 11.5 }}>iteratives from BAB · Weapon Focus &amp; Specialization folded in · hover for the breakdown · magic enhancement not modelled</span>
+            <span className="text-muted" style={{ fontSize: 11.5 }}>iteratives from BAB · weapon feats and masterwork/magic enhancement folded in · hover for the breakdown</span>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {sheet.attacks.map((atk) => {
@@ -284,6 +284,7 @@ export function PlaySheet({ id }: { id: string }) {
                 <div key={`${atk.slot}:${atk.id}`} onMouseEnter={open} onMouseLeave={tip.leave} onClick={open}
                   style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', cursor: 'pointer', padding: '4px 0', borderBottom: '1px solid rgba(233,233,237,.05)' }}>
                   <span style={{ width: 150, fontSize: 13.5, fontWeight: 500 }}>
+                    {atk.qualityLabel && <span style={{ color: 'var(--color-accent-300)' }}>{atk.qualityLabel} </span>}
                     {atk.name}
                     {atk.slot !== 'main' && <span className="text-muted" style={{ fontSize: 10.5, marginLeft: 5 }}>{atk.slot === 'off' ? 'off-hand' : 'carried'}</span>}
                   </span>

@@ -1346,3 +1346,88 @@ describe('Spell Focus and the spell save DC', () => {
     expect(resolve(d).sheet.stats['spell:dc']).toBeUndefined();
   });
 });
+
+describe('masterwork and magic enhancement', () => {
+  function armed(quality: Record<string, unknown>, extra: Partial<CharacterDoc> = {}): CharacterDoc {
+    let d = newCharacter('t-magic', 'Valeria');
+    d = withDecision(d, 'ability-base', { str: 15, dex: 14, con: 14, int: 10, wis: 12, cha: 8 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['str']); // Str 17 → +3
+    d = withDecision(d, 'alignment', 'LN');
+    d = withDecision(d, 'class', 'fighter');
+    d = withDecision(d, 'item-quality', quality);
+    return {
+      ...atLevel(d, 3),
+      purchases: { longsword: 1, greataxe: 1, 'chain-shirt': 1 },
+      equipped: { armor: 'chain-shirt', mainHand: 'longsword', offHand: null },
+      ...extra,
+    };
+  }
+  const line = (d: CharacterDoc, id: string) => resolve(d).sheet.attacks.find((a) => a.id === id)!;
+
+  it('masterwork gives +1 attack but no damage', () => {
+    const d = armed({ longsword: { masterwork: true } });
+    // Fighter 3: BAB +3 + Str +3 = +6; masterwork makes it +7, damage unchanged at 1d8+3.
+    expect(line(d, 'longsword').bonuses).toEqual([7]);
+    expect(line(d, 'longsword').damage).toBe('1d8+3');
+    expect(line(d, 'longsword').qualityLabel).toBe('mwk');
+  });
+
+  it('an enhancement bonus applies to attack and damage', () => {
+    const d = armed({ longsword: { masterwork: true, enhancement: 2 } });
+    expect(line(d, 'longsword').bonuses).toEqual([8]); // +6 base +2
+    expect(line(d, 'longsword').damage).toBe('1d8+5'); // 3 Str + 2 enhancement
+    expect(line(d, 'longsword').qualityLabel).toBe('+2');
+  });
+
+  it('masterwork does not stack with an enhancement bonus', () => {
+    // A +1 weapon is +1/+1, never +2/+1 — the masterwork attack bonus is subsumed.
+    const d = armed({ longsword: { masterwork: true, enhancement: 1 } });
+    expect(line(d, 'longsword').bonuses).toEqual([7]);
+    expect(line(d, 'longsword').damage).toBe('1d8+4');
+  });
+
+  it('applies only to the upgraded weapon', () => {
+    const d = armed({ longsword: { masterwork: true, enhancement: 1 } });
+    expect(line(d, 'greataxe').bonuses).toEqual([6]);
+    expect(line(d, 'greataxe').qualityLabel).toBeUndefined();
+  });
+
+  it('shows the enhancement in the attack breakdown and the carried name', () => {
+    const d = armed({ longsword: { masterwork: true, enhancement: 1 } });
+    expect(line(d, 'longsword').attackLines).toContainEqual({ label: 'Enhancement +1', value: 1 });
+    expect(resolve(d).sheet.inventory.find((i) => i.id === 'longsword')!.name).toBe('+1 Longsword');
+  });
+
+  it('magic armour adds an enhancement bonus that stacks with its armour bonus', () => {
+    const plain = resolve(armed({})).sheet.stats['ac'].total;
+    const magic = resolve(armed({ 'chain-shirt': { masterwork: true, enhancement: 2 } })).sheet.stats['ac'];
+    expect(magic.total - plain).toBe(2);
+    expect(magic.lines).toContainEqual({ label: 'Chain shirt +2', value: 2 });
+  });
+
+  it('masterwork armour reduces the armour check penalty by 1', () => {
+    // Chain shirt is ACP −2; masterwork makes it −1.
+    const plain = resolve(armed({})).sheet.stats['skill:climb'].total;
+    const mwk = resolve(armed({ 'chain-shirt': { masterwork: true } })).sheet.stats['skill:climb'].total;
+    expect(mwk - plain).toBe(1);
+  });
+
+  it('charges for the upgrade and refunds when it is removed', () => {
+    const base = resolve(armed({})).sheet.gold;
+    // +1 weapon = 300 masterwork + 2,000 enhancement.
+    const plus1 = resolve(armed({ longsword: { masterwork: true, enhancement: 1 } })).sheet.gold;
+    expect(base - plus1).toBe(2300);
+    // Masterwork alone is just the 300.
+    const mwk = resolve(armed({ longsword: { masterwork: true } })).sheet.gold;
+    expect(base - mwk).toBe(300);
+    // +2 armour = 150 masterwork + 4,000.
+    const armor2 = resolve(armed({ 'chain-shirt': { masterwork: true, enhancement: 2 } })).sheet.gold;
+    expect(base - armor2).toBe(4150);
+  });
+
+  it('ignores quality on an item that is not owned', () => {
+    const d = armed({ falchion: { masterwork: true, enhancement: 5 } });
+    expect(resolve(d).sheet.gold).toBe(resolve(armed({})).sheet.gold);
+  });
+});

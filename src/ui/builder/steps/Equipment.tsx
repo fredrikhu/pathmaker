@@ -2,6 +2,7 @@ import type { CharCtl } from '../../Builder';
 import { WEAPONS, ARMORS, GEAR, weaponById, armorById, anyItemById } from '../../../content/index';
 import type { CharacterDoc } from '../../../engine/types';
 import { TermSpan } from '../../Tooltip';
+import { qualityCost, qualityPrefix, MAX_ENHANCEMENT, type ItemQuality } from '../../../engine/items';
 
 export function EquipmentStep({ ch }: { ch: CharCtl }) {
   const { doc, resolution } = ch;
@@ -32,6 +33,47 @@ export function EquipmentStep({ ch }: { ch: CharCtl }) {
       else if (w) eq.mainHand = id;
       return { ...d, equipped: eq };
     });
+  };
+
+  // ---- Masterwork / magic enhancement ----
+  // Quality is a property of the owned item, so any weapon or armour can be upgraded. Its cost is
+  // derived by the engine from this decision (no purchase transaction), so changing it refunds.
+  const quality = (doc.decisions['item-quality'] as Record<string, ItemQuality>) ?? {};
+  const qualityKind = (id: string): 'weapon' | 'armor' | null =>
+    weaponById.has(id) ? 'weapon' : armorById.has(id) ? 'armor' : null;
+  const setQuality = (id: string, q: ItemQuality | null) => {
+    const next = { ...quality };
+    if (!q) delete next[id]; else next[id] = q;
+    ch.setDecision('item-quality', next);
+  };
+
+  /** — / masterwork / +1..+5, with the gp each option would cost. */
+  const QualityPicker = ({ id, kind }: { id: string; kind: 'weapon' | 'armor' }) => {
+    const cur = quality[id];
+    const value = cur?.enhancement ? String(cur.enhancement) : cur?.masterwork ? 'mwk' : '';
+    // What this item's quality already costs, so switching prices the difference honestly.
+    const spent = qualityCost(kind, cur);
+    const options: { v: string; label: string; q: ItemQuality | null }[] = [
+      { v: '', label: 'ordinary', q: null },
+      { v: 'mwk', label: 'masterwork', q: { masterwork: true } },
+      ...Array.from({ length: MAX_ENHANCEMENT }, (_, i) => ({
+        v: String(i + 1), label: `+${i + 1}`, q: { masterwork: true, enhancement: i + 1 } as ItemQuality,
+      })),
+    ];
+    return (
+      <select className="input" style={{ fontSize: 11.5, padding: '2px 5px' }} value={value}
+        onChange={(e) => setQuality(id, options.find((o) => o.v === e.target.value)?.q ?? null)}>
+        {options.map((o) => {
+          const delta = qualityCost(kind, o.q ?? undefined) - spent;
+          const affordable = delta <= sheet.gold;
+          return (
+            <option key={o.v} value={o.v} disabled={!affordable}>
+              {o.label}{o.q ? ` · ${qualityCost(kind, o.q).toLocaleString()} gp` : ''}{!affordable ? ' — too costly' : ''}
+            </option>
+          );
+        })}
+      </select>
+    );
   };
 
   const owned = Object.entries(purchases).filter(([, q]) => q > 0);
@@ -95,8 +137,11 @@ export function EquipmentStep({ ch }: { ch: CharCtl }) {
               const isEquipped = equipped.armor === id || equipped.mainHand === id || equipped.offHand === id;
               const cost = item.cost;
               return (
-                <div key={id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 8, background: 'var(--color-surface)' }}>
-                  <span style={{ flex: 1, fontSize: 13 }}>{item.name} <span className="text-muted" style={{ fontSize: 11 }}>×{q}</span></span>
+                <div key={id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 8, background: 'var(--color-surface)', flexWrap: 'wrap' }}>
+                  <span style={{ flex: 1, fontSize: 13, minWidth: 140 }}>
+                    {qualityPrefix(quality[id])}{item.name} <span className="text-muted" style={{ fontSize: 11 }}>×{q}</span>
+                  </span>
+                  {qualityKind(id) && <QualityPicker id={id} kind={qualityKind(id)!} />}
                   {isEquippable && <button className="btn btn-ghost" style={{ fontSize: 11 }} disabled={isEquipped} onClick={() => equip(id)}>{isEquipped ? '✓ Equipped' : 'Equip'}</button>}
                   <button onClick={() => sell(id, cost)} style={{ background: 'transparent', border: 'none', color: 'var(--color-neutral-500)', cursor: 'pointer', fontSize: 11.5, fontFamily: 'inherit' }}>Sell</button>
                 </div>
