@@ -101,11 +101,16 @@ export interface PlayState {
   initiative: number | null;
   /** Running durations on conditions and buffs. */
   timers: Timer[];
+  /** Consumables used up in play: item id → quantity consumed (phase 5). */
+  consumed: Record<string, number>;
+  /** Charges spent from charged items (wands): item id → charges used. */
+  usedCharges: Record<string, number>;
 }
 
 export const emptyPlayState = (): PlayState => ({
   hpDamage: 0, tempHp: 0, nonlethal: 0, usedSlots: {}, conditions: [], usedPools: {},
   prepared: {}, castPrepared: {}, round: 0, initiative: null, timers: [],
+  consumed: {}, usedCharges: {},
 });
 
 /** Play state with defaults filled in — older saved docs predate the phase-4 fields. */
@@ -200,6 +205,26 @@ export interface GrantedFeat {
   note?: string;
 }
 
+/** One carried item, with what is left of it after play (phase 5). */
+export interface InventoryItem {
+  id: string;
+  name: string;
+  kind: 'weapon' | 'armor' | 'gear';
+  /** Quantity bought on the build. */
+  purchased: number;
+  /** Quantity still on hand (purchased − consumed); never below 0. */
+  qty: number;
+  weightEach: number;
+  /** Weight actually carried right now (qty × weightEach). */
+  weight: number;
+  consumable: boolean;
+  /** Charged items (wands) only. */
+  charges?: { max: number; remaining: number };
+  /** Where it is worn/wielded, if it is. */
+  equipped?: 'armor' | 'shield' | 'main' | 'off';
+  note?: string;
+}
+
 /** A ready-to-use attack line for a wielded/carried weapon (for the play sheet). */
 export interface AttackLine {
   id: string;
@@ -249,6 +274,8 @@ export interface Sheet {
   attacks: AttackLine[];
   /** Feats granted automatically by the class up to this level (read-only in Feats). */
   grantedFeats: GrantedFeat[];
+  /** Carried items with play-time quantities/charges; `load` is computed from these. */
+  inventory: InventoryItem[];
   summaryLine: string; // "LN Human Fighter 1"
 }
 

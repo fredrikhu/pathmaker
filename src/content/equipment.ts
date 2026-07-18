@@ -59,19 +59,34 @@ export const ARMORS: ArmorDef[] = [
   { id: 'heavy-shield', name: 'Heavy wooden shield', cost: 7, weight: 10, acBonus: 2, maxDex: null, acp: -2, asf: 15, slot: 'shield', category: 'shield' },
 ];
 
+// Gear, consumables, ammunition, and charged items — costs/weights verified against d20pfsrd.
+// `consumable` items are used up in play; `charges` items are tracked per charge (phase 5).
 export const GEAR: GearDef[] = [
   { id: 'backpack', name: 'Backpack', cost: 2, weight: 2 },
   { id: 'bedroll', name: 'Bedroll', cost: 0.1, weight: 5 },
   { id: 'rope-hemp', name: 'Rope, hemp (50 ft)', cost: 1, weight: 10 },
-  { id: 'torch', name: 'Torch', cost: 0.01, weight: 1 },
+  { id: 'torch', name: 'Torch', cost: 0.01, weight: 1, consumable: true },
   { id: 'waterskin', name: 'Waterskin', cost: 1, weight: 4 },
-  { id: 'rations', name: 'Trail rations (per day)', cost: 0.5, weight: 1 },
+  { id: 'rations', name: 'Trail rations (per day)', cost: 0.5, weight: 1, consumable: true },
   { id: 'spell-component-pouch', name: 'Spell component pouch', cost: 5, weight: 2 },
   { id: 'spellbook', name: 'Wizard spellbook (blank)', cost: 15, weight: 3 },
   { id: 'holy-symbol-wood', name: 'Holy symbol, wooden', cost: 1, weight: 0 },
   { id: 'thieves-tools', name: "Thieves' tools", cost: 30, weight: 1, note: 'needed for Disable Device on traps' },
-  { id: 'healers-kit', name: "Healer's kit", cost: 50, weight: 1 },
+  { id: 'healers-kit', name: "Healer's kit", cost: 50, weight: 1, consumable: true, note: '10 uses' },
   { id: 'flint-steel', name: 'Flint and steel', cost: 1, weight: 0 },
+  // --- Alchemical weapons (thrown splash) ---
+  { id: 'acid-flask', name: 'Acid (flask)', cost: 10, weight: 1, consumable: true, note: '1d6 acid, splash 1' },
+  { id: 'alchemists-fire', name: "Alchemist's fire (flask)", cost: 20, weight: 1, consumable: true, note: '1d6 fire + 1d6 next round' },
+  { id: 'holy-water', name: 'Holy water (flask)', cost: 25, weight: 1, consumable: true, note: '2d4 vs undead/evil outsiders' },
+  { id: 'thunderstone', name: 'Thunderstone', cost: 30, weight: 1, consumable: true, note: 'DC 15 Fort or deafened 1 hour' },
+  { id: 'tanglefoot-bag', name: 'Tanglefoot bag', cost: 50, weight: 4, consumable: true, note: 'entangles on a ranged touch hit' },
+  // --- Ammunition (tracked per listed bundle) ---
+  { id: 'arrows', name: 'Arrows (20)', cost: 1, weight: 3, consumable: true },
+  { id: 'crossbow-bolts', name: 'Crossbow bolts (10)', cost: 1, weight: 1, consumable: true },
+  { id: 'sling-bullets', name: 'Sling bullets (10)', cost: 0.1, weight: 5, consumable: true },
+  // --- Magic consumables ---
+  { id: 'potion-clw', name: 'Potion of cure light wounds', cost: 50, weight: 0, consumable: true, note: 'heals 1d8+1' },
+  { id: 'wand-clw', name: 'Wand of cure light wounds', cost: 750, weight: 0, charges: 50, note: '1d8+1 per charge' },
 ];
 
 export const weaponById = new Map(WEAPONS.map((w) => [w.id, w]));

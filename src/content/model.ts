@@ -179,6 +179,11 @@ export interface GearDef {
   cost: number;
   weight: number;
   note?: string;
+  /** Used up when used — potions, alchemical splashes, torches, ammunition bundles (phase 5).
+   *  Ammunition is tracked per listed bundle ("Arrows (20)"), not per arrow. */
+  consumable?: boolean;
+  /** Charged item (a wand holds 50 charges when full); tracked per charge in play. */
+  charges?: number;
 }
 
 export interface DeityDef {

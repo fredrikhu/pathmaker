@@ -16,8 +16,12 @@ from BAB, Str-scaled damage, crit/type/range, per-weapon breakdown tooltip) and 
 tooltips** on the At-a-glance stats, HP, and trained skills (reusing the builder StatStrip tooltip infra).
 `Sheet.attacks: AttackLine[]` is computed in `resolve.ts` (`weaponAttacks`), golden-tested.
 
-**Phase 4 (time & campaign clock) is done** — see its section below. The remaining roadmap item is
-**Phase 5** (live inventory: consumables, charges, encumbrance in play).
+**All five roadmap phases are done** (see their sections below). Pathmaker now covers the full arc:
+build a character 1–20, play it at the table (HP, spells, pools, conditions), run the clock (rounds,
+timed effects, rest), and track consumables/charges/encumbrance live.
+
+From here the work is breadth and polish rather than new phases — the open items are the deferral
+backlog below (blocked content, unmodelled subsystems) and whatever the table turns up in real use.
 
 Everything below is the durable detail. When resuming, read this file, then `docs/DESIGN.md`.
 
@@ -127,7 +131,7 @@ Still open from that audit:
 | 2 | **Level-up** — multi-level engine + per-level decisions | **done** (Part A engine/UI + Part B content, 30/31 classes) |
 | 3 | Interactive play sheet — HP/resource/spell tracking, conditions, prepared spells, rest | **done** |
 | 4 | Time & campaign clock — buff durations, rest resets | **done** |
-| 5 | Live inventory — consumables, charges, encumbrance in play | items are already entities |
+| 5 | Live inventory — consumables, charges, encumbrance in play | **done** |
 
 ### Phase 2 status (level-up)
 
@@ -263,6 +267,31 @@ still does zero rules math. **Everything is stored in combat rounds** (1 min = 1
 Not modelled: initiative *order* for a whole party (this tracks one character), per-timer effects of
 their own (a timer drives a condition or is just a labelled countdown — it can't add arbitrary bonuses),
 and calendar dates.
+
+## Phase 5 — Live inventory: **complete**
+
+`src/engine/inventory.ts` (pure, mirroring `clock.ts`) plus a derived `Sheet.inventory`.
+
+- **The build stays the source of truth for maxima.** `resolve()` builds `inventory` from
+  `doc.purchases` minus `play.consumed`, so quantities are derived, never a second copy of the
+  shopping list. `sheet.load` is now the sum of *carried* weight — **consuming items lightens you**,
+  and the encumbrance label/speed follow automatically through the existing pipeline.
+- **Play state**: `consumed` (item id → qty used) and `usedCharges` (item id → charges spent).
+  Actions: `consume` / `unconsume` / `spendCharges` / `restoreCharges` / `restock`, all clamped so
+  you can't spend past what's on hand or restore past what you bought.
+- **Content**: `GearDef` gained `consumable?` and `charges?`. Added alchemical weapons (acid,
+  alchemist's fire, holy water, thunderstone, tanglefoot bag), ammunition bundles (arrows, bolts,
+  bullets), a potion and a wand of cure light wounds — all costs/weights verified against d20pfsrd.
+  Torch, rations and healer's kit are marked consumable.
+- **Rest deliberately does not restock.** A night's sleep restores HP/slots/pools; it does not refill
+  your potion belt. **Restock** is the separate, explicit "went shopping" action.
+- **Ammunition is tracked per listed bundle** ("Arrows (20)"), not per arrow — per-arrow tracking
+  would need a bundle/unit split in the model and isn't worth the fidelity yet.
+- 12 unit tests in `inventory.test.ts` (clamping, restock, derived quantities, load recomputation,
+  over-consumption, stale entries on non-consumables).
+
+Not modelled: buying items *during* play (the build's Equipment step is still the shop), containers,
+item weight for coins, and per-arrow ammunition.
 
 ### Phase 3 breadth fill-in (ongoing)
 - **Conditions** expanded 11 → 22 (added panicked, deafened, cowering, pinned, flat-footed, helpless,

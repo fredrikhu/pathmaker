@@ -6,6 +6,7 @@ import {
   advanceTime, nextRound, startEncounter, endEncounter, addTimer, removeTimer, rest as restPlay,
   durationLabel, ROUNDS_PER_MINUTE, ROUNDS_PER_HOUR,
 } from '../engine/clock';
+import { consume, unconsume, spendCharges, restoreCharges, restock } from '../engine/inventory';
 import { CONDITIONS, conditionById, SPELLS, spellById, classById, skillById } from '../content/index';
 import { useCharacter } from './useCharacter';
 import { useTip } from './Tooltip';
@@ -342,6 +343,62 @@ export function PlaySheet({ id }: { id: string }) {
                   )}
                   <span className="num" style={{ fontSize: 14, fontWeight: 600, color: remaining <= 0 ? 'var(--warn-fg)' : undefined }}>{remaining}</span>
                   <span className="text-muted" style={{ fontSize: 12 }}>/ {pool.max} {pool.unit}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Inventory (phase 5) */}
+      {sheet.inventory.length > 0 && (
+        <div style={{ background: 'var(--color-surface)', borderRadius: 12, padding: 18, marginTop: 18 }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
+            <div className="micro">Inventory</div>
+            <span className="text-muted" style={{ fontSize: 11.5 }}>
+              carrying <span className="num" style={{ color: sheet.load.label === 'Light' ? 'var(--color-accent-300)' : 'var(--warn-fg)' }}>{sheet.load.current} lb</span>
+              {' · '}{sheet.load.label.toLowerCase()} load (light ≤{sheet.load.light}, medium ≤{sheet.load.medium}, heavy ≤{sheet.load.heavy})
+              {sheet.speed.reducedFrom ? ` · speed ${sheet.speed.base} ft` : ''}
+            </span>
+            <span style={{ flex: 1 }} />
+            <button className="btn btn-ghost" style={{ fontSize: 11 }} title="Refill consumables and recharge to the amounts on your build"
+              onClick={() => applyClock(restock)}>Restock</button>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+            {sheet.inventory.map((it) => {
+              const out = it.consumable && it.qty === 0;
+              return (
+                <div key={it.id} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12.5, opacity: out ? 0.5 : 1 }}>
+                  <span style={{ minWidth: 200, fontWeight: 500 }}>
+                    {it.name}
+                    {it.equipped && <span className="tag tag-neutral" style={{ fontSize: 9.5, marginLeft: 6 }}>{it.equipped === 'main' ? 'wielded' : it.equipped === 'off' ? 'off-hand' : it.equipped}</span>}
+                  </span>
+
+                  {it.charges ? (
+                    <>
+                      <span className="num" style={{ minWidth: 62, color: it.charges.remaining <= 5 ? 'var(--warn-fg)' : 'var(--color-accent-300)' }}>
+                        {it.charges.remaining}/{it.charges.max}
+                      </span>
+                      <button className="btn btn-secondary" style={{ fontSize: 11 }} disabled={it.charges.remaining <= 0}
+                        onClick={() => applyClock((p) => spendCharges(p, it.id, 1, it.charges!.remaining))}>use charge</button>
+                      <button className="btn btn-ghost" style={{ fontSize: 11 }} disabled={it.charges.remaining >= it.charges.max}
+                        onClick={() => applyClock((p) => restoreCharges(p, it.id, 1))}>+1</button>
+                    </>
+                  ) : it.consumable ? (
+                    <>
+                      <span className="num" style={{ minWidth: 62, color: out ? 'var(--warn-fg)' : undefined }}>{it.qty}/{it.purchased}</span>
+                      <button className="btn btn-secondary" style={{ fontSize: 11 }} disabled={it.qty <= 0}
+                        onClick={() => applyClock((p) => consume(p, it.id, 1, it.qty))}>use</button>
+                      <button className="btn btn-ghost" style={{ fontSize: 11 }} disabled={it.qty >= it.purchased}
+                        onClick={() => applyClock((p) => unconsume(p, it.id, 1))}>+1</button>
+                    </>
+                  ) : (
+                    <span className="num text-muted" style={{ minWidth: 62 }}>×{it.qty}</span>
+                  )}
+
+                  <span style={{ flex: 1 }} />
+                  {it.note && <span className="text-muted" style={{ fontSize: 11 }}>{it.note}</span>}
+                  <span className="num text-muted" style={{ fontSize: 11.5, minWidth: 52, textAlign: 'right' }}>{it.weight} lb</span>
                 </div>
               );
             })}

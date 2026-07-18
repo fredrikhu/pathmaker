@@ -3,7 +3,7 @@ import type {
   Ability, Alignment, CharacterDoc, ChoiceSlot, Effect, Issue, Resolution,
   Sheet, SlotOption, Stat,
 } from './types';
-import type { AttackLine, BreakdownLine, GrantedFeat, ProgressionRow, ResourcePool } from './types';
+import type { AttackLine, BreakdownLine, GrantedFeat, InventoryItem, ProgressionRow, ResourcePool } from './types';
 import { ABILITIES, abilityMod } from './types';
 import { evalPredicate, explainFailure, type PredicateCtx } from './predicates';
 import { stack, type Contribution } from './stack';
@@ -478,14 +478,12 @@ export function resolve(doc: CharacterDoc): Resolution {
   }
   const skillRanksSpent = Object.values(dec.skillRanks).reduce((a, b) => a + b, 0);
 
-  // ---- Encumbrance ----
+  // ---- Inventory & encumbrance ----
+  // Load comes from what is still carried, so consuming items in play lightens the character.
   const strScore = abilities.str;
   const carry = carryingCapacity(strScore);
-  let load = 0;
-  for (const [id, qty] of Object.entries(doc.purchases)) {
-    const item = C.anyItemById(id);
-    if (item) load += item.weight * qty;
-  }
+  const inventory = buildInventory(doc);
+  const load = Math.round(inventory.reduce((n, it) => n + it.weight, 0) * 100) / 100;
   const loadLabel = load <= carry.light ? 'Light' : load <= carry.medium ? 'Medium' : load <= carry.heavy ? 'Heavy' : 'Overloaded';
 
   // Land speed reduction from medium/heavy armor or a medium/heavy load (PF1e), unless the race
@@ -568,12 +566,48 @@ export function resolve(doc: CharacterDoc): Resolution {
     pools: classPools(klass, level, mods),
     attacks: weaponAttacks(doc, stats, bab, mods.str),
     grantedFeats: grantedFeatsFor(klass, level),
+    inventory,
     summaryLine,
   };
   return { sheet, slots, issues, steps };
 }
 
 function fmtSigned(v: number): string { return v >= 0 ? `+${v}` : `−${Math.abs(v)}`; }
+
+/** Everything the character is carrying, with play-time quantities and charges applied.
+ *  Consumed items drop out of the load, so spending torches or drinking potions lightens you. */
+function buildInventory(doc: CharacterDoc): InventoryItem[] {
+  const consumed = doc.play?.consumed ?? {};
+  const usedCharges = doc.play?.usedCharges ?? {};
+  const { armor, mainHand, offHand } = doc.equipped;
+  const out: InventoryItem[] = [];
+  for (const [id, purchased] of Object.entries(doc.purchases)) {
+    if (purchased <= 0) continue;
+    const w = C.weaponById.get(id);
+    const a = C.armorById.get(id);
+    const g = C.gearById.get(id);
+    const base = w ?? a ?? g;
+    if (!base) continue;
+    const kind: InventoryItem['kind'] = w ? 'weapon' : a ? 'armor' : 'gear';
+    const isConsumable = !!g?.consumable;
+    const qty = Math.max(0, purchased - (isConsumable ? consumed[id] ?? 0 : 0));
+    const equipped: InventoryItem['equipped'] | undefined =
+      id === armor ? (a?.slot === 'shield' ? 'shield' : 'armor') : id === mainHand ? 'main' : id === offHand ? 'off' : undefined;
+    const maxCharges = g?.charges;
+    out.push({
+      id, name: base.name, kind, purchased, qty,
+      weightEach: base.weight,
+      weight: Math.round(base.weight * qty * 100) / 100,
+      consumable: isConsumable,
+      ...(maxCharges ? { charges: { max: maxCharges, remaining: Math.max(0, maxCharges - (usedCharges[id] ?? 0)) } } : {}),
+      ...(equipped ? { equipped } : {}),
+      ...(g?.note ? { note: g.note } : {}),
+    });
+  }
+  // Worn/wielded first, then consumables, then the rest — the order you scan at the table.
+  const rank = (it: InventoryItem) => (it.equipped ? 0 : it.charges ? 1 : it.consumable ? 2 : 3);
+  return out.sort((x, y) => rank(x) - rank(y) || x.name.localeCompare(y.name));
+}
 
 /** Iterative attack bonuses from a primary bonus and BAB: +6 → [6,1], +11 → [11,6,1], etc. */
 function iterativeBonuses(primary: number, bab: number): number[] {
