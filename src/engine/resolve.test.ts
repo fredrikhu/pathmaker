@@ -1247,3 +1247,102 @@ describe('weapon feats fold into the per-weapon attack lines', () => {
     expect(line(d, 'longsword').bonuses).toEqual([4]);
   });
 });
+
+describe('Skill Focus folds into the named skill', () => {
+  function rogue(params: Record<string, string>, ranks: Record<string, number> = {}): CharacterDoc {
+    let d = newCharacter('t-skillfocus', 'Sly');
+    d = withDecision(d, 'ability-base', { str: 10, dex: 15, con: 12, int: 14, wis: 12, cha: 10 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['dex']);
+    d = withDecision(d, 'alignment', 'CN');
+    d = withDecision(d, 'class', 'rogue');
+    d = withDecision(d, 'feats', { 'feat-1': 'skill-focus' });
+    d = withDecision(d, 'feat-params', params);
+    d = withDecision(d, 'skill-ranks', ranks);
+    return d;
+  }
+  const skill = (d: CharacterDoc, id: string) => resolve(d).sheet.stats[`skill:${id}`];
+
+  it('adds +3 to the chosen skill only', () => {
+    const withFocus = skill(rogue({ 'feat-1': 'perception' }, { perception: 1 }), 'perception');
+    const without = skill(rogue({}, { perception: 1 }), 'perception');
+    expect(withFocus.total - without.total).toBe(3);
+    expect(withFocus.lines).toContainEqual({ label: 'Skill Focus', value: 3 });
+  });
+
+  it('leaves other skills alone', () => {
+    const d = rogue({ 'feat-1': 'perception' }, { perception: 1, stealth: 1 });
+    expect(skill(d, 'stealth').lines).not.toContainEqual({ label: 'Skill Focus', value: 3 });
+  });
+
+  it('rises to +6 at 10 ranks', () => {
+    const at9 = skill(rogue({ 'feat-1': 'perception' }, { perception: 9 }), 'perception');
+    const at10 = skill(rogue({ 'feat-1': 'perception' }, { perception: 10 }), 'perception');
+    expect(at9.lines).toContainEqual({ label: 'Skill Focus', value: 3 });
+    expect(at10.lines).toContainEqual({ label: 'Skill Focus', value: 6 });
+  });
+
+  it('grants nothing while the skill is unpicked', () => {
+    expect(skill(rogue({}, { perception: 1 }), 'perception').lines)
+      .not.toContainEqual({ label: 'Skill Focus', value: 3 });
+  });
+});
+
+describe('Spell Focus and the spell save DC', () => {
+  // Level 3 so the `feat-L3` slot actually exists — a feat sitting in a slot the character has not
+  // reached yet is correctly suspended, and would contribute nothing.
+  function wizard(feats: Record<string, string> = {}, params: Record<string, string> = {}, level = 3): CharacterDoc {
+    let d = newCharacter('t-spellfocus', 'Ellis');
+    d = withDecision(d, 'ability-base', { str: 8, dex: 14, con: 13, int: 15, wis: 12, cha: 10 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['int']); // Int 17 → +3
+    d = withDecision(d, 'alignment', 'N');
+    d = withDecision(d, 'class', 'wizard');
+    d = withDecision(d, 'feats', feats);
+    d = withDecision(d, 'feat-params', params);
+    return atLevel(d, level);
+  }
+
+  it('exposes a base DC of 10 + the casting modifier', () => {
+    const dc = resolve(wizard()).sheet.stats['spell:dc'];
+    expect(dc.total).toBe(13); // 10 + 3 Int
+    expect(dc.lines).toContainEqual({ label: 'INT modifier', value: 3 });
+  });
+
+  it('lists a Spell Focus school bonus separately from the base DC', () => {
+    const r = resolve(wizard({ 'feat-1': 'spell-focus' }, { 'feat-1': 'evocation' }));
+    // The school bonus is conditional, so it must not inflate the flat DC.
+    expect(r.sheet.stats['spell:dc'].total).toBe(13);
+    expect(r.sheet.spellFocus).toEqual([{ school: 'Evocation', bonus: 1 }]);
+    expect(r.sheet.stats['spell:dc'].annotations).toContain('+1 vs Evocation spells (Spell Focus)');
+  });
+
+  it('stacks Greater Spell Focus on the same school', () => {
+    const r = resolve(wizard(
+      { 'feat-1': 'spell-focus', 'feat-L3': 'greater-spell-focus' },
+      { 'feat-1': 'evocation', 'feat-L3': 'evocation' },
+    ));
+    expect(r.sheet.spellFocus).toEqual([{ school: 'Evocation', bonus: 2 }]);
+  });
+
+  it('keeps different schools separate', () => {
+    const r = resolve(wizard(
+      { 'feat-1': 'spell-focus', 'feat-L3': 'greater-spell-focus' },
+      { 'feat-1': 'evocation', 'feat-L3': 'necromancy' },
+    ));
+    expect(r.sheet.spellFocus).toEqual([
+      { school: 'Evocation', bonus: 1 },
+      { school: 'Necromancy', bonus: 1 },
+    ]);
+  });
+
+  it('non-casters get no spell DC stat', () => {
+    let d = newCharacter('t-nodc', 'Valeria');
+    d = withDecision(d, 'ability-base', { str: 15, dex: 14, con: 14, int: 10, wis: 12, cha: 8 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['str']);
+    d = withDecision(d, 'alignment', 'LN');
+    d = withDecision(d, 'class', 'fighter');
+    expect(resolve(d).sheet.stats['spell:dc']).toBeUndefined();
+  });
+});

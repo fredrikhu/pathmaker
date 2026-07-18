@@ -209,6 +209,9 @@ function collectEffects(dec: Decisions, doc: CharacterDoc, level: number): Effec
     if (fid === 'toughness') { effects.push({ target: 'hp:max', type: 'untyped', value: Math.max(3, level), note: 'Toughness' }); continue; }
     effects.push(...f.effects);
   }
+  // Parameterised feats whose bonus lands on a specific stat (Skill Focus → that skill).
+  effects.push(...paramFeatEffects(doc, dec, klass, level));
+
   // Traits + drawback
   for (const tid of [...dec.traits, dec.drawback].filter(Boolean) as string[]) {
     const t = C.traitById.get(tid);
@@ -560,6 +563,18 @@ export function resolve(doc: CharacterDoc): Resolution {
   // Highest spell level with at least one slot per day (0 if not a caster).
   const maxSpellLevel = spellSlots ? spellSlots.reduce((m, n, i) => (n > 0 ? i : m), 0) : 0;
 
+  // ---- Spell save DC ----
+  // The per-spell DC is this + the spell's level; Spell Focus adds on top for its school only, so
+  // those stay alongside the stat rather than folded into a single number.
+  const spellFocus = spellFocusBonuses(doc, dec, klass, level);
+  if (sc) {
+    stats['spell:dc'] = makeStat('spell:dc', 'Spell save DC (+ spell level)', [
+      { type: 'base', value: 10, note: 'Base' },
+      { type: 'base', value: mods[sc.ability], note: `${sc.ability.toUpperCase()} modifier` },
+      ...unconds('spell:dc'),
+    ], spellFocus.map((f) => `+${f.bonus} vs ${f.school} spells (Spell Focus)`));
+  }
+
   // ---- Slots + issues ----
   const { slots, issues } = buildSlotsAndIssues(doc, dec, {
     race, klass, abilities, mods, predCtx, skillRanksTotal, skillRanksSpent,
@@ -582,6 +597,7 @@ export function resolve(doc: CharacterDoc): Resolution {
     gold,
     load: { current: load, light: carry.light, medium: carry.medium, heavy: carry.heavy, label: loadLabel },
     speed: { base: effectiveSpeed, ...(speedReduced ? { reducedFrom: baseSpeed } : {}), ...(race?.speeds ?? {}) },
+    spellFocus,
     ...(sc && clvl > 0 ? { casterLevel: clvl, spellSlots } : {}),
     ...(spellsKnown && spellsKnown.length ? { spellsKnown } : {}),
     progression,
@@ -622,6 +638,35 @@ function normalizeParam(featId: string, raw: string | undefined): string | null 
   if (!opts) return raw;
   if (opts.some((o) => o.id === raw)) return raw;
   return opts.find((o) => o.name === raw)?.id ?? raw;
+}
+
+/** Effects from parameterised feats that land on a named stat. Weapon feats are handled separately
+ *  (they apply per attack line, not to a stat); this covers the skill-targeted ones. */
+function paramFeatEffects(doc: CharacterDoc, dec: Decisions, klass: C.ClassDef | undefined, level: number): Effect[] {
+  const out: Effect[] = [];
+  for (const { featId, param } of activeFeatParams(doc, dec, klass, level)) {
+    if (!param) continue;
+    if (featId === 'skill-focus') {
+      // +3, rising to +6 once you have 10 ranks in that skill.
+      const value = (dec.skillRanks[param] ?? 0) >= 10 ? 6 : 3;
+      out.push({ target: `skill:${param}`, type: 'untyped', value, note: 'Skill Focus' });
+    }
+  }
+  return out;
+}
+
+/** Spell-save-DC bonuses per school, from Spell Focus and Greater Spell Focus. */
+function spellFocusBonuses(doc: CharacterDoc, dec: Decisions, klass: C.ClassDef | undefined, level: number): { school: string; bonus: number }[] {
+  const map = new Map<string, number>();
+  for (const { featId, param } of activeFeatParams(doc, dec, klass, level)) {
+    if (!param) continue;
+    if (featId === 'spell-focus' || featId === 'greater-spell-focus') {
+      map.set(param, (map.get(param) ?? 0) + 1);
+    }
+  }
+  return [...map.entries()]
+    .map(([school, bonus]) => ({ school: C.schoolById.get(school)?.name ?? school, bonus }))
+    .sort((a, b) => a.school.localeCompare(b.school));
 }
 
 /** Per-weapon attack/damage bonuses from weapon-parameterised feats. Keyed by weapon id. */

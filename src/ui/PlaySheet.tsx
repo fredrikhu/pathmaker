@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { loadCharacter } from '../storage/store';
 import { newCharacter } from '../engine/character';
-import { emptyPlayState, normalizePlayState, fmtMod, abilityMod, type PlayState, type Timer } from '../engine/types';
+import { emptyPlayState, normalizePlayState, fmtMod, type PlayState, type Timer } from '../engine/types';
 import {
   advanceTime, nextRound, startEncounter, endEncounter, addTimer, removeTimer, rest as restPlay,
   durationLabel, ROUNDS_PER_MINUTE, ROUNDS_PER_HOUR,
@@ -72,8 +72,11 @@ export function PlaySheet({ id }: { id: string }) {
   const toggleCast = (l: number, i: number) =>
     updatePlay((p) => { const set = new Set(p.castPrepared?.[l] ?? []); set.has(i) ? set.delete(i) : set.add(i); return { castPrepared: { ...p.castPrepared, [l]: [...set] } }; });
 
-  const castMod = sc ? abilityMod(sheet.stats[`ability:${sc.ability}`]?.total ?? 10) : 0;
-  const dcNote = `save DC 10 + spell level ${fmtMod(castMod)}`;
+  // The DC base comes from the engine (`spell:dc`); Spell Focus is school-specific so it's listed
+  // alongside rather than folded into the single number.
+  const dcBase = sheet.stats['spell:dc']?.total ?? 10;
+  const focusNote = sheet.spellFocus.map((f) => `${fmtMod(f.bonus)} ${f.school}`).join(', ');
+  const dcNote = `save DC ${dcBase} + spell level${focusNote ? ` (${focusNote})` : ''}`;
 
   // Rest restores the daily resources and lets 8 hours pass, so running effects expire on their own.
   const rest = () => applyClock((p) => restPlay(p).play);

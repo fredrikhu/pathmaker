@@ -264,6 +264,9 @@ export interface Sheet {
   /** Effective land speed plus any special movement modes (feet). `reducedFrom` is the
    *  unencumbered land speed when armor/load has slowed it. Display only in phase 1. */
   speed: { base: number; reducedFrom?: number; fly?: number; swim?: number; climb?: number; burrow?: number };
+  /** Spell-save-DC bonuses that apply to one school only (Spell Focus). The base DC is the
+   *  `spell:dc` stat; these are listed separately because they are conditional on the school. */
+  spellFocus: { school: string; bonus: number }[];
   /** Caster level and spell slots per day (index = spell level), when the class casts. */
   casterLevel?: number;
   spellSlots?: number[];

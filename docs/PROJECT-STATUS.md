@@ -92,8 +92,14 @@ Still open from that audit:
 - **Weapon feats fold into the play sheet's attack lines.** `weaponFeatBonuses` applies Weapon Focus
   (+1 attack), Greater Weapon Focus (+1 more), Weapon Specialization (+2 damage) and Greater Weapon
   Specialization (+2 more) **to the named weapon only** — from chosen *and* class-granted feats. The
-  bonus shows as its own row in the attack/damage breakdown tooltip. **Still not computed:** magic
-  weapon enhancement, and the non-weapon param feats (Skill Focus's +3, Spell Focus's +1 DC).
+  bonus shows as its own row in the attack/damage breakdown tooltip.
+- **Skill Focus and Spell Focus are computed too.** Skill Focus emits a real effect on
+  `skill:<id>` (+3, rising to +6 at 10 ranks), so it flows through the normal stat pipeline and shows
+  in that skill's breakdown. Spell DC became an engine stat (`spell:dc` = 10 + casting modifier);
+  **Spell Focus / Greater Spell Focus are school-specific, so they are listed alongside** in
+  `Sheet.spellFocus` and as stat annotations rather than inflating the flat number — the play sheet
+  reads "save DC 13 + spell level (+1 Evocation)". The play sheet no longer computes the DC itself.
+  **Still not computed:** magic weapon enhancement.
 - **Starting gold uses Character Wealth by Level** above 1st (`startingWealth` in `progression.ts`,
   table verified against d20pfsrd): a 3rd-level character starts with 3,000 gp, not the class's
   1st-level roll. Trait gold (Rich Parents) still only replaces the 1st-level figure.
@@ -142,9 +148,9 @@ Still open from that audit:
 - **Single `level` per spell** — a spell whose level differs by list (e.g. many bard spells) is stored
   at one level; bard is tagged only where its level matches. A per-list level map would fix it.
 - **Spellbook budget** is a soft nudge (free distribution across accessible levels), not a per-level cap.
-- **Param feats**: the *weapon* ones (Weapon Focus / Specialization and their Greater forms) are now
-  computed into the per-weapon attack lines. **Skill Focus (+3) and Spell Focus (+1 DC) still are
-  not** — they record the parameter but don't feed the skill total or spell DC yet.
+- **Param feats are computed**: weapon ones (Weapon Focus / Specialization + Greater forms) into the
+  per-weapon attack lines, Skill Focus into the skill total, Spell Focus into a per-school DC note.
+  Metamagic feats are still descriptive (they don't alter slot cost or DCs).
 - Spell-like abilities, darkvision, energy resistances are **descriptive** (not computed). Skill/save/
   stat bonuses (racial, feat, trait, class-feature) **are** real effects.
 - Racial **variant heritages** (Aasimar/Tiefling sub-bloodlines) not modeled — standard heritage only.
