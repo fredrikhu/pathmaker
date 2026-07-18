@@ -6,22 +6,20 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 
 ## ▶ Resume here (last session end)
 
-**Phases 1, 2, and 3 are all done and committed** (branch `master`, working tree clean, ~143 tests
-passing; run `npx tsc --noEmit && npx vitest run && npm run build` to confirm). Phase-3 breadth is
-substantially filled in (22 conditions with lose-Dex-to-AC, domain/school bonus slots, spell DCs,
-multiple resource pools per class, a play-sheet skills panel).
+**All five roadmap phases are done and committed** (branch `master`, working tree clean, 253 tests
+passing; run `npx tsc --noEmit && npx vitest run && npm run build` to confirm). Pathmaker covers the
+full arc: build a character 1–20, play it at the table (HP, spells, pools, conditions), run the clock
+(rounds, timed effects, rest), and track consumables/charges/encumbrance live.
 
-**Phase-3 nice-to-haves are now done** — the play sheet has **per-weapon attack lines** (iteratives
-from BAB, Str-scaled damage, crit/type/range, per-weapon breakdown tooltip) and **click-to-see-breakdown
-tooltips** on the At-a-glance stats, HP, and trained skills (reusing the builder StatStrip tooltip infra).
-`Sheet.attacks: AttackLine[]` is computed in `resolve.ts` (`weaponAttacks`), golden-tested.
+Since the phases closed, the work has been magic items and per-weapon combat: **feat parameters**
+(Weapon/Skill/Spell Focus store their chosen weapon/skill/school), **masterwork & magic enhancement**,
+**named weapon and armour special abilities**, and the **worn-item catalogue** (ability boosters, the
+defensive trio, bracers of armor, and the standard skill items) with body slots enforced.
 
-**All five roadmap phases are done** (see their sections below). Pathmaker now covers the full arc:
-build a character 1–20, play it at the table (HP, spells, pools, conditions), run the clock (rounds,
-timed effects, rest), and track consumables/charges/encumbrance live.
-
-From here the work is breadth and polish rather than new phases — the open items are the deferral
+From here the work is breadth and polish rather than new phases. The open items are the deferral
 backlog below (blocked content, unmodelled subsystems) and whatever the table turns up in real use.
+**The largest gaps a player actually hits:** Power Attack and two-weapon-fighting penalties are not
+yet folded into attack lines, and multiclass is model-ready but not implemented.
 
 Everything below is the durable detail. When resuming, read this file, then `docs/DESIGN.md`.
 
