@@ -121,7 +121,18 @@ Still open from that audit:
     at full bonus. **Conditional** abilities (bane, holy, anarchic, the burst line, wounding…) carry a
     `condition` and are surfaced as notes — never folded into the flat damage, which would overstate
     it against everything that isn't the special case.
-  - Not modelled: **armour** special abilities, specific magic items, and slotted wondrous items.
+- **Armour and shield special abilities** (`src/content/armor-properties.ts`): 15 core abilities,
+  verified per-page. **These price differently from weapon abilities** — glamered, slick and shadow
+  are a **flat gp surcharge** (2,700 / 3,750 / 3,750) rather than a bonus equivalent, and so do not
+  count toward the +10 cap; fortification, invulnerability and spell resistance *are* equivalents.
+  `qualityCost` therefore takes a lookup returning `{ equivalent, flat }` and applies both. Assuming
+  symmetry with weapons here would have mispriced them.
+  - **Computed**: slick (+5 competence Escape Artist) and shadow (+5 competence Stealth) emit real
+    effects, composing with the masterwork ACP reduction. Conditional ones (fortification %, SR, DR,
+    the shield abilities) are surfaced on the item, never totalled.
+  - The ability list offered is filtered by item: weapon abilities on weapons, armour abilities on
+    armour, shield abilities on shields.
+  - Not modelled: specific magic items and slotted wondrous items.
 - **Starting gold uses Character Wealth by Level** above 1st (`startingWealth` in `progression.ts`,
   table verified against d20pfsrd): a 3rd-level character starts with 3,000 gp, not the class's
   1st-level roll. Trait gold (Rich Parents) still only replaces the 1st-level figure.

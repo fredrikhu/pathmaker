@@ -225,6 +225,8 @@ export interface InventoryItem {
   charges?: { max: number; remaining: number };
   /** Where it is worn/wielded, if it is. */
   equipped?: 'armor' | 'shield' | 'main' | 'off';
+  /** Named special abilities on this item (display names). */
+  properties?: string[];
   note?: string;
 }
 

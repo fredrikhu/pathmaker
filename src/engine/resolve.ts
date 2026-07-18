@@ -9,7 +9,7 @@ import { evalPredicate, explainFailure, type PredicateCtx } from './predicates';
 import { stack, type Contribution } from './stack';
 import {
   armorCheckPenaltyReduction, armorQualityBonus, qualityCost, qualityPrefix, qualityProblem,
-  weaponQualityBonus, type ItemQuality,
+  weaponQualityBonus, type ItemQuality, type PropertyPrice,
 } from './items';
 import {
   babAt, saveBase, fixedHpPerLevel, generalFeatLevels, abilityIncreaseLevels,
@@ -233,6 +233,12 @@ function collectEffects(dec: Decisions, doc: CharacterDoc, level: number): Effec
     if (!slotId || !item) continue;
     const enh = armorQualityBonus(quality[slotId]);
     if (enh > 0) effects.push({ target: 'ac', type: 'enhancement', value: enh, note: `${item.name} +${enh}` });
+    // Armour abilities with an unconditional effect (slick, shadow) fold into the stat graph;
+    // conditional ones (fortification, SR…) are surfaced on the item, never totalled.
+    for (const pid of quality[slotId]?.properties ?? []) {
+      const p = C.armorPropertyById.get(pid);
+      if (p?.effects) effects.push(...p.effects);
+    }
   }
   // Active conditions (play state).
   for (const cid of doc.play?.conditions ?? []) {
@@ -248,9 +254,14 @@ function itemQuality(doc: CharacterDoc): Record<string, ItemQuality> {
   return (doc.decisions['item-quality'] as Record<string, ItemQuality>) ?? {};
 }
 
-/** Price-bonus equivalent of a named weapon property (0 if unknown). */
-export function propertyEquivalent(id: string): number {
-  return C.weaponPropertyById.get(id)?.equivalent ?? 0;
+/** Pricing for a named property, looked up across both catalogues (ids are distinct). Weapon
+ *  abilities are all bonus-equivalent; some armour ones are a flat surcharge instead. */
+export function propertyPrice(id: string): PropertyPrice {
+  const w = C.weaponPropertyById.get(id);
+  if (w) return { equivalent: w.equivalent, flat: 0 };
+  const a = C.armorPropertyById.get(id);
+  if (a) return { equivalent: a.equivalent ?? 0, flat: a.flatCost ?? 0 };
+  return { equivalent: 0, flat: 0 };
 }
 
 function armorCheckPenalty(doc: CharacterDoc): { total: number; sources: string[] } {
@@ -557,7 +568,7 @@ export function resolve(doc: CharacterDoc): Resolution {
   const qualitySpend = Object.entries(itemQuality(doc)).reduce((sum, [id, q]) => {
     const kind = C.weaponById.has(id) ? 'weapon' : C.armorById.has(id) ? 'armor' : null;
     if (!kind || !(doc.purchases[id] ?? 0)) return sum;
-    return sum + qualityCost(kind, q, propertyEquivalent);
+    return sum + qualityCost(kind, q, propertyPrice);
   }, 0);
   const gold = Math.round((startGold - doc.goldSpent - qualitySpend) * 100) / 100;
 
@@ -749,6 +760,9 @@ function buildInventory(doc: CharacterDoc): InventoryItem[] {
     const maxCharges = g?.charges;
     // Masterwork / magic gear reads as "+1 Longsword" in the carried list.
     const qName = `${qualityPrefix(quality[id])}${base.name}`;
+    const propNames = (quality[id]?.properties ?? [])
+      .map((pid) => C.weaponPropertyById.get(pid)?.name ?? C.armorPropertyById.get(pid)?.name)
+      .filter(Boolean) as string[];
     out.push({
       id, name: qName, kind, purchased, qty,
       weightEach: base.weight,
@@ -756,6 +770,7 @@ function buildInventory(doc: CharacterDoc): InventoryItem[] {
       consumable: isConsumable,
       ...(maxCharges ? { charges: { max: maxCharges, remaining: Math.max(0, maxCharges - (usedCharges[id] ?? 0)) } } : {}),
       ...(equipped ? { equipped } : {}),
+      ...(propNames.length ? { properties: propNames } : {}),
       ...(g?.note ? { note: g.note } : {}),
     });
   }
@@ -1140,7 +1155,8 @@ function buildSlotsAndIssues(
   // Named weapon abilities need a +1 enhancement, and the combined bonus caps at +10.
   for (const [id, q] of Object.entries(itemQuality(doc))) {
     if (!(doc.purchases[id] ?? 0)) continue;
-    const problem = qualityProblem(q, propertyEquivalent);
+    const kind = C.weaponById.has(id) ? 'weapon' : 'armor';
+    const problem = qualityProblem(kind, q, propertyPrice);
     if (problem) {
       const name = C.weaponById.get(id)?.name ?? C.armorById.get(id)?.name ?? id;
       issues.push({ severity: 'error', step: 'equipment', slot: 'item-quality', message: `${name}: ${problem}` });

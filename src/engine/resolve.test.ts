@@ -1509,3 +1509,83 @@ describe('named weapon properties', () => {
     expect(line(d, 'longsword').damage).toBe('1d8+4 + 1d6 fire + 1d6 cold');
   });
 });
+
+describe('armour and shield special abilities', () => {
+  function armoured(quality: Record<string, unknown>): CharacterDoc {
+    let d = newCharacter('t-armprops', 'Valeria');
+    d = withDecision(d, 'ability-base', { str: 15, dex: 14, con: 14, int: 10, wis: 12, cha: 8 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['str']);
+    d = withDecision(d, 'alignment', 'LN');
+    d = withDecision(d, 'class', 'fighter');
+    d = withDecision(d, 'skill-ranks', { stealth: 1, 'escape-artist': 1 });
+    d = withDecision(d, 'item-quality', quality);
+    return {
+      ...atLevel(d, 10),
+      purchases: { 'chain-shirt': 1, 'heavy-shield': 1 },
+      equipped: { armor: 'chain-shirt', mainHand: null, offHand: 'heavy-shield' },
+    };
+  }
+  const s = (d: CharacterDoc, id: string) => resolve(d).sheet.stats[`skill:${id}`];
+
+  // Baseline is the same armour at +1 WITHOUT the ability: magic armour is masterwork, which
+  // already lifts ACP skills by 1, so comparing against mundane armour would credit that to the
+  // ability. Stealth and Escape Artist both take the armour check penalty.
+  const plusOne = { 'chain-shirt': { masterwork: true, enhancement: 1 } };
+
+  it('shadow adds a competence bonus to Stealth', () => {
+    const base = s(armoured(plusOne), 'stealth').total;
+    const shadow = s(armoured({ 'chain-shirt': { masterwork: true, enhancement: 1, properties: ['shadow'] } }), 'stealth');
+    expect(shadow.total - base).toBe(5);
+    expect(shadow.lines).toContainEqual({ label: 'Shadow armour', value: 5 });
+  });
+
+  it('slick adds a competence bonus to Escape Artist and leaves Stealth alone', () => {
+    const d = armoured({ 'chain-shirt': { masterwork: true, enhancement: 1, properties: ['slick'] } });
+    expect(s(d, 'escape-artist').total - s(armoured(plusOne), 'escape-artist').total).toBe(5);
+    expect(s(d, 'stealth').total).toBe(s(armoured(plusOne), 'stealth').total);
+  });
+
+  it('masterwork armour separately lifts the ACP skills by 1', () => {
+    // The composition the two tests above deliberately factor out.
+    expect(s(armoured(plusOne), 'stealth').total - s(armoured({}), 'stealth').total).toBe(1);
+  });
+
+  it('prices flat-cost abilities as a surcharge, not a bonus equivalent', () => {
+    const base = resolve(armoured({})).sheet.gold;
+    // +1 shadow chain shirt: 150 masterwork + 1² × 1,000 + 3,750 flat = 4,900. Still effectively +1.
+    const shadow = resolve(armoured({ 'chain-shirt': { masterwork: true, enhancement: 1, properties: ['shadow'] } })).sheet.gold;
+    expect(base - shadow).toBe(4900);
+  });
+
+  it('prices bonus-equivalent abilities by raising the effective bonus', () => {
+    const base = resolve(armoured({})).sheet.gold;
+    // +1 armour with moderate fortification (+3) prices at +4: 150 + 16 × 1,000 = 16,150.
+    const fort = resolve(armoured({ 'chain-shirt': { masterwork: true, enhancement: 1, properties: ['fortification-moderate'] } })).sheet.gold;
+    expect(base - fort).toBe(16150);
+  });
+
+  it('surfaces armour abilities on the carried item', () => {
+    const inv = resolve(armoured({ 'chain-shirt': { masterwork: true, enhancement: 1, properties: ['shadow', 'fortification-light'] } })).sheet.inventory;
+    const shirt = inv.find((i) => i.id === 'chain-shirt')!;
+    expect(shirt.name).toBe('+1 Chain shirt');
+    expect(shirt.properties).toEqual(['Shadow', 'Light fortification']);
+  });
+
+  it('flags an armour ability with no enhancement bonus', () => {
+    const r = resolve(armoured({ 'chain-shirt': { masterwork: true, properties: ['shadow'] } }));
+    expect(r.issues.some((i) => i.step === 'equipment' && /armor or a shield.*at least a \+1/.test(i.message))).toBe(true);
+  });
+
+  it('flat-priced abilities do not count toward the +10 cap', () => {
+    // +5 armour with heavy fortification (+5) is exactly +10; adding shadow (flat) stays legal.
+    const q = { 'chain-shirt': { masterwork: true, enhancement: 5, properties: ['fortification-heavy', 'shadow'] } };
+    const r = resolve(armoured(q));
+    expect(r.issues.some((i) => /exceeds the \+10 maximum/.test(i.message))).toBe(false);
+  });
+
+  it('shield abilities apply to the shield', () => {
+    const inv = resolve(armoured({ 'heavy-shield': { masterwork: true, enhancement: 1, properties: ['bashing'] } })).sheet.inventory;
+    expect(inv.find((i) => i.id === 'heavy-shield')!.properties).toEqual(['Bashing']);
+  });
+});

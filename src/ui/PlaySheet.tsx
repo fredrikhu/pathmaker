@@ -379,6 +379,9 @@ export function PlaySheet({ id }: { id: string }) {
                   <span style={{ minWidth: 200, fontWeight: 500 }}>
                     {it.name}
                     {it.equipped && <span className="tag tag-neutral" style={{ fontSize: 9.5, marginLeft: 6 }}>{it.equipped === 'main' ? 'wielded' : it.equipped === 'off' ? 'off-hand' : it.equipped}</span>}
+                    {it.properties?.map((p) => (
+                      <span key={p} className="tag tag-neutral" style={{ fontSize: 9.5, marginLeft: 4 }}>{p}</span>
+                    ))}
                   </span>
 
                   {it.charges ? (

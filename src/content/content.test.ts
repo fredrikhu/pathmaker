@@ -260,6 +260,28 @@ describe('deities and bloodlines', () => {
       if (p.damageDice) expect(p.damageDice, `${p.id}: damageDice`).toMatch(/^\d+d\d+/);
     }
   });
+  it('armour properties are priced exactly one way, and effects reference real stats', () => {
+    const ids = new Set<string>();
+    for (const p of C.ARMOR_PROPERTIES) {
+      expect(ids.has(p.id), `duplicate armour property "${p.id}"`).toBe(false);
+      ids.add(p.id);
+      // Each ability is either bonus-equivalent or flat-priced — never both, never neither.
+      const priced = [p.equivalent, p.flatCost].filter((x) => x != null).length;
+      expect(priced, `${p.id}: must have exactly one of equivalent / flatCost`).toBe(1);
+      if (p.equivalent != null) {
+        expect(p.equivalent, `${p.id}: equivalent out of 1..5`).toBeGreaterThanOrEqual(1);
+        expect(p.equivalent, `${p.id}: equivalent out of 1..5`).toBeLessThanOrEqual(5);
+      }
+      if (p.flatCost != null) expect(p.flatCost, `${p.id}: flatCost`).toBeGreaterThan(0);
+      expect(['armor', 'shield'], `${p.id}: slot`).toContain(p.slot);
+      expect(p.desc.length, `${p.id}: empty description`).toBeGreaterThan(0);
+      for (const e of p.effects ?? []) {
+        if (e.target.startsWith('skill:')) {
+          expect(skillIds.has(e.target.slice(6)), `${p.id}: unknown skill "${e.target}"`).toBe(true);
+        }
+      }
+    }
+  });
   it('every domain has two granted powers with sane levels and a composed description', () => {
     for (const d of C.DOMAINS) {
       expect(d.powers.length, `domain ${d.id}: expected 2 granted powers`).toBe(2);

@@ -2,10 +2,18 @@ import type { CharCtl } from '../../Builder';
 import { WEAPONS, ARMORS, GEAR, weaponById, armorById, anyItemById } from '../../../content/index';
 import type { CharacterDoc } from '../../../engine/types';
 import { TermSpan } from '../../Tooltip';
-import { qualityCost, qualityPrefix, totalBonus, MAX_ENHANCEMENT, type ItemQuality } from '../../../engine/items';
-import { WEAPON_PROPERTIES, weaponPropertyById } from '../../../content/index';
+import { qualityCost, qualityPrefix, totalBonus, MAX_ENHANCEMENT, MAX_TOTAL_BONUS, type ItemQuality } from '../../../engine/items';
+import { propertyPrice } from '../../../engine/resolve';
+import { WEAPON_PROPERTIES, ARMOR_PROPERTIES, armorById as armorLookup } from '../../../content/index';
 
-const equivalentOf = (id: string) => weaponPropertyById.get(id)?.equivalent ?? 0;
+/** Abilities offered for an item: weapon abilities on weapons, and the matching
+ *  armour/shield list on armour — a shield can't take Shadow, and armour can't take Bashing. */
+const propertiesFor = (id: string) => {
+  const a = armorLookup.get(id);
+  if (a) return ARMOR_PROPERTIES.filter((p) => p.slot === (a.slot === 'shield' ? 'shield' : 'armor'))
+    .map((p) => ({ id: p.id, name: p.name, equivalent: p.equivalent, flatCost: p.flatCost, desc: p.desc, restriction: undefined as string | undefined }));
+  return WEAPON_PROPERTIES.map((p) => ({ id: p.id, name: p.name, equivalent: p.equivalent, flatCost: undefined as number | undefined, desc: p.desc, restriction: p.restriction }));
+};
 
 export function EquipmentStep({ ch }: { ch: CharCtl }) {
   const { doc, resolution } = ch;
@@ -55,7 +63,7 @@ export function EquipmentStep({ ch }: { ch: CharCtl }) {
     const cur = quality[id];
     const value = cur?.enhancement ? String(cur.enhancement) : cur?.masterwork ? 'mwk' : '';
     // What this item's quality already costs, so switching prices the difference honestly.
-    const spent = qualityCost(kind, cur, equivalentOf);
+    const spent = qualityCost(kind, cur, propertyPrice);
     const keepProps = cur?.properties?.length ? { properties: cur.properties } : {};
     const options: { v: string; label: string; q: ItemQuality | null }[] = [
       { v: '', label: 'ordinary', q: null },
@@ -68,7 +76,7 @@ export function EquipmentStep({ ch }: { ch: CharCtl }) {
       <select className="input" style={{ fontSize: 11.5, padding: '2px 5px' }} value={value}
         onChange={(e) => setQuality(id, options.find((o) => o.v === e.target.value)?.q ?? null)}>
         {options.map((o) => {
-          const cost = qualityCost(kind, o.q ?? undefined, equivalentOf);
+          const cost = qualityCost(kind, o.q ?? undefined, propertyPrice);
           const affordable = cost - spent <= sheet.gold;
           return (
             <option key={o.v} value={o.v} disabled={!affordable}>
@@ -80,30 +88,31 @@ export function EquipmentStep({ ch }: { ch: CharCtl }) {
     );
   };
 
-  /** Named special abilities. Only offered on weapons, and only once the weapon is at least +1 —
-   *  the rules require an enhancement bonus before any ability can be added. */
-  const PropertyPicker = ({ id }: { id: string }) => {
+  /** Named special abilities, offered from the list matching the item (weapon / armour / shield).
+   *  Only shown once the item is at least +1 — the rules require an enhancement bonus first. */
+  const PropertyPicker = ({ id, kind }: { id: string; kind: 'weapon' | 'armor' }) => {
     const cur = quality[id];
     const chosen = cur?.properties ?? [];
-    const enh = cur?.enhancement ?? 0;
-    if (enh < 1) return null;
+    if ((cur?.enhancement ?? 0) < 1) return null;
     const toggle = (pid: string) => {
       const next = chosen.includes(pid) ? chosen.filter((x) => x !== pid) : [...chosen, pid];
       setQuality(id, { ...cur, properties: next.length ? next : undefined });
     };
-    const total = totalBonus(cur, equivalentOf);
+    const total = totalBonus(cur, propertyPrice);
     return (
       <details style={{ width: '100%' }}>
         <summary style={{ cursor: 'pointer', fontSize: 11.5, color: 'var(--color-neutral-400)' }}>
           Special abilities {chosen.length ? `(${chosen.length}) · effective +${total}` : ''}
         </summary>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: 4, marginTop: 6 }}>
-          {WEAPON_PROPERTIES.map((p) => {
+          {propertiesFor(id).map((p) => {
             const on = chosen.includes(p.id);
-            // Cost of adding this one, given what is already on the weapon.
-            const delta = qualityCost('weapon', { ...cur, properties: [...chosen, p.id] }, equivalentOf) - qualityCost('weapon', cur, equivalentOf);
-            const wouldExceed = !on && totalBonus({ ...cur, properties: [...chosen, p.id] }, equivalentOf) > 10;
+            // Cost of adding this one, given what is already on the item.
+            const delta = qualityCost(kind, { ...cur, properties: [...chosen, p.id] }, propertyPrice) - qualityCost(kind, cur, propertyPrice);
+            const wouldExceed = !on && totalBonus({ ...cur, properties: [...chosen, p.id] }, propertyPrice) > MAX_TOTAL_BONUS;
             const affordable = on || (delta <= sheet.gold && !wouldExceed);
+            // Flat-priced abilities show their gp; bonus-equivalent ones show the equivalent.
+            const priceTag = p.equivalent ? `+${p.equivalent}` : `${(p.flatCost ?? 0).toLocaleString()} gp`;
             return (
               <button key={p.id} onClick={() => toggle(p.id)} disabled={!affordable}
                 title={`${p.desc}${p.restriction ? ` (${p.restriction})` : ''}`}
@@ -111,9 +120,9 @@ export function EquipmentStep({ ch }: { ch: CharCtl }) {
                   cursor: affordable ? 'pointer' : 'not-allowed', opacity: affordable ? 1 : 0.45,
                   border: `1px solid ${on ? 'var(--color-accent)' : 'var(--color-divider)'}`,
                   background: on ? 'rgba(145,132,217,.12)' : 'transparent', color: 'var(--color-text)' }}>
-                {on ? '✓ ' : ''}{p.name} <span className="text-muted">+{p.equivalent}</span>
+                {on ? '✓ ' : ''}{p.name} <span className="text-muted">{priceTag}</span>
                 {!on && <span className="text-muted"> · {delta.toLocaleString()} gp</span>}
-                {wouldExceed && <span style={{ color: 'var(--warn-fg)' }}> · over +10</span>}
+                {wouldExceed && <span style={{ color: 'var(--warn-fg)' }}> · over +{MAX_TOTAL_BONUS}</span>}
               </button>
             );
           })}
@@ -190,7 +199,7 @@ export function EquipmentStep({ ch }: { ch: CharCtl }) {
                   {qualityKind(id) && <QualityPicker id={id} kind={qualityKind(id)!} />}
                   {isEquippable && <button className="btn btn-ghost" style={{ fontSize: 11 }} disabled={isEquipped} onClick={() => equip(id)}>{isEquipped ? '✓ Equipped' : 'Equip'}</button>}
                   <button onClick={() => sell(id, cost)} style={{ background: 'transparent', border: 'none', color: 'var(--color-neutral-500)', cursor: 'pointer', fontSize: 11.5, fontFamily: 'inherit' }}>Sell</button>
-                  {weaponById.has(id) && <PropertyPicker id={id} />}
+                  {qualityKind(id) && <PropertyPicker id={id} kind={qualityKind(id)!} />}
                 </div>
               );
             })}

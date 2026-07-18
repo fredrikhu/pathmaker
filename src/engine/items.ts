@@ -28,14 +28,26 @@ export interface ItemQuality {
 
 const clampEnh = (n: number | undefined): number => Math.max(0, Math.min(MAX_ENHANCEMENT, Math.round(n ?? 0)));
 
+/** How a named property is priced. Weapon abilities are all bonus-equivalent; several armour
+ *  abilities (glamered, slick, shadow) are a flat surcharge instead and do NOT count toward +10. */
+export interface PropertyPrice { equivalent: number; flat: number }
+export type PropertyLookup = (id: string) => PropertyPrice;
+
+export const NO_PROPERTIES: PropertyLookup = () => ({ equivalent: 0, flat: 0 });
+
 /** Sum of the price-bonus equivalents of an item's named properties. */
-export function propertyEquivalents(q: ItemQuality | undefined, equivalentOf: (id: string) => number): number {
-  return (q?.properties ?? []).reduce((n, id) => n + equivalentOf(id), 0);
+export function propertyEquivalents(q: ItemQuality | undefined, lookup: PropertyLookup): number {
+  return (q?.properties ?? []).reduce((n, id) => n + lookup(id).equivalent, 0);
+}
+
+/** Sum of the flat gp surcharges of an item's named properties. */
+export function propertyFlatCost(q: ItemQuality | undefined, lookup: PropertyLookup): number {
+  return (q?.properties ?? []).reduce((n, id) => n + lookup(id).flat, 0);
 }
 
 /** Enhancement + property equivalents — the figure both the price and the +10 cap work from. */
-export function totalBonus(q: ItemQuality | undefined, equivalentOf: (id: string) => number): number {
-  return clampEnh(q?.enhancement) + propertyEquivalents(q, equivalentOf);
+export function totalBonus(q: ItemQuality | undefined, lookup: PropertyLookup): number {
+  return clampEnh(q?.enhancement) + propertyEquivalents(q, lookup);
 }
 
 /** Is this item magical or masterwork at all? */
@@ -47,21 +59,24 @@ export function hasQuality(q: ItemQuality | undefined): boolean {
  *  masterwork surcharge is included once and never double-counted with the enhancement price.
  *  Named properties are priced by raising the *total* effective bonus, which is why a +1 flaming
  *  sword costs the same as a +2 one (both price at +2): bonus² × 2,000 for weapons, ×1,000 for armour. */
-export function qualityCost(kind: 'weapon' | 'armor', q: ItemQuality | undefined, equivalentOf: (id: string) => number = () => 0): number {
+export function qualityCost(kind: 'weapon' | 'armor', q: ItemQuality | undefined, lookup: PropertyLookup = NO_PROPERTIES): number {
   if (!q) return 0;
-  const total = totalBonus(q, equivalentOf);
+  const total = totalBonus(q, lookup);
+  const flat = propertyFlatCost(q, lookup);
   const mwkCost = kind === 'weapon' ? MASTERWORK_WEAPON_COST : MASTERWORK_ARMOR_COST;
   const perBonus = kind === 'weapon' ? 2_000 : 1_000;
-  if (total > 0) return mwkCost + total * total * perBonus;
-  return q.masterwork ? mwkCost : 0;
+  if (total > 0) return mwkCost + total * total * perBonus + flat;
+  return (q.masterwork ? mwkCost : 0) + flat;
 }
 
 /** Why this item's quality is illegal, or null. Named abilities need an enhancement bonus, and the
- *  combined bonus is capped at +10. */
-export function qualityProblem(q: ItemQuality | undefined, equivalentOf: (id: string) => number): string | null {
+ *  combined bonus is capped at +10. Flat-priced abilities still require the enhancement bonus but
+ *  do not count toward the cap. */
+export function qualityProblem(kind: 'weapon' | 'armor', q: ItemQuality | undefined, lookup: PropertyLookup): string | null {
   if (!q?.properties?.length) return null;
-  if (clampEnh(q.enhancement) < 1) return 'A weapon with a special ability must also have at least a +1 enhancement bonus.';
-  const total = totalBonus(q, equivalentOf);
+  const noun = kind === 'weapon' ? 'A weapon' : 'A suit of armor or a shield';
+  if (clampEnh(q.enhancement) < 1) return `${noun} with a special ability must also have at least a +1 enhancement bonus.`;
+  const total = totalBonus(q, lookup);
   if (total > MAX_TOTAL_BONUS) return `Combined bonus +${total} exceeds the +${MAX_TOTAL_BONUS} maximum.`;
   return null;
 }
