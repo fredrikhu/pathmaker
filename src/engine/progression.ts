@@ -284,3 +284,17 @@ export function spellsKnownPerLevel(table: SpellTable | undefined, level: number
   if (!src) return [];
   return src[Math.min(20, level) - 1] ?? [];
 }
+
+/** Character Wealth by Level (Core, verified against d20pfsrd): the gold a character *created* at
+ *  that level starts with. Index 0 = 2nd level; 1st level uses the class's own starting gold roll. */
+const WEALTH_BY_LEVEL = [
+  1_000, 3_000, 6_000, 10_500, 16_000, 23_500, 33_000, 46_000, 62_000, 82_000,
+  108_000, 140_000, 185_000, 240_000, 315_000, 410_000, 530_000, 685_000, 880_000,
+];
+
+/** Starting gold for a character built at `level`: the class's 1st-level roll, or the
+ *  wealth-by-level figure from 2nd on (a 3rd-level character does not start with 175 gp). */
+export function startingWealth(level: number, classStartingGold: number): number {
+  if (level <= 1) return classStartingGold;
+  return WEALTH_BY_LEVEL[Math.min(20, level) - 2] ?? classStartingGold;
+}

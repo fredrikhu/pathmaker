@@ -1083,3 +1083,91 @@ describe('cleric domain options carry their granted powers', () => {
     expect(death.desc).toContain('Bleeding Touch (1st)');
   });
 });
+
+describe('starting wealth by level', () => {
+  function warpriestAt(level: number, extra: Partial<CharacterDoc> = {}): CharacterDoc {
+    let d = newCharacter('t-wealth', 'Kadric');
+    d = withDecision(d, 'ability-base', { str: 14, dex: 12, con: 14, int: 10, wis: 14, cha: 10 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['wis']);
+    d = withDecision(d, 'alignment', 'LG');
+    d = withDecision(d, 'class', 'warpriest');
+    return { ...atLevel(d, level), ...extra };
+  }
+
+  it('uses the class starting gold at 1st level', () => {
+    expect(resolve(warpriestAt(1)).sheet.gold).toBe(175);
+  });
+
+  it('uses Character Wealth by Level from 2nd on', () => {
+    expect(resolve(warpriestAt(2)).sheet.gold).toBe(1000);
+    expect(resolve(warpriestAt(3)).sheet.gold).toBe(3000);
+    expect(resolve(warpriestAt(10)).sheet.gold).toBe(62000);
+    expect(resolve(warpriestAt(20)).sheet.gold).toBe(880000);
+  });
+
+  it('subtracts what has been spent', () => {
+    expect(resolve(warpriestAt(3, { goldSpent: 500 })).sheet.gold).toBe(2500);
+  });
+});
+
+describe('1st-level hit points', () => {
+  function fighterHp(hpRolls?: Record<number, number>): number {
+    let d = newCharacter('t-hp1', 'Roll');
+    d = withDecision(d, 'ability-base', { str: 14, dex: 12, con: 10, int: 10, wis: 10, cha: 10 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['str']);
+    d = withDecision(d, 'alignment', 'N');
+    d = withDecision(d, 'class', 'fighter');
+    if (hpRolls) d = withDecision(d, 'hp-rolls', hpRolls);
+    return resolve(d).sheet.stats['hp:max'].total;
+  }
+
+  it('defaults to the maximum hit die', () => {
+    expect(fighterHp()).toBe(10); // d10, Con 10
+  });
+
+  it('honours a rolled 1st-level value when the table rolls for it', () => {
+    expect(fighterHp({ 1: 4 })).toBe(4);
+  });
+});
+
+describe('granted feats that take a parameter', () => {
+  function warpriest(params?: Record<string, string>): CharacterDoc {
+    let d = newCharacter('t-wf', 'Kadric');
+    d = withDecision(d, 'ability-base', { str: 15, dex: 12, con: 14, int: 10, wis: 14, cha: 10 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['str']);
+    d = withDecision(d, 'alignment', 'LG');
+    d = withDecision(d, 'class', 'warpriest');
+    if (params) d = withDecision(d, 'feat-params', params);
+    return d;
+  }
+
+  it('exposes the weapon options and an unset value for warpriest Weapon Focus', () => {
+    const g = resolve(warpriest()).sheet.grantedFeats[0];
+    expect(g.featId).toBe('weapon-focus');
+    expect(g.param?.label).toBe('Weapon');
+    expect(g.param?.value).toBeNull();
+    // Options come from the weapon catalogue, not a frozen list of eight.
+    expect(g.param!.options.length).toBeGreaterThan(30);
+    expect(g.param!.options).toContain('Greatsword');
+  });
+
+  it('reflects the chosen weapon', () => {
+    const g = resolve(warpriest({ 'granted:weapon-focus:1': 'Longsword' })).sheet.grantedFeats[0];
+    expect(g.param?.value).toBe('Longsword');
+  });
+});
+
+describe('content ordering', () => {
+  it('classes and races are listed alphabetically', () => {
+    const names = (arr: { name: string }[]) => arr.map((x) => x.name);
+    const sorted = (n: string[]) => [...n].sort((a, b) => a.localeCompare(b));
+    // Imported lazily to avoid a top-level content import in this engine test file.
+    return import('../content/index').then((C) => {
+      expect(names(C.CLASSES)).toEqual(sorted(names(C.CLASSES)));
+      expect(names(C.RACES)).toEqual(sorted(names(C.RACES)));
+    });
+  });
+});

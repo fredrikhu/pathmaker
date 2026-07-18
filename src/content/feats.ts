@@ -1,4 +1,13 @@
 import type { FeatDef } from './model';
+import { WEAPONS } from './equipment';
+import { SKILLS } from './skills';
+
+// Parameter option lists are derived from the catalogues rather than hand-listed, so a feat like
+// Weapon Focus offers every weapon we know about instead of a frozen subset of eight.
+const WEAPON_OPTIONS = WEAPONS.map((w) => w.name).sort((a, b) => a.localeCompare(b));
+const SKILL_OPTIONS = SKILLS.map((s) => s.name).sort((a, b) => a.localeCompare(b));
+const CROSSBOW_OPTIONS = WEAPONS.filter((w) => w.id.includes('crossbow')).map((w) => w.name);
+const SCHOOL_OPTIONS = ['Abjuration', 'Conjuration', 'Divination', 'Enchantment', 'Evocation', 'Illusion', 'Necromancy', 'Transmutation'];
 
 // Core feats. prerequisites use the predicate DSL; effects fold into the stat graph.
 export const FEATS: FeatDef[] = [
@@ -21,7 +30,7 @@ export const FEATS: FeatDef[] = [
     benefit: 'Use Dex modifier instead of Str on attack rolls with light melee weapons.' },
   { id: 'weapon-focus', name: 'Weapon Focus', types: ['combat'], reqText: 'Proficiency with weapon, BAB +1',
     benefit: '+1 bonus on attack rolls with the selected weapon.', prerequisites: { bab: 1 },
-    param: { label: 'Weapon', options: ['Longsword', 'Greataxe', 'Longbow', 'Rapier', 'Dagger', 'Scimitar', 'Warhammer', 'Falchion'] } },
+    param: { label: 'Weapon', options: WEAPON_OPTIONS } },
   { id: 'two-weapon-fighting', name: 'Two-Weapon Fighting', types: ['combat'], reqText: 'Dex 15',
     benefit: 'Reduce the penalties for fighting with two weapons.', prerequisites: { ability: 'dex', gte: 15 } },
   { id: 'point-blank-shot', name: 'Point-Blank Shot', types: ['combat'], reqText: '—',
@@ -43,12 +52,12 @@ export const FEATS: FeatDef[] = [
     benefit: '+2 bonus on Fortitude saves.', effects: [{ target: 'save:fort', type: 'untyped', value: 2, note: 'Great Fortitude' }] },
   { id: 'skill-focus', name: 'Skill Focus', types: ['general'], reqText: '—',
     benefit: '+3 bonus on the chosen skill (+6 at 10 ranks).',
-    param: { label: 'Skill', options: ['Perception', 'Stealth', 'Diplomacy', 'Spellcraft', 'Acrobatics', 'Intimidate', 'Sense Motive', 'Knowledge (arcana)'] } },
+    param: { label: 'Skill', options: SKILL_OPTIONS } },
   { id: 'combat-casting', name: 'Combat Casting', types: ['general'], reqText: '—',
     benefit: '+4 bonus on concentration checks made to cast defensively.' },
   { id: 'spell-focus', name: 'Spell Focus', types: ['general'], reqText: 'Ability to cast spells',
     benefit: '+1 to the DC of saving throws against spells of the chosen school.',
-    param: { label: 'School', options: ['Evocation', 'Conjuration', 'Enchantment', 'Illusion', 'Necromancy', 'Transmutation', 'Abjuration', 'Divination'] } },
+    param: { label: 'School', options: SCHOOL_OPTIONS } },
   { id: 'improved-unarmed-strike', name: 'Improved Unarmed Strike', types: ['combat'], reqText: '—',
     benefit: 'Deal lethal damage with unarmed strikes and are always considered armed.' },
   { id: 'throw-anything', name: 'Throw Anything', types: ['combat'], reqText: '—',
@@ -59,7 +68,7 @@ export const FEATS: FeatDef[] = [
   { id: 'greater-weapon-focus', name: 'Greater Weapon Focus', types: ['combat'], reqText: 'Weapon Focus, Fighter 8',
     benefit: '+1 more on attack rolls with the selected weapon (stacks with Weapon Focus).',
     prerequisites: { all: [{ feat: 'weapon-focus' }, { classId: 'fighter' }] },
-    param: { label: 'Weapon', options: ['Longsword', 'Greataxe', 'Longbow', 'Rapier', 'Dagger', 'Scimitar', 'Warhammer', 'Falchion'] } },
+    param: { label: 'Weapon', options: WEAPON_OPTIONS } },
   { id: 'greater-weapon-specialization', name: 'Greater Weapon Specialization', types: ['combat'], reqText: 'Weapon Specialization, Fighter 12',
     benefit: '+2 more on damage rolls with the selected weapon (stacks with Weapon Specialization).',
     prerequisites: { all: [{ feat: 'weapon-specialization' }, { classId: 'fighter' }] } },
@@ -117,7 +126,7 @@ export const FEATS: FeatDef[] = [
     prerequisites: { skillRanks: { skill: 'ride', gte: 1 } } },
   { id: 'rapid-reload', name: 'Rapid Reload', types: ['combat'], reqText: 'Weapon Proficiency (crossbow)',
     benefit: 'Reload the chosen crossbow more quickly (free or move action).',
-    param: { label: 'Crossbow', options: ['Light crossbow', 'Heavy crossbow', 'Hand crossbow'] } },
+    param: { label: 'Crossbow', options: CROSSBOW_OPTIONS } },
   { id: 'spring-attack', name: 'Spring Attack', types: ['combat'], reqText: 'Dodge, Mobility, Dex 13, BAB +4',
     benefit: 'Move before and after a melee attack without provoking from the target.',
     prerequisites: { all: [{ feat: 'dodge' }, { feat: 'mobility' }, { ability: 'dex', gte: 13 }, { bab: 4 }] } },
@@ -175,7 +184,7 @@ export const FEATS: FeatDef[] = [
   { id: 'greater-spell-focus', name: 'Greater Spell Focus', types: ['general'], reqText: 'Spell Focus',
     benefit: '+1 more to save DCs of the chosen school (stacks with Spell Focus).',
     prerequisites: { feat: 'spell-focus' },
-    param: { label: 'School', options: ['Evocation', 'Conjuration', 'Enchantment', 'Illusion', 'Necromancy', 'Transmutation', 'Abjuration', 'Divination'] } },
+    param: { label: 'School', options: SCHOOL_OPTIONS } },
   { id: 'spell-penetration', name: 'Spell Penetration', types: ['general'], reqText: '—',
     benefit: '+2 on caster level checks to overcome spell resistance.' },
   { id: 'greater-spell-penetration', name: 'Greater Spell Penetration', types: ['general'], reqText: 'Spell Penetration',

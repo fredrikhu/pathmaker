@@ -203,6 +203,9 @@ export interface GrantedFeat {
   name: string;
   /** Extra qualifier, e.g. "deity's favored weapon" for warpriest Weapon Focus. */
   note?: string;
+  /** Feats that take a parameter (Weapon Focus → which weapon) carry the choice here.
+   *  `key` is the decision key under `feat-params`. */
+  param?: { key: string; label: string; options: string[]; value: string | null };
 }
 
 /** One carried item, with what is left of it after play (phase 5). */

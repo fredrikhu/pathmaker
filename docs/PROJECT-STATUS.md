@@ -79,6 +79,27 @@ Still open from that audit:
 - **Bonus domain spells** are still not modelled per-spell (the extra domain slot is a +1 count
   approximation in the engine); only the granted powers are authored.
 
+### Session feedback fixes (2026-07)
+
+- **Feat parameters are now selectable.** `FeatDef.param` existed in content but was never rendered
+  anywhere, so Weapon Focus (and Skill/Spell Focus, Rapid Reload) had no weapon/skill/school picker —
+  including the warpriest's granted one. Params now store under a `feat-params` decision, keyed by
+  slot for chosen feats and `granted:<featId>:<level>` for class-granted ones; `GrantedFeat.param`
+  carries the option list and current pick. Option lists derive from the catalogues (all 39 weapons,
+  all skills) instead of the frozen eight that were hand-listed.
+- **Starting gold uses Character Wealth by Level** above 1st (`startingWealth` in `progression.ts`,
+  table verified against d20pfsrd): a 3rd-level character starts with 3,000 gp, not the class's
+  1st-level roll. Trait gold (Rich Parents) still only replaces the 1st-level figure.
+- **Hit points can be rolled in-page at every level**, 1st included. 1st still defaults to the max
+  die (RAW) and later levels to the class average; 🎲 rolls 1d(hit die) per row, with a "roll levels
+  2–N" bulk action and a reset to the default. The engine honours `hp-rolls[1]` as an override.
+- **Layout**: the Advancement table now fills the pane (was capped at 900px); the Class/Race detail
+  panels sit flush with the pane edge (a negative right margin pulls the scroll container into the
+  Builder column's 26px padding, so their scrollbar lines up with the whole-page-scrolling steps).
+- **Classes and races are listed alphabetically.** The definition arrays stay grouped by tier for
+  authoring (core/base/hybrid, core/featured/uncommon/exotic) and are sorted at export; each entry
+  still shows its tier in `sub`.
+
 ### Blocked on verification (won't ship guessed numbers — need a trusted source)
 - **Arcanist** spells-per-day grid (unique 9-level table; the fetched values were ambiguous) →
   `SpellcastingDef.table` unset, so no slot numbers shown for arcanist.

@@ -134,6 +134,10 @@ const CORE_RACES: RaceDef[] = [
   },
 ];
 
-export const RACES: RaceDef[] = [...CORE_RACES, ...FEATURED_RACES, ...UNCOMMON_RACES, ...EXOTIC_RACES];
+// Presented alphabetically. The source arrays are grouped by rarity tier (core / featured /
+// uncommon / exotic) for authoring; concatenating them left the picker unordered once the later
+// tiers were added.
+export const RACES: RaceDef[] = [...CORE_RACES, ...FEATURED_RACES, ...UNCOMMON_RACES, ...EXOTIC_RACES]
+  .sort((a, b) => a.name.localeCompare(b.name));
 
 export const raceById = new Map(RACES.map((r) => [r.id, r]));

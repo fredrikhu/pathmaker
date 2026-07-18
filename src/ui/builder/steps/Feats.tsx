@@ -22,6 +22,20 @@ export function FeatsStep({ ch }: { ch: CharCtl }) {
 
   const setFeat = (slotKey: string, featId: string | null) => setDecision('feats', { ...feats, [slotKey]: featId });
 
+  // Feats that take a parameter (Weapon Focus → which weapon) store it under `feat-params`,
+  // keyed by the slot for chosen feats and by a `granted:` key for class-granted ones.
+  const featParams = (doc.decisions['feat-params'] as Record<string, string>) ?? {};
+  const setParam = (key: string, value: string) => setDecision('feat-params', { ...featParams, [key]: value });
+
+  const ParamPicker = ({ pKey, label, options, value }: { pKey: string; label: string; options: string[]; value: string | null }) => (
+    <select className="input" style={{ fontSize: 11.5, padding: '2px 5px', maxWidth: 190 }}
+      value={value ?? ''} onChange={(e) => setParam(pKey, e.target.value)}
+      onClick={(e) => e.stopPropagation()}>
+      <option value="">choose {label.toLowerCase()}…</option>
+      {options.map((o) => <option key={o} value={o}>{o}</option>)}
+    </select>
+  );
+
   const pick = (opt: SlotOption) => {
     if (!opt.legal) return;
     // If already selected somewhere, clear it.
@@ -84,10 +98,21 @@ export function FeatsStep({ ch }: { ch: CharCtl }) {
                   style={{ padding: '10px 12px', borderRadius: 8, background: 'var(--color-surface)', cursor: 'pointer', boxShadow: `inset 0 0 0 1px ${fid ? 'var(--color-divider)' : isTarget ? 'var(--color-accent)' : 'var(--color-accent-800)'}` }}>
                   <div className="micro" style={{ marginBottom: 3 }}>{s.label}</div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontSize: 13, fontWeight: 500, color: fid ? 'var(--color-text)' : 'var(--color-neutral-600)' }}>{fid ? featById.get(fid)?.name : (isTarget ? 'Selecting…' : 'Empty')}</span>
+                    <span style={{ fontSize: 13, fontWeight: 500, color: fid ? 'var(--color-text)' : 'var(--color-neutral-600)' }}>
+                      {fid ? featById.get(fid)?.name : (isTarget ? 'Selecting…' : 'Empty')}
+                      {fid && featParams[s.id] ? <span className="text-muted" style={{ fontWeight: 400 }}> ({featParams[s.id]})</span> : null}
+                    </span>
                     <span style={{ flex: 1 }} />
                     {fid && <button onClick={(e) => { e.stopPropagation(); setFeat(s.id, null); }} style={{ background: 'transparent', border: 'none', color: 'var(--color-neutral-500)', cursor: 'pointer', fontSize: 12 }}>✕</button>}
                   </div>
+                  {(() => {
+                    const p = fid ? featById.get(fid)?.param : undefined;
+                    return p ? (
+                      <div style={{ marginTop: 5 }}>
+                        <ParamPicker pKey={s.id} label={p.label} options={p.options} value={featParams[s.id] ?? null} />
+                      </div>
+                    ) : null;
+                  })()}
                 </div>
               );
             })}
@@ -105,9 +130,16 @@ export function FeatsStep({ ch }: { ch: CharCtl }) {
               return (
                 <div key={`${g.featId}-${g.level}`} style={{ padding: '9px 12px', borderRadius: 8, background: 'var(--color-surface)', boxShadow: 'inset 0 0 0 1px var(--color-divider)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: 13, fontWeight: 500 }}>{g.name}{g.note ? ` (${g.note})` : ''}</span>
+                    <span style={{ fontSize: 13, fontWeight: 500 }}>{g.name}{g.param?.value ? ` (${g.param.value})` : ''}</span>
                     <span className="tag tag-neutral" style={{ fontSize: 10 }}>bonus · level {g.level}</span>
                   </div>
+                  {g.param && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 5, flexWrap: 'wrap' }}>
+                      <ParamPicker pKey={g.param.key} label={g.param.label} options={g.param.options} value={g.param.value} />
+                      {g.note && <span className="text-muted" style={{ fontSize: 11 }}>{g.note}</span>}
+                      {!g.param.value && <span style={{ fontSize: 11, color: 'var(--warn-fg)' }}>pick one</span>}
+                    </div>
+                  )}
                   {f && <div style={{ fontSize: 12, color: 'var(--color-neutral-400)', marginTop: 2, lineHeight: 1.5 }}>{f.benefit}</div>}
                 </div>
               );

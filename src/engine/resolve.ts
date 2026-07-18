@@ -9,7 +9,7 @@ import { evalPredicate, explainFailure, type PredicateCtx } from './predicates';
 import { stack, type Contribution } from './stack';
 import {
   babAt, saveBase, fixedHpPerLevel, generalFeatLevels, abilityIncreaseLevels,
-  casterLevel, spellSlotsPerDay, spellsKnownPerLevel, type SpellTable,
+  casterLevel, spellSlotsPerDay, spellsKnownPerLevel, startingWealth, type SpellTable,
 } from './progression';
 
 const POINT_BUY_COST: Record<number, number> = {
@@ -170,12 +170,26 @@ function validFeatIds(dec: Decisions, level: number): string[] {
   return [...chosen, ...grantedFeatsFor(klass, level).map((g) => g.featId)];
 }
 
-/** Fixed feats a class confers automatically up through `level`, resolved to display names. */
-function grantedFeatsFor(klass: C.ClassDef | undefined, level: number): GrantedFeat[] {
+/** Fixed feats a class confers automatically up through `level`, resolved to display names.
+ *  Feats that take a parameter (warpriest's Weapon Focus) carry their option list and current
+ *  pick so the Feats step can offer a selector. */
+function grantedFeatsFor(klass: C.ClassDef | undefined, level: number, params: Record<string, string> = {}): GrantedFeat[] {
   if (!klass?.grantedFeats) return [];
   return klass.grantedFeats
     .filter((g) => g.level <= level)
-    .map((g) => ({ level: g.level, featId: g.feat, name: C.featById.get(g.feat)?.name ?? g.feat, note: g.note }));
+    .map((g) => {
+      const def = C.featById.get(g.feat);
+      const key = grantedParamKey(g.feat, g.level);
+      return {
+        level: g.level, featId: g.feat, name: def?.name ?? g.feat, note: g.note,
+        ...(def?.param ? { param: { key, label: def.param.label, options: def.param.options, value: params[key] ?? null } } : {}),
+      };
+    });
+}
+
+/** Decision key (under `feat-params`) for a class-granted feat's parameter. */
+export function grantedParamKey(featId: string, level: number): string {
+  return `granted:${featId}:${level}`;
 }
 
 function collectEffects(dec: Decisions, doc: CharacterDoc, level: number): Effect[] {
@@ -346,7 +360,12 @@ export function resolve(doc: CharacterDoc): Resolution {
   if (favored) for (let l = 1; l <= level; l++) { const c = fcbAt(l); if (c === 'hp') fcbHpCount++; else if (c === 'skill') fcbSkillCount++; }
   const hpContribs: Contribution[] = [];
   if (klass) {
-    hpContribs.push({ type: 'base', value: klass.hitDie, note: `Max hit die (${klass.name})` });
+    // 1st level takes the maximum die by default; a table that rolls for 1st can override it.
+    const firstLevelHp = dec.hpRolls[1] ?? klass.hitDie;
+    hpContribs.push({
+      type: 'base', value: firstLevelHp,
+      note: firstLevelHp === klass.hitDie ? `Max hit die (${klass.name})` : `1st level (rolled ${firstLevelHp})`,
+    });
     let laterLevelsHp = 0;
     for (let l = 2; l <= level; l++) laterLevelsHp += dec.hpRolls[l] ?? fixedHpPerLevel(klass.hitDie);
     if (laterLevelsHp) hpContribs.push({ type: 'base', value: laterLevelsHp, note: `Levels 2–${level}` });
@@ -496,11 +515,14 @@ export function resolve(doc: CharacterDoc): Resolution {
   const effectiveSpeed = speedReduced ? baseSpeed - Math.floor(baseSpeed / 3 / 5) * 5 : baseSpeed;
 
   // ---- Gold ----
+  // A character built above 1st level uses Character Wealth by Level, not the class's 1st-level
+  // starting roll. Trait gold (Rich Parents) only ever replaces the 1st-level figure.
   let startGold = klass?.startingGold ?? 0;
   for (const tid of dec.traits) {
     const t = C.traitById.get(tid);
     if (t?.bonusGold) startGold = t.bonusGold;
   }
+  startGold = klass ? startingWealth(level, startGold) : startGold;
   const gold = Math.round((startGold - doc.goldSpent) * 100) / 100;
 
   // ---- Caster level + spell slots ----
@@ -530,7 +552,7 @@ export function resolve(doc: CharacterDoc): Resolution {
         features: classFeaturesUpTo(klass, l, dec).filter((f) => f.level === l).map((f) => f.name),
         featSlots: featSlotKeys.filter((fs) => fs.level === l).map((fs) => fs.label),
         abilityIncrease: dec.abilityIncreases[l],
-        hp: l === 1 ? klass.hitDie : (dec.hpRolls[l] ?? fixedHpPerLevel(klass.hitDie)),
+        hp: l === 1 ? (dec.hpRolls[1] ?? klass.hitDie) : (dec.hpRolls[l] ?? fixedHpPerLevel(klass.hitDie)),
       });
     }
   }
@@ -565,7 +587,7 @@ export function resolve(doc: CharacterDoc): Resolution {
     progression,
     pools: classPools(klass, level, mods),
     attacks: weaponAttacks(doc, stats, bab, mods.str),
-    grantedFeats: grantedFeatsFor(klass, level),
+    grantedFeats: grantedFeatsFor(klass, level, (doc.decisions['feat-params'] as Record<string, string>) ?? {}),
     inventory,
     summaryLine,
   };

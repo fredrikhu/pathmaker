@@ -41,17 +41,31 @@ export function AdvancementStep({ ch }: { ch: CharCtl }) {
   const fcbByLevel = (doc.decisions['fcb-by-level'] as Record<number, 'hp' | 'skill'>) ?? {};
   const setFcb = (level: number, val: 'hp' | 'skill') => setDecision('fcb-by-level', { ...fcbByLevel, [level]: val });
 
+  const rollHp = (level: number) => setHp(level, 1 + Math.floor(Math.random() * klass.hitDie));
+  const rollAll = () => {
+    const next = { ...hpRolls };
+    for (let l = 2; l <= sheet.level; l++) next[l] = 1 + Math.floor(Math.random() * klass.hitDie);
+    setDecision('hp-rolls', next);
+  };
+
   return (
-    <div style={{ maxWidth: 900 }}>
+    <div>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 14, flexWrap: 'wrap', marginBottom: 6 }}>
         <h3 style={{ fontSize: 21, margin: 0 }}>Advancement</h3>
         <span className="text-muted" style={{ fontSize: 13 }}>{klass.name} {sheet.level} · <span className="num">{totalHp}</span> HP</span>
         {sheet.casterLevel ? <span className="text-muted" style={{ fontSize: 13 }}>· caster level <span className="num">{sheet.casterLevel}</span></span> : null}
       </div>
-      <p className="text-muted" style={{ fontSize: 12, margin: '0 0 14px', lineHeight: 1.5 }}>
-        Hit points default to the class average ({avg} for a d{klass.hitDie}); type a rolled value to override.
-        Ability score increases (levels 4, 8, 12, 16, 20) and a permanent Con boost raise hit points retroactively.
-      </p>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '0 0 14px', flexWrap: 'wrap' }}>
+        <p className="text-muted" style={{ fontSize: 12, margin: 0, lineHeight: 1.5, maxWidth: '86ch' }}>
+          1st level takes the maximum hit die ({klass.hitDie}); later levels default to the class average ({avg} for a
+          d{klass.hitDie}). Roll 🎲 or type a value to override any level. Ability score increases (levels 4, 8, 12, 16, 20)
+          and a permanent Con boost raise hit points retroactively.
+        </p>
+        {sheet.level > 1 && (
+          <button className="btn btn-secondary" style={{ fontSize: 12 }} title={`Roll 1d${klass.hitDie} for levels 2–${sheet.level}`}
+            onClick={rollAll}>🎲 Roll levels 2–{sheet.level}</button>
+        )}
+      </div>
 
       {sheet.spellSlots && sheet.spellSlots.some((n) => n > 0) && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, flexWrap: 'wrap', fontSize: 12.5 }}>
@@ -94,21 +108,29 @@ export function AdvancementStep({ ch }: { ch: CharCtl }) {
                     {gains.length ? gains.join(' · ') : <span className="text-muted">—</span>}
                   </td>
                   <td style={cell}>
-                    {row.level === 1 ? (
-                      <span className="num" title="Level 1 always takes the maximum hit die">{klass.hitDie}<span className="text-muted" style={{ fontSize: 10 }}> max</span></span>
-                    ) : (
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                        <input className="input" style={{ width: 44, padding: '3px 5px', textAlign: 'center' }} type="number" min={1} max={klass.hitDie}
-                          value={hpRolls[row.level] ?? avg}
-                          onChange={(e) => {
-                            const v = Math.max(1, Math.min(klass.hitDie, Math.round(Number(e.target.value) || avg)));
-                            setHp(row.level, v === avg ? null : v);
-                          }} />
-                        {hpRolls[row.level] != null && hpRolls[row.level] !== avg && (
-                          <button className="btn btn-ghost" style={{ fontSize: 10 }} title="Reset to class average" onClick={() => setHp(row.level, null)}>avg</button>
-                        )}
-                      </span>
-                    )}
+                    {(() => {
+                      // 1st level defaults to the max die (RAW); later levels to the class average.
+                      // Either can be rolled here or typed in.
+                      const fallback = row.level === 1 ? klass.hitDie : avg;
+                      const overridden = hpRolls[row.level] != null && hpRolls[row.level] !== fallback;
+                      return (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                          <input className="input" style={{ width: 44, padding: '3px 5px', textAlign: 'center' }} type="number" min={1} max={klass.hitDie}
+                            value={hpRolls[row.level] ?? fallback}
+                            onChange={(e) => {
+                              const v = Math.max(1, Math.min(klass.hitDie, Math.round(Number(e.target.value) || fallback)));
+                              setHp(row.level, v === fallback ? null : v);
+                            }} />
+                          <button className="btn btn-ghost" style={{ fontSize: 11, padding: '2px 5px' }}
+                            title={`Roll 1d${klass.hitDie}`} onClick={() => rollHp(row.level)}>🎲</button>
+                          {overridden && (
+                            <button className="btn btn-ghost" style={{ fontSize: 10 }}
+                              title={row.level === 1 ? 'Reset to max hit die' : 'Reset to class average'}
+                              onClick={() => setHp(row.level, null)}>{row.level === 1 ? 'max' : 'avg'}</button>
+                          )}
+                        </span>
+                      );
+                    })()}
                   </td>
                   {favored && (
                     <td style={cell}>

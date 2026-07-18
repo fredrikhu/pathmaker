@@ -503,4 +503,9 @@ for (const c of CLASSES) {
   if (c.spellcasting && cfg) { c.spellcasting.progression = cfg.progression; c.spellcasting.table = cfg.table; }
 }
 
+// Presented alphabetically. The definitions above are grouped by tier (core / base / hybrid) for
+// authoring, which left the picker jumping from Wizard back to Alchemist; each class carries its
+// tier in `sub`, so the grouping is still visible without dictating list order.
+CLASSES.sort((a, b) => a.name.localeCompare(b.name));
+
 export const classById = new Map(CLASSES.map((c) => [c.id, c]));

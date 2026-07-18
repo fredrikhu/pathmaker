@@ -53,7 +53,9 @@ export function ClassStep({ ch }: { ch: CharCtl }) {
         </div>
       </div>
 
-      <div style={{ padding: '4px 20px 4px 0', flex: 1, minWidth: 0, overflowY: 'auto', minHeight: 0 }}>
+      {/* Negative right margin pulls the scroll container into the Builder column's 26px padding so
+          its scrollbar sits flush with the pane edge, matching the steps that scroll as a whole. */}
+      <div style={{ padding: '4px 26px 4px 0', marginRight: -26, flex: 1, minWidth: 0, overflowY: 'auto', minHeight: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 6, flexWrap: 'wrap' }}>
           <h3 style={{ fontSize: 24, margin: 0 }}>{view.name}</h3>
           <button className="btn btn-primary" style={{ fontSize: 12 }} onClick={() => setDecision('class', view.id)}>
