@@ -178,6 +178,11 @@ export interface ChoiceSlot {
 /** One row of the class advancement table: what the character gains at a given level. */
 export interface ProgressionRow {
   level: number;
+  /** The class taken at this character level, and what class level it represents. */
+  className?: string;
+  classId?: string;
+  classLevel?: number;
+  /** Running totals at this character level (summed across classes, not one class's column). */
   bab: number;
   fort: number;
   ref: number;

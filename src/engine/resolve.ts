@@ -12,8 +12,8 @@ import {
   weaponQualityBonus, type ItemQuality, type PropertyPrice,
 } from './items';
 import {
-  babAt, saveBase, fixedHpPerLevel, generalFeatLevels, abilityIncreaseLevels,
-  casterLevel, spellSlotsPerDay, spellsKnownPerLevel, startingWealth, type SpellTable,
+  saveBase, fixedHpPerLevel, generalFeatLevels, abilityIncreaseLevels,
+  casterLevel, spellSlotsPerDay, spellsKnownPerLevel, startingWealth, sumBab, sumSave, type SpellTable,
 } from './progression';
 import { powerAttackAmounts, twoWeaponPenalties, offHandAttackBonuses, type PowerAttackScale } from './combat';
 
@@ -51,6 +51,9 @@ interface Decisions {
   alignment: Alignment | null;
   deityId: string | null;
   classId: string | null;
+  /** The class taken at each character level (index 0 = level 1). Entries may be absent, in
+   *  which case that level falls back to `classId` — so single-class documents store nothing. */
+  classLevels: (string | null)[];
   favoredClass: string | null;
   fcbChoice: 'hp' | 'skill' | null; // overall default for levels without a per-level pick
   fcbByLevel: Record<number, 'hp' | 'skill'>;
@@ -77,6 +80,7 @@ function readDecisions(doc: CharacterDoc): Decisions {
     alignment: get<Alignment | null>('alignment', null),
     deityId: get<string | null>('deity', null),
     classId: get<string | null>('class', null),
+    classLevels: get<(string | null)[]>('class-levels', []),
     favoredClass: get<string | null>('favored-class', null),
     fcbChoice: get<'hp' | 'skill' | null>('fcb', null),
     fcbByLevel: get<Record<number, 'hp' | 'skill'>>('fcb-by-level', {}),
@@ -165,14 +169,24 @@ function sourceFeatures(dec: Decisions): C.LeveledFeatureDef[] {
  *  nothing to the sheet until the user resolves them. */
 function validFeatIds(dec: Decisions, level: number): string[] {
   const race = dec.raceId ? C.raceById.get(dec.raceId) : undefined;
-  const klass = dec.classId ? C.classById.get(dec.classId) : undefined;
-  const keys = new Set(featSlots(dec, race, klass, level).map((s) => s.key));
+  const keys = new Set(featSlots(dec, race, level).map((s) => s.key));
   const chosen = Object.entries(dec.feats)
     .filter(([k, v]) => v && keys.has(k))
     .map(([, v]) => v as string);
   // Class-granted fixed feats count toward the feat set for prerequisites (e.g. monk's Improved
   // Unarmed Strike enabling Stunning Fist, warpriest's Weapon Focus).
-  return [...chosen, ...grantedFeatsFor(klass, level).map((g) => g.featId)];
+  return [...chosen, ...allGrantedFeats(dec, level).map((g) => g.featId)];
+}
+
+// Multiclass fan-outs: each class contributes at *its own* level, and the results concatenate.
+// Single-class characters get exactly the old single-class result.
+
+function allClassFeatures(dec: Decisions, level: number, withDec = true): C.LeveledFeatureDef[] {
+  return classBreakdown(dec, level).flatMap((c) => classFeaturesUpTo(c.klass, c.levels, withDec ? dec : undefined));
+}
+
+function allGrantedFeats(dec: Decisions, level: number, params: Record<string, string> = {}): GrantedFeat[] {
+  return classBreakdown(dec, level).flatMap((c) => grantedFeatsFor(c.klass, c.levels, params));
 }
 
 /** Fixed feats a class confers automatically up through `level`, resolved to display names.
@@ -204,7 +218,7 @@ function collectEffects(dec: Decisions, doc: CharacterDoc, level: number): Effec
 
   // Class features gained so far (e.g. druid Nature Sense's +2 to Nature/Survival).
   const klass = dec.classId ? C.classById.get(dec.classId) : undefined;
-  for (const feat of classFeaturesUpTo(klass, level)) if (feat.effects) effects.push(...feat.effects);
+  for (const feat of allClassFeatures(dec, level, false)) if (feat.effects) effects.push(...feat.effects);
 
   // Feats (orphaned feats suspended — see validFeatIds)
   for (const fid of validFeatIds(dec, level)) {
@@ -307,6 +321,42 @@ function maxDexBonus(doc: CharacterDoc): number | null {
   return a && a.maxDex !== null ? a.maxDex : null;
 }
 
+// ---------- Multiclass: which class was taken at each character level ----------
+
+/** One class the character has levels in. `levels` is that class's own level, which is what
+ *  class features, bonus feats and caster level key off — never the character level. */
+export interface ClassEntry {
+  klass: C.ClassDef;
+  levels: number;
+  /** Character level at which this class was first taken, for stable ordering. */
+  firstAt: number;
+}
+
+/** The class id taken at each character level, 1..level. Unset entries fall back to the primary
+ *  class, so a single-class document stores nothing and gaining a level needs no write. */
+function classIdAtLevels(dec: Decisions, level: number): (string | null)[] {
+  return Array.from({ length: level }, (_, i) => dec.classLevels[i] ?? dec.classId);
+}
+
+/** The character's classes with their own level counts, ordered by when each was first taken. */
+function classBreakdown(dec: Decisions, level: number): ClassEntry[] {
+  const out = new Map<string, ClassEntry>();
+  classIdAtLevels(dec, level).forEach((id, i) => {
+    if (!id) return;
+    const existing = out.get(id);
+    if (existing) { existing.levels += 1; return; }
+    const klass = C.classById.get(id);
+    if (klass) out.set(id, { klass, levels: 1, firstAt: i + 1 });
+  });
+  return [...out.values()].sort((a, b) => a.firstAt - b.firstAt);
+}
+
+/** How many levels of `classId` the character has by character level `atLevel` — the class level
+ *  used for that class's features. */
+function classLevelAt(dec: Decisions, classId: string, atLevel: number): number {
+  return classIdAtLevels(dec, atLevel).filter((id) => id === classId).length;
+}
+
 function makeStat(id: string, label: string, contribs: Contribution[], annotations: string[] = []): Stat {
   const { total, lines } = stack(contribs);
   return { id, label, total, lines, annotations };
@@ -353,6 +403,13 @@ export function resolve(doc: CharacterDoc): Resolution {
   const level = Math.max(1, Math.min(20, Math.floor(doc.level) || 1));
   const race = dec.raceId ? C.raceById.get(dec.raceId) : undefined;
   const klass = dec.classId ? C.classById.get(dec.classId) : undefined;
+  // Every class the character has levels in. For a single-class character this is just [klass],
+  // so all the summing below collapses to the old single-class arithmetic.
+  const classes = classBreakdown(dec, level);
+  const isMulticlass = classes.length > 1;
+  /** The class taken at each character level (index 0 = level 1). */
+  const levelClasses = classIdAtLevels(dec, level).map((id) => (id ? C.classById.get(id) : undefined));
+  const classAt = (l: number) => levelClasses[l - 1];
   // Ability increases above the current target level are suspended, not applied.
   const abilities = finalAbilities(dec, level);
   const { standard, alternates } = activeRacialTraits(dec);
@@ -382,7 +439,7 @@ export function resolve(doc: CharacterDoc): Resolution {
   const unconds = (target: string): Contribution[] =>
     (byTarget.get(target) ?? []).filter((e) => !e.condition).map((e) => ({ type: e.type, value: e.value, note: e.note }));
 
-  const bab = klass ? babAt(klass.bab, level) : 0;
+  const bab = sumBab(classes.map((c) => ({ bab: c.klass.bab, goodSaves: c.klass.goodSaves, levels: c.levels })));
   const clvl = klass?.spellcasting ? casterLevel(klass.spellcasting.progression ?? 'full', level) : 0;
   const featIds = validFeatIds(dec, level);
   const predCtx: PredicateCtx = {
@@ -417,21 +474,32 @@ export function resolve(doc: CharacterDoc): Resolution {
   // use the final Con mod × total levels). FCB(hp) adds 1 per level when chosen. Plus Toughness.
   // Favored-class bonus, chosen per level (falling back to the overall default). Count how many
   // levels put the +1 into HP vs skill ranks.
-  const favored = dec.favoredClass != null && dec.favoredClass === dec.classId;
+  // The bonus is earned only on levels taken in the favored class, so a fighter/wizard with
+  // fighter favored gets nothing for the wizard level.
   const fcbAt = (l: number): 'hp' | 'skill' | null => dec.fcbByLevel[l] ?? dec.fcbChoice;
   let fcbHpCount = 0;
   let fcbSkillCount = 0;
-  if (favored) for (let l = 1; l <= level; l++) { const c = fcbAt(l); if (c === 'hp') fcbHpCount++; else if (c === 'skill') fcbSkillCount++; }
+  for (let l = 1; l <= level; l++) {
+    if (!dec.favoredClass || classAt(l)?.id !== dec.favoredClass) continue;
+    const c = fcbAt(l);
+    if (c === 'hp') fcbHpCount++; else if (c === 'skill') fcbSkillCount++;
+  }
   const hpContribs: Contribution[] = [];
-  if (klass) {
+  const firstClass = classAt(1);
+  if (firstClass) {
+    // Each level rolls the hit die of the class taken *at that level*, so a fighter who dips
+    // wizard gains d6 for the wizard level, not d10.
     // 1st level takes the maximum die by default; a table that rolls for 1st can override it.
-    const firstLevelHp = dec.hpRolls[1] ?? klass.hitDie;
+    const firstLevelHp = dec.hpRolls[1] ?? firstClass.hitDie;
     hpContribs.push({
       type: 'base', value: firstLevelHp,
-      note: firstLevelHp === klass.hitDie ? `Max hit die (${klass.name})` : `1st level (rolled ${firstLevelHp})`,
+      note: firstLevelHp === firstClass.hitDie ? `Max hit die (${firstClass.name})` : `1st level (rolled ${firstLevelHp})`,
     });
     let laterLevelsHp = 0;
-    for (let l = 2; l <= level; l++) laterLevelsHp += dec.hpRolls[l] ?? fixedHpPerLevel(klass.hitDie);
+    for (let l = 2; l <= level; l++) {
+      const kl = classAt(l);
+      laterLevelsHp += dec.hpRolls[l] ?? (kl ? fixedHpPerLevel(kl.hitDie) : 0);
+    }
     if (laterLevelsHp) hpContribs.push({ type: 'base', value: laterLevelsHp, note: `Levels 2–${level}` });
   }
   const hpLevels = klass ? level : 1;
@@ -473,9 +541,18 @@ export function resolve(doc: CharacterDoc): Resolution {
   // Saves
   const saveAbility: Record<'fort' | 'ref' | 'will', Ability> = { fort: 'con', ref: 'dex', will: 'wis' };
   for (const sv of ['fort', 'ref', 'will'] as const) {
-    const good = klass?.goodSaves.includes(sv) ?? false;
+    // Each class contributes its own track and they add — a multiclass character re-pays the +2
+    // that a good save grants at 1st level, so the breakdown lists one line per class.
+    const saveLines: Contribution[] = classes.map((c) => {
+      const g = c.klass.goodSaves.includes(sv);
+      return {
+        type: 'base' as const,
+        value: saveBase(g, c.levels),
+        note: `${c.klass.name}${isMulticlass ? ` ${c.levels}` : ''} base (${g ? 'good' : 'poor'})`,
+      };
+    });
     const contribs: Contribution[] = [
-      { type: 'base', value: klass ? saveBase(good, level) : 0, note: `${klass?.name ?? 'Class'} base (${good ? 'good' : 'poor'})` },
+      ...(saveLines.length ? saveLines : [{ type: 'base' as const, value: 0, note: 'Class base' }]),
       { type: 'base', value: mods[saveAbility[sv]], note: `${saveAbility[sv].toUpperCase()} modifier` },
       ...unconds(`save:${sv}`),
       ...unconds('save:all'),
@@ -523,7 +600,8 @@ export function resolve(doc: CharacterDoc): Resolution {
 
   // ---- Skills ----
   const acp = armorCheckPenalty(doc);
-  const classSkillSet = new Set<string>(klass?.classSkills ?? []);
+  // Class skills are the union across every class the character has levels in.
+  const classSkillSet = new Set<string>(classes.flatMap((c) => c.klass.classSkills));
   // Bloodline / trait class-skill grants
   for (const bl of dec.classChoices['bloodline'] ?? []) {
     const b = C.bloodlineById.get(bl);
@@ -532,12 +610,15 @@ export function resolve(doc: CharacterDoc): Resolution {
   const racialSkillPerLevel = standard.reduce((n, t) => n + (t.skillRanksPerLevel ?? 0), 0);
   // Skill-rank budget summed over levels 1..N, using the Int modifier as of each level (an
   // Int increase at level 4 raises ranks from level 4 onward), + the favored-class skill bonuses.
+  // Each level grants the ranks of the class taken at *that* level, so a 2-rank fighter level and
+  // a 6-rank rogue level are budgeted separately rather than averaged.
   const skillRanksTotal = (() => {
-    if (!klass) return 0;
     let total = 0;
     for (let l = 1; l <= level; l++) {
+      const kl = classAt(l);
+      if (!kl) continue;
       const intAtL = abilityMod(finalAbilities(dec, l).int);
-      total += Math.max(1, klass.skillRanks + intAtL + racialSkillPerLevel);
+      total += Math.max(1, kl.skillRanks + intAtL + racialSkillPerLevel);
     }
     return total + fcbSkillCount;
   })();
@@ -618,20 +699,29 @@ export function resolve(doc: CharacterDoc): Resolution {
   const spellsKnown = sc && sc.kind === 'spontaneous' ? spellsKnownPerLevel(spellTable, level) : undefined;
 
   // ---- Per-level advancement table ----
-  const featSlotKeys = featSlots(dec, race, klass, level);
+  const featSlotKeys = featSlots(dec, race, level);
+  // BAB and saves are the *running totals* at each character level, so a multiclass table reads
+  // as the character's actual numbers rather than one class's column.
   const progression: ProgressionRow[] = [];
-  if (klass) {
+  if (classes.length) {
     for (let l = 1; l <= level; l++) {
+      const kl = classAt(l);
+      const soFar = classBreakdown(dec, l).map((c) => ({ bab: c.klass.bab, goodSaves: c.klass.goodSaves, levels: c.levels }));
+      const clsLevel = kl ? classLevelAt(dec, kl.id, l) : 0;
       progression.push({
         level: l,
-        bab: babAt(klass.bab, l),
-        fort: saveBase(klass.goodSaves.includes('fort'), l),
-        ref: saveBase(klass.goodSaves.includes('ref'), l),
-        will: saveBase(klass.goodSaves.includes('will'), l),
-        features: classFeaturesUpTo(klass, l, dec).filter((f) => f.level === l).map((f) => f.name),
-        featSlots: featSlotKeys.filter((fs) => fs.level === l).map((fs) => fs.label),
+        ...(kl ? { className: kl.name, classId: kl.id, classLevel: clsLevel } : {}),
+        bab: sumBab(soFar),
+        fort: sumSave('fort', soFar),
+        ref: sumSave('ref', soFar),
+        will: sumSave('will', soFar),
+        // Features gained at this character level are the ones this class grants at its own level.
+        features: kl ? classFeaturesUpTo(kl, clsLevel, dec).filter((f) => f.level === clsLevel).map((f) => f.name) : [],
+        featSlots: featSlotKeys.filter((fs) => fs.charLevel === l).map((fs) => fs.label),
         abilityIncrease: dec.abilityIncreases[l],
-        hp: l === 1 ? (dec.hpRolls[1] ?? klass.hitDie) : (dec.hpRolls[l] ?? fixedHpPerLevel(klass.hitDie)),
+        hp: l === 1
+          ? (dec.hpRolls[1] ?? kl?.hitDie ?? 0)
+          : (dec.hpRolls[l] ?? (kl ? fixedHpPerLevel(kl.hitDie) : 0)),
       });
     }
   }
@@ -677,13 +767,13 @@ export function resolve(doc: CharacterDoc): Resolution {
     ...(sc && clvl > 0 ? { casterLevel: clvl, spellSlots } : {}),
     ...(spellsKnown && spellsKnown.length ? { spellsKnown } : {}),
     progression,
-    pools: classPools(klass, level, mods),
+    pools: classes.flatMap((c) => classPools(c.klass, c.levels, mods)),
     attacks: weaponAttacks(doc, stats, bab, mods.str, weaponFeatBonuses(activeFeatParams(doc, dec, klass, level)), itemQuality(doc), new Set(featIds)),
     combatOptions: {
       canPowerAttack: featIds.includes('power-attack'),
       canTwoWeapon: Boolean(doc.equipped.mainHand && doc.equipped.offHand),
     },
-    grantedFeats: grantedFeatsFor(klass, level, (doc.decisions['feat-params'] as Record<string, string>) ?? {}),
+    grantedFeats: allGrantedFeats(dec, level, (doc.decisions['feat-params'] as Record<string, string>) ?? {}),
     inventory,
     worn: wornItemsWithStatus(doc).map(({ item, active }) =>
       ({ id: item.id, name: item.name, slot: item.slot, cost: item.cost, desc: item.desc, active })),
@@ -699,7 +789,7 @@ function fmtSigned(v: number): string { return v >= 0 ? `+${v}` : `−${Math.abs
 function activeFeatParams(doc: CharacterDoc, dec: Decisions, klass: C.ClassDef | undefined, level: number): { featId: string; param: string | null }[] {
   const params = (doc.decisions['feat-params'] as Record<string, string>) ?? {};
   const race = dec.raceId ? C.raceById.get(dec.raceId) : undefined;
-  const slotKeys = new Set(featSlots(dec, race, klass, level).map((s) => s.key));
+  const slotKeys = new Set(featSlots(dec, race, level).map((s) => s.key));
   const out: { featId: string; param: string | null }[] = [];
   for (const [key, fid] of Object.entries(dec.feats)) {
     if (!fid || !slotKeys.has(key)) continue;
@@ -1048,14 +1138,17 @@ function buildSlotsAndIssues(
   if (!klass) {
     issues.push({ severity: 'info', step: 'class', slot: 'class', message: 'Choose a class' });
   } else {
-    for (const ch of klass.choices ?? []) {
+    // Every class the character has levels in offers its own picks, each gated on that class's
+    // level rather than the character level — a rogue 2 / fighter 3 gets the level-2 rogue talent.
+    for (const entry of classBreakdown(dec, ctx.level))
+    for (const ch of entry.klass.choices ?? []) {
       // Universalist wizard → no opposition slot.
       if (ch.kind === 'wizard-opposition' && (dec.classChoices['school'] ?? []).includes('universalist')) continue;
       const options = classChoiceOptions(ch, dec);
       // A choice may recur across levels (e.g. a talent at 2, 4, 6…). Level-1 grants keep the
       // bare key; later grants are suffixed `<id>-L<level>`.
       for (const gLvl of (ch.levels ?? [1])) {
-        if (gLvl > ctx.level) continue;
+        if (gLvl > entry.levels) continue;
         const slotId = gLvl === 1 ? ch.id : `${ch.id}-L${gLvl}`;
         const selected = dec.classChoices[slotId] ?? [];
         const label = gLvl === 1 ? ch.label : `${ch.label} (level ${gLvl})`;
@@ -1089,7 +1182,7 @@ function buildSlotsAndIssues(
   }
 
   // ---------- FEATS ----------
-  const featSlotKeys = featSlots(dec, race, klass, ctx.level);
+  const featSlotKeys = featSlots(dec, race, ctx.level);
   const featOptions: SlotOption[] = C.FEATS.map((f) => {
     const legal = !f.prerequisites || evalPredicate(f.prerequisites, predCtx);
     return {
@@ -1312,23 +1405,37 @@ function dualTalent(dec: Decisions): boolean {
   return dec.altTraits.includes('human-dual-talent');
 }
 
-interface FeatSlotKey { key: string; label: string; combatOnly?: boolean; level: number; }
+/** `level` is the level the slot belongs to *within its own track* — the character level for a
+ *  general feat, the class level for a class bonus feat. `charLevel` is always the character
+ *  level at which it was actually gained, which is what the advancement table rows key off. */
+interface FeatSlotKey { key: string; label: string; combatOnly?: boolean; level: number; charLevel: number; }
 
 /** All feat slots opened up through `level`: a general feat at each odd level, racial bonus
  *  feat(s) at level 1, and class bonus feats at the class's `bonusFeats.levels`. Level-1 keys
  *  keep their bare form (`feat-1`, `feat-<class>`) for back-compat; later levels are suffixed. */
-function featSlots(dec: Decisions, race: C.RaceDef | undefined, klass: C.ClassDef | undefined, level: number): FeatSlotKey[] {
+function featSlots(dec: Decisions, race: C.RaceDef | undefined, level: number): FeatSlotKey[] {
   const out: FeatSlotKey[] = [];
+  // General feats come from the *character* level — they don't care how the levels are split.
   for (const l of generalFeatLevels(level))
-    out.push({ key: l === 1 ? 'feat-1' : `feat-L${l}`, label: `${ordinal(l)}-level feat`, level: l });
+    out.push({ key: l === 1 ? 'feat-1' : `feat-L${l}`, label: `${ordinal(l)}-level feat`, level: l, charLevel: l });
   const { standard, alternates } = activeRacialTraits(dec);
   for (const t of [...standard, ...alternates])
-    if (t.grantsFeatSlot) out.push({ key: t.grantsFeatSlot, label: `${race?.name ?? 'Racial'} bonus feat`, level: 1 });
-  if (klass?.bonusFeats) {
-    const label = `${klass.bonusFeats.label ?? `${klass.name} bonus feat`}${klass.bonusFeats.combatOnly ? ' · combat only' : ''}`;
-    for (const l of klass.bonusFeats.levels) {
-      if (l > level) continue;
-      out.push({ key: l === 1 ? `feat-${klass.id}` : `feat-${klass.id}-L${l}`, label, combatOnly: klass.bonusFeats.combatOnly, level: l });
+    if (t.grantsFeatSlot) out.push({ key: t.grantsFeatSlot, label: `${race?.name ?? 'Racial'} bonus feat`, level: 1, charLevel: 1 });
+  // Class bonus feats key off that class's own level, so the slot key is stable no matter which
+  // character levels the class was taken at.
+  const ids = classIdAtLevels(dec, level);
+  for (const c of classBreakdown(dec, level)) {
+    const bf = c.klass.bonusFeats;
+    if (!bf) continue;
+    const label = `${bf.label ?? `${c.klass.name} bonus feat`}${bf.combatOnly ? ' · combat only' : ''}`;
+    // Character levels at which this class was taken, in order: index n-1 is its nth class level.
+    const takenAt = ids.map((id, i) => (id === c.klass.id ? i + 1 : 0)).filter(Boolean);
+    for (const l of bf.levels) {
+      if (l > c.levels) continue;
+      out.push({
+        key: l === 1 ? `feat-${c.klass.id}` : `feat-${c.klass.id}-L${l}`,
+        label, combatOnly: bf.combatOnly, level: l, charLevel: takenAt[l - 1] ?? l,
+      });
     }
   }
   return out;

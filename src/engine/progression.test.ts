@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   babAt, saveBase, fixedHpPerLevel, generalFeatLevels, abilityIncreaseLevels,
-  casterLevel, bonusSpellSlots, spellSlotsPerDay, spellsKnownPerLevel,
+  casterLevel, bonusSpellSlots, spellSlotsPerDay, spellsKnownPerLevel, sumBab, sumSave,
 } from './progression';
 
 describe('BAB progression', () => {
@@ -119,5 +119,33 @@ describe('encoded slot tables (Part-2 depth)', () => {
   it('spont-six known table (inquisitor/hunter/summoner)', () => {
     expect(spellsKnownPerLevel('spont-six', 4)).toEqual([6, 4, 2]);
     expect(spellsKnownPerLevel('spont-six', 20)).toEqual([6, 6, 6, 6, 6, 5, 5]);
+  });
+});
+
+describe('multiclass sums', () => {
+  const fighter = (levels: number) => ({ bab: 'full' as const, goodSaves: ['fort'] as const, levels });
+  const rogue = (levels: number) => ({ bab: 'threequarter' as const, goodSaves: ['ref'] as const, levels });
+  const wizard = (levels: number) => ({ bab: 'half' as const, goodSaves: ['will'] as const, levels });
+
+  it('adds each class BAB computed on its own levels, rounding down per class', () => {
+    expect(sumBab([fighter(5), wizard(1)])).toBe(5); // 5 + 0
+    expect(sumBab([fighter(1), rogue(1)])).toBe(1); // 1 + 0, not 2
+    expect(sumBab([rogue(4), rogue(4)])).toBe(6); // 3 + 3 — split levels lose to rogue 8 (+6)
+    expect(sumBab([rogue(8)])).toBe(6);
+    expect(sumBab([])).toBe(0);
+  });
+
+  it('adds each class save track, so every class re-pays the good-save +2', () => {
+    // Fighter 1 (Fort good) + Cleric-like Will-good class 1 = Fort 2, Will 2, Ref 0.
+    const willGood = { bab: 'threequarter' as const, goodSaves: ['will'] as const, levels: 1 };
+    expect(sumSave('fort', [fighter(1), willGood])).toBe(2);
+    expect(sumSave('will', [fighter(1), willGood])).toBe(2);
+    expect(sumSave('ref', [fighter(1), willGood])).toBe(0);
+    // The classic multiclass save bump: Fighter 1/Rogue 1 has Fort +2 AND Ref +2.
+    expect(sumSave('fort', [fighter(1), rogue(1)])).toBe(2);
+    expect(sumSave('ref', [fighter(1), rogue(1)])).toBe(2);
+    // A single-class fighter 2 gets Fort +3, Ref +0.
+    expect(sumSave('fort', [fighter(2)])).toBe(3);
+    expect(sumSave('ref', [fighter(2)])).toBe(0);
   });
 });

@@ -1590,6 +1590,100 @@ describe('armour and shield special abilities', () => {
   });
 });
 
+describe('multiclass', () => {
+  /** Fighter levels, then `later` taken at the levels listed. humanFighter1 is Str 17, Dex 14,
+   *  Con 14 (+2), Int 10, Wis 12, favored class fighter with the bonus in HP. */
+  function mixed(totalLevel: number, later: Record<number, string>): CharacterDoc {
+    const d = atLevel(humanFighter1(), totalLevel);
+    const ids = Array.from({ length: totalLevel }, (_, i) => later[i + 1] ?? 'fighter');
+    return withDecision(d, 'class-levels', ids);
+  }
+  const st = (d: CharacterDoc, k: string) => resolve(d).sheet.stats[k].total;
+
+  it('a single-class document with no class-levels array resolves exactly as before', () => {
+    const plain = atLevel(humanFighter1(), 6);
+    const spelled = withDecision(plain, 'class-levels', Array(6).fill('fighter'));
+    expect(resolve(spelled).sheet.stats['hp:max'].total).toBe(resolve(plain).sheet.stats['hp:max'].total);
+    expect(resolve(spelled).sheet.stats['save:will'].total).toBe(resolve(plain).sheet.stats['save:will'].total);
+  });
+
+  it('BAB adds each class computed on its own levels', () => {
+    // Fighter 5 (full, +5) + wizard 1 (half, +0) = +5, not the +6 a fighter 6 would have.
+    const d = mixed(6, { 6: 'wizard' });
+    expect(resolve(d).sheet.stats['attack:melee'].lines.find((l) => l.label.includes('BAB'))?.value ?? 0).toBe(5);
+    expect(resolve(atLevel(humanFighter1(), 6)).sheet.stats['attack:melee'].lines.find((l) => l.label.includes('BAB'))?.value).toBe(6);
+  });
+
+  it('saves add each class track, so the wizard dip grants a full +2 Will', () => {
+    const d = mixed(6, { 6: 'wizard' });
+    // Fort: fighter 5 good = 2+2 = 4, wizard 1 poor = 0 → 4, + Con 2 = 6.
+    expect(st(d, 'save:fort')).toBe(4 + 2);
+    // Will: fighter 5 poor = 1, wizard 1 good = 2 → 3, + Wis 1 = 4.
+    expect(st(d, 'save:will')).toBe(3 + 1);
+    // Ref: fighter 5 poor = 1, wizard 1 poor = 0 → 1, + Dex 2 = 3.
+    expect(st(d, 'save:ref')).toBe(1 + 2);
+  });
+
+  it('each level takes its own class hit die', () => {
+    // L1 fighter max d10 = 10; L2–5 fighter average 6 × 4 = 24; L6 wizard average 4.
+    // Con +2 × 6 = 12. Favored-class HP applies to the 5 fighter levels only.
+    const d = mixed(6, { 6: 'wizard' });
+    expect(st(d, 'hp:max')).toBe(10 + 24 + 4 + 12 + 5);
+    // The same character as a pure fighter 6: d10 average for level 6, and 6 favored levels.
+    expect(st(atLevel(humanFighter1(), 6), 'hp:max')).toBe(10 + 24 + 6 + 12 + 6);
+  });
+
+  it('class skills are the union, and ranks come from the class taken at each level', () => {
+    const d = mixed(6, { 6: 'rogue' });
+    const sheet = resolve(d).sheet;
+    // Stealth is a rogue class skill, not a fighter one.
+    expect(sheet.classSkillIds).toContain('stealth');
+    expect(resolve(atLevel(humanFighter1(), 6)).sheet.classSkillIds).not.toContain('stealth');
+    // Int 10, human +1 rank/level: five fighter levels at 2+1 and one rogue level at 8+1 = 24.
+    expect(sheet.skillRanksTotal).toBe(5 * 3 + 9);
+  });
+
+  it('class features and bonus feats key off the class level, not the character level', () => {
+    // Wizard taken at character level 6 is still a *1st-level* wizard: it gets Arcane Bond /
+    // Scribe Scroll, not the level-5 wizard bonus feat.
+    const d = mixed(6, { 6: 'wizard' });
+    const r = resolve(d);
+    expect(r.sheet.grantedFeats.map((g) => g.featId)).toContain('scribe-scroll');
+    const keys = r.slots.filter((s) => s.step === 'feats').map((s) => s.id);
+    expect(keys).not.toContain('feat-wizard-L5');
+    // The fighter bonus feats it does have are the ones for fighter levels 1–5 (even levels 2, 4).
+    expect(keys).toContain('feat-fighter-L4');
+    expect(keys).not.toContain('feat-fighter-L6');
+  });
+
+  it('general feats still come from the character level', () => {
+    const keys = resolve(mixed(6, { 6: 'wizard' })).slots.filter((s) => s.step === 'feats').map((s) => s.id);
+    for (const k of ['feat-1', 'feat-L3', 'feat-L5']) expect(keys).toContain(k);
+  });
+
+  it('the favored-class bonus is earned only on levels in that class', () => {
+    // Fighter favored: 5 fighter levels → +5 HP, versus 6 for a pure fighter 6 (asserted above).
+    const d = mixed(6, { 6: 'wizard' });
+    const hpLines = resolve(d).sheet.stats['hp:max'].lines;
+    expect(hpLines.find((l) => l.label.startsWith('Favored class'))?.value).toBe(5);
+  });
+
+  it('the advancement table names the class at each level and runs totals', () => {
+    const rows = resolve(mixed(6, { 6: 'wizard' })).sheet.progression;
+    expect(rows.map((r) => r.classId)).toEqual(['fighter', 'fighter', 'fighter', 'fighter', 'fighter', 'wizard']);
+    expect(rows[5].classLevel).toBe(1); // first wizard level
+    expect(rows[5].bab).toBe(5); // running total, unchanged by the half-BAB wizard level
+    expect(rows[4].bab).toBe(5);
+    expect(rows[5].will).toBe(3); // 1 (fighter 5, poor) + 2 (wizard 1, good)
+  });
+
+  it('a dip taken at 1st level rather than last is a different character', () => {
+    // Wizard 1 first, then fighter 5: 1st-level HP is now the wizard's d6 max.
+    const early = mixed(6, { 1: 'wizard' });
+    expect(st(early, 'hp:max')).toBe(6 + (6 * 5) + 12 + 5);
+  });
+});
+
 describe('Power Attack and two-weapon fighting (declared options)', () => {
   // Fighter 6, Str 17 (+3), BAB +6. Longsword main hand, short sword (light) off hand.
   function fighter(feats: Record<string, string>, play: Partial<CharacterDoc['play']> = {}): CharacterDoc {

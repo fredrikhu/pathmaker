@@ -19,6 +19,28 @@ export function saveBase(good: boolean, level: number): number {
   return good ? 2 + Math.floor(level / 2) : Math.floor(level / 3);
 }
 
+/** One class's contribution to a multiclass character: its progression tracks and how many
+ *  levels of it the character has. */
+export interface ClassLevels {
+  bab: BabProgression;
+  goodSaves: readonly ('fort' | 'ref' | 'will')[];
+  levels: number;
+}
+
+/** Multiclass base attack bonus: each class's BAB is computed on its own level count and the
+ *  results are added (core rule — fractional base bonuses are an optional variant we don't use).
+ *  Rounding down per class before summing is exactly why Fighter 1/Rogue 1 has BAB +1, not +2. */
+export function sumBab(entries: readonly ClassLevels[]): number {
+  return entries.reduce((n, e) => n + babAt(e.bab, e.levels), 0);
+}
+
+/** Multiclass base save: each class contributes its own good/poor progression, summed. This is
+ *  why a multiclass character's saves outrun a single-class character's — every class re-pays
+ *  the +2 that a good save grants at 1st level. */
+export function sumSave(which: 'fort' | 'ref' | 'will', entries: readonly ClassLevels[]): number {
+  return entries.reduce((n, e) => n + saveBase(e.goodSaves.includes(which), e.levels), 0);
+}
+
 /** Default (non-rolled) hit points gained at a level after 1st: the PFS fixed average,
  *  hitDie/2 + 1 (d6→4, d8→5, d10→6, d12→7). Level 1 always takes the max die separately. */
 export function fixedHpPerLevel(hitDie: number): number {
