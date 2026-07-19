@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   babAt, saveBase, fixedHpPerLevel, generalFeatLevels, abilityIncreaseLevels,
-  casterLevel, bonusSpellSlots, spellSlotsPerDay, spellsKnownPerLevel, sumBab, sumSave,
+  casterLevel, bonusSpellSlots, spellSlotsPerDay, spellsKnownPerLevel, spellsPreparedPerLevel, sumBab, sumSave,
 } from './progression';
 
 describe('BAB progression', () => {
@@ -147,5 +147,56 @@ describe('multiclass sums', () => {
     // A single-class fighter 2 gets Fort +3, Ref +0.
     expect(sumSave('fort', [fighter(2)])).toBe(3);
     expect(sumSave('ref', [fighter(2)])).toBe(0);
+  });
+});
+
+describe('arcanist spell tables', () => {
+  // Both tables transcribed from the arcanist's own d20pfsrd tables. The class is the only one
+  // with separate "Spells per Day" and "Spells Prepared" grids, which is why an earlier pass
+  // shipped nothing for it: two secondary sources disagreed about which numbers were which.
+  const perDay = (l: number) => spellSlotsPerDay('arcanist', l, 0);
+  const prepared = (l: number) => spellsPreparedPerLevel('arcanist', l);
+
+  it('spells per day: 2 at 1st, rising to 4 across the board at 20th', () => {
+    expect(perDay(1)).toEqual([4, 2]);
+    expect(perDay(2)).toEqual([5, 3]);
+    expect(perDay(3)).toEqual([5, 4]);
+    expect(perDay(20)).toEqual([9, 4, 4, 4, 4, 4, 4, 4, 4, 4]);
+  });
+
+  it('spells per day: a new spell level arrives every second level from 4th, at 2/day', () => {
+    for (const [level, spellLevel] of [[4, 2], [6, 3], [8, 4], [10, 5], [12, 6], [14, 7], [16, 8], [18, 9]] as const) {
+      expect(perDay(level)[spellLevel], `level ${level} should open ${spellLevel} spells at 2/day`).toBe(2);
+      expect(perDay(level)[spellLevel + 1] ?? 0, `level ${level} should not reach ${spellLevel + 1}`).toBe(0);
+    }
+  });
+
+  it('spells per day: 9th-level spells only at 18th, and 8th-level not before 16th', () => {
+    expect(perDay(15)[8] ?? 0).toBe(0); // no 8th-level spells at 15th
+    expect(perDay(16)[8]).toBe(2);
+    expect(perDay(17)[9] ?? 0).toBe(0);
+    expect(perDay(18)[9]).toBe(2);
+  });
+
+  it('spells prepared is a different, smaller grid than spells per day', () => {
+    expect(prepared(1)).toEqual([4, 2]);
+    // At 2nd the arcanist casts 3 first-level spells a day but still only prepares 2.
+    expect(prepared(2)).toEqual([5, 2]);
+    expect(perDay(2)[1]).toBe(3);
+    expect(prepared(20)).toEqual([9, 5, 5, 4, 4, 4, 3, 3, 3, 3]);
+  });
+
+  it('Intelligence bonus spells raise slots per day but never the prepared count', () => {
+    // Int 18 (+4): one bonus slot at spell levels 1-4.
+    expect(spellSlotsPerDay('arcanist', 5, 4)).toEqual([6, 5, 4]);
+    expect(prepared(5)).toEqual([6, 4, 2]);
+    // Cantrips never gain bonus spells.
+    expect(spellSlotsPerDay('arcanist', 5, 4)[0]).toBe(perDay(5)[0]);
+  });
+
+  it('no other class reports a separate prepared count', () => {
+    expect(spellsPreparedPerLevel('prepared-full', 5)).toEqual([]);
+    expect(spellsPreparedPerLevel('spontaneous-full', 5)).toEqual([]);
+    expect(spellsPreparedPerLevel(undefined, 5)).toEqual([]);
   });
 });

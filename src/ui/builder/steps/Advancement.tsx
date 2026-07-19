@@ -102,6 +102,8 @@ export function AdvancementStep({ ch }: { ch: CharCtl }) {
             <span key={lvl} style={{ padding: '3px 9px', borderRadius: 6, background: 'var(--color-surface)' }}>
               <span className="text-muted">L{lvl}</span> <span className="num" style={{ fontWeight: 600 }}>{n}</span>
               {b.known && b.known[lvl] ? <span className="text-muted"> · {b.known[lvl]} known</span> : null}
+              {/* The arcanist prepares a different number than it can cast. */}
+              {b.preparedPerLevel && b.preparedPerLevel[lvl] ? <span className="text-muted"> · {b.preparedPerLevel[lvl]} prep</span> : null}
             </span>
           ))}
         </div>

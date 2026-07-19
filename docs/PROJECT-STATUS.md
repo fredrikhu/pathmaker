@@ -6,7 +6,7 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 
 ## ▶ Resume here (last session end)
 
-**All five roadmap phases are done and committed** (branch `master`, working tree clean, 291 tests
+**All five roadmap phases are done and committed** (branch `master`, working tree clean, 297 tests
 passing; run `npx tsc --noEmit && npx vitest run && npm run build` to confirm). Pathmaker covers the
 full arc: build a character 1–20, play it at the table (HP, spells, pools, conditions), run the clock
 (rounds, timed effects, rest), and track consumables/charges/encumbrance live.
@@ -17,7 +17,7 @@ armour special abilities**, the **worn-item catalogue** with body slots enforced
 two-weapon fighting** as play-sheet toggles, and **multiclass**.
 
 From here the work is breadth and polish rather than new phases. The open items are the deferral
-backlog below — chiefly the three blocked-on-verification items and the out-of-scope classes and races.
+backlog below — chiefly the two remaining blocked-on-verification items (vampire hunter, lizardfolk) and the out-of-scope classes and races.
 
 Everything below is the durable detail. When resuming, read this file, then `docs/DESIGN.md`.
 
@@ -172,9 +172,23 @@ Still open from that audit:
   still shows its tier in `sub`.
 
 ### Blocked on verification (won't ship guessed numbers — need a trusted source)
-- **Arcanist** spells-per-day grid (unique 9-level table; the fetched values were ambiguous) →
-  `SpellcastingDef.table` unset, so no slot numbers shown for arcanist.
-- **Vampire Hunter** full class table (unverifiable) → keeps only its level-1 `features1` fallback.
+- ~~**Arcanist** spells-per-day grid~~ — **resolved.** The earlier ambiguity had a cause: the
+  arcanist is the only class with **two** spell tables, "Spells per Day" and a separate, smaller
+  "Spells Prepared", and the summaries being fetched were conflating them (one arrived
+  column-shifted, labelling the 1st-level column "0"). Both grids were read straight from the
+  page's table markup instead of a summary, and cross-checked against Archives of Nethys — which
+  matched on Spells Prepared exactly and confirmed the summary was what had been garbled.
+  - `ARCANIST_PER_DAY` / `ARCANIST_PREPARED` in `progression.ts`, with `spellsPreparedPerLevel()`
+    exposed as `CastingBlock.preparedPerLevel` (set for no other class).
+  - The distinction is now modelled, not flattened: **the arcanist prepares one number of spells
+    and casts a different number of times.** The play sheet gives it a prepare list sized by the
+    prepared count plus slot pips for castings — spending a casting doesn't consume a particular
+    preparation, which is the class's whole point. An arcanist 5 with Int 18 prepares 4 first-level
+    spells and can cast 5.
+  - Intelligence bonus spells raise slots per day only, never the prepared count.
+  - **Every class that casts now has a verified table** — a content test asserts the set is empty.
+- **Vampire Hunter** full class table (unverifiable) → keeps only its level-1 `features1` fallback,
+  and carries no `spellcasting` block at all rather than a table of guesses.
 - **Lizardfolk** natural-armor value (source gave +1 vs the canonical +5) → race held.
 
 ### Classes not in scope / deferred

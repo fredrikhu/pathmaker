@@ -487,9 +487,10 @@ export function PlaySheet({ id }: { id: string }) {
               <div className="micro">{title}</div>
               <span className="text-muted" style={{ fontSize: 11.5 }}>
                 {dcNoteFor(block.dcBase)}
-                {isPrepared
-                  ? ` · ${block.kind === 'prepared-book' ? 'prepare from your spellbook' : 'prepare from your class list'}, then tick as cast · cantrips at-will`
-                  : ' · tap a pip to expend'}
+                {!isPrepared && ' · tap a pip to expend'}
+                {isPrepared && block.preparedPerLevel && ' · prepare from your spellbook, then spend a casting from the pips — any prepared spell, any slot · cantrips at-will'}
+                {isPrepared && !block.preparedPerLevel &&
+                  ` · ${block.kind === 'prepared-book' ? 'prepare from your spellbook' : 'prepare from your class list'}, then tick as cast · cantrips at-will`}
               </span>
             </div>
 
@@ -526,17 +527,40 @@ export function PlaySheet({ id }: { id: string }) {
 
             {isPrepared && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                {slots.map((total, level) => {
-                  if (total <= 0 || level === 0) return null;
+                {slots.map((perDay, level) => {
+                  if (perDay <= 0 || level === 0) return null;
                   const pool = preparablePool(cls, level);
                   const prep = preparedAt(cls, level);
                   const cast = new Set(castAt(cls, level));
+                  // The arcanist prepares one number of spells and casts a different number of
+                  // times, so it gets a prepare list sized by the prepared count plus its own
+                  // slot pips. Every other prepared caster spends the preparation itself.
+                  const prepCount = block.preparedPerLevel?.[level] ?? perDay;
+                  const splitPool = !!block.preparedPerLevel;
+                  const used = usedAt(cls, level);
                   return (
                     <div key={level}>
-                      <div className="micro" style={{ marginBottom: 6 }}>Level {level} · <span className="num">{total - cast.size}</span>/{total} unspent</div>
+                      <div className="micro" style={{ marginBottom: 6, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                        <span>
+                          Level {level} · <span className="num">{splitPool ? perDay - used : perDay - cast.size}</span>/{perDay} {splitPool ? 'castings left' : 'unspent'}
+                        </span>
+                        {splitPool && (
+                          <span style={{ display: 'flex', gap: 4 }}>
+                            {Array.from({ length: perDay }).map((_, i) => {
+                              const spent = i < used;
+                              return (
+                                <button key={i} title={spent ? 'restore' : 'expend a casting'}
+                                  onClick={() => setUsed(cls, level, spent ? i : i + 1)}
+                                  style={{ width: 16, height: 16, borderRadius: 5, cursor: 'pointer', border: '1px solid var(--color-divider)', background: spent ? 'transparent' : 'var(--color-accent)', opacity: spent ? 0.5 : 1 }} />
+                              );
+                            })}
+                          </span>
+                        )}
+                        {splitPool && <span className="text-muted" style={{ textTransform: 'none' }}>{prepCount} prepared</span>}
+                      </div>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 8 }}>
-                        {Array.from({ length: total }).map((_, i) => {
-                          const casted = cast.has(i);
+                        {Array.from({ length: prepCount }).map((_, i) => {
+                          const casted = !splitPool && cast.has(i);
                           const filled = !!prep[i];
                           return (
                             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -545,10 +569,12 @@ export function PlaySheet({ id }: { id: string }) {
                                 <option value="">— empty —</option>
                                 {pool.map((sp) => <option key={sp.id} value={sp.id}>{sp.name}</option>)}
                               </select>
-                              <button className="btn btn-ghost" style={{ fontSize: 11, flex: 'none', color: casted ? 'var(--color-accent-300)' : undefined }}
-                                disabled={!filled} title={casted ? 'restore' : 'mark cast'} onClick={() => toggleCast(cls, level, i)}>
-                                {casted ? '↺' : 'cast'}
-                              </button>
+                              {!splitPool && (
+                                <button className="btn btn-ghost" style={{ fontSize: 11, flex: 'none', color: casted ? 'var(--color-accent-300)' : undefined }}
+                                  disabled={!filled} title={casted ? 'restore' : 'mark cast'} onClick={() => toggleCast(cls, level, i)}>
+                                  {casted ? '↺' : 'cast'}
+                                </button>
+                              )}
                             </div>
                           );
                         })}

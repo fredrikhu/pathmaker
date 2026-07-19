@@ -210,6 +210,9 @@ export interface CastingBlock {
   slots?: number[];
   /** Spontaneous casters only: spells known per spell level. */
   known?: number[];
+  /** Set only when preparing and casting are counted separately (the arcanist): how many spells
+   *  may be prepared per spell level, as opposed to how many castings `slots` allows. */
+  preparedPerLevel?: number[];
   /** 10 + this class's casting-ability modifier; the per-spell DC adds the spell's level. */
   dcBase: number;
 }

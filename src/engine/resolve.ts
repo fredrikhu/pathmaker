@@ -13,7 +13,7 @@ import {
 } from './items';
 import {
   saveBase, fixedHpPerLevel, generalFeatLevels, abilityIncreaseLevels,
-  casterLevel, spellSlotsPerDay, spellsKnownPerLevel, startingWealth, sumBab, sumSave, type SpellTable,
+  casterLevel, spellSlotsPerDay, spellsKnownPerLevel, startingWealth, sumBab, sumSave, spellsPreparedPerLevel, type SpellTable,
 } from './progression';
 import { powerAttackAmounts, twoWeaponPenalties, offHandAttackBonuses, type PowerAttackScale } from './combat';
 
@@ -710,6 +710,10 @@ export function resolve(doc: CharacterDoc): Resolution {
       casterLevel: casterLevel(csc.progression ?? 'full', c.levels),
       slots,
       known: csc.kind === 'spontaneous' ? spellsKnownPerLevel(table, c.levels) : undefined,
+      // Only the arcanist prepares a different number of spells than it can cast.
+      ...(spellsPreparedPerLevel(table, c.levels).length
+        ? { preparedPerLevel: spellsPreparedPerLevel(table, c.levels) }
+        : {}),
       // Each class's DC uses its own casting ability.
       dcBase: 10 + mods[csc.ability],
     }];

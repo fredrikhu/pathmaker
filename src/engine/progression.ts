@@ -272,9 +272,69 @@ const SPONT_SIX_KNOWN: number[][] = [
   [6, 6, 6, 6, 6, 5, 5],
 ];
 
+// ---- Arcanist ---------------------------------------------------------------------------
+// The arcanist is the one class with *two* spell tables: it prepares spells like a wizard and
+// then casts them spontaneously from a separate pool of slots. Both are transcribed from the
+// class's own d20pfsrd tables (read from the page's markup, not a summary — an earlier attempt
+// at this class shipped nothing because two secondary sources disagreed).
+//
+// "Spells per Day" has no 0-level column at all: the arcanist's cantrips are cast at will. The
+// cantrip entry below is therefore the *number of cantrips prepared* (the 0-level column of the
+// Spells Prepared table), which is the only meaningful cantrip count — it is not a per-day cap.
+
+const ARCANIST_PER_DAY: number[][] = [
+  [4, 2],
+  [5, 3],
+  [5, 4],
+  [6, 4, 2],
+  [6, 4, 3],
+  [7, 4, 4, 2],
+  [7, 4, 4, 3],
+  [8, 4, 4, 4, 2],
+  [8, 4, 4, 4, 3],
+  [9, 4, 4, 4, 4, 2],
+  [9, 4, 4, 4, 4, 3],
+  [9, 4, 4, 4, 4, 4, 2],
+  [9, 4, 4, 4, 4, 4, 3],
+  [9, 4, 4, 4, 4, 4, 4, 2],
+  [9, 4, 4, 4, 4, 4, 4, 3],
+  [9, 4, 4, 4, 4, 4, 4, 4, 2],
+  [9, 4, 4, 4, 4, 4, 4, 4, 3],
+  [9, 4, 4, 4, 4, 4, 4, 4, 4, 2],
+  [9, 4, 4, 4, 4, 4, 4, 4, 4, 3],
+  [9, 4, 4, 4, 4, 4, 4, 4, 4, 4],
+];
+
+/** How many spells the arcanist may have prepared, per spell level (0 = cantrips). Distinct from
+ *  the slots she spends casting them, and unaffected by Intelligence — the bonus spells a high
+ *  Intelligence grants are bonus spells *per day*. */
+const ARCANIST_PREPARED: number[][] = [
+  [4, 2],
+  [5, 2],
+  [5, 3],
+  [6, 3, 1],
+  [6, 4, 2],
+  [7, 4, 2, 1],
+  [7, 5, 3, 2],
+  [8, 5, 3, 2, 1],
+  [8, 5, 4, 3, 2],
+  [9, 5, 4, 3, 2, 1],
+  [9, 5, 5, 4, 3, 2],
+  [9, 5, 5, 4, 3, 2, 1],
+  [9, 5, 5, 4, 4, 3, 2],
+  [9, 5, 5, 4, 4, 3, 2, 1],
+  [9, 5, 5, 4, 4, 4, 3, 2],
+  [9, 5, 5, 4, 4, 4, 3, 2, 1],
+  [9, 5, 5, 4, 4, 4, 3, 3, 2],
+  [9, 5, 5, 4, 4, 4, 3, 3, 2, 1],
+  [9, 5, 5, 4, 4, 4, 3, 3, 3, 2],
+  [9, 5, 5, 4, 4, 4, 3, 3, 3, 3],
+];
+
 /** A caster's slot/known identity. All arrays are indexed by absolute spell level (0 = cantrips). */
 export type SpellTable =
-  | 'prepared-full' | 'spontaneous-full' | 'bard' | 'spont-six' | 'prepared-six' | 'extract' | 'four';
+  | 'prepared-full' | 'spontaneous-full' | 'bard' | 'spont-six' | 'prepared-six' | 'extract'
+  | 'four' | 'arcanist';
 
 function baseSlotTable(table: SpellTable): number[][] {
   switch (table) {
@@ -285,7 +345,15 @@ function baseSlotTable(table: SpellTable): number[][] {
     case 'prepared-six': return PREPARED_SIX;
     case 'extract': return EXTRACT_SIX;
     case 'four': return FOUR_LEVEL;
+    case 'arcanist': return ARCANIST_PER_DAY;
   }
+}
+
+/** How many spells may be prepared per spell level, for classes whose preparation count differs
+ *  from their slots per day. Empty for every other class, where the two are the same table. */
+export function spellsPreparedPerLevel(table: SpellTable | undefined, level: number): number[] {
+  if (table !== 'arcanist' || level < 1) return [];
+  return ARCANIST_PREPARED[Math.min(20, level) - 1] ?? [];
 }
 
 /** Total spell slots per day at a class level: the base table plus ability bonus spells.

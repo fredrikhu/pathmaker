@@ -373,7 +373,7 @@ export const CLASSES: ClassDef[] = [
       { id: 'arc-cantrips', name: 'Cantrips', desc: 'Prepare 0-level arcanist spells, cast at will.' },
     ],
     choices: [{ id: 'exploit', label: 'Arcanist exploit', kind: 'list', count: 1, options: ARCANIST_EXPLOITS }],
-    spellcasting: { kind: 'prepared-book', ability: 'int', list: 'arcane', slots1: [3, 1], bookPicks1: 'threePlusInt' },
+    spellcasting: { kind: 'prepared-book', ability: 'int', list: 'arcane', progression: 'full', table: 'arcanist', slots1: [4, 2], bookPicks1: 'threePlusInt' },
   },
   {
     id: 'bloodrager', name: 'Bloodrager', sub: 'Hybrid · d10 · bloodrage',

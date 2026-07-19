@@ -170,9 +170,15 @@ describe('class progression coverage (Part B)', () => {
   it('only verified casters carry an encoded slot table (others show no slot numbers)', () => {
     const withTable = C.CLASSES.filter((c) => c.spellcasting?.table).map((c) => c.id).sort();
     expect(withTable).toEqual([
-      'alchemist', 'bard', 'bloodrager', 'cleric', 'druid', 'hunter', 'inquisitor', 'investigator', 'magus',
-      'oracle', 'paladin', 'ranger', 'shaman', 'skald', 'sorcerer', 'summoner', 'warpriest', 'witch', 'wizard',
+      'alchemist', 'arcanist', 'bard', 'bloodrager', 'cleric', 'druid', 'hunter', 'inquisitor', 'investigator',
+      'magus', 'oracle', 'paladin', 'ranger', 'shaman', 'skald', 'sorcerer', 'summoner', 'warpriest', 'witch',
+      'wizard',
     ].sort());
+    // With the arcanist encoded, every class that casts at all now has a verified table — no
+    // caster is left showing blank slot numbers. (Vampire hunter carries no spellcasting block
+    // at all, since its class table could not be verified.)
+    const castersWithoutTable = C.CLASSES.filter((c) => c.spellcasting && !c.spellcasting.table).map((c) => c.id);
+    expect(castersWithoutTable).toEqual([]);
     // Every class with a table also has a caster progression; none has a table but no progression.
     for (const c of C.CLASSES) {
       if (c.spellcasting?.table) expect(c.spellcasting.progression, `${c.id}`).toBeTruthy();
