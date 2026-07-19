@@ -6,7 +6,7 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 
 ## ▶ Resume here (last session end)
 
-**All five roadmap phases are done and committed** (branch `master`, working tree clean, 335 tests
+**All five roadmap phases are done and committed** (branch `master`, working tree clean, 351 tests
 passing; run `npx tsc --noEmit && npx vitest run && npm run build` to confirm). Pathmaker covers the
 full arc: build a character 1–20, play it at the table (HP, spells, pools, conditions), run the clock
 (rounds, timed effects, rest), and track consumables/charges/encumbrance live.
@@ -515,6 +515,22 @@ item weight for coins, and per-arrow ammunition.
   - Several guns (axe musket, warhammer musket, dagger/sword-cane pistol, buckler gun) **double as a
     melee weapon**, and the firearm table carries no melee profile for them. Rather than invent one,
     the attack line says only the firearm mode is modelled (`WeaponDef.note`).
+- **Composite bow Strength ratings: done.** A composite bow is built to a rating, and the rating is a
+  property of the **owned bow** (`ItemQuality.strRating`) rather than six catalogue entries — which is
+  how the rules read, even though the weapons table prints one row per rating.
+  - The rating **caps** how much Strength bonus reaches damage (Str +4 with a +2 bow adds +2), a bow
+    rated above your Strength costs **−2 to hit** (its own breakdown row), and a Strength **penalty**
+    applies to damage in full regardless of rating — the rating is a maximum on the bonus, not a floor
+    under the penalty.
+  - Priced per point by the bow: **100 gp** for a composite longbow, **75 gp** for a shortbow, charged
+    alongside `qualityCost` rather than through the enhancement curve. The picker's option labels show
+    what the whole bow comes to, matching the printed +0…+5 rows exactly.
+  - **Slings were the silent gap this uncovered.** The attack-line note had always read "no Str to
+    damage (composite bows and slings excepted)" — but slings got no Strength at all, so the note
+    described a rule the engine did not implement. The sling and the halfling sling staff now add the
+    full Strength modifier, as their descriptions specify.
+  - Still not modelled: **thrown weapons**, which add Str to damage but need a melee weapon to expose a
+    second, ranged attack mode. The "can be thrown" note remains a note.
 - **Power Attack & two-weapon fighting: done** (`src/engine/combat.ts`, numbers verified against both
   feat pages). These are **declared per attack**, not passive, so they live in play state
   (`PlayState.powerAttack` / `twoWeapon`) as play-sheet toggles and are folded in **only while on** —

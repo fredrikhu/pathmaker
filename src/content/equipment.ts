@@ -19,7 +19,7 @@ export const WEAPONS: WeaponDef[] = [
   { id: 'longspear', name: 'Longspear', cost: 5, weight: 9, dmg: '1d8', crit: '×3', dmgType: 'P', group: 'simple', hands: 'two' },
   { id: 'dart', name: 'Dart', cost: 0.5, weight: 0.5, dmg: '1d4', crit: '×2', range: 20, dmgType: 'P', group: 'simple', hands: 'ranged' },
   { id: 'javelin', name: 'Javelin', cost: 1, weight: 2, dmg: '1d6', crit: '×2', range: 30, dmgType: 'P', group: 'simple', hands: 'ranged' },
-  { id: 'sling', name: 'Sling', cost: 0, weight: 0, dmg: '1d4', crit: '×2', range: 50, dmgType: 'B', group: 'simple', hands: 'ranged' },
+  { id: 'sling', name: 'Sling', cost: 0, weight: 0, dmg: '1d4', crit: '×2', range: 50, dmgType: 'B', group: 'simple', hands: 'ranged', strToDamage: true },
   { id: 'light-crossbow', name: 'Crossbow, light', cost: 35, weight: 4, dmg: '1d8', crit: '19–20/×2', range: 80, dmgType: 'P', group: 'simple', hands: 'ranged' },
   { id: 'heavy-crossbow', name: 'Crossbow, heavy', cost: 50, weight: 8, dmg: '1d10', crit: '19–20/×2', range: 120, dmgType: 'P', group: 'simple', hands: 'ranged' },
   // --- Martial ---
@@ -44,9 +44,9 @@ export const WEAPONS: WeaponDef[] = [
   { id: 'glaive', name: 'Glaive', cost: 8, weight: 10, dmg: '1d10', crit: '×3', dmgType: 'S', group: 'martial', hands: 'two' },
   { id: 'halberd', name: 'Halberd', cost: 10, weight: 12, dmg: '1d10', crit: '×3', dmgType: 'P or S', group: 'martial', hands: 'two' },
   { id: 'shortbow', name: 'Shortbow', cost: 30, weight: 2, dmg: '1d6', crit: '×3', range: 60, dmgType: 'P', group: 'martial', hands: 'ranged' },
-  { id: 'comp-shortbow', name: 'Shortbow, composite', cost: 75, weight: 2, dmg: '1d6', crit: '×3', range: 70, dmgType: 'P', group: 'martial', hands: 'ranged' },
+  { id: 'comp-shortbow', name: 'Shortbow, composite', cost: 75, weight: 2, dmg: '1d6', crit: '×3', range: 70, dmgType: 'P', group: 'martial', hands: 'ranged', composite: { costPerPoint: 75 } },
   { id: 'longbow', name: 'Longbow', cost: 75, weight: 3, dmg: '1d8', crit: '×3', range: 100, dmgType: 'P', group: 'martial', hands: 'ranged' },
-  { id: 'comp-longbow', name: 'Longbow, composite', cost: 100, weight: 3, dmg: '1d8', crit: '×3', range: 110, dmgType: 'P', group: 'martial', hands: 'ranged' },
+  { id: 'comp-longbow', name: 'Longbow, composite', cost: 100, weight: 3, dmg: '1d8', crit: '×3', range: 110, dmgType: 'P', group: 'martial', hands: 'ranged', composite: { costPerPoint: 100 } },
   // Sap — martial light, referenced by the bard/rogue proficiency lists but never authored.
   { id: 'sap', name: 'Sap', cost: 1, weight: 2, dmg: '1d6', crit: '×2', dmgType: 'B', group: 'martial', hands: 'light' },
 
@@ -74,7 +74,7 @@ export const WEAPONS: WeaponDef[] = [
   { id: 'repeating-crossbow-heavy', name: 'Crossbow, repeating heavy', cost: 400, weight: 12, dmg: '1d10', crit: '19–20/×2', range: 120, dmgType: 'P', group: 'exotic', hands: 'ranged' },
   { id: 'repeating-crossbow-light', name: 'Crossbow, repeating light', cost: 250, weight: 6, dmg: '1d8', crit: '19–20/×2', range: 80, dmgType: 'P', group: 'exotic', hands: 'ranged' },
   { id: 'shuriken', name: 'Shuriken', cost: 0.2, weight: 0.1, dmg: '1d2', crit: '×2', range: 10, dmgType: 'P', group: 'exotic', hands: 'ranged' },
-  { id: 'halfling-sling-staff', name: 'Sling staff, halfling', cost: 20, weight: 3, dmg: '1d8', crit: '×3', range: 80, dmgType: 'B', group: 'exotic', hands: 'ranged' },
+  { id: 'halfling-sling-staff', name: 'Sling staff, halfling', cost: 20, weight: 3, dmg: '1d8', crit: '×3', range: 80, dmgType: 'B', group: 'exotic', hands: 'ranged', strToDamage: true },
   // Not authored: the net. It deals no damage at all, and the attack line is built around a
   // damage string — listing it would print a damage figure the weapon does not have.
 

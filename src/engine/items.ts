@@ -24,6 +24,38 @@ export interface ItemQuality {
   enhancement?: number;
   /** Named weapon special abilities (ids from WEAPON_PROPERTIES). Require an enhancement bonus. */
   properties?: string[];
+  /** Composite bows only: the Strength rating the bow was built to. Like masterwork, this is a
+   *  property of the *owned* bow rather than a separate catalogue entry — which is how the rules
+   *  read, and why the weapons table prints one row per rating. */
+  strRating?: number;
+}
+
+/** The printed table runs composite bows from +0 to +5. */
+export const MAX_STR_RATING = 5;
+
+const clampRating = (n: number | undefined): number => Math.max(0, Math.min(MAX_STR_RATING, Math.round(n ?? 0)));
+
+/** The Strength rating an owned composite bow was built to. Non-composite weapons have none, so a
+ *  stale rating left on an item that is not a bow contributes nothing. */
+export function strRating(q: ItemQuality | undefined, composite: boolean): number {
+  return composite ? clampRating(q?.strRating) : 0;
+}
+
+/** Extra gp for a composite bow's Strength rating: each point adds the bow's per-point price
+ *  (100 gp for a longbow, 75 for a shortbow) on top of the base weapon. */
+export function strRatingCost(q: ItemQuality | undefined, costPerPoint: number | undefined): number {
+  if (!costPerPoint) return 0;
+  return clampRating(q?.strRating) * costPerPoint;
+}
+
+/** What a composite bow does to attack and damage in the wielder's hands.
+ *  The rating caps how much Strength bonus reaches damage; a Strength *penalty* always applies in
+ *  full, rating or not; and drawing a bow built stiffer than you are costs −2 to hit. */
+export function compositeBowEffect(strMod: number, rating: number): { damage: number; attack: number } {
+  return {
+    damage: strMod < 0 ? strMod : Math.min(strMod, rating),
+    attack: strMod < rating ? -2 : 0,
+  };
 }
 
 const clampEnh = (n: number | undefined): number => Math.max(0, Math.min(MAX_ENHANCEMENT, Math.round(n ?? 0)));

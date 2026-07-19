@@ -1683,6 +1683,109 @@ describe('weapon proficiency', () => {
   });
 });
 
+describe('composite bows and the Strength rating', () => {
+  // Str 18 (+4) unless overridden — enough headroom to see a rating cap bite.
+  function archer(weapon: string, rating?: number, str = 18): CharacterDoc {
+    let d = newCharacter('t-bow', 'Ilda');
+    d = withDecision(d, 'ability-base', { str, dex: 14, con: 12, int: 10, wis: 12, cha: 10 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'alignment', 'N');
+    d = withDecision(d, 'class', 'fighter');
+    if (rating !== undefined) d = withDecision(d, 'item-quality', { [weapon]: { strRating: rating } });
+    d = { ...d, purchases: { [weapon]: 1 } };
+    return { ...atLevel(d, 3), equipped: { armor: null, mainHand: weapon, offHand: null } };
+  }
+  const line = (d: CharacterDoc) => resolve(d).sheet.attacks[0];
+
+  it('adds no Strength to damage at the default +0 rating', () => {
+    // An ordinary composite longbow is rated +0: Str never reaches damage.
+    expect(line(archer('comp-longbow')).damage).toBe('1d8');
+    expect(line(archer('comp-longbow', 0)).damage).toBe('1d8');
+  });
+
+  it('adds Strength to damage up to the rating', () => {
+    // Str +4 with a +2 bow: only +2 reaches damage.
+    expect(line(archer('comp-longbow', 2)).damage).toBe('1d8+2');
+    // …and a bow rated to match takes the whole bonus.
+    expect(line(archer('comp-longbow', 4)).damage).toBe('1d8+4');
+  });
+
+  it('never adds more than the wielder actually has', () => {
+    // Str 12 (+1) with a +4 bow: the bow cannot lend Strength the archer lacks.
+    expect(line(archer('comp-longbow', 4, 12)).damage).toBe('1d8+1');
+  });
+
+  it('costs −2 to hit when the bow is rated above the wielder’s Strength', () => {
+    // Str 12 (+1), bow rated +4: BAB 3 + Dex 2 − 2 = +3.
+    const stiff = line(archer('comp-longbow', 4, 12));
+    expect(stiff.bonuses[0]).toBe(3);
+    expect(stiff.attackLines.some((b) => b.label.includes('above your Str') && b.value === -2)).toBe(true);
+    // A bow rated at or below the archer's Strength draws cleanly.
+    expect(line(archer('comp-longbow', 1, 12)).bonuses[0]).toBe(5);
+  });
+
+  it('applies a Strength penalty to damage in full, whatever the rating', () => {
+    // Str 7 (−2) with a +0 bow: the penalty is not capped away by the rating.
+    const weak = line(archer('comp-longbow', 0, 7));
+    expect(weak.damage).toBe('1d8−2');
+    // The rating is a maximum on the bonus, so it does not soften the penalty either.
+    expect(line(archer('comp-longbow', 3, 7)).damage).toBe('1d8−2');
+  });
+
+  it('charges per point of rating, by the bow', () => {
+    // Composite longbow 100 gp + 100/point; composite shortbow 75 gp + 75/point.
+    const gold = (w: string, r: number) => resolve(archer(w, r)).sheet.gold;
+    expect(gold('comp-longbow', 0) - gold('comp-longbow', 3)).toBe(300);
+    expect(gold('comp-shortbow', 0) - gold('comp-shortbow', 3)).toBe(225);
+  });
+
+  it('leaves plain bows alone', () => {
+    // A non-composite longbow adds no Strength however strong the archer is.
+    expect(line(archer('longbow')).damage).toBe('1d8');
+    expect(line(archer('longbow')).bonuses[0]).toBe(5);
+  });
+
+  it('ignores a stale rating left on a weapon that is not a composite bow', () => {
+    // Switching a rating onto a crossbow must not quietly hand it a damage bonus.
+    expect(line(archer('heavy-crossbow', 4)).damage).toBe('1d10');
+  });
+
+  it('shows the cap in the damage breakdown rather than a bare number', () => {
+    const capped = line(archer('comp-longbow', 2));
+    const str = capped.damageLines.find((b) => b.label.startsWith('Str modifier'))!;
+    expect(str.value).toBe(2);
+    expect(str.label).toContain("capped at the bow's +2");
+  });
+});
+
+describe('slings add Strength to damage', () => {
+  function slinger(weapon: string, str = 16): CharacterDoc {
+    let d = newCharacter('t-sling', 'Bree');
+    d = withDecision(d, 'ability-base', { str, dex: 14, con: 12, int: 10, wis: 12, cha: 10 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'alignment', 'N');
+    d = withDecision(d, 'class', 'fighter');
+    return { ...atLevel(d, 3), equipped: { armor: null, mainHand: weapon, offHand: null } };
+  }
+  const line = (d: CharacterDoc) => resolve(d).sheet.attacks[0];
+
+  // The engine's own note has always said "composite bows and slings excepted" — but slings were
+  // getting no Strength at all, so the note described a rule that was not implemented.
+  it('gives a sling the full Strength modifier, as a thrown weapon gets', () => {
+    expect(line(slinger('sling')).damage).toBe('1d4+3');
+  });
+
+  it('does the same for the halfling sling staff', () => {
+    expect(line(slinger('halfling-sling-staff')).damage).toBe('1d8+3');
+  });
+
+  it('still gives a bow or crossbow none', () => {
+    expect(line(slinger('shortbow')).damage).toBe('1d6');
+    expect(line(slinger('light-crossbow')).damage).toBe('1d8');
+    expect(line(slinger('shortbow')).notes.join(' ')).toContain('no Str to damage');
+  });
+});
+
 describe('firearm rules', () => {
   function shooter(weapon: string): CharacterDoc {
     let d = newCharacter('t-gun', 'Reva');

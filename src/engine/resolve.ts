@@ -8,7 +8,8 @@ import { ABILITIES, abilityMod } from './types';
 import { evalPredicate, explainFailure, type PredicateCtx } from './predicates';
 import { stack, type Contribution } from './stack';
 import {
-  armorCheckPenaltyReduction, armorQualityBonus, qualityCost, qualityPrefix, qualityProblem,
+  armorCheckPenaltyReduction, armorQualityBonus, compositeBowEffect, qualityCost, qualityPrefix,
+  qualityProblem, strRating, strRatingCost,
   weaponQualityBonus, type ItemQuality, type PropertyPrice,
 } from './items';
 import {
@@ -682,7 +683,10 @@ export function resolve(doc: CharacterDoc): Resolution {
   const qualitySpend = Object.entries(itemQuality(doc)).reduce((sum, [id, q]) => {
     const kind = C.weaponById.has(id) ? 'weapon' : C.armorById.has(id) ? 'armor' : null;
     if (!kind || !(doc.purchases[id] ?? 0)) return sum;
-    return sum + qualityCost(kind, q, propertyPrice);
+    // A composite bow's Strength rating is priced per point of rating by the bow, not by the
+    // enhancement curve, so it is charged alongside rather than through qualityCost.
+    return sum + qualityCost(kind, q, propertyPrice)
+      + strRatingCost(q, C.weaponById.get(id)?.composite?.costPerPoint);
   }, 0);
   // Worn items are charged whether or not a slot conflict suppresses them — you still bought them.
   const wornSpend = wornItems(doc).reduce((sum, item) => sum + item.cost, 0);
@@ -1068,6 +1072,10 @@ function weaponAttacks(doc: CharacterDoc, stats: Record<string, Stat>, bab: numb
     const qb = weaponQualityBonus(q);
     const qualityLines: BreakdownLine[] = qb.attack ? [{ label: qb.label === 'mwk' ? 'Masterwork' : `Enhancement ${qb.label}`, value: qb.attack }] : [];
     const props = (q?.properties ?? []).map((id) => C.weaponPropertyById.get(id)).filter(Boolean) as C.WeaponPropertyDef[];
+    // A composite bow's Strength rating both caps its damage bonus and penalises a wielder too weak
+    // to draw it, so it is resolved once here and feeds both the attack and the damage lines.
+    const rating = strRating(q, Boolean(w.composite));
+    const bow = w.composite ? compositeBowEffect(strMod, rating) : null;
     // Power Attack is melee-only and scales with how the weapon is held; two-weapon penalties hit
     // both hands, so a carried (unwielded) weapon takes neither.
     const paScale: PowerAttackScale = slot === 'off' ? 'half' : w.hands === 'two' ? 'oneAndHalf' : 'normal';
@@ -1078,9 +1086,10 @@ function weaponAttacks(doc: CharacterDoc, stats: Record<string, Stat>, bab: numb
       ...(proficient ? [] : [{ label: 'Not proficient', value: NON_PROFICIENT_PENALTY }]),
       ...(pa ? [{ label: 'Power Attack', value: pa.penalty }] : []),
       ...(twfPenalty ? [{ label: slot === 'off' ? 'Two-weapon (off hand)' : 'Two-weapon (primary)', value: twfPenalty }] : []),
+      ...(bow?.attack ? [{ label: `Bow rated +${rating}, above your Str`, value: bow.attack }] : []),
     ];
     const attackTotal = base.total + (fb?.attack ?? 0) + qb.attack + (pa?.penalty ?? 0) + twfPenalty
-      + (proficient ? 0 : NON_PROFICIENT_PENALTY);
+      + (proficient ? 0 : NON_PROFICIENT_PENALTY) + (bow?.attack ?? 0);
     // The off hand gets one attack (plus Improved/Greater), not the BAB iteratives.
     const bonuses = usingTwoWeapon && slot === 'off'
       ? offHandAttackBonuses(attackTotal, featIds.has('improved-two-weapon-fighting'), featIds.has('greater-two-weapon-fighting'))
@@ -1091,7 +1100,19 @@ function weaponAttacks(doc: CharacterDoc, stats: Record<string, Stat>, bab: numb
     let strDamage = 0;
     const notes: string[] = [];
     if (kind === 'ranged') {
-      notes.push('Ranged: no Str to damage (composite bows and slings excepted).');
+      if (w.strToDamage) {
+        // The sling and halfling sling staff add Strength to damage just as thrown weapons do.
+        strDamage = strMod;
+        notes.push(`${w.name}: Str applies to damage, as it does for a thrown weapon.`);
+      } else if (bow) {
+        strDamage = bow.damage;
+        notes.push(`Composite bow rated +${rating}: it adds Str to damage up to +${rating}`
+          + `${strMod > rating ? ` — your Str bonus of +${strMod} is capped here` : ''}.`);
+        if (bow.attack) notes.push(`Your Str bonus is below the bow's +${rating} rating: −2 on attack rolls. A bow rated to your own Strength removes this.`);
+        if (strMod < 0) notes.push('A Strength penalty applies to a composite bow\'s damage in full, whatever the rating.');
+      } else {
+        notes.push('Ranged: no Str to damage (composite bows and slings excepted).');
+      }
     } else if (slot === 'off') {
       strDamage = Math.floor(strMod * 0.5);
       notes.push(usingTwoWeapon
@@ -1123,9 +1144,14 @@ function weaponAttacks(doc: CharacterDoc, stats: Record<string, Stat>, bab: numb
       else if (!p.damageDice && !p.extraAttack && !p.doublesThreat) notes.push(`${p.name}: ${p.desc}`);
       if (p.restriction) notes.push(`${p.name} applies to ${p.restriction}.`);
     }
-    const scaleNote = w.hands === 'two' && slot !== 'off' ? ' (1½×)' : slot === 'off' ? ' (½×)' : '';
+    const scaleNote = w.hands === 'two' && slot !== 'off' ? ' (1½×)'
+      : slot === 'off' ? ' (½×)'
+      : bow && strMod > rating ? ` (capped at the bow's +${rating})` : '';
+    // Most ranged weapons add no Strength at all, so the row is omitted rather than shown as +0 —
+    // but slings and composite bows do, and for them it has to be visible.
+    const showStrDamage = kind !== 'ranged' || strDamage !== 0;
     const damageLines: BreakdownLine[] = [
-      ...(kind === 'ranged' ? [] : [{ label: `Str modifier${scaleNote}`, value: strDamage }]),
+      ...(showStrDamage ? [{ label: `Str modifier${scaleNote}`, value: strDamage }] : []),
       ...(fb?.damageLines ?? []),
       ...(qb.damage ? [{ label: `Enhancement ${qb.label}`, value: qb.damage }] : []),
       ...(pa ? [{ label: `Power Attack${paScale === 'oneAndHalf' ? ' (1½×)' : paScale === 'half' ? ' (½×)' : ''}`, value: pa.damage }] : []),

@@ -169,6 +169,13 @@ export interface WeaponDef {
   hands: 'light' | 'one' | 'two' | 'ranged';
   /** Caveat surfaced on the attack line — e.g. a weapon whose second mode is not modelled. */
   note?: string;
+  /** Ranged weapons that add the full Strength modifier to damage, as thrown weapons do —
+   *  the sling and the halfling sling staff. */
+  strToDamage?: boolean;
+  /** Composite bows, which are built to a Strength rating: the rating caps how much of the
+   *  wielder's Strength bonus reaches damage, and shooting a bow rated above your own Strength
+   *  costs −2 to hit. `costPerPoint` gp is added per point of rating. */
+  composite?: { costPerPoint: number };
   /** Firearm-only stats (Ultimate Combat). Present ⇒ the weapon follows the firearm rules:
    *  it resolves against touch AC at close range, misfires, and reloads by the action listed. */
   firearm?: FirearmDef;

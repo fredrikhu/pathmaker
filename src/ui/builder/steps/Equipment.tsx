@@ -2,7 +2,7 @@ import type { CharCtl } from '../../Builder';
 import { WEAPONS, ARMORS, GEAR, weaponById, armorById, anyItemById } from '../../../content/index';
 import type { CharacterDoc } from '../../../engine/types';
 import { TermSpan } from '../../Tooltip';
-import { qualityCost, qualityPrefix, totalBonus, MAX_ENHANCEMENT, MAX_TOTAL_BONUS, type ItemQuality } from '../../../engine/items';
+import { qualityCost, qualityPrefix, strRatingCost, totalBonus, MAX_ENHANCEMENT, MAX_STR_RATING, MAX_TOTAL_BONUS, type ItemQuality } from '../../../engine/items';
 import { propertyPrice } from '../../../engine/resolve';
 import { WEAPON_PROPERTIES, ARMOR_PROPERTIES, WONDROUS_ITEMS, BODY_SLOTS, armorById as armorLookup } from '../../../content/index';
 
@@ -81,6 +81,35 @@ export function EquipmentStep({ ch }: { ch: CharCtl }) {
           return (
             <option key={o.v} value={o.v} disabled={!affordable}>
               {o.label}{o.q ? ` · ${cost.toLocaleString()} gp` : ''}{!affordable ? ' — too costly' : ''}
+            </option>
+          );
+        })}
+      </select>
+    );
+  };
+
+  /** Composite bows only: the Strength rating the bow was built to. Each point costs the bow's
+   *  per-point price, so the option labels show what the whole bow would come to. */
+  const StrRatingPicker = ({ id }: { id: string }) => {
+    const w = weaponById.get(id);
+    const perPoint = w?.composite?.costPerPoint;
+    if (!perPoint) return null;
+    const cur = quality[id];
+    const rating = cur?.strRating ?? 0;
+    const spent = strRatingCost(cur, perPoint);
+    return (
+      <select className="input" style={{ fontSize: 11.5, padding: '2px 5px' }} value={String(rating)}
+        title="A composite bow adds Str to damage up to its rating; a bow rated above your Str costs −2 to hit."
+        onChange={(e) => {
+          const n = Number(e.target.value);
+          setQuality(id, { ...cur, strRating: n || undefined });
+        }}>
+        {Array.from({ length: MAX_STR_RATING + 1 }, (_, n) => {
+          const cost = n * perPoint;
+          const affordable = cost - spent <= sheet.gold;
+          return (
+            <option key={n} value={n} disabled={!affordable}>
+              Str +{n} · {(w.cost + cost).toLocaleString()} gp{!affordable ? ' — too costly' : ''}
             </option>
           );
         })}
@@ -203,6 +232,7 @@ export function EquipmentStep({ ch }: { ch: CharCtl }) {
                     {qualityPrefix(quality[id])}{item.name} <span className="text-muted" style={{ fontSize: 11 }}>×{q}</span>
                   </span>
                   {qualityKind(id) && <QualityPicker id={id} kind={qualityKind(id)!} />}
+                  <StrRatingPicker id={id} />
                   {isEquippable && <button className="btn btn-ghost" style={{ fontSize: 11 }} disabled={isEquipped} onClick={() => equip(id)}>{isEquipped ? '✓ Equipped' : 'Equip'}</button>}
                   <button onClick={() => sell(id, cost)} style={{ background: 'transparent', border: 'none', color: 'var(--color-neutral-500)', cursor: 'pointer', fontSize: 11.5, fontFamily: 'inherit' }}>Sell</button>
                   {qualityKind(id) && <PropertyPicker id={id} kind={qualityKind(id)!} />}

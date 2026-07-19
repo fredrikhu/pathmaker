@@ -391,6 +391,29 @@ describe('weapon proficiency data', () => {
   });
 });
 
+describe('composite bows and Strength-to-damage weapons', () => {
+  it('prices each point of Strength rating at the bow’s own rate', () => {
+    // Verified against the weapons table: the composite longbow's +0..+5 rows run 100→600 gp.
+    expect(C.weaponById.get('comp-longbow')!.composite).toEqual({ costPerPoint: 100 });
+    expect(C.weaponById.get('comp-shortbow')!.composite).toEqual({ costPerPoint: 75 });
+  });
+
+  it('marks only the composite bows as composite', () => {
+    const composite = C.WEAPONS.filter((w) => w.composite).map((w) => w.id).sort();
+    expect(composite).toEqual(['comp-longbow', 'comp-shortbow']);
+  });
+
+  it('marks only the slings as adding Strength to damage, and they are ranged', () => {
+    const slings = C.WEAPONS.filter((w) => w.strToDamage).map((w) => w.id).sort();
+    expect(slings).toEqual(['halfling-sling-staff', 'sling']);
+    for (const w of C.WEAPONS.filter((w) => w.strToDamage)) expect(w.hands, w.id).toBe('ranged');
+  });
+
+  it('never marks a weapon as both', () => {
+    for (const w of C.WEAPONS) expect(Boolean(w.composite && w.strToDamage), w.id).toBe(false);
+  });
+});
+
 describe('firearms', () => {
   const firearms = C.WEAPONS.filter((w) => w.firearm);
 
