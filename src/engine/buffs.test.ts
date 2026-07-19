@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { spellBuffTimer, spellDamageAt } from './buffs';
+import { spellBuffTimer, spellDamageAt, spellAttackerTimer, type AttackerContext } from './buffs';
 import { spellById } from '../content/index';
 import { newCharacter, withDecision } from './character';
 import { resolve } from './resolve';
@@ -230,5 +230,45 @@ describe('buffs that are not flat bonuses', () => {
       note: 'Protection from Evil', value: 2, condition: 'against evil creatures',
     });
     expect(buffed.stats['ac'].conditional.some((c) => c.note === 'Protection from Evil')).toBe(true);
+  });
+});
+
+describe('independent attackers on a timer', () => {
+  const zeroMods = { str: 0, dex: 0, con: 0, int: 0, wis: 0, cha: 0 };
+  const ctx = (over: Partial<AttackerContext> = {}): AttackerContext =>
+    ({ casterLevel: 6, bab: 3, abilityMods: { ...zeroMods }, dcBase: 13, ...over });
+
+  it('spiritual weapon strikes with BAB + Wis and scales damage per three levels', () => {
+    // Cleric 6: BAB +4 (¾), Wis +3. Spiritual weapon attacks at +7, damage 1d8+2 (floor 6/3).
+    const t = spellAttackerTimer(spell('spiritual-weapon'), ctx({ casterLevel: 6, bab: 4, abilityMods: { ...zeroMods, wis: 3 } }), 'x')!;
+    expect(t.attacker!.attackBonuses).toEqual([7]);
+    expect(t.attacker!.damage).toBe('1d8+2');
+    expect(t.attacker!.dmgType).toBe('force');
+    expect(t.attacker!.save).toBeUndefined();
+    expect(t.remaining).toBe(6); // 1 round/level
+  });
+
+  it('gives spiritual weapon iteratives from the caster’s BAB', () => {
+    // BAB +11 → +11/+6/+1, plus Wis +2 on each.
+    const t = spellAttackerTimer(spell('spiritual-weapon'), ctx({ bab: 11, abilityMods: { ...zeroMods, wis: 2 } }), 'x')!;
+    expect(t.attacker!.attackBonuses).toEqual([13, 8, 3]);
+  });
+
+  it('caps spiritual weapon’s damage bonus at +5', () => {
+    expect(spellAttackerTimer(spell('spiritual-weapon'), ctx({ casterLevel: 15, bab: 11 }), 'x')!.attacker!.damage).toBe('1d8+5');
+    expect(spellAttackerTimer(spell('spiritual-weapon'), ctx({ casterLevel: 20, bab: 15 }), 'x')!.attacker!.damage).toBe('1d8+5');
+  });
+
+  it('flaming sphere makes no attack roll and lets the target save against a DC', () => {
+    // dcBase 13 + spell level 2 = DC 15.
+    const t = spellAttackerTimer(spell('flaming-sphere'), ctx({ dcBase: 13 }), 'x')!;
+    expect(t.attacker!.attackBonuses).toBeUndefined();
+    expect(t.attacker!.damage).toBe('3d6');
+    expect(t.attacker!.save).toBe('Reflex DC 15 negates');
+  });
+
+  it('returns null for a spell that summons no attacker', () => {
+    expect(spellAttackerTimer(spell('fireball'), ctx(), 'x')).toBeNull();
+    expect(spellAttackerTimer(spell('bless'), ctx(), 'x')).toBeNull();
   });
 });

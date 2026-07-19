@@ -97,6 +97,22 @@ export interface Defenses {
   resistances: EnergyResistance[];
 }
 
+/** A self-directed attacker a spell leaves on the field (spiritual weapon, flaming sphere). Its
+ *  numbers are resolved from the caster at cast time and frozen on the timer, so the mat can prompt
+ *  a roll each round without re-deriving anything. */
+export interface IndependentAttacker {
+  /** Iterative attack bonuses, highest first. Absent ⇒ it makes no attack roll and the target
+   *  saves instead. */
+  attackBonuses?: number[];
+  /** Weapon crit string, for the threat range on its attack roll. */
+  crit?: string;
+  damage: string;
+  dmgType: string;
+  /** What the target rolls to avoid the damage, when there is no attack roll — carries the DC,
+   *  e.g. "Reflex DC 15 negates". */
+  save?: string;
+}
+
 /** A running duration on a condition or buff, counted in combat rounds (phase 4).
  *  Everything is stored in rounds so the clock has a single unit; the UI converts. */
 export interface Timer {
@@ -116,6 +132,8 @@ export interface Timer {
    *  `effects` because neither is a bonus to a roll — they reduce damage on its way in. */
   dr?: DamageReduction[];
   resistances?: EnergyResistance[];
+  /** A self-directed attacker this spell placed on the field, which the mat rolls each round. */
+  attacker?: IndependentAttacker;
 }
 
 /** Session state that changes during play, kept separate from the build `decisions`. */

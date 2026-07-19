@@ -1001,7 +1001,7 @@ export function doubleThreatRange(crit: string): string {
 }
 
 /** Iterative attack bonuses from a primary bonus and BAB: +6 → [6,1], +11 → [11,6,1], etc. */
-function iterativeBonuses(primary: number, bab: number): number[] {
+export function iterativeBonuses(primary: number, bab: number): number[] {
   const count = Math.max(1, Math.min(4, Math.floor((bab + 4) / 5)));
   return Array.from({ length: count }, (_, i) => primary - 5 * i);
 }

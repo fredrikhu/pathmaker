@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { loadCharacter } from '../storage/store';
 import { newCharacter } from '../engine/character';
-import { emptyPlayState, normalizePlayState, fmtMod, type DamageKind, type PlayState, type Timer } from '../engine/types';
+import { ABILITIES, abilityMod, emptyPlayState, normalizePlayState, fmtMod, type Ability, type DamageKind, type PlayState, type Timer } from '../engine/types';
 import {
   advanceTime, nextRound, startEncounter, endEncounter, addTimer, removeTimer, rest as restPlay,
   durationLabel, ROUNDS_PER_MINUTE, ROUNDS_PER_HOUR,
@@ -9,7 +9,7 @@ import {
 import { consume, unconsume, spendCharges, restoreCharges, restock } from '../engine/inventory';
 import { rollAttack, rollDamage, rollSave, threatRange } from '../engine/dice';
 import { applyDamage, bypassOptions, ENERGY_TYPES } from '../engine/damage';
-import { spellBuffTimer, spellDamageAt } from '../engine/buffs';
+import { spellBuffTimer, spellDamageAt, spellAttackerTimer } from '../engine/buffs';
 import { CONDITIONS, conditionById, SPELLS, spellById, classById, skillById } from '../content/index';
 import { useCharacter } from './useCharacter';
 import { useTip } from './Tooltip';
@@ -203,25 +203,42 @@ export function PlaySheet({ id }: { id: string }) {
   // ---- Casting a buff ----
   // A spell's list decides which of a multiclass caster's caster levels applies, so the picker
   // offers only spells this character can actually cast, at the caster level that casts them.
-  const castingLists = sheet.casting.map((b) => ({
-    list: classById.get(b.classId)?.spellcasting?.list,
-    casterLevel: b.casterLevel,
-  }));
-  const casterLevelFor = (spellId: string): number | null => {
+  // The casting block whose caster level actually casts this spell — the highest among the classes
+  // whose list contains it. Carries the caster level and the DC base a self-directed attacker needs.
+  const castingBlockFor = (spellId: string) => {
     const sp = spellById.get(spellId);
     if (!sp) return null;
-    const levels = castingLists.filter((c) => c.list && sp.lists.includes(c.list as never)).map((c) => c.casterLevel);
-    return levels.length ? Math.max(...levels) : null;
+    const matching = sheet.casting.filter((b) => {
+      const list = classById.get(b.classId)?.spellcasting?.list;
+      return list && sp.lists.includes(list as never);
+    });
+    return matching.length ? matching.reduce((best, b) => (b.casterLevel > best.casterLevel ? b : best)) : null;
   };
-  const buffSpells = SPELLS.filter((s) => s.buff && casterLevelFor(s.id) !== null);
+  const casterLevelFor = (spellId: string): number | null => castingBlockFor(spellId)?.casterLevel ?? null;
+  // Both buffs and self-directed attackers become running timers, so they share one picker.
+  const runningSpells = SPELLS.filter((s) => (s.buff || s.attacker) && casterLevelFor(s.id) !== null);
   const [buffPick, setBuffPick] = useState('');
 
-  /** Start a spell's running effect. The engine resolves the scaling; this only stores the timer. */
-  const castBuff = (spellId: string) => {
+  const casterAbilityMods = ABILITIES.reduce((m, ab) => {
+    m[ab] = abilityMod(sheet.stats[`ability:${ab}`]?.total ?? 10);
+    return m;
+  }, {} as Record<Ability, number>);
+
+  /** Start a spell's running effect — a buff, or a self-directed attacker. The engine resolves the
+   *  scaling and (for an attacker) the attack bonus from the caster; this only stores the timer. */
+  const castRunning = (spellId: string) => {
     const sp = spellById.get(spellId);
-    const cl = casterLevelFor(spellId);
-    if (!sp || cl === null) return;
-    const timer = spellBuffTimer(sp, cl, `t${Date.now()}${Math.random().toString(36).slice(2, 6)}`);
+    const block = castingBlockFor(spellId);
+    if (!sp || !block) return;
+    const id = `t${Date.now()}${Math.random().toString(36).slice(2, 6)}`;
+    const timer = sp.buff
+      ? spellBuffTimer(sp, block.casterLevel, id)
+      : spellAttackerTimer(sp, {
+          casterLevel: block.casterLevel,
+          bab: sheet.stats['bab']?.total ?? 0,
+          abilityMods: casterAbilityMods,
+          dcBase: block.dcBase,
+        }, id);
     if (timer) applyClock((p) => addTimer(p, timer));
   };
 
@@ -292,9 +309,12 @@ export function PlaySheet({ id }: { id: string }) {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
               {play.timers.map((t) => {
-                // A spell buff carries its resolved effects, so the chip can say what it is doing
-                // to the sheet instead of just counting down.
-                const caveat = t.spellId ? spellById.get(t.spellId)?.buff?.caveat : undefined;
+                // A running spell carries either its resolved effects (a buff) or a self-directed
+                // attacker, so the chip can say what it is doing rather than just counting down.
+                const spell = t.spellId ? spellById.get(t.spellId) : undefined;
+                const caveat = spell?.buff?.caveat ?? spell?.attacker?.caveat;
+                const atk = t.attacker;
+                const atkLabel = atk?.attackBonuses ? atk.attackBonuses.map(fmtMod).join('/') : null;
                 return (
                   <div key={t.id} style={{ display: 'flex', alignItems: 'baseline', gap: 10, fontSize: 12.5, flexWrap: 'wrap' }}>
                     <span style={{ minWidth: 170, fontWeight: 500 }}>{t.label}</span>
@@ -305,7 +325,21 @@ export function PlaySheet({ id }: { id: string }) {
                         {t.effects.map((e) => `${fmtMod(e.value)} ${e.target.replace('attack:', '').replace('damage:weapon', 'weapon damage').replace('save:all', 'saves').replace('skill:all', 'skills').replace('save:ref', 'Reflex')}${e.condition ? ` ${e.condition}` : ''}`).join(' · ')}
                       </span>
                     ) : null}
+                    {atk ? (
+                      <span className="text-muted num" style={{ fontSize: 11 }}>
+                        {atkLabel ? `${atkLabel} · ` : ''}{atk.damage} {atk.dmgType}{atk.save ? ` · ${atk.save}` : ''}
+                      </span>
+                    ) : null}
                     <span style={{ flex: 1 }} />
+                    {/* A self-directed attacker acts each round on your turn — roll it here. */}
+                    {atk?.attackBonuses && (
+                      <RollButton label="d20" title={`Roll to hit at ${atkLabel}`}
+                        onRoll={() => rollAttackLine(t.label, atk.attackBonuses![0], atk.crit ?? '×2')} />
+                    )}
+                    {atk && (
+                      <RollButton label={atk.damage} title={`Roll ${atk.damage}${atk.save ? ` — ${atk.save}` : ''}`}
+                        onRoll={() => rollDamageFor(`${t.label} damage`, atk.damage)} />
+                    )}
                     <button className="btn btn-ghost" style={{ fontSize: 11 }} title="Cancel this countdown (leaves any condition set)"
                       onClick={() => applyClock((p) => removeTimer(p, t.id))}>✕</button>
                     {caveat && <div className="text-muted" style={{ fontSize: 11, width: '100%', marginTop: -2 }}>{caveat}</div>}
@@ -331,18 +365,19 @@ export function PlaySheet({ id }: { id: string }) {
             </select>
             <button className="btn btn-secondary" style={{ fontSize: 12 }} onClick={submitTimer}>Start timer</button>
           </div>
-          {/* Casting a buff spell: the engine works out the bonus and the duration from your caster
-              level, and the effect flows into every number on the sheet until it runs out. */}
-          {buffSpells.length > 0 && (
+          {/* Casting a running-effect spell: the engine works out the bonus/attack and the duration
+              from your caster level, and it flows into the sheet (buff) or is rolled each round
+              (a self-directed attacker) until it runs out. */}
+          {runningSpells.length > 0 && (
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginTop: 8 }}>
               <span className="text-muted" style={{ fontSize: 11.5 }}>Cast a spell with a running effect</span>
               <select className="input" style={{ fontSize: 12, padding: '4px 7px', minWidth: 200 }} value={buffPick}
                 onChange={(e) => setBuffPick(e.target.value)}>
                 <option value="">— choose a spell —</option>
-                {buffSpells.map((s) => <option key={s.id} value={s.id}>{s.name} (CL {casterLevelFor(s.id)}) — {s.buff!.scaling}</option>)}
+                {runningSpells.map((s) => <option key={s.id} value={s.id}>{s.name} (CL {casterLevelFor(s.id)}) — {(s.buff ?? s.attacker)!.scaling}</option>)}
               </select>
               <button className="btn btn-secondary" style={{ fontSize: 12 }} disabled={!buffPick}
-                onClick={() => { castBuff(buffPick); setBuffPick(''); }}>Cast</button>
+                onClick={() => { castRunning(buffPick); setBuffPick(''); }}>Cast</button>
               <span className="text-muted" style={{ fontSize: 11 }}>expending the slot is still up to you, below</span>
             </div>
           )}
@@ -840,11 +875,11 @@ export function PlaySheet({ id }: { id: string }) {
                               {!splitPool && (
                                 <button className="btn btn-ghost" style={{ fontSize: 11, flex: 'none', color: casted ? 'var(--color-accent-300)' : undefined }}
                                   disabled={!filled}
-                                  title={casted ? 'restore' : sp?.buff ? 'mark cast and start its running effect' : 'mark cast'}
+                                  title={casted ? 'restore' : (sp?.buff || sp?.attacker) ? 'mark cast and start its running effect' : 'mark cast'}
                                   onClick={() => {
-                                    // Casting a buff spell starts its running effect as well as
-                                    // spending the casting — the two always happen together.
-                                    if (!casted && sp?.buff) castBuff(sp.id);
+                                    // Casting a buff or a self-directed attacker starts its running
+                                    // effect as well as spending the casting — always together.
+                                    if (!casted && (sp?.buff || sp?.attacker)) castRunning(sp.id);
                                     toggleCast(cls, level, i);
                                   }}>
                                   {casted ? '↺' : 'cast'}

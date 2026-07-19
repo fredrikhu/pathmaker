@@ -6,7 +6,7 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 
 ## ▶ Resume here (last session end)
 
-**All five roadmap phases are done and committed** (branch `master`, working tree clean, 427 tests
+**All five roadmap phases are done and committed** (branch `master`, working tree clean, 435 tests
 passing; run `npx tsc --noEmit && npx vitest run && npm run build` to confirm). Pathmaker covers the
 full arc: build a character 1–20, play it at the table (HP, spells, pools, conditions), run the clock
 (rounds, timed effects, rest), and track consumables/charges/encumbrance live.
@@ -615,6 +615,23 @@ item weight for coins, and per-arrow ammunition.
   - Still not modelled: **resist energy** and **protection from energy**, which need a cast-time
     energy-type parameter the buff picker has no mechanism for; protection from energy is also a
     depleting pool rather than a flat reduction.
+- **Self-directed attacker spells: done** — spiritual weapon and flaming sphere. These act once a
+  round on your turn, so they belong on the mat as a **running timer that prompts a roll**, not as a
+  bonus to the caster's own numbers. This is why they were deferred earlier — the mat had no
+  recurring-per-round mechanism, and `Timer` had proven it could carry structured data only after
+  the buff and DR work.
+  - `Timer.attacker` (`IndependentAttacker`) is resolved from the caster at cast time and frozen:
+    spiritual weapon strikes with the caster's **BAB (iteratives) + Wisdom** — not the casting
+    ability — for 1d8 + 1 per three levels (max +5); flaming sphere makes **no attack roll**, deals
+    3d6, and carries its **Reflex DC** (10 + casting mod + spell level) for the target to save
+    against. The chip shows a d20 button only when it actually attacks.
+  - `spellAttackerTimer(spell, ctx, id)` reuses the existing `iterativeBonuses` (now exported from
+    resolve). The play sheet's cast picker is the buff picker generalised — both buffs and attackers
+    are running timers, chosen by the spell's list at the caster level that casts it, and the
+    prepared-spell `cast` button starts either.
+  - Deliberately fixed at cast time (with a caveat saying so): spiritual weapon's BAB does not pick
+    up a later Haste; its threat range defaults to ×2 because the engine does not know the deity's
+    favored weapon. Not modelled: the move action to redirect either one.
 - **Power Attack & two-weapon fighting: done** (`src/engine/combat.ts`, numbers verified against both
   feat pages). These are **declared per attack**, not passive, so they live in play state
   (`PlayState.powerAttack` / `twoWeapon`) as play-sheet toggles and are folded in **only while on** —

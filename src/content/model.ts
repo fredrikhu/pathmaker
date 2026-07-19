@@ -260,6 +260,27 @@ export interface SpellBuffDef {
   caveat?: string;
 }
 
+/** A spell that puts a self-directed attacker onto the field — spiritual weapon, flaming sphere.
+ *  It acts each round on the caster's turn, so it lives on the play mat as a running effect that
+ *  prompts a roll rather than as a bonus to the caster's own numbers. */
+export interface SpellAttackerDef {
+  scaling: string;
+  /** True ⇒ it makes an attack roll each round (spiritual weapon). False ⇒ no attack roll; the
+   *  target rolls the save instead (flaming sphere). */
+  attacks: boolean;
+  /** Ability whose modifier is added to its attack roll — spiritual weapon adds Wisdom, not the
+   *  caster's casting ability, whatever that is. Only meaningful when `attacks`. */
+  attackAbility?: Ability;
+  /** Weapon crit string for its threat range, when it strikes like a weapon. */
+  crit?: string;
+  dmgType: string;
+  /** What a target rolls to avoid the damage, when there is no attack roll ("Reflex negates"). */
+  save?: string;
+  /** Damage per hit and duration in rounds, from caster level. */
+  at(casterLevel: number): { damage: string; rounds: number };
+  caveat?: string;
+}
+
 /** Damage a spell deals, as a dice formula at a given caster level ("5d6" for a fireball at CL 5).
  *  Only spells whose damage is a plain formula carry this; anything conditional stays prose. */
 export interface SpellDamageDef {
@@ -287,6 +308,8 @@ export interface SpellDef {
   buff?: SpellBuffDef;
   /** Present when the spell's damage (or healing) is a rollable formula. */
   damage?: SpellDamageDef;
+  /** Present when casting the spell places a self-directed attacker on the field. */
+  attacker?: SpellAttackerDef;
 }
 
 export interface SchoolDef {

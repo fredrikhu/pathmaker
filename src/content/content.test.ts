@@ -510,3 +510,33 @@ describe('damage reduction and energy resistance data', () => {
     }
   });
 });
+
+describe('self-directed attacker spells', () => {
+  const withAttacker = C.SPELLS.filter((s) => s.attacker);
+
+  it('is authored only for the spells that place one on the field', () => {
+    expect(withAttacker.map((s) => s.id).sort()).toEqual(['flaming-sphere', 'spiritual-weapon']);
+  });
+
+  it('names a damage type and produces damage and a positive duration at every level', () => {
+    for (const s of withAttacker) {
+      expect(s.attacker!.dmgType, s.id).toBeTruthy();
+      for (const cl of [1, 5, 20]) {
+        const { damage, rounds } = s.attacker!.at(cl);
+        expect(damage, `${s.id} @${cl}`).toMatch(/\d+d\d+/);
+        expect(rounds, `${s.id} @${cl}`).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  it('gives an attacking spell an ability and a crit, and a saving spell a save', () => {
+    const sw = C.spellById.get('spiritual-weapon')!.attacker!;
+    expect(sw.attacks).toBe(true);
+    expect(sw.attackAbility).toBe('wis');
+    expect(sw.crit).toBeTruthy();
+
+    const fs = C.spellById.get('flaming-sphere')!.attacker!;
+    expect(fs.attacks).toBe(false);
+    expect(fs.save).toBeTruthy();
+  });
+});

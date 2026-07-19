@@ -1,5 +1,5 @@
 import type { SpellDef } from './model';
-import { SPELL_BUFFS, SPELL_DAMAGE } from './spell-effects';
+import { SPELL_ATTACKERS, SPELL_BUFFS, SPELL_DAMAGE } from './spell-effects';
 
 // Level 0-1 spells across the arcane/divine/druid/bard lists. Enough to exercise the
 // spells step (filtering, opposition markers, spellbook picks) for the elf-wizard seed.
@@ -185,6 +185,8 @@ for (const s of SPELLS) {
   if (buff) s.buff = buff;
   const damage = SPELL_DAMAGE[s.id];
   if (damage) s.damage = damage;
+  const attacker = SPELL_ATTACKERS[s.id];
+  if (attacker) s.attacker = attacker;
 }
 
 export const spellById = new Map(SPELLS.map((s) => [s.id, s]));

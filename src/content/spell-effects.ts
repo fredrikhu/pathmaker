@@ -1,5 +1,5 @@
 import type { Effect } from '../engine/types';
-import type { SpellBuffDef, SpellDamageDef } from './model';
+import type { SpellAttackerDef, SpellBuffDef, SpellDamageDef } from './model';
 
 // Structured, engine-computed spell effects. Every number here is verified against that spell's
 // own d20pfsrd page — the scaling clauses ("+1 per three levels, maximum +3") are exactly the kind
@@ -180,6 +180,34 @@ const perLevel = (die: number, maxDice: number, label?: string): SpellDamageDef 
   ...(label ? { label } : {}),
   at: (cl) => `${clamp(cl, 1, maxDice)}d${die}`,
 });
+
+// Self-directed attackers. Both act once a round on your turn, so they belong on the mat as a
+// running effect that prompts a roll, not as a bonus to your own numbers. Damage and scaling are
+// read from each spell's own page; the attack bonus is filled in from the caster at cast time.
+export const SPELL_ATTACKERS: Record<string, SpellAttackerDef> = {
+  'spiritual-weapon': {
+    scaling: '1d8 force + 1 per three caster levels (max +5), attacks with your BAB + Wis, for 1 round per caster level',
+    attacks: true,
+    attackAbility: 'wis',
+    dmgType: 'force',
+    // The weapon takes your deity's favored weapon's form and crit; ×2 is the common case and the
+    // fallback, since the engine does not know the deity here.
+    crit: '×2',
+    caveat: "Takes your deity's favored weapon's threat range and multiplier — ×2 shown as the default. Uses your BAB from cast time, so later buffs to it do not carry.",
+    at: (cl) => {
+      const bonus = clamp(Math.floor(cl / 3), 0, 5);
+      return { damage: bonus ? `1d8+${bonus}` : '1d8', rounds: cl };
+    },
+  },
+  'flaming-sphere': {
+    scaling: '3d6 fire, Reflex negates, for 1 round per caster level',
+    attacks: false,
+    dmgType: 'fire',
+    save: 'Reflex negates',
+    caveat: 'Directing it each round is a move action. Moving it into a creature deals the damage; the target rolls the save.',
+    at: (cl) => ({ damage: '3d6', rounds: cl }),
+  },
+};
 
 export const SPELL_DAMAGE: Record<string, SpellDamageDef> = {
   // --- Fixed ---
