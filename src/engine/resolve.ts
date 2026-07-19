@@ -3,7 +3,7 @@ import type {
   Ability, Alignment, CharacterDoc, ChoiceSlot, Effect, Issue, Resolution,
   Sheet, SlotOption, Stat,
 } from './types';
-import type { AttackLine, BreakdownLine, GrantedFeat, InventoryItem, ProgressionRow, ResourcePool } from './types';
+import type { AttackLine, BreakdownLine, CastingBlock, GrantedFeat, InventoryItem, ProgressionRow, ResourcePool } from './types';
 import { ABILITIES, abilityMod } from './types';
 import { evalPredicate, explainFailure, type PredicateCtx } from './predicates';
 import { stack, type Contribution } from './stack';
@@ -440,7 +440,11 @@ export function resolve(doc: CharacterDoc): Resolution {
     (byTarget.get(target) ?? []).filter((e) => !e.condition).map((e) => ({ type: e.type, value: e.value, note: e.note }));
 
   const bab = sumBab(classes.map((c) => ({ bab: c.klass.bab, goodSaves: c.klass.goodSaves, levels: c.levels })));
-  const clvl = klass?.spellcasting ? casterLevel(klass.spellcasting.progression ?? 'full', level) : 0;
+  // For prerequisites ("caster level 5th"), a multiclass caster is judged on their best class.
+  const clvl = classes.reduce((best, c) => {
+    const p = c.klass.spellcasting;
+    return p ? Math.max(best, casterLevel(p.progression ?? 'full', c.levels)) : best;
+  }, 0);
   const featIds = validFeatIds(dec, level);
   const predCtx: PredicateCtx = {
     abilities, bab, featIds,
@@ -685,18 +689,36 @@ export function resolve(doc: CharacterDoc): Resolution {
   // silently becomes NaN rather than merely being wrong.
   const gold = Math.round((startGold - (doc.goldSpent ?? 0) - qualitySpend - wornSpend) * 100) / 100;
 
-  // ---- Caster level + spell slots ----
+  // ---- Caster level + spell slots, per casting class ----
+  // A wizard 5 / cleric 2 casts as *both* a 5th-level wizard and a 2nd-level cleric; there is no
+  // single merged progression, so each casting class gets its own block.
+  const casting: CastingBlock[] = classes.flatMap((c) => {
+    const csc = c.klass.spellcasting;
+    if (!csc) return [];
+    const table = spellTableFor(csc);
+    let slots = spellSlotsPerDay(table, c.levels, mods[csc.ability]);
+    // Domain (cleric) and specialist-school (non-universalist wizard) grant one bonus slot per
+    // spell level for that restricted spell — approximated as +1 to each accessible level's count.
+    const domainSlot = c.klass.id === 'cleric' && (dec.classChoices['domains']?.length ?? 0) > 0;
+    const schoolSlot = c.klass.id === 'wizard' && (dec.classChoices['school']?.length ?? 0) > 0 && !(dec.classChoices['school'] ?? []).includes('universalist');
+    if (slots && (domainSlot || schoolSlot)) slots = slots.map((n, lvl) => (lvl >= 1 && n > 0 ? n + 1 : n));
+    return [{
+      classId: c.klass.id,
+      className: c.klass.name,
+      kind: csc.kind,
+      ability: csc.ability,
+      casterLevel: casterLevel(csc.progression ?? 'full', c.levels),
+      slots,
+      known: csc.kind === 'spontaneous' ? spellsKnownPerLevel(table, c.levels) : undefined,
+      // Each class's DC uses its own casting ability.
+      dcBase: 10 + mods[csc.ability],
+    }];
+  });
+  // The primary casting class, kept for the single-caster views that show one number.
   const sc = klass?.spellcasting;
-  const spellTable = sc ? spellTableFor(sc) : undefined;
-  let spellSlots = sc ? spellSlotsPerDay(spellTable, level, mods[sc.ability]) : undefined;
-  // Domain (cleric) and specialist-school (non-universalist wizard) grant one bonus slot per spell
-  // level for that restricted spell — approximated as +1 to each accessible level's count.
-  if (spellSlots) {
-    const domainSlot = klass?.id === 'cleric' && (dec.classChoices['domains']?.length ?? 0) > 0;
-    const schoolSlot = klass?.id === 'wizard' && (dec.classChoices['school']?.length ?? 0) > 0 && !(dec.classChoices['school'] ?? []).includes('universalist');
-    if (domainSlot || schoolSlot) spellSlots = spellSlots.map((n, lvl) => (lvl >= 1 && n > 0 ? n + 1 : n));
-  }
-  const spellsKnown = sc && sc.kind === 'spontaneous' ? spellsKnownPerLevel(spellTable, level) : undefined;
+  const primaryCasting = casting.find((b) => b.classId === klass?.id) ?? casting[0];
+  const spellSlots = primaryCasting?.slots;
+  const spellsKnown = primaryCasting?.known;
 
   // ---- Per-level advancement table ----
   const featSlotKeys = featSlots(dec, race, level);
@@ -727,7 +749,7 @@ export function resolve(doc: CharacterDoc): Resolution {
   }
 
   // Highest spell level with at least one slot per day (0 if not a caster).
-  const maxSpellLevel = spellSlots ? spellSlots.reduce((m, n, i) => (n > 0 ? i : m), 0) : 0;
+  const maxSpellLevel = spellSlots ? spellSlots.reduce((m: number, n: number, i: number) => (n > 0 ? i : m), 0) : 0;
 
   // ---- Spell save DC ----
   // The per-spell DC is this + the spell's level; Spell Focus adds on top for its school only, so
@@ -753,7 +775,8 @@ export function resolve(doc: CharacterDoc): Resolution {
   const summaryLine = [
     dec.alignment ?? '',
     race?.name ?? '',
-    klass ? `${klass.name} ${level}` : '',
+    // "Fighter 5 / Wizard 1" for a multiclass character, in the order the classes were taken.
+    classes.map((c) => `${c.klass.name} ${c.levels}`).join(' / '),
   ].filter(Boolean).join(' ');
 
   const sheet: Sheet = {
@@ -764,7 +787,10 @@ export function resolve(doc: CharacterDoc): Resolution {
     load: { current: load, light: carry.light, medium: carry.medium, heavy: carry.heavy, label: loadLabel },
     speed: { base: effectiveSpeed, ...(speedReduced ? { reducedFrom: baseSpeed + speedBonus } : {}), ...(race?.speeds ?? {}) },
     spellFocus,
-    ...(sc && clvl > 0 ? { casterLevel: clvl, spellSlots } : {}),
+    casting,
+    ...(primaryCasting && primaryCasting.casterLevel > 0
+      ? { casterLevel: primaryCasting.casterLevel, spellSlots }
+      : {}),
     ...(spellsKnown && spellsKnown.length ? { spellsKnown } : {}),
     progression,
     pools: classes.flatMap((c) => classPools(c.klass, c.levels, mods)),

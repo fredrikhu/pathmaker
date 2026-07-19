@@ -197,6 +197,22 @@ export interface ProgressionRow {
   hp: number;
 }
 
+/** One casting class's own progression. A multiclass caster has one block per casting class —
+ *  there is no merged progression, so these are never summed. */
+export interface CastingBlock {
+  classId: string;
+  className: string;
+  kind: string;
+  ability: Ability;
+  casterLevel: number;
+  /** Slots per day, indexed by spell level (index 0 = cantrips). */
+  slots?: number[];
+  /** Spontaneous casters only: spells known per spell level. */
+  known?: number[];
+  /** 10 + this class's casting-ability modifier; the per-spell DC adds the spell's level. */
+  dcBase: number;
+}
+
 /** A class resource with a per-day/points maximum (rage rounds, ki, channel, grit…). */
 export interface ResourcePool {
   id: string;
@@ -282,7 +298,10 @@ export interface Sheet {
   /** Spell-save-DC bonuses that apply to one school only (Spell Focus). The base DC is the
    *  `spell:dc` stat; these are listed separately because they are conditional on the school. */
   spellFocus: { school: string; bonus: number }[];
-  /** Caster level and spell slots per day (index = spell level), when the class casts. */
+  /** One block per casting class — a multiclass caster progresses in each separately. This is
+   *  the authoritative list; the fields below describe only the primary casting class. */
+  casting: CastingBlock[];
+  /** Caster level and spell slots per day (index = spell level), for the primary casting class. */
   casterLevel?: number;
   spellSlots?: number[];
   /** Known-spell counts per spell level for spontaneous casters (index = spell level). */

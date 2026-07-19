@@ -1677,6 +1677,43 @@ describe('multiclass', () => {
     expect(rows[5].will).toBe(3); // 1 (fighter 5, poor) + 2 (wizard 1, good)
   });
 
+  it('each casting class progresses on its own levels, never merged', () => {
+    // A wizard 5 / cleric 2 casts as a 5th-level wizard AND a 2nd-level cleric — the two
+    // progressions never add into one 7th-level caster.
+    let d = atLevel(humanFighter1(), 7);
+    d = withDecision(d, 'class', 'wizard');
+    d = withDecision(d, 'class-levels', ['wizard', 'wizard', 'wizard', 'wizard', 'wizard', 'cleric', 'cleric']);
+    const casting = resolve(d).sheet.casting;
+    expect(casting.map((b) => [b.classId, b.casterLevel])).toEqual([['wizard', 5], ['cleric', 2]]);
+    // The 5th-level wizard has 3rd-level slots; the 2nd-level cleric has only 1st.
+    const wiz = casting[0].slots!;
+    const cler = casting[1].slots!;
+    expect(wiz[3] ?? 0).toBeGreaterThan(0);
+    expect(cler[3] ?? 0).toBe(0);
+    expect(cler[1]).toBeGreaterThan(0);
+  });
+
+  it('a non-casting class contributes no casting block', () => {
+    const d = mixed(6, { 6: 'wizard' });
+    expect(resolve(d).sheet.casting.map((b) => b.classId)).toEqual(['wizard']);
+    expect(resolve(atLevel(humanFighter1(), 6)).sheet.casting).toEqual([]);
+  });
+
+  it('the summary line lists each class with its own level count', () => {
+    expect(resolve(mixed(6, { 6: 'wizard' })).sheet.summaryLine).toContain('Fighter 5 / Wizard 1');
+    expect(resolve(atLevel(humanFighter1(), 6)).sheet.summaryLine).toContain('Fighter 6');
+  });
+
+  it('levelling down suspends the levels above without losing their class', () => {
+    // Drop a fighter 5 / wizard 1 to level 5: the wizard level is above the target, so it stops
+    // contributing, but the stored array still remembers it for when the level comes back.
+    const six = mixed(6, { 6: 'wizard' });
+    const five = { ...six, level: 5 };
+    expect(resolve(five).sheet.casting).toEqual([]);
+    expect(resolve(five).sheet.summaryLine).toContain('Fighter 5');
+    expect(resolve(six).sheet.casting.map((b) => b.classId)).toEqual(['wizard']);
+  });
+
   it('a dip taken at 1st level rather than last is a different character', () => {
     // Wizard 1 first, then fighter 5: 1st-level HP is now the wizard's d6 max.
     const early = mixed(6, { 1: 'wizard' });

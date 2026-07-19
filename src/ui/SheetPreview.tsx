@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { loadCharacter } from '../storage/store';
 import { resolve } from '../engine/resolve';
 import { ABILITIES, abilityMod, fmtMod, speedLabel, type Ability } from '../engine/types';
-import { classById, anyItemById, featById, spellById } from '../content/index';
+import { anyItemById, featById, spellById } from '../content/index';
 import { navigate } from './App';
 import { StatValue } from './StatValue';
 
@@ -12,7 +12,6 @@ export function SheetPreview({ id }: { id: string }) {
   if (!doc) return <div style={{ padding: 40 }}>Character not found. <button className="btn btn-ghost" onClick={() => navigate({ name: 'roster' })}>Back to roster</button></div>;
   const r = resolve(doc);
   const sheet = r.sheet;
-  const klass = (doc.decisions['class'] as string | null) ? classById.get(doc.decisions['class'] as string) : undefined;
 
   const ranks = (doc.decisions['skill-ranks'] as Record<string, number>) ?? {};
   const trainedSkills = sheet.skillIds.filter((sid) => ranks[sid] > 0);
@@ -76,14 +75,16 @@ export function SheetPreview({ id }: { id: string }) {
           {feats.length ? feats.map((f) => <div key={f} style={{ fontSize: 13, lineHeight: 1.7 }}><strong>{featById.get(f)?.name}</strong> — {featById.get(f)?.benefit}</div>) : <span className="text-muted">None.</span>}
         </Section>
 
-        {klass?.spellcasting && (
+        {sheet.casting.length > 0 && (
           <Section title="Spells">
-            {sheet.casterLevel != null && (
-              <div className="text-muted" style={{ fontSize: 12, marginBottom: 4 }}>
-                Caster level {sheet.casterLevel}
-                {sheet.spellSlots && sheet.spellSlots.some((n) => n > 0) && <> · slots/day {sheet.spellSlots.map((n, l) => ({ n, l })).filter((s) => s.n > 0).map(({ n, l }) => `L${l}:${n}`).join('  ')}</>}
+            {/* One line per casting class — a multiclass caster progresses in each separately. */}
+            {sheet.casting.map((b) => (
+              <div key={b.classId} className="text-muted" style={{ fontSize: 12, marginBottom: 4 }}>
+                {sheet.casting.length > 1 && <strong>{b.className}: </strong>}
+                Caster level {b.casterLevel}
+                {b.slots && b.slots.some((n) => n > 0) && <> · slots/day {b.slots.map((n, l) => ({ n, l })).filter((s) => s.n > 0).map(({ n, l }) => `L${l}:${n}`).join('  ')}</>}
               </div>
-            )}
+            ))}
             <div className="text-muted" style={{ fontSize: 12, marginBottom: 4 }}>Cantrips and 1st-level selections</div>
             {spells.length ? spells.map((s) => <div key={s} style={{ fontSize: 13, lineHeight: 1.7 }}>{spellById.get(s)?.name} <span className="text-muted">· {spellById.get(s)?.school}</span></div>) : <span className="text-muted">No spells chosen.</span>}
           </Section>

@@ -3,7 +3,7 @@ import type { CharCtl } from '../../Builder';
 import type { Ability } from '../../../engine/types';
 import { ABILITIES, fmtMod } from '../../../engine/types';
 import { fixedHpPerLevel } from '../../../engine/progression';
-import { classById } from '../../../content/index';
+import { CLASSES, classById } from '../../../content/index';
 
 const ABILITY_INCREASE_LEVELS = new Set([4, 8, 12, 16, 20]);
 
@@ -41,25 +41,52 @@ export function AdvancementStep({ ch }: { ch: CharCtl }) {
   const fcbByLevel = (doc.decisions['fcb-by-level'] as Record<number, 'hp' | 'skill'>) ?? {};
   const setFcb = (level: number, val: 'hp' | 'skill') => setDecision('fcb-by-level', { ...fcbByLevel, [level]: val });
 
-  const rollHp = (level: number) => setHp(level, 1 + Math.floor(Math.random() * klass.hitDie));
+  // The hit die belongs to the class taken at that level, not to the primary class.
+  const dieAt = (level: number) => {
+    const id = sheet.progression.find((r) => r.level === level)?.classId;
+    return (id ? classById.get(id)?.hitDie : undefined) ?? klass.hitDie;
+  };
+  const rollHp = (level: number) => setHp(level, 1 + Math.floor(Math.random() * dieAt(level)));
   const rollAll = () => {
     const next = { ...hpRolls };
-    for (let l = 2; l <= sheet.level; l++) next[l] = 1 + Math.floor(Math.random() * klass.hitDie);
+    for (let l = 2; l <= sheet.level; l++) next[l] = 1 + Math.floor(Math.random() * dieAt(l));
     setDecision('hp-rolls', next);
   };
+
+  // Multiclassing: which class was taken at each character level. Stored as a full array so a
+  // later level's class doesn't shift when an earlier one changes.
+  const storedClassLevels = (doc.decisions['class-levels'] as (string | null)[] | undefined) ?? [];
+  const classAt = (level: number) => storedClassLevels[level - 1] ?? (doc.decisions['class'] as string);
+  const setClassAt = (level: number, id: string) => {
+    const next = Array.from({ length: sheet.level }, (_, i) => storedClassLevels[i] ?? (doc.decisions['class'] as string));
+    next[level - 1] = id;
+    setDecision('class-levels', next);
+  };
+  // "Fighter 5 / Wizard 1" — read off the resolved rows so the UI does no counting of its own.
+  const classSummary = sheet.progression.reduce<{ name: string; n: number }[]>((acc, r) => {
+    if (!r.className) return acc;
+    const hit = acc.find((x) => x.name === r.className);
+    if (hit) hit.n += 1; else acc.push({ name: r.className, n: 1 });
+    return acc;
+  }, []).map((x) => `${x.name} ${x.n}`).join(' / ');
 
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 14, flexWrap: 'wrap', marginBottom: 6 }}>
         <h3 style={{ fontSize: 21, margin: 0 }}>Advancement</h3>
-        <span className="text-muted" style={{ fontSize: 13 }}>{klass.name} {sheet.level} · <span className="num">{totalHp}</span> HP</span>
-        {sheet.casterLevel ? <span className="text-muted" style={{ fontSize: 13 }}>· caster level <span className="num">{sheet.casterLevel}</span></span> : null}
+        <span className="text-muted" style={{ fontSize: 13 }}>{classSummary || `${klass.name} ${sheet.level}`} · <span className="num">{totalHp}</span> HP</span>
+        {sheet.casting.map((b) => (
+          <span key={b.classId} className="text-muted" style={{ fontSize: 13 }}>
+            · {sheet.casting.length > 1 ? `${b.className} ` : ''}caster level <span className="num">{b.casterLevel}</span>
+          </span>
+        ))}
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '0 0 14px', flexWrap: 'wrap' }}>
         <p className="text-muted" style={{ fontSize: 12, margin: 0, lineHeight: 1.5, maxWidth: '86ch' }}>
-          1st level takes the maximum hit die ({klass.hitDie}); later levels default to the class average ({avg} for a
+          1st level takes the maximum hit die; later levels default to that class's average (e.g. {avg} for a
           d{klass.hitDie}). Roll 🎲 or type a value to override any level. Ability score increases (levels 4, 8, 12, 16, 20)
-          and a permanent Con boost raise hit points retroactively.
+          and a permanent Con boost raise hit points retroactively. Change the class on any level after the 1st to
+          multiclass — each class keeps its own hit die, skill ranks, features and caster level.
         </p>
         {sheet.level > 1 && (
           <button className="btn btn-secondary" style={{ fontSize: 12 }} title={`Roll 1d${klass.hitDie} for levels 2–${sheet.level}`}
@@ -67,23 +94,25 @@ export function AdvancementStep({ ch }: { ch: CharCtl }) {
         )}
       </div>
 
-      {sheet.spellSlots && sheet.spellSlots.some((n) => n > 0) && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, flexWrap: 'wrap', fontSize: 12.5 }}>
-          <span className="micro">Spell slots/day</span>
-          {sheet.spellSlots.map((n, lvl) => ({ n, lvl })).filter((s) => s.n > 0).map(({ n, lvl }) => (
+      {/* One row per casting class — the two progressions are never merged into one. */}
+      {sheet.casting.filter((b) => b.slots?.some((n) => n > 0)).map((b) => (
+        <div key={b.classId} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10, flexWrap: 'wrap', fontSize: 12.5 }}>
+          <span className="micro">{sheet.casting.length > 1 ? `${b.className} slots/day` : 'Spell slots/day'}</span>
+          {b.slots!.map((n, lvl) => ({ n, lvl })).filter((s) => s.n > 0).map(({ n, lvl }) => (
             <span key={lvl} style={{ padding: '3px 9px', borderRadius: 6, background: 'var(--color-surface)' }}>
               <span className="text-muted">L{lvl}</span> <span className="num" style={{ fontWeight: 600 }}>{n}</span>
-              {sheet.spellsKnown && sheet.spellsKnown[lvl] ? <span className="text-muted"> · {sheet.spellsKnown[lvl]} known</span> : null}
+              {b.known && b.known[lvl] ? <span className="text-muted"> · {b.known[lvl]} known</span> : null}
             </span>
           ))}
         </div>
-      )}
+      ))}
 
       <div style={{ overflowX: 'auto' }}>
         <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: 13 }}>
           <thead>
             <tr className="micro" style={{ textAlign: 'left' }}>
               <th style={cell}>Lvl</th>
+              <th style={{ ...cell, minWidth: 130 }}>Class</th>
               <th style={cell}>BAB</th>
               <th style={cell}>Fort</th>
               <th style={cell}>Ref</th>
@@ -100,6 +129,20 @@ export function AdvancementStep({ ch }: { ch: CharCtl }) {
               return (
                 <tr key={row.level} style={{ borderTop: '1px solid rgba(233,233,237,.07)' }}>
                   <td style={{ ...cell, fontWeight: 600 }} className="num">{row.level}</td>
+                  <td style={cell}>
+                    {/* Pick the class taken at this level. Level 1 stays tied to the Class step,
+                        so there is only ever one place to set the character's first class. */}
+                    {row.level === 1 ? (
+                      <span className="text-muted">{row.className}</span>
+                    ) : (
+                      <select className="input" style={{ fontSize: 11.5, padding: '2px 4px', width: '100%' }}
+                        value={classAt(row.level) ?? ''} onChange={(e) => setClassAt(row.level, e.target.value)}>
+                        {CLASSES.map((c) => (
+                          <option key={c.id} value={c.id}>{c.name}{c.id === classAt(row.level) && row.classLevel ? ` ${row.classLevel}` : ''}</option>
+                        ))}
+                      </select>
+                    )}
+                  </td>
                   <td style={cell} className="num">{fmtMod(row.bab)}</td>
                   <td style={cell} className="num">{fmtMod(row.fort)}</td>
                   <td style={cell} className="num">{fmtMod(row.ref)}</td>
@@ -110,19 +153,20 @@ export function AdvancementStep({ ch }: { ch: CharCtl }) {
                   <td style={cell}>
                     {(() => {
                       // 1st level defaults to the max die (RAW); later levels to the class average.
-                      // Either can be rolled here or typed in.
-                      const fallback = row.level === 1 ? klass.hitDie : avg;
+                      // The die is that of the class taken at *this* level, not the primary class.
+                      const die = dieAt(row.level);
+                      const fallback = row.level === 1 ? die : fixedHpPerLevel(die);
                       const overridden = hpRolls[row.level] != null && hpRolls[row.level] !== fallback;
                       return (
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                          <input className="input" style={{ width: 44, padding: '3px 5px', textAlign: 'center' }} type="number" min={1} max={klass.hitDie}
+                          <input className="input" style={{ width: 44, padding: '3px 5px', textAlign: 'center' }} type="number" min={1} max={die}
                             value={hpRolls[row.level] ?? fallback}
                             onChange={(e) => {
-                              const v = Math.max(1, Math.min(klass.hitDie, Math.round(Number(e.target.value) || fallback)));
+                              const v = Math.max(1, Math.min(die, Math.round(Number(e.target.value) || fallback)));
                               setHp(row.level, v === fallback ? null : v);
                             }} />
                           <button className="btn btn-ghost" style={{ fontSize: 11, padding: '2px 5px' }}
-                            title={`Roll 1d${klass.hitDie}`} onClick={() => rollHp(row.level)}>🎲</button>
+                            title={`Roll 1d${die}`} onClick={() => rollHp(row.level)}>🎲</button>
                           {overridden && (
                             <button className="btn btn-ghost" style={{ fontSize: 10 }}
                               title={row.level === 1 ? 'Reset to max hit die' : 'Reset to class average'}
@@ -134,13 +178,16 @@ export function AdvancementStep({ ch }: { ch: CharCtl }) {
                   </td>
                   {favored && (
                     <td style={cell}>
-                      <select className="input" style={{ padding: '3px 5px', fontSize: 12 }}
-                        value={fcbByLevel[row.level] ?? overallFcb ?? ''}
-                        onChange={(e) => setFcb(row.level, e.target.value as 'hp' | 'skill')}>
-                        <option value="" disabled>choose…</option>
-                        <option value="hp">+1 HP</option>
-                        <option value="skill">+1 skill</option>
-                      </select>
+                      {/* The bonus is earned only on levels taken in the favored class. */}
+                      {row.classId !== doc.decisions['favored-class'] ? <span className="text-muted">—</span> : (
+                        <select className="input" style={{ padding: '3px 5px', fontSize: 12 }}
+                          value={fcbByLevel[row.level] ?? overallFcb ?? ''}
+                          onChange={(e) => setFcb(row.level, e.target.value as 'hp' | 'skill')}>
+                          <option value="" disabled>choose…</option>
+                          <option value="hp">+1 HP</option>
+                          <option value="skill">+1 skill</option>
+                        </select>
+                      )}
                     </td>
                   )}
                   <td style={cell}>

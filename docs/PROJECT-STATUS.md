@@ -6,21 +6,19 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 
 ## ▶ Resume here (last session end)
 
-**All five roadmap phases are done and committed** (branch `master`, working tree clean, 253 tests
+**All five roadmap phases are done and committed** (branch `master`, working tree clean, 285 tests
 passing; run `npx tsc --noEmit && npx vitest run && npm run build` to confirm). Pathmaker covers the
 full arc: build a character 1–20, play it at the table (HP, spells, pools, conditions), run the clock
 (rounds, timed effects, rest), and track consumables/charges/encumbrance live.
 
-Since the phases closed, the work has been magic items and per-weapon combat: **feat parameters**
-(Weapon/Skill/Spell Focus store their chosen weapon/skill/school), **masterwork & magic enhancement**,
-**named weapon and armour special abilities**, and the **worn-item catalogue** (ability boosters, the
-defensive trio, bracers of armor, and the standard skill items) with body slots enforced.
+Since the phases closed: magic items and per-weapon combat — **feat parameters** (Weapon/Skill/Spell
+Focus store their chosen weapon/skill/school), **masterwork & magic enhancement**, **named weapon and
+armour special abilities**, the **worn-item catalogue** with body slots enforced, **Power Attack and
+two-weapon fighting** as play-sheet toggles, and **multiclass**.
 
 From here the work is breadth and polish rather than new phases. The open items are the deferral
-backlog below (blocked content, unmodelled subsystems) and whatever the table turns up in real use.
-**The largest gap a player actually hits** is multiclass: model-ready (the progression formulas take a
-list of `{prog, levels}`) but not implemented. Power Attack and two-weapon fighting are now folded in
-as play-sheet toggles.
+backlog below — the three blocked-on-verification items, the out-of-scope classes and races, and the
+play sheet's spell tracker still tracking one casting class (see the multiclass section).
 
 Everything below is the durable detail. When resuming, read this file, then `docs/DESIGN.md`.
 
@@ -224,7 +222,7 @@ Still open from that audit:
 | Phase | Scope | Status |
 | --- | --- | --- |
 | 1 | Level-1 character creator | **done** |
-| 2 | **Level-up** — multi-level engine + per-level decisions | **done** (Part A engine/UI + Part B content, 30/31 classes) |
+| 2 | **Level-up** — multi-level engine + per-level decisions | **done** (Part A engine/UI + Part B content, 30/31 classes; multiclass added later) |
 | 3 | Interactive play sheet — HP/resource/spell tracking, conditions, prepared spells, rest | **done** |
 | 4 | Time & campaign clock — buff durations, rest resets | **done** |
 | 5 | Live inventory — consumables, charges, encumbrance in play | **done** |
@@ -404,6 +402,31 @@ item weight for coins, and per-arrow ammunition.
   (`+9/+4`), Str-scaled damage (one-handed +Str, two-handed +1½×, off-hand +½×; ranged adds no Str),
   crit/damage-type/range, and a click/hover breakdown card. At-a-glance stats, HP, and skills got the
   same breakdown tooltips. Not folded (noted, not computed): composite-bow Str, thrown-weapon Dex.
+- **Multiclass: done** (rules confirmed against d20pfsrd's Character Advancement page: hit points,
+  base attack bonus and saves from each class **add together**; class abilities key off that class's
+  own level while character-level effects use the total; no XP penalty in PF1).
+  - **Model:** `class-levels`, an array of the class taken at each character level, with unset
+    entries falling back to the primary class. A single-class document therefore stores nothing,
+    needs no migration, and resolves identically — the whole pre-existing suite passing unchanged
+    was the evidence. Gaining a level needs no write either.
+  - BAB and saves sum per class, each **rounded on its own level count**: Fighter 1/Rogue 1 is BAB
+    +1 (not +2) but gets Fort +2 *and* Ref +2. `sumBab` / `sumSave` in `progression.ts`.
+  - Each level takes its own class's hit die and skill ranks; class skills are the union.
+  - General feats come from the character level; class bonus feats and subsystem picks from that
+    class's level, keeping existing slot keys stable. `FeatSlotKey` gained a separate `charLevel`
+    because `level` meant character level for general feats but class level for bonus feats.
+  - The **favored-class bonus is earned only on levels in the favored class** — it previously
+    counted every level, which would have overpaid every multiclass character.
+  - **Spellcasting is per class** (`Sheet.casting: CastingBlock[]`): a wizard 5/cleric 2 casts as a
+    5th-level wizard *and* a 2nd-level cleric, with separate caster levels, slot tables and save
+    DCs. There is no merged progression, so these are never summed. Prerequisites ("caster level
+    5th") use the best class.
+  - **UI:** the Advancement table has a class column per level (1st level stays tied to the Class
+    step, so there's one place to set the first class); the summary line reads "Fighter 5 / Wizard 1".
+  - **Known gap:** the play sheet's spell *tracker* (prepared spells, expended slots) is keyed to
+    one casting class in play state. Rather than silently tracking one class of a multiclass caster,
+    it shows every caster level and labels which class it is tracking. Keying `usedSlots` /
+    `prepared` by class is the follow-up.
 - **Power Attack & two-weapon fighting: done** (`src/engine/combat.ts`, numbers verified against both
   feat pages). These are **declared per attack**, not passive, so they live in play state
   (`PlayState.powerAttack` / `twoWeapon`) as play-sheet toggles and are folded in **only while on** —

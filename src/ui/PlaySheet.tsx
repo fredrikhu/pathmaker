@@ -259,7 +259,11 @@ export function PlaySheet({ id }: { id: string }) {
               );
             })}
           </div>
-          <div className="text-muted" style={{ fontSize: 11.5, marginTop: 12 }}>Speed {sheet.speed.base} ft{sheet.casterLevel ? ` · caster level ${sheet.casterLevel}` : ''}</div>
+          {/* Every casting class, since a multiclass caster has a separate caster level in each. */}
+          <div className="text-muted" style={{ fontSize: 11.5, marginTop: 12 }}>
+            Speed {sheet.speed.base} ft
+            {sheet.casting.map((b) => ` · ${sheet.casting.length > 1 ? `${b.className} ` : ''}caster level ${b.casterLevel}`).join('')}
+          </div>
         </div>
       </div>
 
@@ -464,6 +468,11 @@ export function PlaySheet({ id }: { id: string }) {
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
             <div className="micro">Spell slots / day</div>
             <span className="text-muted" style={{ fontSize: 11.5 }}>{dcNote} · tap a pip to expend</span>
+            {sheet.casting.length > 1 && (
+              <span style={{ fontSize: 11, color: 'var(--warn-fg)' }}>
+                tracking {sheet.casting[0].className} only — other casting classes are shown on the sheet but not tracked here yet
+              </span>
+            )}
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {slots.map((total, level) => {
@@ -504,6 +513,11 @@ export function PlaySheet({ id }: { id: string }) {
             <span className="text-muted" style={{ fontSize: 11.5 }}>
               {dcNote} · {sc?.kind === 'prepared-book' ? 'prepare from your spellbook' : 'prepare from your class list'}, then tick as cast · cantrips at-will
             </span>
+            {sheet.casting.length > 1 && (
+              <span style={{ fontSize: 11, color: 'var(--warn-fg)' }}>
+                tracking {sheet.casting[0].className} only — other casting classes are shown on the sheet but not tracked here yet
+              </span>
+            )}
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {slots.map((total, level) => {
