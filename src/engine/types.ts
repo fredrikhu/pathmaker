@@ -85,16 +85,17 @@ export interface PlayState {
   hpDamage: number;
   tempHp: number;
   nonlethal: number;
-  /** Spell slots expended so far, per spell level. */
-  usedSlots: Record<number, number>;
+  /** Spell slots expended so far: casting class id → spell level → count. Keyed by class
+   *  because a multiclass caster spends each class's slots independently. */
+  usedSlots: Record<string, Record<number, number>>;
   /** Active conditions (phase-3 increment 2). */
   conditions: string[];
   /** Resource pool points/uses/rounds expended so far, per pool id. */
   usedPools: Record<string, number>;
-  /** Prepared casters: the spell prepared in each slot, per spell level (index = slot). */
-  prepared?: Record<number, string[]>;
-  /** Prepared casters: which prepared slot indices have been cast, per spell level. */
-  castPrepared?: Record<number, number[]>;
+  /** Prepared casters: class id → spell level → the spell prepared in each slot (index = slot). */
+  prepared?: Record<string, Record<number, string[]>>;
+  /** Prepared casters: class id → spell level → which prepared slot indices have been cast. */
+  castPrepared?: Record<string, Record<number, number[]>>;
   /** Current combat round; 0 when not in an encounter (phase 4). */
   round: number;
   /** Initiative rolled for the current encounter, or null outside one. */

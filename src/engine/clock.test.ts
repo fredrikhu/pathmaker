@@ -118,7 +118,7 @@ describe('rest', () => {
   it('restores daily resources and ends any encounter', () => {
     const p = play({
       hpDamage: 12, nonlethal: 3, tempHp: 5, round: 4, initiative: 9,
-      usedSlots: { 1: 2 }, usedPools: { rage: 4 }, castPrepared: { 1: [0] },
+      usedSlots: { wizard: { 1: 2 } }, usedPools: { rage: 4 }, castPrepared: { wizard: { 1: [0] } },
     });
     const { play: next } = rest(p);
     expect(next.hpDamage).toBe(0);
@@ -132,9 +132,9 @@ describe('rest', () => {
   });
 
   it('keeps prepared spells (rest clears what was cast, not the preparation)', () => {
-    const p = play({ prepared: { 1: ['magic-missile'] }, castPrepared: { 1: [0] } });
+    const p = play({ prepared: { wizard: { 1: ['magic-missile'] } }, castPrepared: { wizard: { 1: [0] } } });
     const { play: next } = rest(p);
-    expect(next.prepared).toEqual({ 1: ['magic-missile'] });
+    expect(next.prepared).toEqual({ wizard: { 1: ['magic-missile'] } });
     expect(next.castPrepared).toEqual({});
   });
 

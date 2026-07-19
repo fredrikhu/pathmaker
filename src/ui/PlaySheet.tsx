@@ -48,35 +48,45 @@ export function PlaySheet({ id }: { id: string }) {
     return { hpDamage: Math.max(0, p.hpDamage + remaining), tempHp: temp };
   });
 
-  const slots = sheet.spellSlots ?? [];
-  const hasSlots = slots.some((n) => n > 0);
-  const usedAt = (l: number) => play.usedSlots[l] ?? 0;
-  const setUsed = (l: number, v: number) => updatePlay((p) => ({ usedSlots: { ...p.usedSlots, [l]: Math.max(0, v) } }));
+  // Every tracker below is keyed by casting class: a multiclass caster spends, prepares and
+  // recovers each class's slots independently, so nothing here is shared between classes.
+  const usedAt = (cls: string, l: number) => play.usedSlots[cls]?.[l] ?? 0;
+  const setUsed = (cls: string, l: number, v: number) => updatePlay((p) => ({
+    usedSlots: { ...p.usedSlots, [cls]: { ...p.usedSlots[cls], [l]: Math.max(0, v) } },
+  }));
 
-  // Prepared casters (wizard/cleric/druid/magus/witch…) prepare specific spells into their slots.
-  const klass = doc.decisions['class'] ? classById.get(doc.decisions['class'] as string) : undefined;
-  const sc = klass?.spellcasting;
-  const isPrepared = !!sc && sc.kind !== 'spontaneous';
-  const spellsOnList = sc ? SPELLS.filter((s) => s.lists.includes(sc.list as never)) : [];
   const rawBook = doc.decisions['spell-picks'];
   const spellbook: Record<number, string[]> = Array.isArray(rawBook) ? { 1: rawBook as string[] } : ((rawBook as Record<number, string[]>) ?? {});
-  // The pool preparable at a spell level: the whole class list (prepared-list) or the spellbook (book).
-  const preparablePool = (level: number) =>
-    (sc?.kind === 'prepared-book' ? (spellbook[level] ?? []).map((id) => spellById.get(id)!).filter(Boolean) : spellsOnList.filter((s) => s.level === level))
-      .slice().sort((a, b) => a.name.localeCompare(b.name));
 
-  const preparedAt = (l: number) => play.prepared?.[l] ?? [];
-  const castAt = (l: number) => play.castPrepared?.[l] ?? [];
-  const setPreparedAt = (l: number, i: number, spell: string) =>
-    updatePlay((p) => { const arr = [...(p.prepared?.[l] ?? [])]; arr[i] = spell; return { prepared: { ...p.prepared, [l]: arr } }; });
-  const toggleCast = (l: number, i: number) =>
-    updatePlay((p) => { const set = new Set(p.castPrepared?.[l] ?? []); set.has(i) ? set.delete(i) : set.add(i); return { castPrepared: { ...p.castPrepared, [l]: [...set] } }; });
+  /** The pool preparable at a spell level: the class's whole list, or its spellbook. */
+  const preparablePool = (cls: string, level: number) => {
+    const csc = classById.get(cls)?.spellcasting;
+    if (!csc) return [];
+    const pool = csc.kind === 'prepared-book'
+      ? (spellbook[level] ?? []).map((id) => spellById.get(id)!).filter(Boolean)
+      : SPELLS.filter((s) => s.lists.includes(csc.list as never) && s.level === level);
+    return pool.slice().sort((a, b) => a.name.localeCompare(b.name));
+  };
 
-  // The DC base comes from the engine (`spell:dc`); Spell Focus is school-specific so it's listed
-  // alongside rather than folded into the single number.
-  const dcBase = sheet.stats['spell:dc']?.total ?? 10;
+  const preparedAt = (cls: string, l: number) => play.prepared?.[cls]?.[l] ?? [];
+  const castAt = (cls: string, l: number) => play.castPrepared?.[cls]?.[l] ?? [];
+  const setPreparedAt = (cls: string, l: number, i: number, spell: string) =>
+    updatePlay((p) => {
+      const arr = [...(p.prepared?.[cls]?.[l] ?? [])];
+      arr[i] = spell;
+      return { prepared: { ...p.prepared, [cls]: { ...p.prepared?.[cls], [l]: arr } } };
+    });
+  const toggleCast = (cls: string, l: number, i: number) =>
+    updatePlay((p) => {
+      const set = new Set(p.castPrepared?.[cls]?.[l] ?? []);
+      set.has(i) ? set.delete(i) : set.add(i);
+      return { castPrepared: { ...p.castPrepared, [cls]: { ...p.castPrepared?.[cls], [l]: [...set] } } };
+    });
+
+  // Each class casts off its own ability, so the DC base comes from that class's block. Spell
+  // Focus is school-specific, so it's listed alongside rather than folded into the number.
   const focusNote = sheet.spellFocus.map((f) => `${fmtMod(f.bonus)} ${f.school}`).join(', ');
-  const dcNote = `save DC ${dcBase} + spell level${focusNote ? ` (${focusNote})` : ''}`;
+  const dcNoteFor = (dcBase: number) => `save DC ${dcBase} + spell level${focusNote ? ` (${focusNote})` : ''}`;
 
   // Rest restores the daily resources and lets 8 hours pass, so running effects expire on their own.
   const rest = () => applyClock((p) => restPlay(p).play);
@@ -462,100 +472,99 @@ export function PlaySheet({ id }: { id: string }) {
         )}
       </div>
 
-      {/* Spontaneous casters: generic slot pips */}
-      {hasSlots && !isPrepared && (
-        <div style={{ background: 'var(--color-surface)', borderRadius: 12, padding: 18, marginTop: 18 }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
-            <div className="micro">Spell slots / day</div>
-            <span className="text-muted" style={{ fontSize: 11.5 }}>{dcNote} · tap a pip to expend</span>
-            {sheet.casting.length > 1 && (
-              <span style={{ fontSize: 11, color: 'var(--warn-fg)' }}>
-                tracking {sheet.casting[0].className} only — other casting classes are shown on the sheet but not tracked here yet
+      {/* One panel per casting class. A multiclass caster tracks each class separately, because
+          the slots, the preparation and the recovery are all per class. */}
+      {sheet.casting.filter((b) => b.slots?.some((n) => n > 0)).map((block) => {
+        const cls = block.classId;
+        const slots = block.slots ?? [];
+        const isPrepared = block.kind !== 'spontaneous';
+        const title = sheet.casting.length > 1
+          ? `${block.className} — ${isPrepared ? 'prepared spells' : 'spell slots / day'}`
+          : (isPrepared ? 'Prepared spells' : 'Spell slots / day');
+        return (
+          <div key={cls} style={{ background: 'var(--color-surface)', borderRadius: 12, padding: 18, marginTop: 18 }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
+              <div className="micro">{title}</div>
+              <span className="text-muted" style={{ fontSize: 11.5 }}>
+                {dcNoteFor(block.dcBase)}
+                {isPrepared
+                  ? ` · ${block.kind === 'prepared-book' ? 'prepare from your spellbook' : 'prepare from your class list'}, then tick as cast · cantrips at-will`
+                  : ' · tap a pip to expend'}
               </span>
+            </div>
+
+            {!isPrepared && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {slots.map((total, level) => {
+                  if (total <= 0) return null;
+                  const used = usedAt(cls, level);
+                  return (
+                    <div key={level} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <span className="micro" style={{ width: 62 }}>{level === 0 ? 'Cantrips' : `Level ${SPELL_LEVEL(level)}`}</span>
+                      {level === 0 ? (
+                        <span className="text-muted" style={{ fontSize: 12 }}>at will</span>
+                      ) : (
+                        <>
+                          <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                            {Array.from({ length: total }).map((_, i) => {
+                              const spent = i < used;
+                              return (
+                                <button key={i} title={spent ? 'restore' : 'expend'}
+                                  onClick={() => setUsed(cls, level, spent ? i : i + 1)}
+                                  style={{ width: 22, height: 22, borderRadius: 6, cursor: 'pointer', border: '1px solid var(--color-divider)', background: spent ? 'transparent' : 'var(--color-accent)', opacity: spent ? 0.5 : 1 }} />
+                              );
+                            })}
+                          </div>
+                          <span className="num text-muted" style={{ fontSize: 12 }}>{total - used}/{total}</span>
+                        </>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             )}
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {slots.map((total, level) => {
-              if (total <= 0) return null;
-              const used = usedAt(level);
-              return (
-                <div key={level} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <span className="micro" style={{ width: 62 }}>{level === 0 ? 'Cantrips' : `Level ${SPELL_LEVEL(level)}`}</span>
-                  {level === 0 ? (
-                    <span className="text-muted" style={{ fontSize: 12 }}>at will</span>
-                  ) : (
-                    <>
-                      <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+
+            {isPrepared && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                {slots.map((total, level) => {
+                  if (total <= 0 || level === 0) return null;
+                  const pool = preparablePool(cls, level);
+                  const prep = preparedAt(cls, level);
+                  const cast = new Set(castAt(cls, level));
+                  return (
+                    <div key={level}>
+                      <div className="micro" style={{ marginBottom: 6 }}>Level {level} · <span className="num">{total - cast.size}</span>/{total} unspent</div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 8 }}>
                         {Array.from({ length: total }).map((_, i) => {
-                          const spent = i < used;
+                          const casted = cast.has(i);
+                          const filled = !!prep[i];
                           return (
-                            <button key={i} title={spent ? 'restore' : 'expend'}
-                              onClick={() => setUsed(level, spent ? i : i + 1)}
-                              style={{ width: 22, height: 22, borderRadius: 6, cursor: 'pointer', border: '1px solid var(--color-divider)', background: spent ? 'transparent' : 'var(--color-accent)', opacity: spent ? 0.5 : 1 }} />
+                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <select className="input" style={{ flex: 1, padding: '4px 6px', fontSize: 12, opacity: casted ? 0.5 : 1, textDecoration: casted ? 'line-through' : 'none' }}
+                                value={prep[i] ?? ''} onChange={(e) => setPreparedAt(cls, level, i, e.target.value)}>
+                                <option value="">— empty —</option>
+                                {pool.map((sp) => <option key={sp.id} value={sp.id}>{sp.name}</option>)}
+                              </select>
+                              <button className="btn btn-ghost" style={{ fontSize: 11, flex: 'none', color: casted ? 'var(--color-accent-300)' : undefined }}
+                                disabled={!filled} title={casted ? 'restore' : 'mark cast'} onClick={() => toggleCast(cls, level, i)}>
+                                {casted ? '↺' : 'cast'}
+                              </button>
+                            </div>
                           );
                         })}
                       </div>
-                      <span className="num text-muted" style={{ fontSize: 12 }}>{total - used}/{total}</span>
-                    </>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
 
-      {/* Prepared casters: prepare a spell into each slot, then tick as cast */}
-      {hasSlots && isPrepared && (
-        <div style={{ background: 'var(--color-surface)', borderRadius: 12, padding: 18, marginTop: 18 }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
-            <div className="micro">Prepared spells</div>
-            <span className="text-muted" style={{ fontSize: 11.5 }}>
-              {dcNote} · {sc?.kind === 'prepared-book' ? 'prepare from your spellbook' : 'prepare from your class list'}, then tick as cast · cantrips at-will
-            </span>
-            {sheet.casting.length > 1 && (
-              <span style={{ fontSize: 11, color: 'var(--warn-fg)' }}>
-                tracking {sheet.casting[0].className} only — other casting classes are shown on the sheet but not tracked here yet
-              </span>
+            {block.kind === 'prepared-book' && Object.values(spellbook).flat().length === 0 && (
+              <p className="text-muted" style={{ fontSize: 11.5, marginTop: 10 }}>Your spellbook is empty — add spells in the builder's Spells step, then prepare them here.</p>
             )}
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {slots.map((total, level) => {
-              if (total <= 0 || level === 0) return null;
-              const pool = preparablePool(level);
-              const prep = preparedAt(level);
-              const cast = new Set(castAt(level));
-              return (
-                <div key={level}>
-                  <div className="micro" style={{ marginBottom: 6 }}>Level {level} · <span className="num">{total - cast.size}</span>/{total} unspent</div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 8 }}>
-                    {Array.from({ length: total }).map((_, i) => {
-                      const casted = cast.has(i);
-                      const filled = !!prep[i];
-                      return (
-                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <select className="input" style={{ flex: 1, padding: '4px 6px', fontSize: 12, opacity: casted ? 0.5 : 1, textDecoration: casted ? 'line-through' : 'none' }}
-                            value={prep[i] ?? ''} onChange={(e) => setPreparedAt(level, i, e.target.value)}>
-                            <option value="">— empty —</option>
-                            {pool.map((sp) => <option key={sp.id} value={sp.id}>{sp.name}</option>)}
-                          </select>
-                          <button className="btn btn-ghost" style={{ fontSize: 11, flex: 'none', color: casted ? 'var(--color-accent-300)' : undefined }}
-                            disabled={!filled} title={casted ? 'restore' : 'mark cast'} onClick={() => toggleCast(level, i)}>
-                            {casted ? '↺' : 'cast'}
-                          </button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-          {sc?.kind === 'prepared-book' && Object.values(spellbook).flat().length === 0 && (
-            <p className="text-muted" style={{ fontSize: 11.5, marginTop: 10 }}>Your spellbook is empty — add spells in the builder's Spells step, then prepare them here.</p>
-          )}
-        </div>
-      )}
+        );
+      })}
 
       <p className="text-muted" style={{ fontSize: 11, marginTop: 16 }}>Play state (HP, conditions, resources, prepared/expended spells) is saved with the character. Rest clears damage, resources, and cast spells.</p>
     </div>

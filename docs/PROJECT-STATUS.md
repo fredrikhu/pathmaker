@@ -6,7 +6,7 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 
 ## ▶ Resume here (last session end)
 
-**All five roadmap phases are done and committed** (branch `master`, working tree clean, 285 tests
+**All five roadmap phases are done and committed** (branch `master`, working tree clean, 291 tests
 passing; run `npx tsc --noEmit && npx vitest run && npm run build` to confirm). Pathmaker covers the
 full arc: build a character 1–20, play it at the table (HP, spells, pools, conditions), run the clock
 (rounds, timed effects, rest), and track consumables/charges/encumbrance live.
@@ -17,8 +17,7 @@ armour special abilities**, the **worn-item catalogue** with body slots enforced
 two-weapon fighting** as play-sheet toggles, and **multiclass**.
 
 From here the work is breadth and polish rather than new phases. The open items are the deferral
-backlog below — the three blocked-on-verification items, the out-of-scope classes and races, and the
-play sheet's spell tracker still tracking one casting class (see the multiclass section).
+backlog below — chiefly the three blocked-on-verification items and the out-of-scope classes and races.
 
 Everything below is the durable detail. When resuming, read this file, then `docs/DESIGN.md`.
 
@@ -423,10 +422,15 @@ item weight for coins, and per-arrow ammunition.
     5th") use the best class.
   - **UI:** the Advancement table has a class column per level (1st level stays tied to the Class
     step, so there's one place to set the first class); the summary line reads "Fighter 5 / Wizard 1".
-  - **Known gap:** the play sheet's spell *tracker* (prepared spells, expended slots) is keyed to
-    one casting class in play state. Rather than silently tracking one class of a multiclass caster,
-    it shows every caster level and labels which class it is tracking. Keying `usedSlots` /
-    `prepared` by class is the follow-up.
+  - **The play-sheet tracker is per class too.** `PlayState.usedSlots` / `prepared` / `castPrepared`
+    are keyed `classId → spellLevel → …`, and the play sheet renders one panel per casting class
+    (each with that class's own save DC, since each casts off its own ability). Expending or
+    preparing in one class cannot touch another. Rest clears expenditure for every class while
+    keeping every class's preparations.
+    - **Schema v3 migrates existing saves**: pre-v3 play state is keyed by spell level alone, and
+      is filed under the character's class decision on load. Legacy entries with no class to
+      belong to are dropped rather than left in a shape the new code would read as class ids.
+      The migration is idempotent and covered by `character.test.ts`.
 - **Power Attack & two-weapon fighting: done** (`src/engine/combat.ts`, numbers verified against both
   feat pages). These are **declared per attack**, not passive, so they live in play state
   (`PlayState.powerAttack` / `twoWeapon`) as play-sheet toggles and are folded in **only while on** —
