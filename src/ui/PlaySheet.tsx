@@ -7,7 +7,7 @@ import {
   durationLabel, ROUNDS_PER_MINUTE, ROUNDS_PER_HOUR,
 } from '../engine/clock';
 import { consume, unconsume, spendCharges, restoreCharges, restock } from '../engine/inventory';
-import { rollAttack, rollDamage, rollSave, threatRange } from '../engine/dice';
+import { rollAttack, rollDamage, rollSave, rollMissChance, threatRange, CONCEALMENT, type Concealment } from '../engine/dice';
 import { applyDamage, bypassOptions, ENERGY_TYPES } from '../engine/damage';
 import { spellBuffTimer, spellDamageAt, spellAttackerTimer } from '../engine/buffs';
 import { CONDITIONS, conditionById, SPELLS, spellById, classById, skillById } from '../content/index';
@@ -28,7 +28,7 @@ interface LoggedRoll {
   detail: string;
   total: number;
   /** How the roll landed, for the badge and its colour. */
-  outcome?: 'threat' | 'fumble' | 'success' | 'failure';
+  outcome?: 'threat' | 'fumble' | 'success' | 'failure' | 'miss';
 }
 const ROLL_LOG_LIMIT = 12;
 
@@ -58,17 +58,26 @@ export function PlaySheet({ id }: { id: string }) {
   // ---- Dice ----
   // The engine rolls (pure functions over an injected rng); this only records what came back.
   const [rolls, setRolls] = useState<LoggedRoll[]>([]);
+  // The target's concealment, applied to every attack roll while set — the player declares it when
+  // facing a concealed foe, since only they (and the GM) know what they are swinging at.
+  const [targetConcealment, setTargetConcealment] = useState<Concealment>('none');
+  const targetMissChance = CONCEALMENT[targetConcealment];
   const log = (entry: Omit<LoggedRoll, 'key'>) =>
     setRolls((prev) => [{ ...entry, key: Date.now() + Math.random() }, ...prev].slice(0, ROLL_LOG_LIMIT));
 
   const rollAttackLine = (name: string, bonus: number, crit: string) => {
     const r = rollAttack(bonus, threatRange(crit));
-    log({
-      source: `${name} attack`,
-      detail: `d20 ${r.natural} ${fmtMod(r.bonus)}`,
-      total: r.total,
-      ...(r.threat ? { outcome: 'threat' as const } : r.fumble ? { outcome: 'fumble' as const } : {}),
-    });
+    let detail = `d20 ${r.natural} ${fmtMod(r.bonus)}`;
+    let outcome: LoggedRoll['outcome'] = r.threat ? 'threat' : r.fumble ? 'fumble' : undefined;
+    // Concealment is a post-attack step: the attack resolves normally, then — only if it lands —
+    // the target's concealment gets a chance to spoil it. A natural 1 has already missed, so skip.
+    if (targetMissChance > 0 && !r.fumble) {
+      const m = rollMissChance(targetMissChance);
+      detail += ` · concealment ${m.chance}%: rolled ${m.roll}${m.missed ? ' — missed through concealment' : ' — got through'}`;
+      // A concealment miss overrides a hit, so it wins the badge.
+      if (m.missed) outcome = 'miss';
+    }
+    log({ source: `${name} attack`, detail, total: r.total, ...(outcome ? { outcome } : {}) });
   };
   /** Roll a damage formula; falls back to showing the text when it is not a plain formula. */
   const rollDamageFor = (source: string, formula: string) => {
@@ -562,6 +571,17 @@ export function PlaySheet({ id }: { id: string }) {
               disabled={!sheet.combatOptions.canTwoWeapon}
               title={sheet.combatOptions.canTwoWeapon ? 'Apply two-weapon penalties to both hands' : 'Requires a weapon in each hand'}
               onClick={() => setPlay({ twoWeapon: !play.twoWeapon })} />
+            {/* Target's concealment, applied to every attack roll below until you change it back. */}
+            <label style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11 }}
+              title="Concealment gives a hit a chance to miss anyway — rolled after each attack.">
+              <span className="text-muted">Target</span>
+              <select className="input" style={{ fontSize: 11, padding: '2px 5px' }} value={targetConcealment}
+                onChange={(e) => setTargetConcealment(e.target.value as Concealment)}>
+                <option value="none">in the open</option>
+                <option value="concealment">concealed (20%)</option>
+                <option value="total">total concealment (50%)</option>
+              </select>
+            </label>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {sheet.attacks.map((atk) => {
@@ -618,6 +638,7 @@ export function PlaySheet({ id }: { id: string }) {
                 {r.outcome === 'success' && <span className="tag" style={{ fontSize: 10, color: 'var(--color-accent-300)' }}>save</span>}
                 {r.outcome === 'fumble' && <span className="tag" style={{ fontSize: 10, color: 'var(--err)' }}>natural 1</span>}
                 {r.outcome === 'failure' && <span className="tag" style={{ fontSize: 10, color: 'var(--err)' }}>failed</span>}
+                {r.outcome === 'miss' && <span className="tag" style={{ fontSize: 10, color: 'var(--err)' }}>concealment miss</span>}
                 <span className="num" style={{ fontSize: 16, fontWeight: 700, minWidth: 34, textAlign: 'right' }}>{r.total}</span>
               </div>
             ))}

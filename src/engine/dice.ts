@@ -128,3 +128,25 @@ export function rollSave(bonus: number, dc: number | null = null, rng: Rng = def
   const success = natural === 20 ? true : natural === 1 ? false : total >= dc;
   return { natural, total, bonus, dc, success, automatic };
 }
+
+/** A target's concealment against an attack: neither stacks, so this is the single applicable
+ *  miss chance. Percentages match the rules — ordinary concealment 20%, total concealment 50%. */
+export const CONCEALMENT = { none: 0, concealment: 20, total: 50 } as const;
+export type Concealment = keyof typeof CONCEALMENT;
+
+export interface MissChanceRoll {
+  /** The percentile rolled, 1..100. */
+  roll: number;
+  /** The chance to miss (20 for concealment, 50 for total). */
+  chance: number;
+  /** True when concealment turned a hit into a miss — a percentile at or under the chance. */
+  missed: boolean;
+}
+
+/** Roll a concealment miss chance. Per the rules this happens *after* an attack connects: the
+ *  attack is resolved normally, and only if it hits does concealment get a chance to spoil it.
+ *  A percentile at or under the miss chance (≤20 for 20% concealment) means the blow misses. */
+export function rollMissChance(chance: number, rng: Rng = defaultRng): MissChanceRoll {
+  const roll = rollDie(100, rng);
+  return { roll, chance, missed: roll <= chance };
+}

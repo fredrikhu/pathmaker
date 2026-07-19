@@ -6,7 +6,7 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 
 ## ▶ Resume here (last session end)
 
-**All five roadmap phases are done and committed** (branch `master`, working tree clean, 435 tests
+**All five roadmap phases are done and committed** (branch `master`, working tree clean, 438 tests
 passing; run `npx tsc --noEmit && npx vitest run && npm run build` to confirm). Pathmaker covers the
 full arc: build a character 1–20, play it at the table (HP, spells, pools, conditions), run the clock
 (rounds, timed effects, rest), and track consumables/charges/encumbrance live.
@@ -632,6 +632,19 @@ item weight for coins, and per-arrow ammunition.
   - Deliberately fixed at cast time (with a caveat saying so): spiritual weapon's BAB does not pick
     up a later Haste; its threat range defaults to ×2 because the engine does not know the deity's
     favored weapon. Not modelled: the move action to redirect either one.
+- **Concealment miss chances: done** — the post-attack step. Concealment does not modify the
+  attack roll; it is a *separate* d% rolled after a hit connects, per the rules ("make the attack
+  normally — if the attacker hits, the defender must make a miss chance roll"). So it lives in
+  `dice.ts` as `rollMissChance`, not in `resolve()`. Concealment is 20%, total concealment 50%, and
+  neither stacks, so the mat offers the single applicable chance as a target selector.
+  - On the play sheet a **Target** selector (in the open / concealed / total) applies to every
+    attack roll until changed; when set, each attack also rolls the d% and the log reads
+    "concealment 20%: rolled 12 — missed through concealment" with a **concealment miss** badge.
+  - A percentile at or under the chance misses; a natural-20 threat can still be spoiled by
+    concealment, which the browser run confirmed. A natural 1 has already missed, so no d% is rolled.
+  - This is the caster's *offense* — swinging at a concealed foe. The defensive side (blur,
+    displacement on the character) is the GM rolling against them, so it is not a player action and
+    is not modelled here; the spells stay prose.
 - **Power Attack & two-weapon fighting: done** (`src/engine/combat.ts`, numbers verified against both
   feat pages). These are **declared per attack**, not passive, so they live in play state
   (`PlayState.powerAttack` / `twoWeapon`) as play-sheet toggles and are folded in **only while on** —

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseDamage, rollDamage, rollAttack, rollDie, rollSave, threatRange, type Rng } from './dice';
+import { parseDamage, rollDamage, rollAttack, rollDie, rollSave, rollMissChance, threatRange, type Rng } from './dice';
 
 /** A scripted rng: each value is the face the next die should show, so the tests assert on
  *  arithmetic rather than on luck. `faces` are 1-based die results. */
@@ -145,5 +145,24 @@ describe('rollSave', () => {
 
   it('does not call an ordinary roll automatic', () => {
     expect(rollSave(3, 10, always(11, 20)).automatic).toBe(false);
+  });
+});
+
+describe('rollMissChance', () => {
+  it('misses on a percentile at or under the chance', () => {
+    // 20% concealment: 1..20 miss, 21+ get through.
+    expect(rollMissChance(20, always(20, 100)).missed).toBe(true);
+    expect(rollMissChance(20, always(21, 100)).missed).toBe(false);
+    expect(rollMissChance(20, always(1, 100)).missed).toBe(true);
+  });
+
+  it('reports the roll and the chance for the log', () => {
+    const r = rollMissChance(50, always(37, 100));
+    expect(r).toEqual({ roll: 37, chance: 50, missed: true });
+  });
+
+  it('total concealment misses half the time — 50 misses, 51 gets through', () => {
+    expect(rollMissChance(50, always(50, 100)).missed).toBe(true);
+    expect(rollMissChance(50, always(51, 100)).missed).toBe(false);
   });
 });
