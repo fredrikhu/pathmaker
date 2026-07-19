@@ -272,3 +272,50 @@ describe('independent attackers on a timer', () => {
     expect(spellAttackerTimer(spell('bless'), ctx(), 'x')).toBeNull();
   });
 });
+
+describe('resist energy — a cast-time energy-type choice', () => {
+  const re = spell('resist-energy');
+
+  it('grants resistance of the chosen type', () => {
+    const t = spellBuffTimer(re, 6, 'x', 'fire')!;
+    expect(t.resistances).toEqual([{ type: 'fire', amount: 10, note: 'Resist Energy' }]);
+    expect(t.effects).toEqual([]);
+    // The chosen type is named on the chip.
+    expect(t.label).toContain('Fire');
+  });
+
+  it('scales the amount: 10, then 20 at CL 7, then 30 at CL 11', () => {
+    const amount = (cl: number) => spellBuffTimer(re, cl, 'x', 'cold')!.resistances![0].amount;
+    expect(amount(1)).toBe(10);
+    expect(amount(6)).toBe(10);
+    expect(amount(7)).toBe(20);
+    expect(amount(10)).toBe(20);
+    expect(amount(11)).toBe(30);
+    expect(amount(20)).toBe(30);
+  });
+
+  it('lasts 10 minutes per caster level', () => {
+    expect(spellBuffTimer(re, 5, 'x', 'acid')!.remaining).toBe(5 * 100);
+  });
+
+  it('falls back to the first option when cast without a choice, and says which', () => {
+    const t = spellBuffTimer(re, 6, 'x')!;
+    expect(t.resistances![0].type).toBe('acid'); // the first option
+    expect(t.label).toContain('Acid');
+  });
+
+  it('ignores a nonsense param rather than producing an invalid type', () => {
+    expect(spellBuffTimer(re, 6, 'x', 'psychic')!.resistances![0].type).toBe('acid');
+  });
+
+  it('reaches the sheet as a real resistance the damage entry uses', () => {
+    let d = newCharacter('t-re', 'Sella');
+    d = withDecision(d, 'ability-base', { str: 10, dex: 12, con: 12, int: 10, wis: 14, cha: 10 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'alignment', 'N');
+    d = withDecision(d, 'class', 'cleric');
+    d = { ...d, level: 7, play: { ...emptyPlayState(), timers: [spellBuffTimer(re, 7, 't1', 'fire')!] } };
+    const def = resolve(d).sheet.defenses;
+    expect(def.resistances).toEqual([{ type: 'fire', amount: 20, note: 'Resist Energy' }]);
+  });
+});

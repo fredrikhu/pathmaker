@@ -246,7 +246,8 @@ export interface DeityDef {
  *  `at(casterLevel)` is a function rather than a table because the scaling rules genuinely differ:
  *  "+1 per three levels, max +3" and "+2, plus 1 per six levels, max +5" have no common shape. */
 export interface SpellBuffDef {
-  at(casterLevel: number): {
+  /** `param` is the cast-time choice (resist energy's energy type), when the spell has one. */
+  at(casterLevel: number, param?: string): {
     effects: Effect[];
     rounds: number;
     /** Damage reduction / energy resistance the spell grants, which are not stat bonuses. */
@@ -258,6 +259,9 @@ export interface SpellBuffDef {
   /** Parts of the spell the engine does not compute — an extra attack, temporary hit points —
    *  surfaced on the running-effect so the reader is not misled by what the numbers omit. */
   caveat?: string;
+  /** A choice made at cast time — resist energy picks its energy type. The first option is the
+   *  default when a route can't prompt for it (the prepared-list cast button). */
+  param?: { label: string; options: { id: string; name: string }[] };
 }
 
 /** A spell that puts a self-directed attacker onto the field — spiritual weapon, flaming sphere.

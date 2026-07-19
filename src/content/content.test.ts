@@ -540,3 +540,24 @@ describe('self-directed attacker spells', () => {
     expect(fs.save).toBeTruthy();
   });
 });
+
+describe('cast-time buff parameters', () => {
+  const ENERGY = new Set(['acid', 'cold', 'electricity', 'fire', 'sonic']);
+
+  it("resist energy offers exactly the five energy types", () => {
+    const p = C.spellById.get('resist-energy')!.buff!.param!;
+    expect(p.label).toBeTruthy();
+    expect(p.options.map((o) => o.id).sort()).toEqual([...ENERGY].sort());
+  });
+
+  it("every buff param's default (first option) resolves to a valid effect", () => {
+    for (const s of C.SPELLS) {
+      const p = s.buff?.param;
+      if (!p) continue;
+      expect(p.options.length, `${s.id} has an empty param`).toBeGreaterThan(0);
+      // The first option is the documented fallback; it must produce something.
+      const out = s.buff!.at(5, p.options[0].id);
+      expect(out.effects.length + (out.resistances?.length ?? 0) + (out.dr?.length ?? 0), `${s.id} default param`).toBeGreaterThan(0);
+    }
+  });
+});

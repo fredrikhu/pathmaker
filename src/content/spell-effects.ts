@@ -1,5 +1,11 @@
-import type { Effect } from '../engine/types';
+import type { Effect, EnergyType } from '../engine/types';
 import type { SpellAttackerDef, SpellBuffDef, SpellDamageDef } from './model';
+
+// Resist energy's cast-time choice, offered by the play sheet and read back by its resolver.
+const ENERGY_CHOICES: { id: EnergyType; name: string }[] = [
+  { id: 'acid', name: 'Acid' }, { id: 'cold', name: 'Cold' }, { id: 'electricity', name: 'Electricity' },
+  { id: 'fire', name: 'Fire' }, { id: 'sonic', name: 'Sonic' },
+];
 
 // Structured, engine-computed spell effects. Every number here is verified against that spell's
 // own d20pfsrd page — the scaling clauses ("+1 per three levels, maximum +3") are exactly the kind
@@ -148,6 +154,20 @@ export const SPELL_BUFFS: Record<string, SpellBuffDef> = {
         { target: 'save:all', type: 'resistance', value: 2, note: 'Protection from Evil', condition: 'against evil creatures' },
       ],
     }),
+  },
+
+  // A resistance, not a stat bonus, and its energy type is chosen when you cast — the first buff
+  // to take a cast-time parameter. Resist 10, rising to 20 at CL 7 and 30 at CL 11.
+  'resist-energy': {
+    scaling: 'resist 10 against a chosen energy type (20 at CL 7, 30 at CL 11), for 10 minutes per caster level',
+    param: { label: 'Energy type', options: ENERGY_CHOICES },
+    at: (cl, param) => {
+      const amount = cl >= 11 ? 30 : cl >= 7 ? 20 : 10;
+      // Default to the first option so a route that cannot prompt still produces a valid resistance;
+      // the timer label names the type, so a wrong default is visible and correctable.
+      const type = (ENERGY_CHOICES.some((c) => c.id === param) ? param : ENERGY_CHOICES[0].id) as EnergyType;
+      return { effects: [], rounds: cl * 10 * MINUTE, resistances: [{ type, amount, note: 'Resist Energy' }] };
+    },
   },
 
   // Not a stat bonus at all: stoneskin reduces incoming damage, so it rides `dr` rather than

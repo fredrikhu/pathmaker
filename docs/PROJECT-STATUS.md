@@ -6,7 +6,7 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 
 ## ▶ Resume here (last session end)
 
-**All five roadmap phases are done and committed** (branch `master`, working tree clean, 438 tests
+**All five roadmap phases are done and committed** (branch `master`, working tree clean, 446 tests
 passing; run `npx tsc --noEmit && npx vitest run && npm run build` to confirm). Pathmaker covers the
 full arc: build a character 1–20, play it at the table (HP, spells, pools, conditions), run the clock
 (rounds, timed effects, rest), and track consumables/charges/encumbrance live.
@@ -645,6 +645,20 @@ item weight for coins, and per-arrow ammunition.
   - This is the caster's *offense* — swinging at a concealed foe. The defensive side (blur,
     displacement on the character) is the GM rolling against them, so it is not a player action and
     is not modelled here; the spells stay prose.
+- **Resist energy: done — the first cast-time-parameterised buff.** `SpellBuffDef` gained an
+  optional `param` (label + options) and `at(cl, param)`, so a spell can ask a question when cast.
+  Resist energy grants **resist 10 against a chosen energy type, 20 at CL 7, 30 at CL 11**, for 10
+  minutes per level — a resistance, not a stat bonus, so it rides `resistances` and flows into the
+  same `Sheet.defenses` the typed-damage entry already reads. Verified end to end: CL 7 fire cast,
+  12 fire in → 0.
+  - The play sheet's cast picker shows the energy-type dropdown when the chosen spell has a `param`,
+    and Cast is disabled until a type is picked. `spellBuffTimer(spell, cl, id, param)` resolves the
+    choice once (an unknown/absent param falls back to the first option) so the chip label and the
+    resistance always name the same type — "Resist Energy (Fire, CL 7)". The prepared-list cast
+    button passes no param and so takes that visible default, correctable by re-casting.
+  - Still deferred: **protection from energy**, which is not a flat resistance but a **pool** (12
+    points absorbed per caster level, then it ends) — that wants the `usedPools` mechanism, not the
+    resistance one, so it is its own piece of work.
 - **Power Attack & two-weapon fighting: done** (`src/engine/combat.ts`, numbers verified against both
   feat pages). These are **declared per attack**, not passive, so they live in play state
   (`PlayState.powerAttack` / `twoWeapon`) as play-sheet toggles and are folded in **only while on** —

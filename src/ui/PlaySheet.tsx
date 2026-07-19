@@ -227,6 +227,9 @@ export function PlaySheet({ id }: { id: string }) {
   // Both buffs and self-directed attackers become running timers, so they share one picker.
   const runningSpells = SPELLS.filter((s) => (s.buff || s.attacker) && casterLevelFor(s.id) !== null);
   const [buffPick, setBuffPick] = useState('');
+  const [buffParam, setBuffParam] = useState('');
+  // The cast-time choice the picked spell requires (resist energy's energy type), if any.
+  const buffPickParam = buffPick ? spellById.get(buffPick)?.buff?.param : undefined;
 
   const casterAbilityMods = ABILITIES.reduce((m, ab) => {
     m[ab] = abilityMod(sheet.stats[`ability:${ab}`]?.total ?? 10);
@@ -235,13 +238,13 @@ export function PlaySheet({ id }: { id: string }) {
 
   /** Start a spell's running effect — a buff, or a self-directed attacker. The engine resolves the
    *  scaling and (for an attacker) the attack bonus from the caster; this only stores the timer. */
-  const castRunning = (spellId: string) => {
+  const castRunning = (spellId: string, param?: string) => {
     const sp = spellById.get(spellId);
     const block = castingBlockFor(spellId);
     if (!sp || !block) return;
     const id = `t${Date.now()}${Math.random().toString(36).slice(2, 6)}`;
     const timer = sp.buff
-      ? spellBuffTimer(sp, block.casterLevel, id)
+      ? spellBuffTimer(sp, block.casterLevel, id, param)
       : spellAttackerTimer(sp, {
           casterLevel: block.casterLevel,
           bab: sheet.stats['bab']?.total ?? 0,
@@ -381,12 +384,20 @@ export function PlaySheet({ id }: { id: string }) {
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginTop: 8 }}>
               <span className="text-muted" style={{ fontSize: 11.5 }}>Cast a spell with a running effect</span>
               <select className="input" style={{ fontSize: 12, padding: '4px 7px', minWidth: 200 }} value={buffPick}
-                onChange={(e) => setBuffPick(e.target.value)}>
+                onChange={(e) => { setBuffPick(e.target.value); setBuffParam(''); }}>
                 <option value="">— choose a spell —</option>
                 {runningSpells.map((s) => <option key={s.id} value={s.id}>{s.name} (CL {casterLevelFor(s.id)}) — {(s.buff ?? s.attacker)!.scaling}</option>)}
               </select>
-              <button className="btn btn-secondary" style={{ fontSize: 12 }} disabled={!buffPick}
-                onClick={() => { castRunning(buffPick); setBuffPick(''); }}>Cast</button>
+              {/* A spell with a cast-time choice (resist energy) shows its options before you cast. */}
+              {buffPickParam && (
+                <select className="input" style={{ fontSize: 12, padding: '4px 7px' }} value={buffParam}
+                  onChange={(e) => setBuffParam(e.target.value)}>
+                  <option value="">{buffPickParam.label}…</option>
+                  {buffPickParam.options.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
+                </select>
+              )}
+              <button className="btn btn-secondary" style={{ fontSize: 12 }} disabled={!buffPick || (!!buffPickParam && !buffParam)}
+                onClick={() => { castRunning(buffPick, buffParam || undefined); setBuffPick(''); setBuffParam(''); }}>Cast</button>
               <span className="text-muted" style={{ fontSize: 11 }}>expending the slot is still up to you, below</span>
             </div>
           )}

@@ -7,14 +7,19 @@ import { iterativeBonuses } from './resolve';
 
 /** Build the running-effect timer a buff spell starts, resolved at the caster level it was cast at.
  *  Returns null for a spell with no engine-computable effect, which is most of them. */
-export function spellBuffTimer(spell: SpellDef, casterLevel: number, id: string): Timer | null {
+export function spellBuffTimer(spell: SpellDef, casterLevel: number, id: string, param?: string): Timer | null {
   if (!spell.buff) return null;
   // Caster level 0 is not a thing you can cast at; guard so a half-built character cannot produce
   // a zero-round timer that expires the instant it starts.
   const cl = Math.max(1, Math.floor(casterLevel));
-  const { effects, rounds, dr, resistances } = spell.buff.at(cl);
+  // Resolve the cast-time choice once: an unknown or absent param falls back to the first option,
+  // so the label and the effect it drives always agree on what was cast.
+  const opts = spell.buff.param?.options;
+  const chosen = opts ? (opts.find((o) => o.id === param) ?? opts[0]) : undefined;
+  const { effects, rounds, dr, resistances } = spell.buff.at(cl, chosen?.id);
+  const label = chosen ? `${spell.name} (${chosen.name}, CL ${cl})` : `${spell.name} (CL ${cl})`;
   return {
-    id, label: `${spell.name} (CL ${cl})`, remaining: rounds, effects, spellId: spell.id,
+    id, label, remaining: rounds, effects, spellId: spell.id,
     ...(dr?.length ? { dr } : {}),
     ...(resistances?.length ? { resistances } : {}),
   };
