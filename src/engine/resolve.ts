@@ -3,7 +3,7 @@ import type {
   Ability, Alignment, CharacterDoc, ChoiceSlot, Effect, Issue, Resolution,
   Sheet, SlotOption, Stat,
 } from './types';
-import type { AttackLine, BreakdownLine, CastingBlock, GrantedFeat, InventoryItem, ProgressionRow, ResourcePool } from './types';
+import type { AttackLine, BreakdownLine, CastingBlock, ConditionalBonus, GrantedFeat, InventoryItem, ProgressionRow, ResourcePool } from './types';
 import { ABILITIES, abilityMod } from './types';
 import { evalPredicate, explainFailure, type PredicateCtx } from './predicates';
 import { stack, type Contribution } from './stack';
@@ -362,9 +362,11 @@ function classLevelAt(dec: Decisions, classId: string, atLevel: number): number 
   return classIdAtLevels(dec, atLevel).filter((id) => id === classId).length;
 }
 
-function makeStat(id: string, label: string, contribs: Contribution[], annotations: string[] = []): Stat {
+function makeStat(id: string, label: string, contribs: Contribution[], conditional: ConditionalBonus[] = []): Stat {
   const { total, lines } = stack(contribs);
-  return { id, label, total, lines, annotations };
+  // One place renders a conditional bonus, so the breakdown card and the roll toggles cannot drift.
+  const annotations = conditional.map((c) => `${c.note}: ${fmtSigned(c.value)} ${c.condition}`);
+  return { id, label, total, lines, annotations, conditional };
 }
 
 /** Class resource pools (rage rounds, ki, channel, grit…) with computed maxima. Verified formulas;
@@ -439,8 +441,9 @@ export function resolve(doc: CharacterDoc): Resolution {
     arr.push(e);
     byTarget.set(e.target, arr);
   }
-  const conds = (target: string): string[] =>
-    (byTarget.get(target) ?? []).filter((e) => e.condition).map((e) => `${e.note.replace(/\s*\(.*\)$/, '')}: ${fmtSigned(e.value)} ${e.condition}`);
+  const conds = (target: string): ConditionalBonus[] =>
+    (byTarget.get(target) ?? []).filter((e) => e.condition)
+      .map((e) => ({ note: e.note.replace(/\s*\(.*\)$/, ''), value: e.value, condition: e.condition! }));
   const unconds = (target: string): Contribution[] =>
     (byTarget.get(target) ?? []).filter((e) => !e.condition).map((e) => ({ type: e.type, value: e.value, note: e.note }));
 
@@ -781,7 +784,7 @@ export function resolve(doc: CharacterDoc): Resolution {
       { type: 'base', value: 10, note: 'Base' },
       { type: 'base', value: mods[sc.ability], note: `${sc.ability.toUpperCase()} modifier` },
       ...unconds('spell:dc'),
-    ], spellFocus.map((f) => `+${f.bonus} vs ${f.school} spells (Spell Focus)`));
+    ], spellFocus.map((f) => ({ note: 'Spell Focus', value: f.bonus, condition: `vs ${f.school} spells` })));
   }
 
   // ---- Slots + issues ----

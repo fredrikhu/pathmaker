@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseDamage, rollDamage, rollAttack, rollDie, threatRange, type Rng } from './dice';
+import { parseDamage, rollDamage, rollAttack, rollDie, rollSave, threatRange, type Rng } from './dice';
 
 /** A scripted rng: each value is the face the next die should show, so the tests assert on
  *  arithmetic rather than on luck. `faces` are 1-based die results. */
@@ -112,5 +112,38 @@ describe('rollAttack', () => {
     expect(r.threat).toBe(false);
     // The total is still reported — a natural 1 misses regardless of it.
     expect(r.total).toBe(21);
+  });
+});
+
+describe('rollSave', () => {
+  it('reports the roll without judging it when no DC is given', () => {
+    const r = rollSave(6, null, always(11, 20));
+    expect(r).toMatchObject({ natural: 11, total: 17, bonus: 6 });
+    expect(r.success).toBeUndefined();
+    expect(r.dc).toBeUndefined();
+  });
+
+  it('compares the total against a DC when one is given', () => {
+    expect(rollSave(6, 17, always(11, 20)).success).toBe(true); // 17 vs DC 17 — a tie makes it
+    expect(rollSave(6, 18, always(11, 20)).success).toBe(false);
+  });
+
+  it('lets a natural 20 succeed even when the total falls short', () => {
+    // +0 against DC 30: the total is 20, but a natural 20 always saves.
+    const r = rollSave(0, 30, always(20, 20));
+    expect(r.success).toBe(true);
+    expect(r.automatic).toBe(true);
+  });
+
+  it('lets a natural 1 fail even when the total would clear the DC', () => {
+    // +20 against DC 5: the total is 21, but a natural 1 always fails.
+    const r = rollSave(20, 5, always(1, 20));
+    expect(r.success).toBe(false);
+    expect(r.automatic).toBe(true);
+    expect(r.total).toBe(21); // the total is still reported honestly
+  });
+
+  it('does not call an ordinary roll automatic', () => {
+    expect(rollSave(3, 10, always(11, 20)).automatic).toBe(false);
   });
 });

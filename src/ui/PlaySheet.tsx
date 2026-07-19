@@ -7,7 +7,7 @@ import {
   durationLabel, ROUNDS_PER_MINUTE, ROUNDS_PER_HOUR,
 } from '../engine/clock';
 import { consume, unconsume, spendCharges, restoreCharges, restock } from '../engine/inventory';
-import { rollAttack, rollDamage, threatRange } from '../engine/dice';
+import { rollAttack, rollDamage, rollSave, threatRange } from '../engine/dice';
 import { spellBuffTimer, spellDamageAt } from '../engine/buffs';
 import { CONDITIONS, conditionById, SPELLS, spellById, classById, skillById } from '../content/index';
 import { useCharacter } from './useCharacter';
@@ -26,8 +26,8 @@ interface LoggedRoll {
   /** "d20 14 +7", "1d8+4" — the arithmetic, so the reader can check it. */
   detail: string;
   total: number;
-  /** Natural 20 / natural 1 on an attack, for the colour. */
-  outcome?: 'threat' | 'fumble';
+  /** How the roll landed, for the badge and its colour. */
+  outcome?: 'threat' | 'fumble' | 'success' | 'failure';
 }
 const ROLL_LOG_LIMIT = 12;
 
@@ -75,6 +75,30 @@ export function PlaySheet({ id }: { id: string }) {
     if (!r) { log({ source, detail: `${formula} — not a rollable formula`, total: 0 }); return; }
     const dice = r.dice.join(' + ');
     log({ source, detail: `${r.formula} → ${dice}${r.modifier ? ` ${fmtMod(r.modifier)}` : ''}`, total: r.total });
+  };
+
+  // ---- Saving throws ----
+  // A save is where conditional bonuses finally become usable: "+2 against fear" is prose on the
+  // sheet, but at the moment you roll a save against fear you know whether it applies. The chips
+  // below are those bonuses, and the engine adds the ones you switch on.
+  const [saveDc, setSaveDc] = useState('');
+  const [saveExtras, setSaveExtras] = useState<Record<string, boolean>>({});
+  const extraKey = (sv: string, i: number) => `${sv}:${i}`;
+  const rollSavingThrow = (sv: 'fort' | 'ref' | 'will') => {
+    const st = sheet.stats[`save:${sv}`];
+    if (!st) return;
+    const chosen = st.conditional.filter((_, i) => saveExtras[extraKey(sv, i)]);
+    const extra = chosen.reduce((n, c) => n + c.value, 0);
+    const dc = saveDc.trim() === '' ? null : Number(saveDc);
+    const r = rollSave(st.total + extra, Number.isFinite(dc as number) ? (dc as number) : null);
+    const why = chosen.length ? ` (incl. ${chosen.map((c) => c.note).join(', ')})` : '';
+    log({
+      source: `${st.label} save${r.dc !== undefined ? ` vs DC ${r.dc}` : ''}`,
+      detail: `d20 ${r.natural} ${fmtMod(r.bonus)}${why}`
+        + (r.success === undefined ? '' : r.automatic ? (r.success ? ' — natural 20, automatic success' : ' — natural 1, automatic failure') : r.success ? ' — made it' : ' — failed'),
+      total: r.total,
+      ...(r.success === true ? { outcome: 'success' as const } : r.success === false ? { outcome: 'failure' as const } : {}),
+    });
   };
 
   const maxHp = sheet.stats['hp:max']?.total ?? 0;
@@ -347,7 +371,7 @@ export function PlaySheet({ id }: { id: string }) {
         <div style={{ background: 'var(--color-surface)', borderRadius: 12, padding: 18 }}>
           <div className="micro" style={{ marginBottom: 10 }}>At a glance</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px 8px' }}>
-            {([['AC', 'ac', false], ['Touch', 'ac:touch', false], ['FF', 'ac:ff', false], ['Fort', 'save:fort', true], ['Ref', 'save:ref', true], ['Will', 'save:will', true], ['BAB', 'bab', true], ['Init', 'init', true], ['CMD', 'cmd', false]] as const).map(([label, key, mod]) => {
+            {([['AC', 'ac', false], ['Touch', 'ac:touch', false], ['FF', 'ac:ff', false], ['BAB', 'bab', true], ['Init', 'init', true], ['CMD', 'cmd', false]] as const).map(([label, key, mod]) => {
               const st = sheet.stats[key]; if (!st) return null;
               const shown = mod ? fmtMod(st.total) : String(st.total);
               const open = statTip(key, shown);
@@ -364,6 +388,63 @@ export function PlaySheet({ id }: { id: string }) {
             Speed {sheet.speed.base} ft
             {sheet.casting.map((b) => ` · ${sheet.casting.length > 1 ? `${b.className} ` : ''}caster level ${b.casterLevel}`).join('')}
           </div>
+        </div>
+      </div>
+
+      {/* Saving throws */}
+      <div style={{ background: 'var(--color-surface)', borderRadius: 12, padding: 18, marginTop: 18 }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
+          <div className="micro">Saving throws</div>
+          <span className="text-muted" style={{ fontSize: 11.5 }}>a natural 20 always saves and a natural 1 always fails, whatever the DC</span>
+          <span style={{ flex: 1 }} />
+          <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+            <span className="text-muted">vs DC</span>
+            <input className="input" style={{ width: 54, padding: '3px 5px', textAlign: 'center' }} type="number" min={1}
+              placeholder="—" value={saveDc} onChange={(e) => setSaveDc(e.target.value)}
+              title="Optional. Set it and the log says whether the save made it." />
+          </label>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 14 }}>
+          {(['fort', 'ref', 'will'] as const).map((sv) => {
+            const st = sheet.stats[`save:${sv}`];
+            if (!st) return null;
+            const open = statTip(`save:${sv}`, fmtMod(st.total));
+            return (
+              <div key={sv}>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+                  <span onMouseEnter={open} onMouseLeave={tip.leave} onClick={open} style={{ cursor: 'pointer' }}>
+                    <span className="micro">{st.label}</span>{' '}
+                    <span className="num" style={{ fontSize: 20, fontWeight: 700 }}>{fmtMod(st.total)}</span>
+                  </span>
+                  <span style={{ flex: 1 }} />
+                  <RollButton label="roll" title={`Roll ${st.label} at ${fmtMod(st.total)}`} onRoll={() => rollSavingThrow(sv)} />
+                </div>
+                {/* Conditional bonuses become switches here, because this is the one moment the
+                    player knows whether the circumstance applies. Off by default — a bonus that
+                    only sometimes applies must never be assumed. */}
+                {st.conditional.length > 0 && (
+                  <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginTop: 7 }}>
+                    {st.conditional.map((c, i) => {
+                      const key = extraKey(sv, i);
+                      const on = !!saveExtras[key];
+                      return (
+                        <button key={key} onClick={() => setSaveExtras((p) => ({ ...p, [key]: !p[key] }))}
+                          title={`${c.note}: ${fmtMod(c.value)} ${c.condition}`}
+                          style={{
+                            fontSize: 10.5, padding: '2px 7px', borderRadius: 999, cursor: 'pointer', fontFamily: 'inherit',
+                            border: `1px solid ${on ? 'var(--color-accent)' : 'var(--color-divider)'}`,
+                            background: on ? 'rgba(145,132,217,.14)' : 'transparent',
+                            color: on ? 'var(--color-text)' : 'var(--color-neutral-500)',
+                          }}>
+                          {on ? '✓ ' : ''}{fmtMod(c.value)} {c.condition}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -439,7 +520,9 @@ export function PlaySheet({ id }: { id: string }) {
                 <span style={{ minWidth: 190 }}>{r.source}</span>
                 <span className="text-muted num" style={{ fontSize: 11.5, flex: 1 }}>{r.detail}</span>
                 {r.outcome === 'threat' && <span className="tag" style={{ fontSize: 10, color: 'var(--color-accent-300)' }}>threat</span>}
+                {r.outcome === 'success' && <span className="tag" style={{ fontSize: 10, color: 'var(--color-accent-300)' }}>save</span>}
                 {r.outcome === 'fumble' && <span className="tag" style={{ fontSize: 10, color: 'var(--err)' }}>natural 1</span>}
+                {r.outcome === 'failure' && <span className="tag" style={{ fontSize: 10, color: 'var(--err)' }}>failed</span>}
                 <span className="num" style={{ fontSize: 16, fontWeight: 700, minWidth: 34, textAlign: 'right' }}>{r.total}</span>
               </div>
             ))}

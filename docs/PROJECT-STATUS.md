@@ -6,7 +6,7 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 
 ## ▶ Resume here (last session end)
 
-**All five roadmap phases are done and committed** (branch `master`, working tree clean, 398 tests
+**All five roadmap phases are done and committed** (branch `master`, working tree clean, 406 tests
 passing; run `npx tsc --noEmit && npx vitest run && npm run build` to confirm). Pathmaker covers the
 full arc: build a character 1–20, play it at the table (HP, spells, pools, conditions), run the clock
 (rounds, timed effects, rest), and track consumables/charges/encumbrance live.
@@ -576,6 +576,21 @@ item weight for coins, and per-arrow ammunition.
     since their casting is an anonymous pip with no spell identity.
   - Not modelled: expending the slot from the picker (it says so), Haste's extra attack and its
     twice-normal-speed cap, and Aid's temporary hit points (rollable, but entered by hand).
+- **Saving throws are rollable on the play mat, and conditional bonuses finally do something.**
+  `Stat` gained `conditional: ConditionalBonus[]` — the same bonuses it already rendered as
+  `annotations` strings, now structured. A conditional bonus is useless as prose at the moment you
+  roll a save against the very thing it covers, so the save panel offers each one as a **switch**,
+  off by default, and the engine adds the ones turned on. A dwarf's Hardy reads "+2 vs poison,
+  spells, and spell-like abilities" and can be included in the roll that needs it.
+  - `rollSave` owns the outcome rather than letting the caller compare totals, because **a natural
+    20 always saves and a natural 1 always fails** whatever the DC and the modifiers say.
+  - The DC is optional: without one the roll is reported and left to whoever set the difficulty.
+  - Both stat renderings now come from **one formatter**, so a breakdown card and a roll toggle
+    cannot describe the same bonus differently.
+- **Two buff spells were missed in the first pass and have been added**: **Bull's Strength**
+  (+4 enhancement to Strength — an ability buff, so attack, damage, CMB and Climb all follow from
+  the one change) and **Protection from Evil**, whose +2 AC and +2 saves are *both* evil-specific
+  and therefore total nothing, existing only as conditional bonuses the save panel can switch on.
 - **Power Attack & two-weapon fighting: done** (`src/engine/combat.ts`, numbers verified against both
   feat pages). These are **declared per attack**, not passive, so they live in play state
   (`PlayState.powerAttack` / `twoWeapon`) as play-sheet toggles and are folded in **only while on** —

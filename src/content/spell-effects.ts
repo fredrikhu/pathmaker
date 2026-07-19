@@ -126,6 +126,30 @@ export const SPELL_BUFFS: Record<string, SpellBuffDef> = {
     }),
   },
 
+  // An ability buff rather than a flat bonus: raising Strength flows out to melee attack, damage,
+  // CMB, Climb and everything else derived from it, exactly as a belt of giant strength does.
+  'bulls-strength': {
+    scaling: '+4 enhancement to Strength, for 1 minute per caster level',
+    at: (cl) => ({
+      rounds: cl * MINUTE,
+      effects: [{ target: 'ability:str', type: 'enhancement', value: 4, note: "Bull's Strength" }],
+    }),
+  },
+
+  // Both bonuses are evil-specific, so both are annotations. The save panel offers them as a
+  // switch at the moment you roll, which is when you know what you are saving against.
+  'protection-from-evil': {
+    scaling: '+2 deflection AC and +2 on saves, against evil creatures, for 1 minute per caster level',
+    caveat: 'Also grants a second save against ongoing mental control, and blocks bodily contact by summoned creatures.',
+    at: (cl) => ({
+      rounds: cl * MINUTE,
+      effects: [
+        { target: 'ac', type: 'deflection', value: 2, note: 'Protection from Evil', condition: 'against evil creatures' },
+        { target: 'save:all', type: 'resistance', value: 2, note: 'Protection from Evil', condition: 'against evil creatures' },
+      ],
+    }),
+  },
+
   aid: {
     scaling: '+1 morale on attacks, plus 1d8 + caster level temporary HP, for 1 minute per caster level',
     caveat: 'Roll the temporary hit points and enter them in the HP tracker.',

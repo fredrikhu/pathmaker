@@ -193,3 +193,42 @@ describe('spell damage formulas', () => {
     expect(spellDamageAt(spell('sleep'), 5)).toBeNull();
   });
 });
+
+describe('buffs that are not flat bonuses', () => {
+  function fighter(): CharacterDoc {
+    let d = newCharacter('t-bs', 'Doran');
+    d = withDecision(d, 'ability-base', { str: 14, dex: 12, con: 12, int: 10, wis: 10, cha: 10 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'alignment', 'N');
+    d = withDecision(d, 'class', 'fighter');
+    return { ...d, level: 4, purchases: { longsword: 1 }, equipped: { armor: null, mainHand: 'longsword', offHand: null } };
+  }
+  const withBuff = (d: CharacterDoc, spellId: string, cl: number): CharacterDoc => ({
+    ...d, play: { ...emptyPlayState(), timers: [spellBuffTimer(spell(spellId), cl, 't1')!] },
+  });
+
+  it("Bull's Strength raises Strength itself, so everything derived from it moves", () => {
+    const base = resolve(fighter()).sheet;
+    const buffed = resolve(withBuff(fighter(), 'bulls-strength', 5)).sheet;
+    // Str 14 (+2) → 18 (+4): attack, damage and CMB all follow from the one change.
+    expect(buffed.stats['ability:str'].total).toBe(base.stats['ability:str'].total + 4);
+    expect(buffed.stats['attack:melee'].total).toBe(base.stats['attack:melee'].total + 2);
+    expect(buffed.attacks[0].damage).toBe('1d8+4');
+    expect(buffed.stats['cmb'].total).toBe(base.stats['cmb'].total + 2);
+  });
+
+  it('Protection from Evil totals nothing, because both its bonuses are evil-specific', () => {
+    const base = resolve(fighter()).sheet;
+    const buffed = resolve(withBuff(fighter(), 'protection-from-evil', 5)).sheet;
+    expect(buffed.stats['ac'].total).toBe(base.stats['ac'].total);
+    expect(buffed.stats['save:will'].total).toBe(base.stats['save:will'].total);
+  });
+
+  it('…and instead offers them as structured conditional bonuses a save roll can use', () => {
+    const buffed = resolve(withBuff(fighter(), 'protection-from-evil', 5)).sheet;
+    expect(buffed.stats['save:will'].conditional).toContainEqual({
+      note: 'Protection from Evil', value: 2, condition: 'against evil creatures',
+    });
+    expect(buffed.stats['ac'].conditional.some((c) => c.note === 'Protection from Evil')).toBe(true);
+  });
+});

@@ -139,8 +139,23 @@ export interface Stat {
   label: string;
   total: number;
   lines: BreakdownLine[];
-  /** Conditional bonuses displayed adjacent to the stat, never in the total. */
+  /** Conditional bonuses displayed adjacent to the stat, never in the total. Rendered strings,
+   *  kept for the breakdown cards that have always shown them this way. */
   annotations: string[];
+  /** The same conditional bonuses, structured — so a roll can offer them as toggles and add the
+   *  ones that actually apply. A bonus "+2 against fear" is useless as prose when you are rolling
+   *  a save against fear. */
+  conditional: ConditionalBonus[];
+}
+
+/** A bonus that applies only in a named circumstance. Never in a stat's total; offered at the
+ *  point a roll is made, where the player knows whether the circumstance holds. */
+export interface ConditionalBonus {
+  /** Source label, e.g. "Bless" or "Hardy (Dwarf)". */
+  note: string;
+  value: number;
+  /** The circumstance, e.g. "against fear effects". */
+  condition: string;
 }
 
 export type Severity = 'error' | 'warning' | 'info';

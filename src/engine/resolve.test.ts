@@ -1315,7 +1315,9 @@ describe('Spell Focus and the spell save DC', () => {
     // The school bonus is conditional, so it must not inflate the flat DC.
     expect(r.sheet.stats['spell:dc'].total).toBe(13);
     expect(r.sheet.spellFocus).toEqual([{ school: 'Evocation', bonus: 1 }]);
-    expect(r.sheet.stats['spell:dc'].annotations).toContain('+1 vs Evocation spells (Spell Focus)');
+    // Conditional bonuses render through one shared formatter now, so every stat reads alike.
+    expect(r.sheet.stats['spell:dc'].annotations).toContain('Spell Focus: +1 vs Evocation spells');
+    expect(r.sheet.stats['spell:dc'].conditional).toContainEqual({ note: 'Spell Focus', value: 1, condition: 'vs Evocation spells' });
   });
 
   it('stacks Greater Spell Focus on the same school', () => {

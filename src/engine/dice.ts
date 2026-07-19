@@ -104,3 +104,27 @@ export function rollAttack(bonus: number, threshold = 20, rng: Rng = defaultRng)
     fumble: natural === 1,
   };
 }
+
+export interface SaveRoll {
+  natural: number;
+  total: number;
+  bonus: number;
+  /** The DC rolled against, when one was given. */
+  dc?: number;
+  /** Whether the save succeeded. Undefined when no DC was supplied — the roll still stands. */
+  success?: boolean;
+  /** True when the result was decided by the die alone rather than by the total. */
+  automatic: boolean;
+}
+
+/** Roll a saving throw. A natural 1 always fails and a natural 20 always succeeds, whatever the
+ *  DC and the modifiers say — which is why the outcome cannot be left to the caller comparing
+ *  totals. Without a DC the roll is reported and judged by whoever set the difficulty. */
+export function rollSave(bonus: number, dc: number | null = null, rng: Rng = defaultRng): SaveRoll {
+  const natural = rollDie(20, rng);
+  const total = natural + bonus;
+  const automatic = natural === 1 || natural === 20;
+  if (dc === null) return { natural, total, bonus, automatic };
+  const success = natural === 20 ? true : natural === 1 ? false : total >= dc;
+  return { natural, total, bonus, dc, success, automatic };
+}
