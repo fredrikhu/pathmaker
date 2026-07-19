@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { loadCharacter } from '../storage/store';
 import { newCharacter } from '../engine/character';
-import { ABILITIES, abilityMod, emptyPlayState, normalizePlayState, fmtMod, type Ability, type DamageKind, type PlayState, type Timer } from '../engine/types';
+import { ABILITIES, abilityMod, emptyPlayState, normalizePlayState, fmtMod, type Ability, type ActionType, type DamageKind, type PlayState, type Timer } from '../engine/types';
 import {
   advanceTime, nextRound, startEncounter, endEncounter, addTimer, removeTimer, rest as restPlay,
   durationLabel, ROUNDS_PER_MINUTE, ROUNDS_PER_HOUR,
@@ -10,6 +10,7 @@ import { consume, unconsume, spendCharges, restoreCharges, restock } from '../en
 import { rollAttack, rollDamage, rollSave, rollMissChance, threatRange, CONCEALMENT, type Concealment } from '../engine/dice';
 import { applyDamage, bypassOptions, ENERGY_TYPES } from '../engine/damage';
 import { spellBuffTimer, spellDamageAt, spellAttackerTimer } from '../engine/buffs';
+import { spendAction, resetActions, COMMON_ACTIONS, type ActionCost } from '../engine/actions';
 import { CONDITIONS, conditionById, SPELLS, spellById, classById, skillById } from '../content/index';
 import { useCharacter } from './useCharacter';
 import { useTip } from './Tooltip';
@@ -127,6 +128,17 @@ export function PlaySheet({ id }: { id: string }) {
     log({ source: 'Damage taken', detail: r.explain, total: r.applied });
     setIncomingAmount('');
   };
+
+  // ---- Action economy ----
+  // A turn's budget lives in play state and resets each round (the clock does that). Quick buttons
+  // spend through the engine so the standard-as-move downgrade and the full-round rule apply; the
+  // pips are manual toggles for corrections.
+  const doAction = (cost: ActionCost) =>
+    updatePlay((p) => { const r = spendAction(p.actionsUsed, cost); return r.ok ? { actionsUsed: r.used } : {}; });
+  const toggleAction = (a: ActionType) =>
+    updatePlay((p) => { const next = { ...p.actionsUsed }; if (next[a]) delete next[a]; else next[a] = true; return { actionsUsed: next }; });
+  const newTurn = () => setPlay({ actionsUsed: resetActions() });
+  const canSpend = (cost: ActionCost) => spendAction(play.actionsUsed, cost).ok;
 
   const maxHp = sheet.stats['hp:max']?.total ?? 0;
   const currentHp = maxHp - play.hpDamage;
@@ -312,6 +324,38 @@ export function PlaySheet({ id }: { id: string }) {
             <button key={label} className="btn btn-ghost" style={{ fontSize: 11.5 }} onClick={() => applyClock((p) => advanceTime(p, rounds).play)}>+{label}</button>
           ))}
         </div>
+
+        {/* This turn's action economy — only meaningful in combat. Resets each round. */}
+        {inEncounter && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 12, paddingTop: 12, borderTop: '1px solid rgba(233,233,237,.07)' }}>
+            <span className="text-muted" style={{ fontSize: 11.5 }}>This turn</span>
+            {(['standard', 'move', 'swift'] as const).map((a) => {
+              const used = play.actionsUsed[a] === true;
+              return (
+                <button key={a} onClick={() => toggleAction(a)}
+                  title={used ? `${a} action spent — click to give it back` : `${a} action available — click to mark spent`}
+                  style={{
+                    fontSize: 11, padding: '3px 10px', borderRadius: 999, cursor: 'pointer', fontFamily: 'inherit',
+                    textTransform: 'capitalize',
+                    border: `1px solid ${used ? 'var(--color-divider)' : 'var(--color-accent-300)'}`,
+                    background: used ? 'transparent' : 'rgba(145,132,217,.14)',
+                    color: used ? 'var(--color-neutral-500)' : 'var(--color-text)',
+                    textDecoration: used ? 'line-through' : 'none',
+                  }}>
+                  {a}
+                </button>
+              );
+            })}
+            <span style={{ width: 1, height: 18, background: 'var(--color-divider)', margin: '0 2px' }} />
+            {COMMON_ACTIONS.map((act) => (
+              <button key={act.id} className="btn btn-ghost" style={{ fontSize: 11 }} disabled={!canSpend(act.cost)}
+                title={`${act.name} — ${act.cost === 'full-round' ? 'full-round action' : `${act.cost} action`}${act.note ? ` (${act.note})` : ''}`}
+                onClick={() => doAction(act.cost)}>{act.name}</button>
+            ))}
+            <span style={{ flex: 1 }} />
+            <button className="btn btn-ghost" style={{ fontSize: 11 }} title="Start a fresh turn without advancing the round" onClick={newTurn}>↺ New turn</button>
+          </div>
+        )}
 
         {/* Running durations */}
         <div style={{ marginTop: 14 }}>

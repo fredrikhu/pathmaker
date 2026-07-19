@@ -6,7 +6,7 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 
 ## ▶ Resume here (last session end)
 
-**All five roadmap phases are done and committed** (branch `master`, working tree clean, 446 tests
+**All five roadmap phases are done and committed** (branch `master`, working tree clean, 460 tests
 passing; run `npx tsc --noEmit && npx vitest run && npm run build` to confirm). Pathmaker covers the
 full arc: build a character 1–20, play it at the table (HP, spells, pools, conditions), run the clock
 (rounds, timed effects, rest), and track consumables/charges/encumbrance live.
@@ -659,6 +659,24 @@ item weight for coins, and per-arrow ammunition.
   - Still deferred: **protection from energy**, which is not a flat resistance but a **pool** (12
     points absorbed per caster level, then it ends) — that wants the `usedPools` mechanism, not the
     resistance one, so it is its own piece of work.
+- **Action economy: done** (`src/engine/actions.ts`) — the turn tracker, and the structural piece
+  the sphere-redirect and a proper protection-from-energy pool were both waiting on. A turn hands
+  out one standard, one move and one swift action; `PlayState.actionsUsed` records what's spent and
+  the clock **refreshes it every round** (also on start/end encounter and rest). Free actions and
+  the 5-foot step are not budgeted — the rules cap them loosely, so tracking them would be noise.
+  - `spendAction(used, cost)` applies the rules one slot can cover another with: a **move you no
+    longer have downgrades your standard action** ("you can take a move action in place of a
+    standard action"), and a **full-round action needs both** standard and move free. It returns
+    the new budget or leaves it untouched, so the mat never has to know the rule.
+  - On the play sheet a **This turn** row (combat only) shows the three actions as toggle pips plus
+    quick buttons (attack / full attack / cast / move / **direct a sphere** / draw / swift) that
+    spend through the engine and disable when they don't fit, and a **New turn** reset. Verified:
+    two moves spend the standard as the second; a full attack blocks a follow-up attack but leaves
+    the swift; Next round refreshes.
+  - This closes the sphere-redirect note from the self-directed-attacker work — directing a
+    spiritual weapon or flaming sphere is now a real move action on the tracker. **Protection from
+    energy** (a depleting pool) is still deferred; the action economy was the shared prerequisite,
+    not the pool itself.
 - **Power Attack & two-weapon fighting: done** (`src/engine/combat.ts`, numbers verified against both
   feat pages). These are **declared per attack**, not passive, so they live in play state
   (`PlayState.powerAttack` / `twoWeapon`) as play-sheet toggles and are folded in **only while on** —

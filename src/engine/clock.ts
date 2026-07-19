@@ -47,18 +47,19 @@ export function advanceTime(play: PlayState, rounds: number): AdvanceResult {
 export function nextRound(play: PlayState): AdvanceResult {
   const p = normalizePlayState(play);
   const { play: ticked, expired } = tick(p, 1);
-  return { play: { ...ticked, round: p.round + 1 }, expired };
+  // A new round is a new turn: the action budget refreshes.
+  return { play: { ...ticked, round: p.round + 1, actionsUsed: {} }, expired };
 }
 
 /** Begin an encounter at round 1 with the given initiative. Timers carry over — a buff cast
  *  before the fight is still running. */
 export function startEncounter(play: PlayState, initiative: number): PlayState {
-  return { ...normalizePlayState(play), round: 1, initiative };
+  return { ...normalizePlayState(play), round: 1, initiative, actionsUsed: {} };
 }
 
 /** Leave combat. Durations keep running (they're tracked in rounds either way). */
 export function endEncounter(play: PlayState): PlayState {
-  return { ...normalizePlayState(play), round: 0, initiative: null };
+  return { ...normalizePlayState(play), round: 0, initiative: null, actionsUsed: {} };
 }
 
 export function addTimer(play: PlayState, timer: Timer): PlayState {
@@ -81,7 +82,7 @@ export function rest(play: PlayState): AdvanceResult {
     ...p,
     hpDamage: 0, nonlethal: 0, tempHp: 0,
     usedSlots: {}, usedPools: {}, castPrepared: {},
-    round: 0, initiative: null,
+    round: 0, initiative: null, actionsUsed: {},
   };
   return tick(restored, REST_ROUNDS);
 }

@@ -167,12 +167,19 @@ export interface PlayState {
   powerAttack: boolean;
   /** Fighting with both weapons this full attack: applies two-weapon penalties to both hands. */
   twoWeapon: boolean;
+  /** Actions spent so far this turn; reset at the start of each combat round. An absent key means
+   *  that action is still available. Free actions and the 5-foot step are not budgeted — the rules
+   *  cap them loosely enough that tracking them would be noise. */
+  actionsUsed: Partial<Record<ActionType, boolean>>;
 }
+
+/** The three budgeted action types a turn hands out, one of each. */
+export type ActionType = 'standard' | 'move' | 'swift';
 
 export const emptyPlayState = (): PlayState => ({
   hpDamage: 0, tempHp: 0, nonlethal: 0, usedSlots: {}, conditions: [], usedPools: {},
   prepared: {}, castPrepared: {}, round: 0, initiative: null, timers: [],
-  consumed: {}, usedCharges: {}, powerAttack: false, twoWeapon: false,
+  consumed: {}, usedCharges: {}, powerAttack: false, twoWeapon: false, actionsUsed: {},
 });
 
 /** Play state with defaults filled in — older saved docs predate the phase-4 fields. */
