@@ -3,7 +3,7 @@ import type {
   Ability, Alignment, CharacterDoc, ChoiceSlot, Effect, Issue, Resolution,
   Sheet, SlotOption, Stat,
 } from './types';
-import type { AttackLine, BreakdownLine, CastingBlock, ConditionalBonus, GrantedFeat, InventoryItem, ProgressionRow, ResourcePool } from './types';
+import type { AttackLine, BreakdownLine, CastingBlock, ConditionalBonus, DamageReduction, Defenses, EnergyResistance, GrantedFeat, InventoryItem, PlayState, ProgressionRow, ResourcePool } from './types';
 import { ABILITIES, abilityMod } from './types';
 import { evalPredicate, explainFailure, type PredicateCtx } from './predicates';
 import { stack, type Contribution } from './stack';
@@ -103,6 +103,34 @@ function readDecisions(doc: CharacterDoc): Decisions {
 }
 
 /** Standard traits still active after alternate-trait replacements. */
+/** Damage reduction and energy resistance in force, from race, class levels and running buffs.
+ *  None of these are stat bonuses — they subtract from damage arriving rather than adding to a
+ *  roll — so they are gathered separately from the effect pipeline. */
+function gatherDefenses(dec: Decisions, classes: ClassEntry[], play: PlayState | undefined): Defenses {
+  const dr: DamageReduction[] = [];
+  const resistances: EnergyResistance[] = [];
+
+  const { standard, alternates } = activeRacialTraits(dec);
+  for (const t of [...standard, ...alternates]) {
+    for (const r of t.energyResistance ?? []) resistances.push({ ...r, note: t.name });
+  }
+
+  for (const c of classes) {
+    const prog = C.CLASS_PROGRESSION[c.klass.id]?.damageReduction;
+    if (!prog) continue;
+    // The amount is how many of the listed levels this class has reached: DR 1 at the first,
+    // rising by 1 at each one after.
+    const amount = prog.levels.filter((l) => l <= c.levels).length;
+    if (amount > 0) dr.push({ amount, bypass: prog.bypass, note: `${c.klass.name} ${c.levels}` });
+  }
+
+  for (const t of play?.timers ?? []) {
+    for (const d of t.dr ?? []) dr.push(d);
+    for (const r of t.resistances ?? []) resistances.push(r);
+  }
+  return { dr, resistances };
+}
+
 function activeRacialTraits(dec: Decisions): { standard: C.RacialTraitDef[]; alternates: C.AltTraitDef[] } {
   const race = dec.raceId ? C.raceById.get(dec.raceId) : undefined;
   if (!race) return { standard: [], alternates: [] };
@@ -824,6 +852,7 @@ export function resolve(doc: CharacterDoc): Resolution {
       canPowerAttack: featIds.includes('power-attack'),
       canTwoWeapon: Boolean(doc.equipped.mainHand && doc.equipped.offHand),
     },
+    defenses: gatherDefenses(dec, classes, doc.play),
     grantedFeats: allGrantedFeats(dec, level, (doc.decisions['feat-params'] as Record<string, string>) ?? {}),
     inventory,
     worn: wornItemsWithStatus(doc).map(({ item, active }) =>

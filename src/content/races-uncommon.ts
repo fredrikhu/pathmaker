@@ -145,7 +145,8 @@ export const UNCOMMON_RACES: RaceDef[] = [
     traits: [
       { id: 'suli-low-light', name: 'Low-Light Vision', desc: 'See twice as far as humans in dim light.' },
       { id: 'suli-assault', name: 'Elemental Assault', desc: 'Once per day, shroud your limbs in acid, cold, electricity, or fire for +1d6 damage per hit for several rounds.' },
-      { id: 'suli-resist', name: 'Energy Resistance', desc: 'Resistance 5 to acid, cold, electricity, and fire.' },
+      { id: 'suli-resist', name: 'Energy Resistance', desc: 'Resistance 5 to acid, cold, electricity, and fire.',
+        energyResistance: [{ type: 'acid', amount: 5 }, { type: 'cold', amount: 5 }, { type: 'electricity', amount: 5 }, { type: 'fire', amount: 5 }] },
       { id: 'suli-negotiator', name: 'Negotiator', desc: '+2 racial bonus on Diplomacy and Sense Motive checks.', effects: [{ target: 'skill:diplomacy', type: 'racial', value: 2, note: 'Negotiator (Suli)' }, { target: 'skill:sense-motive', type: 'racial', value: 2, note: 'Negotiator (Suli)' }] },
     ],
     altTraits: [],

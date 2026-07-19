@@ -6,7 +6,7 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 
 ## ▶ Resume here (last session end)
 
-**All five roadmap phases are done and committed** (branch `master`, working tree clean, 406 tests
+**All five roadmap phases are done and committed** (branch `master`, working tree clean, 427 tests
 passing; run `npx tsc --noEmit && npx vitest run && npm run build` to confirm). Pathmaker covers the
 full arc: build a character 1–20, play it at the table (HP, spells, pools, conditions), run the clock
 (rounds, timed effects, rest), and track consumables/charges/encumbrance live.
@@ -591,6 +591,30 @@ item weight for coins, and per-arrow ammunition.
   (+4 enhancement to Strength — an ability buff, so attack, damage, CMB and Climb all follow from
   the one change) and **Protection from Evil**, whose +2 AC and +2 saves are *both* evil-specific
   and therefore total nothing, existing only as conditional bonuses the save panel can switch on.
+- **Typed damage entry: done** (`src/engine/damage.ts`). The HP tracker's `damage(n)` took a raw
+  number and knew nothing about it, which is why damage reduction and energy resistance had no way
+  in. The play sheet now takes an **amount plus a damage kind**, and the engine decides what
+  actually lands. This is the other half of the game from `resolve()`: that computes what the
+  character rolls, this computes what a number coming the other way is reduced to.
+  - Three rules, each excluding the others: **energy** damage meets resistance of that type and
+    never DR; **physical** damage meets DR and never resistance; **untyped** (a spell naming no
+    type) meets neither, because spells and spell-like abilities ignore DR.
+  - **Neither stacks.** The best single resistance applies — a spell's resist 20 does not add to a
+    racial resist 5. DR is subtler: the best applies *in a given situation*, so which one wins
+    depends on the attack. A barbarian 13 under stoneskin takes **10** from a plain sword (stoneskin's
+    DR 10) but **17** from an adamantine one (stoneskin bypassed, the barbarian's DR 3 still there)
+    — neither 20 nor 10. That is why the UI asks what got through rather than deriving it: only the
+    player knows what hit them.
+  - `Sheet.defenses` is fed from three sources: **racial energy resistance** (8 traits — aasimar,
+    tiefling, suli and the elemental-blooded races — which existed only as prose and are now
+    structured), **class DR** (barbarian, bloodrager, skald, where the amount is simply how many of
+    the listed levels you have reached), and **running buffs**, via new `Timer.dr` / `.resistances`.
+  - **Stoneskin** is the first buff that grants no stat bonus at all, so `SpellBuffDef.at()` can now
+    return `dr`/`resistances` beside `effects`. Its discharge (10 points prevented per caster level)
+    is not counted down, and says so.
+  - Still not modelled: **resist energy** and **protection from energy**, which need a cast-time
+    energy-type parameter the buff picker has no mechanism for; protection from energy is also a
+    depleting pool rather than a flat reduction.
 - **Power Attack & two-weapon fighting: done** (`src/engine/combat.ts`, numbers verified against both
   feat pages). These are **declared per attack**, not passive, so they live in play state
   (`PlayState.powerAttack` / `twoWeapon`) as play-sheet toggles and are folded in **only while on** —

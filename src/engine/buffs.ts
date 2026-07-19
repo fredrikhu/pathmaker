@@ -11,8 +11,12 @@ export function spellBuffTimer(spell: SpellDef, casterLevel: number, id: string)
   // Caster level 0 is not a thing you can cast at; guard so a half-built character cannot produce
   // a zero-round timer that expires the instant it starts.
   const cl = Math.max(1, Math.floor(casterLevel));
-  const { effects, rounds } = spell.buff.at(cl);
-  return { id, label: `${spell.name} (CL ${cl})`, remaining: rounds, effects, spellId: spell.id };
+  const { effects, rounds, dr, resistances } = spell.buff.at(cl);
+  return {
+    id, label: `${spell.name} (CL ${cl})`, remaining: rounds, effects, spellId: spell.id,
+    ...(dr?.length ? { dr } : {}),
+    ...(resistances?.length ? { resistances } : {}),
+  };
 }
 
 /** The damage (or healing) a spell rolls at a given caster level, with any caveat the formula

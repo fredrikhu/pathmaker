@@ -68,6 +68,35 @@ export interface CharacterDoc {
   play?: PlayState;
 }
 
+/** The five energy types damage reduction never applies to. */
+export type EnergyType = 'acid' | 'cold' | 'electricity' | 'fire' | 'sonic';
+
+/** How incoming damage is described when it is applied. `physical` is weapon and natural-attack
+ *  damage — the only kind damage reduction touches. `untyped` covers spells and effects that name
+ *  no type, which both DR and energy resistance ignore. */
+export type DamageKind = 'physical' | 'untyped' | EnergyType;
+
+export interface DamageReduction {
+  amount: number;
+  /** What gets through it, as printed after the slash: "—", "adamantine", "magic", "evil". */
+  bypass: string;
+  /** Where it comes from, e.g. "Barbarian 10" or "Stoneskin". */
+  note: string;
+}
+
+export interface EnergyResistance {
+  type: EnergyType;
+  amount: number;
+  note: string;
+}
+
+/** What reduces damage on its way in. Kept apart from `stats` because none of it is a bonus to a
+ *  roll — it is arithmetic applied to a number the sheet never generates. */
+export interface Defenses {
+  dr: DamageReduction[];
+  resistances: EnergyResistance[];
+}
+
 /** A running duration on a condition or buff, counted in combat rounds (phase 4).
  *  Everything is stored in rounds so the clock has a single unit; the UI converts. */
 export interface Timer {
@@ -83,6 +112,10 @@ export interface Timer {
   effects?: Effect[];
   /** The spell that started this, when one did — for the caveat shown beside it. */
   spellId?: string;
+  /** Damage reduction and energy resistance this buff grants while it runs. Separate from
+   *  `effects` because neither is a bonus to a roll — they reduce damage on its way in. */
+  dr?: DamageReduction[];
+  resistances?: EnergyResistance[];
 }
 
 /** Session state that changes during play, kept separate from the build `decisions`. */
@@ -347,6 +380,8 @@ export interface Sheet {
   /** Which declared combat options this character can actually use, so the UI never has to ask
    *  the rules. Power Attack needs the feat; two-weapon fighting needs a weapon in each hand. */
   combatOptions: { canPowerAttack: boolean; canTwoWeapon: boolean };
+  /** Damage reduction and energy resistance in force, from race, class and running buffs. */
+  defenses: Defenses;
   /** Worn magic items. `active` false means a full body slot is suppressing it. */
   worn: { id: string; name: string; slot: string; cost: number; desc: string; active: boolean }[];
   summaryLine: string; // "LN Human Fighter 1"

@@ -11,7 +11,8 @@ export const FEATURED_RACES: RaceDef[] = [
     size: 'medium', speed: 30, abilityMods: { wis: 2, cha: 2 },
     traits: [
       { id: 'aasimar-darkvision', name: 'Darkvision', desc: 'See in the dark up to 60 feet.' },
-      { id: 'aasimar-resistance', name: 'Celestial Resistance', desc: 'Acid, cold, and electricity resistance 5.' },
+      { id: 'aasimar-resistance', name: 'Celestial Resistance', desc: 'Acid, cold, and electricity resistance 5.',
+        energyResistance: [{ type: 'acid', amount: 5 }, { type: 'cold', amount: 5 }, { type: 'electricity', amount: 5 }] },
       { id: 'aasimar-skilled', name: 'Skilled', desc: '+2 racial bonus on Diplomacy and Perception checks.', effects: [{ target: 'skill:diplomacy', type: 'racial', value: 2, note: 'Skilled (Aasimar)' }, { target: 'skill:perception', type: 'racial', value: 2, note: 'Skilled (Aasimar)' }] },
       { id: 'aasimar-sla', name: 'Spell-Like Ability', desc: 'Use daylight once per day (caster level equals class level).' },
     ],
@@ -74,7 +75,8 @@ export const FEATURED_RACES: RaceDef[] = [
     size: 'medium', speed: 30, abilityMods: { dex: 2, cha: 2, wis: -2 },
     traits: [
       { id: 'fetchling-darkvision', name: 'Darkvision', desc: 'See in the dark up to 60 feet (plus low-light vision).' },
-      { id: 'fetchling-resist', name: 'Shadow Resistance', desc: 'Cold and electricity resistance 5.' },
+      { id: 'fetchling-resist', name: 'Shadow Resistance', desc: 'Cold and electricity resistance 5.',
+        energyResistance: [{ type: 'cold', amount: 5 }, { type: 'electricity', amount: 5 }] },
       { id: 'fetchling-skilled', name: 'Skilled', desc: '+2 racial bonus on Knowledge (planes) and Stealth checks.', effects: [{ target: 'skill:know-planes', type: 'racial', value: 2, note: 'Skilled (Fetchling)' }, { target: 'skill:stealth', type: 'racial', value: 2, note: 'Skilled (Fetchling)' }] },
       { id: 'fetchling-blend', name: 'Shadow Blending', desc: 'In dim light, attacks against you have a 50% miss chance instead of 20%.' },
       { id: 'fetchling-sla', name: 'Spell-Like Ability', desc: 'Use disguise self once per day (shadow walk and plane shift at higher levels).' },
@@ -114,7 +116,7 @@ export const FEATURED_RACES: RaceDef[] = [
     size: 'medium', speed: 30, abilityMods: { dex: 2, cha: 2, wis: -2 },
     traits: [
       { id: 'ifrit-darkvision', name: 'Darkvision', desc: 'See in the dark up to 60 feet.' },
-      { id: 'ifrit-resist', name: 'Fire Resistance', desc: 'Fire resistance 5.' },
+      { id: 'ifrit-resist', name: 'Fire Resistance', desc: 'Fire resistance 5.', energyResistance: [{ type: 'fire', amount: 5 }] },
       { id: 'ifrit-sla', name: 'Spell-Like Ability', desc: 'Use burning hands once per day (DC 11 + Cha modifier).' },
       { id: 'ifrit-affinity', name: 'Fire Affinity', desc: 'Fire-bloodline sorcerers treat Charisma as 2 higher; Fire-domain clerics gain +1 caster level.' },
     ],
@@ -157,7 +159,7 @@ export const FEATURED_RACES: RaceDef[] = [
     traits: [
       { id: 'oread-darkvision', name: 'Darkvision', desc: 'See in the dark up to 60 feet.' },
       { id: 'oread-slow', name: 'Slow and Steady', desc: 'Base speed 20 ft, never modified by armor or encumbrance.' },
-      { id: 'oread-resist', name: 'Acid Resistance', desc: 'Acid resistance 5.' },
+      { id: 'oread-resist', name: 'Acid Resistance', desc: 'Acid resistance 5.', energyResistance: [{ type: 'acid', amount: 5 }] },
       { id: 'oread-sla', name: 'Spell-Like Ability', desc: 'Use magic stone once per day.' },
       { id: 'oread-affinity', name: 'Earth Affinity', desc: 'Earth-bloodline sorcerers treat Charisma as 2 higher; Earth-domain clerics gain +1 caster level.' },
     ],
@@ -185,7 +187,7 @@ export const FEATURED_RACES: RaceDef[] = [
     size: 'medium', speed: 30, abilityMods: { dex: 2, int: 2, con: -2 },
     traits: [
       { id: 'sylph-darkvision', name: 'Darkvision', desc: 'See in the dark up to 60 feet.' },
-      { id: 'sylph-resist', name: 'Electricity Resistance', desc: 'Electricity resistance 5.' },
+      { id: 'sylph-resist', name: 'Electricity Resistance', desc: 'Electricity resistance 5.', energyResistance: [{ type: 'electricity', amount: 5 }] },
       { id: 'sylph-sla', name: 'Spell-Like Ability', desc: 'Use feather fall once per day.' },
       { id: 'sylph-affinity', name: 'Air Affinity', desc: 'Air-bloodline sorcerers treat Charisma as 2 higher; Air-domain clerics gain +1 caster level.' },
     ],
@@ -214,7 +216,8 @@ export const FEATURED_RACES: RaceDef[] = [
     size: 'medium', speed: 30, abilityMods: { dex: 2, int: 2, cha: -2 },
     traits: [
       { id: 'tiefling-darkvision', name: 'Darkvision', desc: 'See in the dark up to 60 feet.' },
-      { id: 'tiefling-resist', name: 'Fiendish Resistance', desc: 'Cold, electricity, and fire resistance 5.' },
+      { id: 'tiefling-resist', name: 'Fiendish Resistance', desc: 'Cold, electricity, and fire resistance 5.',
+        energyResistance: [{ type: 'cold', amount: 5 }, { type: 'electricity', amount: 5 }, { type: 'fire', amount: 5 }] },
       { id: 'tiefling-skilled', name: 'Skilled', desc: '+2 racial bonus on Bluff and Stealth checks.', effects: [{ target: 'skill:bluff', type: 'racial', value: 2, note: 'Skilled (Tiefling)' }, { target: 'skill:stealth', type: 'racial', value: 2, note: 'Skilled (Tiefling)' }] },
       { id: 'tiefling-sla', name: 'Spell-Like Ability', desc: 'Use darkness once per day.' },
       { id: 'tiefling-sorcery', name: 'Fiendish Sorcery', desc: 'Abyssal or Infernal bloodline sorcerers treat Charisma as 2 higher.' },
@@ -230,7 +233,7 @@ export const FEATURED_RACES: RaceDef[] = [
     traits: [
       { id: 'undine-darkvision', name: 'Darkvision', desc: 'See in the dark up to 60 feet.' },
       { id: 'undine-swim', name: 'Amphibious & Swim', desc: 'A 30-ft swim speed and the ability to breathe water; Swim is always a class skill.' },
-      { id: 'undine-resist', name: 'Cold Resistance', desc: 'Cold resistance 5.' },
+      { id: 'undine-resist', name: 'Cold Resistance', desc: 'Cold resistance 5.', energyResistance: [{ type: 'cold', amount: 5 }] },
       { id: 'undine-sla', name: 'Spell-Like Ability', desc: 'Use hydraulic push once per day.' },
       { id: 'undine-affinity', name: 'Water Affinity', desc: 'Water-bloodline sorcerers treat Charisma as 2 higher; Water-domain clerics gain +1 caster level.' },
     ],

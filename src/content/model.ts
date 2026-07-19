@@ -1,4 +1,4 @@
-import type { Ability, Alignment, Effect, Predicate } from '../engine/types';
+import type { Ability, Alignment, DamageReduction, EnergyResistance, EnergyType, Effect, Predicate } from '../engine/types';
 import type { BabProgression, CasterProgression, SpellTable } from '../engine/progression';
 
 export interface RacialTraitDef {
@@ -15,6 +15,9 @@ export interface RacialTraitDef {
    *  already has martial proficiency. Living on the trait (not the race) means an alternate
    *  trait that replaces Weapon Familiarity correctly takes the proficiency away with it. */
   weaponFamiliarity?: { proficient?: string[]; martial?: string[] };
+  /** Racial energy resistance (aasimar, tiefling, the elemental-blooded races). Structured so the
+   *  play sheet can subtract it, rather than only describing it. */
+  energyResistance?: { type: EnergyType; amount: number }[];
 }
 
 export interface AltTraitDef extends RacialTraitDef {
@@ -243,7 +246,13 @@ export interface DeityDef {
  *  `at(casterLevel)` is a function rather than a table because the scaling rules genuinely differ:
  *  "+1 per three levels, max +3" and "+2, plus 1 per six levels, max +5" have no common shape. */
 export interface SpellBuffDef {
-  at(casterLevel: number): { effects: Effect[]; rounds: number };
+  at(casterLevel: number): {
+    effects: Effect[];
+    rounds: number;
+    /** Damage reduction / energy resistance the spell grants, which are not stat bonuses. */
+    dr?: DamageReduction[];
+    resistances?: EnergyResistance[];
+  };
   /** How the spell scales, in words, for the play sheet's cast button. */
   scaling: string;
   /** Parts of the spell the engine does not compute — an extra attack, temporary hit points —

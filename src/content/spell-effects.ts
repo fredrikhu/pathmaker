@@ -150,6 +150,18 @@ export const SPELL_BUFFS: Record<string, SpellBuffDef> = {
     }),
   },
 
+  // Not a stat bonus at all: stoneskin reduces incoming damage, so it rides `dr` rather than
+  // `effects`. Its discharge (10 points prevented per caster level) is not tracked — see caveat.
+  stoneskin: {
+    scaling: 'DR 10/adamantine, for 10 minutes per caster level',
+    caveat: 'Discharges once it has prevented 10 points of damage per caster level (max 150) — the sheet does not count that down for you.',
+    at: (cl) => ({
+      rounds: cl * 10 * MINUTE,
+      effects: [],
+      dr: [{ amount: 10, bypass: 'adamantine', note: 'Stoneskin' }],
+    }),
+  },
+
   aid: {
     scaling: '+1 morale on attacks, plus 1d8 + caster level temporary HP, for 1 minute per caster level',
     caveat: 'Roll the temporary hit points and enter them in the HP tracker.',

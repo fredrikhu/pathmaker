@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { loadCharacter } from '../storage/store';
 import { newCharacter } from '../engine/character';
-import { emptyPlayState, normalizePlayState, fmtMod, type PlayState, type Timer } from '../engine/types';
+import { emptyPlayState, normalizePlayState, fmtMod, type DamageKind, type PlayState, type Timer } from '../engine/types';
 import {
   advanceTime, nextRound, startEncounter, endEncounter, addTimer, removeTimer, rest as restPlay,
   durationLabel, ROUNDS_PER_MINUTE, ROUNDS_PER_HOUR,
 } from '../engine/clock';
 import { consume, unconsume, spendCharges, restoreCharges, restock } from '../engine/inventory';
 import { rollAttack, rollDamage, rollSave, threatRange } from '../engine/dice';
+import { applyDamage, bypassOptions, ENERGY_TYPES } from '../engine/damage';
 import { spellBuffTimer, spellDamageAt } from '../engine/buffs';
 import { CONDITIONS, conditionById, SPELLS, spellById, classById, skillById } from '../content/index';
 import { useCharacter } from './useCharacter';
@@ -99,6 +100,23 @@ export function PlaySheet({ id }: { id: string }) {
       total: r.total,
       ...(r.success === true ? { outcome: 'success' as const } : r.success === false ? { outcome: 'failure' as const } : {}),
     });
+  };
+
+  // ---- Typed damage ----
+  // The engine decides what a hit is reduced to; this only says what arrived and records the result.
+  const [incomingAmount, setIncomingAmount] = useState('');
+  const [incomingKind, setIncomingKind] = useState<DamageKind>('physical');
+  const [bypassed, setBypassed] = useState<Record<string, boolean>>({});
+  const bypassChoices = bypassOptions(sheet.defenses);
+  const takeTypedDamage = () => {
+    const n = Number(incomingAmount);
+    if (!Number.isFinite(n) || n <= 0) return;
+    const r = applyDamage(n, incomingKind, sheet.defenses, {
+      bypassed: bypassChoices.filter((b) => bypassed[b]),
+    });
+    damage(r.applied);
+    log({ source: 'Damage taken', detail: r.explain, total: r.applied });
+    setIncomingAmount('');
   };
 
   const maxHp = sheet.stats['hp:max']?.total ?? 0;
@@ -352,6 +370,48 @@ export function PlaySheet({ id }: { id: string }) {
             <button className="btn btn-secondary" style={{ fontSize: 12 }} onClick={() => damage(-1)}>+1</button>
             <button className="btn btn-secondary" style={{ fontSize: 12 }} onClick={() => damage(-5)}>+5</button>
             <button className="btn btn-ghost" style={{ fontSize: 11 }} onClick={() => setPlay({ hpDamage: 0 })}>full</button>
+          </div>
+
+          {/* Typed damage. The quick −5/−1 buttons stay for the common case; this is the entry that
+              knows what hit you, so damage reduction and energy resistance can apply themselves. */}
+          <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid rgba(233,233,237,.07)' }}>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+              <input className="input" style={{ width: 58, padding: '3px 5px', textAlign: 'center', fontSize: 12 }} type="number" min={0}
+                placeholder="dmg" value={incomingAmount} onChange={(e) => setIncomingAmount(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') takeTypedDamage(); }} />
+              <select className="input" style={{ fontSize: 12, padding: '3px 5px' }} value={incomingKind}
+                onChange={(e) => setIncomingKind(e.target.value as DamageKind)}>
+                <option value="physical">physical</option>
+                {ENERGY_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+                <option value="untyped">untyped / spell</option>
+              </select>
+              <button className="btn btn-secondary" style={{ fontSize: 12 }} onClick={takeTypedDamage}>Take</button>
+              {/* Only the player knows what struck them, so a bypass is declared rather than derived. */}
+              {bypassChoices.map((b) => {
+                const on = !!bypassed[b];
+                return (
+                  <button key={b} onClick={() => setBypassed((p) => ({ ...p, [b]: !p[b] }))}
+                    title={`The attack was ${b}, so it gets past that DR`}
+                    style={{
+                      fontSize: 10.5, padding: '2px 7px', borderRadius: 999, cursor: 'pointer', fontFamily: 'inherit',
+                      border: `1px solid ${on ? 'var(--color-accent)' : 'var(--color-divider)'}`,
+                      background: on ? 'rgba(145,132,217,.14)' : 'transparent',
+                      color: on ? 'var(--color-text)' : 'var(--color-neutral-500)',
+                    }}>
+                    {on ? '✓ ' : ''}{b}
+                  </button>
+                );
+              })}
+            </div>
+            {(sheet.defenses.dr.length > 0 || sheet.defenses.resistances.length > 0) ? (
+              <div className="text-muted" style={{ fontSize: 11, marginTop: 7 }}>
+                {sheet.defenses.dr.map((d) => `DR ${d.amount}/${d.bypass} (${d.note})`)
+                  .concat(sheet.defenses.resistances.map((r) => `resist ${r.type} ${r.amount} (${r.note})`))
+                  .join(' · ')}
+              </div>
+            ) : (
+              <div className="text-muted" style={{ fontSize: 11, marginTop: 7 }}>No damage reduction or resistance — typed damage applies in full.</div>
+            )}
           </div>
           <div style={{ display: 'flex', gap: 14, marginTop: 12, fontSize: 12, alignItems: 'center', flexWrap: 'wrap' }}>
             <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>

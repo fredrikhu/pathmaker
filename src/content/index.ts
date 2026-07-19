@@ -2,6 +2,7 @@ export * from './model';
 export { SKILLS, skillById } from './skills';
 export { RACES, raceById } from './races';
 export { CLASSES, classById } from './classes';
+export { CLASS_PROGRESSION } from './class-features';
 export { FEATS, featById, FIREARM_GROUP_ID } from './feats';
 export { TRAITS, traitById } from './traits';
 export { WEAPONS, ARMORS, GEAR, weaponById, armorById, gearById, anyItemById } from './equipment';

@@ -20,6 +20,9 @@ export interface ClassProgression {
   grantedFeats?: { level: number; feat: string; note?: string }[];
   /** Per-level subsystem picks, merged after the class's level-1 choices. */
   choices?: ClassChoiceDef[];
+  /** Class damage reduction. The amount is simply how many of `levels` the character has reached
+   *  — every one of these classes grants DR 1 and raises it by 1 at each later listed level. */
+  damageReduction?: { levels: number[]; bypass: string };
 }
 
 const f = (level: number, id: string, name: string, desc: string, extra?: Partial<LeveledFeatureDef>): LeveledFeatureDef =>
@@ -28,6 +31,7 @@ const f = (level: number, id: string, name: string, desc: string, extra?: Partia
 export const CLASS_PROGRESSION: Record<string, ClassProgression> = {
   // ---------------------------------------------------------------- Core martials
   barbarian: {
+    damageReduction: { levels: [7, 10, 13, 16, 19], bypass: '—' },
     features: [
       f(1, 'barb-rage', 'Rage', 'Rage 4 + Con-mod rounds/day (+2 per level after 1st): +4 morale to Str and Con, +2 morale on Will, −2 AC.'),
       f(1, 'barb-fast-movement', 'Fast Movement', '+10 ft to base land speed.'),
@@ -382,6 +386,7 @@ export const CLASS_PROGRESSION: Record<string, ClassProgression> = {
     choices: [{ id: 'exploit', label: 'Arcanist exploit', kind: 'list', count: 1, levels: [3, 5, 7, 9, 11, 13, 15, 17, 19], options: ARCANIST_EXPLOITS }],
   },
   bloodrager: {
+    damageReduction: { levels: [7, 10, 13, 16, 19], bypass: '—' },
     bonusFeats: { levels: [6, 9, 12, 15, 18], label: 'Bloodline feat' },
     features: [
       f(1, 'br-bloodline', 'Bloodline', 'A bloodline grants powers at 1st, 4th, 8th, 12th, 16th, 20th and bonus spells.'),
@@ -492,6 +497,7 @@ export const CLASS_PROGRESSION: Record<string, ClassProgression> = {
     choices: [{ id: 'shaman-hex', label: 'Hex', kind: 'list', count: 1, levels: [2, 4, 8, 10, 12, 16, 18, 20], options: WITCH_HEXES }],
   },
   skald: {
+    damageReduction: { levels: [9, 14, 19], bypass: '—' },
     features: [
       f(1, 'skald-knowledge', 'Bardic Knowledge', 'Add half level to all Knowledge checks and use them untrained.'),
       f(1, 'skald-cantrips', 'Cantrips', 'Cast 0-level skald spells at will.'),

@@ -471,3 +471,42 @@ describe('equipment', () => {
     }
   });
 });
+
+describe('damage reduction and energy resistance data', () => {
+  const ENERGY = new Set(['acid', 'cold', 'electricity', 'fire', 'sonic']);
+
+  it('every racial energy resistance names a real energy type and a positive amount', () => {
+    let found = 0;
+    for (const r of C.RACES) {
+      for (const t of [...r.traits, ...r.altTraits]) {
+        for (const er of t.energyResistance ?? []) {
+          found++;
+          expect(ENERGY.has(er.type), `${r.id}/${t.id}: "${er.type}"`).toBe(true);
+          expect(er.amount, `${r.id}/${t.id}`).toBeGreaterThan(0);
+        }
+      }
+    }
+    expect(found).toBeGreaterThan(0);
+  });
+
+  it('a trait that describes resistance in prose also carries it as data', () => {
+    // The prose came first and the structure second, so this guards the pair drifting apart.
+    for (const r of C.RACES) {
+      for (const t of [...r.traits, ...r.altTraits]) {
+        if (!/resistance \d|resistance 5|resist \w+ \d/i.test(t.desc)) continue;
+        expect(t.energyResistance?.length, `${r.id}/${t.id} describes resistance but carries none`).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  it('class damage reduction lists levels in range and in order', () => {
+    for (const [id, prog] of Object.entries(C.CLASS_PROGRESSION)) {
+      const dr = prog.damageReduction;
+      if (!dr) continue;
+      expect(dr.levels.length, id).toBeGreaterThan(0);
+      expect(dr.bypass, id).toBeTruthy();
+      for (const l of dr.levels) expect(l >= 1 && l <= 20, `${id}: level ${l}`).toBe(true);
+      expect([...dr.levels].sort((a, b) => a - b), id).toEqual(dr.levels);
+    }
+  });
+});
