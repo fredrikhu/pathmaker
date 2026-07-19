@@ -1,4 +1,5 @@
 import type { SpellDef } from './model';
+import { SPELL_BUFFS, SPELL_DAMAGE } from './spell-effects';
 
 // Level 0-1 spells across the arcane/divine/druid/bard lists. Enough to exercise the
 // spells step (filtering, opposition markers, spellbook picks) for the elf-wizard seed.
@@ -176,5 +177,14 @@ export const SPELLS: SpellDef[] = [
   { id: 'storm-of-vengeance', name: 'Storm of Vengeance', level: 9, school: 'Conjuration', lists: ['divine', 'druid'], summary: 'A devastating multi-round storm.', cast: '1 round', comp: 'V, S', range: 'Long', dur: 'Concentration, up to 10 rounds', save: 'See text', desc: 'A towering storm deafens, then rains acid, lightning, hail, and wind over several rounds.' },
   { id: 'true-resurrection', name: 'True Resurrection', level: 9, school: 'Conjuration', lists: ['divine'], summary: 'Restore the dead even without remains.', cast: '10 minutes', comp: 'V, S, M', range: 'Touch', dur: 'Instantaneous', save: 'None', desc: 'You restore life and full health to a creature dead up to 10 years per level, even with no body.' },
 ];
+
+// Structured effects live beside the prose rather than inline, so this table stays readable and the
+// verified scaling clauses sit together in one file. Attached here so every consumer sees them.
+for (const s of SPELLS) {
+  const buff = SPELL_BUFFS[s.id];
+  if (buff) s.buff = buff;
+  const damage = SPELL_DAMAGE[s.id];
+  if (damage) s.damage = damage;
+}
 
 export const spellById = new Map(SPELLS.map((s) => [s.id, s]));

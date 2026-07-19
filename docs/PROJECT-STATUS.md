@@ -6,7 +6,7 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 
 ## ▶ Resume here (last session end)
 
-**All five roadmap phases are done and committed** (branch `master`, working tree clean, 362 tests
+**All five roadmap phases are done and committed** (branch `master`, working tree clean, 398 tests
 passing; run `npx tsc --noEmit && npx vitest run && npm run build` to confirm). Pathmaker covers the
 full arc: build a character 1–20, play it at the table (HP, spells, pools, conditions), run the clock
 (rounds, timed effects, rest), and track consumables/charges/encumbrance live.
@@ -544,6 +544,38 @@ item weight for coins, and per-arrow ammunition.
     attack lines must include the mode** — the play sheet's React key does.
   - Weapons that are already ranged (javelin, dart, shuriken, bola) keep their single line; throwing
     is their only mode.
+- **Spell effects on the play sheet, and dice rolling: done.**
+  - **Running buffs are real numbers now.** A `Timer` gained `effects: Effect[]`, resolved at cast
+    time from the caster level and stored as plain data, and `resolve()` folds running timers into
+    the same typed-stacking pipeline as conditions. Casting Divine Favor at CL 6 moves the attack
+    line from +3 to +5 and its damage from 1d8+3 to 1d8+5; letting the minute run out puts them back.
+    Nothing new was needed in the stacking rules — two Divine Favors take the higher (both luck),
+    Bless and Divine Favor stack (morale vs luck), Mage Armor and Shield stack (armor vs shield).
+  - **`damage:weapon` is a new effect target**, because weapon damage had none: it is per-weapon,
+    not a printed stat. It rides every attack line's damage with its own breakdown row. This also
+    fixed **Sickened**, whose −2 to weapon damage had been prose the engine never applied.
+  - **`skill:all`** was added alongside the existing `save:all`, for Prayer.
+  - **12 buff spells authored** (`spell-effects.ts`), each scaling clause read from its own spell
+    page: divine favor, bless, prayer, aid, shield of faith, mage armor, shield, barkskin, haste,
+    expeditious retreat. Spells whose effect is a miss chance, an area, or target-dependent stay
+    prose — the engine cannot total them honestly. Bless's fear-only save bonus is an
+    **annotation**, not a total, which is the same line drawn everywhere else.
+  - **`SpellBuffDef.at(casterLevel)` is a function, not a table**, because the scaling genuinely
+    differs in shape: "+1 per three levels, max +3" and "+2, plus 1 per six, max +5" share nothing.
+  - **Dice live in `src/engine/dice.ts`** — pure functions over an injected `Rng`, so rolling is
+    testable with scripted dice and `resolve()` stays completely deterministic. Attack rolls read
+    the weapon's threat range from its crit string; damage parses the sheet's own damage strings
+    (including a double weapon's `1d6/1d6`, which rolls one end) and never deals less than 1.
+  - **~30 damaging spells carry rollable formulas**, capped where the spell caps: fireball at 10d6,
+    burning hands at 5d4, magic missile growing in *missiles* rather than dice. Healing is labelled
+    as healing rather than damage.
+  - **The roll log is session-only React state**, deliberately not persisted: a roll is a moment,
+    and a log restored from a session three days ago would be noise.
+  - Casting a buff works from two places — the prepared-spell `cast` button (which also spends the
+    casting) and a picker in Running effects, which is the only route a **spontaneous** caster has,
+    since their casting is an anonymous pip with no spell identity.
+  - Not modelled: expending the slot from the picker (it says so), Haste's extra attack and its
+    twice-normal-speed cap, and Aid's temporary hit points (rollable, but entered by hand).
 - **Power Attack & two-weapon fighting: done** (`src/engine/combat.ts`, numbers verified against both
   feat pages). These are **declared per attack**, not passive, so they live in play state
   (`PlayState.powerAttack` / `twoWeapon`) as play-sheet toggles and are folded in **only while on** —

@@ -7,6 +7,8 @@ import {
   durationLabel, ROUNDS_PER_MINUTE, ROUNDS_PER_HOUR,
 } from '../engine/clock';
 import { consume, unconsume, spendCharges, restoreCharges, restock } from '../engine/inventory';
+import { rollAttack, rollDamage, threatRange } from '../engine/dice';
+import { spellBuffTimer, spellDamageAt } from '../engine/buffs';
 import { CONDITIONS, conditionById, SPELLS, spellById, classById, skillById } from '../content/index';
 import { useCharacter } from './useCharacter';
 import { useTip } from './Tooltip';
@@ -14,6 +16,20 @@ import { navigate } from './App';
 
 const SPELL_LEVEL = (l: number) => (l === 0 ? '0' : String(l));
 const attackLabel = (bonuses: number[]) => bonuses.map(fmtMod).join('/');
+
+/** One entry in the roll log. Deliberately session-only React state, never persisted: a roll is a
+ *  moment, and a log restored from last week's session would be noise on the sheet. */
+interface LoggedRoll {
+  key: number;
+  /** "Longsword attack", "Fireball damage". */
+  source: string;
+  /** "d20 14 +7", "1d8+4" — the arithmetic, so the reader can check it. */
+  detail: string;
+  total: number;
+  /** Natural 20 / natural 1 on an attack, for the colour. */
+  outcome?: 'threat' | 'fumble';
+}
+const ROLL_LOG_LIMIT = 12;
 
 export function PlaySheet({ id }: { id: string }) {
   const initial = loadCharacter(id) ?? newCharacter(id);
@@ -37,6 +53,29 @@ export function PlaySheet({ id }: { id: string }) {
   /** Apply a pure clock action (engine does the arithmetic; this just stores the result). */
   const applyClock = (fn: (p: PlayState) => PlayState) =>
     ch.patch((d) => ({ ...d, play: fn(normalizePlayState(d.play)) }));
+
+  // ---- Dice ----
+  // The engine rolls (pure functions over an injected rng); this only records what came back.
+  const [rolls, setRolls] = useState<LoggedRoll[]>([]);
+  const log = (entry: Omit<LoggedRoll, 'key'>) =>
+    setRolls((prev) => [{ ...entry, key: Date.now() + Math.random() }, ...prev].slice(0, ROLL_LOG_LIMIT));
+
+  const rollAttackLine = (name: string, bonus: number, crit: string) => {
+    const r = rollAttack(bonus, threatRange(crit));
+    log({
+      source: `${name} attack`,
+      detail: `d20 ${r.natural} ${fmtMod(r.bonus)}`,
+      total: r.total,
+      ...(r.threat ? { outcome: 'threat' as const } : r.fumble ? { outcome: 'fumble' as const } : {}),
+    });
+  };
+  /** Roll a damage formula; falls back to showing the text when it is not a plain formula. */
+  const rollDamageFor = (source: string, formula: string) => {
+    const r = rollDamage(formula);
+    if (!r) { log({ source, detail: `${formula} — not a rollable formula`, total: 0 }); return; }
+    const dice = r.dice.join(' + ');
+    log({ source, detail: `${r.formula} → ${dice}${r.modifier ? ` ${fmtMod(r.modifier)}` : ''}`, total: r.total });
+  };
 
   const maxHp = sheet.stats['hp:max']?.total ?? 0;
   const currentHp = maxHp - play.hpDamage;
@@ -119,6 +158,31 @@ export function PlaySheet({ id }: { id: string }) {
     setTimerLabel(''); setTimerAmount(1); setTimerCondition('');
   };
 
+  // ---- Casting a buff ----
+  // A spell's list decides which of a multiclass caster's caster levels applies, so the picker
+  // offers only spells this character can actually cast, at the caster level that casts them.
+  const castingLists = sheet.casting.map((b) => ({
+    list: classById.get(b.classId)?.spellcasting?.list,
+    casterLevel: b.casterLevel,
+  }));
+  const casterLevelFor = (spellId: string): number | null => {
+    const sp = spellById.get(spellId);
+    if (!sp) return null;
+    const levels = castingLists.filter((c) => c.list && sp.lists.includes(c.list as never)).map((c) => c.casterLevel);
+    return levels.length ? Math.max(...levels) : null;
+  };
+  const buffSpells = SPELLS.filter((s) => s.buff && casterLevelFor(s.id) !== null);
+  const [buffPick, setBuffPick] = useState('');
+
+  /** Start a spell's running effect. The engine resolves the scaling; this only stores the timer. */
+  const castBuff = (spellId: string) => {
+    const sp = spellById.get(spellId);
+    const cl = casterLevelFor(spellId);
+    if (!sp || cl === null) return;
+    const timer = spellBuffTimer(sp, cl, `t${Date.now()}${Math.random().toString(36).slice(2, 6)}`);
+    if (timer) applyClock((p) => addTimer(p, timer));
+  };
+
   /** Shortest remaining timer driving a condition, for the badge on its chip. */
   const timerFor = (conditionId: string): Timer | undefined =>
     play.timers.filter((t) => t.conditionId === conditionId).sort((a, b) => a.remaining - b.remaining)[0];
@@ -185,16 +249,27 @@ export function PlaySheet({ id }: { id: string }) {
             <p className="text-muted" style={{ fontSize: 11.5, margin: '0 0 10px' }}>Nothing running. Add a buff or a timed condition below — it counts down as rounds and time pass.</p>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
-              {play.timers.map((t) => (
-                <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12.5 }}>
-                  <span style={{ minWidth: 170, fontWeight: 500 }}>{t.label}</span>
-                  <span className="num" style={{ color: t.remaining <= 3 ? 'var(--warn-fg)' : 'var(--color-accent-300)', minWidth: 90 }}>{durationLabel(t.remaining)}</span>
-                  {t.conditionId && <span className="tag tag-neutral" style={{ fontSize: 10 }}>{conditionById.get(t.conditionId)?.name}</span>}
-                  <span style={{ flex: 1 }} />
-                  <button className="btn btn-ghost" style={{ fontSize: 11 }} title="Cancel this countdown (leaves any condition set)"
-                    onClick={() => applyClock((p) => removeTimer(p, t.id))}>✕</button>
-                </div>
-              ))}
+              {play.timers.map((t) => {
+                // A spell buff carries its resolved effects, so the chip can say what it is doing
+                // to the sheet instead of just counting down.
+                const caveat = t.spellId ? spellById.get(t.spellId)?.buff?.caveat : undefined;
+                return (
+                  <div key={t.id} style={{ display: 'flex', alignItems: 'baseline', gap: 10, fontSize: 12.5, flexWrap: 'wrap' }}>
+                    <span style={{ minWidth: 170, fontWeight: 500 }}>{t.label}</span>
+                    <span className="num" style={{ color: t.remaining <= 3 ? 'var(--warn-fg)' : 'var(--color-accent-300)', minWidth: 90 }}>{durationLabel(t.remaining)}</span>
+                    {t.conditionId && <span className="tag tag-neutral" style={{ fontSize: 10 }}>{conditionById.get(t.conditionId)?.name}</span>}
+                    {t.effects?.length ? (
+                      <span className="text-muted" style={{ fontSize: 11 }}>
+                        {t.effects.map((e) => `${fmtMod(e.value)} ${e.target.replace('attack:', '').replace('damage:weapon', 'weapon damage').replace('save:all', 'saves').replace('skill:all', 'skills').replace('save:ref', 'Reflex')}${e.condition ? ` ${e.condition}` : ''}`).join(' · ')}
+                      </span>
+                    ) : null}
+                    <span style={{ flex: 1 }} />
+                    <button className="btn btn-ghost" style={{ fontSize: 11 }} title="Cancel this countdown (leaves any condition set)"
+                      onClick={() => applyClock((p) => removeTimer(p, t.id))}>✕</button>
+                    {caveat && <div className="text-muted" style={{ fontSize: 11, width: '100%', marginTop: -2 }}>{caveat}</div>}
+                  </div>
+                );
+              })}
             </div>
           )}
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -214,6 +289,21 @@ export function PlaySheet({ id }: { id: string }) {
             </select>
             <button className="btn btn-secondary" style={{ fontSize: 12 }} onClick={submitTimer}>Start timer</button>
           </div>
+          {/* Casting a buff spell: the engine works out the bonus and the duration from your caster
+              level, and the effect flows into every number on the sheet until it runs out. */}
+          {buffSpells.length > 0 && (
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginTop: 8 }}>
+              <span className="text-muted" style={{ fontSize: 11.5 }}>Cast a spell with a running effect</span>
+              <select className="input" style={{ fontSize: 12, padding: '4px 7px', minWidth: 200 }} value={buffPick}
+                onChange={(e) => setBuffPick(e.target.value)}>
+                <option value="">— choose a spell —</option>
+                {buffSpells.map((s) => <option key={s.id} value={s.id}>{s.name} (CL {casterLevelFor(s.id)}) — {s.buff!.scaling}</option>)}
+              </select>
+              <button className="btn btn-secondary" style={{ fontSize: 12 }} disabled={!buffPick}
+                onClick={() => { castBuff(buffPick); setBuffPick(''); }}>Cast</button>
+              <span className="text-muted" style={{ fontSize: 11 }}>expending the slot is still up to you, below</span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -321,9 +411,38 @@ export function PlaySheet({ id }: { id: string }) {
                   {atk.properties?.map((p) => (
                     <span key={p} className="tag tag-neutral" style={{ fontSize: 10 }}>{p}</span>
                   ))}
+                  <span style={{ flex: 1 }} />
+                  {/* Rolling must not also open the breakdown card, hence stopPropagation. */}
+                  <RollButton label="d20" title={`Roll to hit at ${fmtMod(atk.bonuses[0])}`}
+                    onRoll={() => rollAttackLine(atk.name, atk.bonuses[0], atk.crit)} />
+                  <RollButton label="dmg" title={`Roll ${atk.damage}`}
+                    onRoll={() => rollDamageFor(`${atk.name} damage`, atk.damage)} />
                 </div>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {/* Roll log */}
+      {rolls.length > 0 && (
+        <div style={{ background: 'var(--color-surface)', borderRadius: 12, padding: 18, marginTop: 18 }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 10, flexWrap: 'wrap' }}>
+            <div className="micro">Rolls</div>
+            <span className="text-muted" style={{ fontSize: 11.5 }}>most recent first · this session only, not saved with the character</span>
+            <span style={{ flex: 1 }} />
+            <button className="btn btn-ghost" style={{ fontSize: 11 }} onClick={() => setRolls([])}>clear</button>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {rolls.map((r) => (
+              <div key={r.key} style={{ display: 'flex', alignItems: 'baseline', gap: 10, fontSize: 12.5 }}>
+                <span style={{ minWidth: 190 }}>{r.source}</span>
+                <span className="text-muted num" style={{ fontSize: 11.5, flex: 1 }}>{r.detail}</span>
+                {r.outcome === 'threat' && <span className="tag" style={{ fontSize: 10, color: 'var(--color-accent-300)' }}>threat</span>}
+                {r.outcome === 'fumble' && <span className="tag" style={{ fontSize: 10, color: 'var(--err)' }}>natural 1</span>}
+                <span className="num" style={{ fontSize: 16, fontWeight: 700, minWidth: 34, textAlign: 'right' }}>{r.total}</span>
+              </div>
+            ))}
           </div>
         </div>
       )}
@@ -562,6 +681,8 @@ export function PlaySheet({ id }: { id: string }) {
                         {Array.from({ length: prepCount }).map((_, i) => {
                           const casted = !splitPool && cast.has(i);
                           const filled = !!prep[i];
+                          const sp = prep[i] ? spellById.get(prep[i]!) : undefined;
+                          const dmg = sp ? spellDamageAt(sp, block.casterLevel) : null;
                           return (
                             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                               <select className="input" style={{ flex: 1, padding: '4px 6px', fontSize: 12, opacity: casted ? 0.5 : 1, textDecoration: casted ? 'line-through' : 'none' }}
@@ -569,9 +690,20 @@ export function PlaySheet({ id }: { id: string }) {
                                 <option value="">— empty —</option>
                                 {pool.map((sp) => <option key={sp.id} value={sp.id}>{sp.name}</option>)}
                               </select>
+                              {dmg && (
+                                <RollButton label={dmg.formula} title={`Roll ${dmg.formula} ${dmg.label}${dmg.note ? ` — ${dmg.note}` : ''}`}
+                                  onRoll={() => rollDamageFor(`${sp!.name} ${dmg.label}${dmg.note ? ` (${dmg.note})` : ''}`, dmg.formula)} />
+                              )}
                               {!splitPool && (
                                 <button className="btn btn-ghost" style={{ fontSize: 11, flex: 'none', color: casted ? 'var(--color-accent-300)' : undefined }}
-                                  disabled={!filled} title={casted ? 'restore' : 'mark cast'} onClick={() => toggleCast(cls, level, i)}>
+                                  disabled={!filled}
+                                  title={casted ? 'restore' : sp?.buff ? 'mark cast and start its running effect' : 'mark cast'}
+                                  onClick={() => {
+                                    // Casting a buff spell starts its running effect as well as
+                                    // spending the casting — the two always happen together.
+                                    if (!casted && sp?.buff) castBuff(sp.id);
+                                    toggleCast(cls, level, i);
+                                  }}>
                                   {casted ? '↺' : 'cast'}
                                 </button>
                               )}
@@ -599,6 +731,22 @@ export function PlaySheet({ id }: { id: string }) {
 
 /** A declared combat option (Power Attack, two-weapon fighting): a pressed-in toggle whose
  *  state is part of play, not the build. Disabled when the character can't take the option. */
+/** A small die button. Rolling sits inside a row that opens a breakdown card on click, so the
+ *  event has to stop there — otherwise every roll also pops a tooltip over the log. */
+function RollButton({ label, title, onRoll }: { label: string; title: string; onRoll: () => void }) {
+  return (
+    <button className="btn btn-ghost" title={title}
+      onClick={(e) => { e.stopPropagation(); onRoll(); }}
+      onMouseEnter={(e) => e.stopPropagation()}
+      style={{
+        fontSize: 11, padding: '2px 8px', borderRadius: 999, flex: 'none',
+        border: '1px solid rgba(233,233,237,.14)', color: 'var(--color-neutral-400)',
+      }}>
+      🎲 {label}
+    </button>
+  );
+}
+
 function OptionToggle({ label, on, disabled, title, onClick }: {
   label: string; on: boolean; disabled: boolean; title: string; onClick: () => void;
 }) {

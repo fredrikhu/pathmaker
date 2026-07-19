@@ -77,6 +77,12 @@ export interface Timer {
   remaining: number;
   /** When set, expiring this timer also clears that condition from `conditions`. */
   conditionId?: string;
+  /** Numeric effects this running buff applies for as long as it lasts. Resolved from the caster
+   *  level at cast time and stored as plain data, so a running spell survives a reload and the
+   *  sheet does not have to re-derive it. Expiring the timer removes them. */
+  effects?: Effect[];
+  /** The spell that started this, when one did — for the caveat shown beside it. */
+  spellId?: string;
 }
 
 /** Session state that changes during play, kept separate from the build `decisions`. */

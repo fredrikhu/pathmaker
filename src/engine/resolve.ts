@@ -263,6 +263,11 @@ function collectEffects(dec: Decisions, doc: CharacterDoc, level: number): Effec
     const c = C.conditionById.get(cid);
     if (c) effects.push(...c.effects);
   }
+  // Running buffs — a cast spell is a timer carrying its resolved effects, so it flows through the
+  // same typed-stacking pipeline as everything else and stops applying the moment the timer expires.
+  for (const t of doc.play?.timers ?? []) {
+    if (t.effects) effects.push(...t.effects);
+  }
   return effects;
 }
 
@@ -602,7 +607,13 @@ export function resolve(doc: CharacterDoc): Resolution {
     { type: 'base', value: mods.dex, note: 'Dex modifier' },
     { type: 'size', value: sizeAcAtk, note: 'Size' },
     ...unconds('attack:ranged'),
-  ]);
+  ], conds('attack:ranged'));
+  // Bonuses and penalties to *weapon damage* — Divine Favor's luck bonus, Sickened's −2. These
+  // ride every attack line's damage rather than a single printed number, because damage is
+  // per-weapon; the stat exists so they stack by type like everything else.
+  stats['damage:weapon'] = makeStat('damage:weapon', 'Weapon damage', [
+    ...unconds('damage:weapon'),
+  ], conds('damage:weapon'));
 
   // ---- Skills ----
   const acp = armorCheckPenalty(doc);
@@ -643,8 +654,9 @@ export function resolve(doc: CharacterDoc): Resolution {
     if (isClass && ranks > 0) contribs.push({ type: 'base', value: 3, note: 'Class skill' });
     if (sk.acp && acp.total < 0) contribs.push({ type: 'penalty', value: acp.total, note: `Armor check penalty (${acp.sources.join(', ')})` });
     if (sk.id === 'stealth' && size === 'small') contribs.push({ type: 'size', value: 4, note: 'Size (Small)' });
-    contribs.push(...unconds(`skill:${sk.id}`));
-    stats[`skill:${sk.id}`] = makeStat(`skill:${sk.id}`, sk.name, contribs, conds(`skill:${sk.id}`));
+    // `skill:all` is the across-the-board bonus (Prayer), mirroring how `save:all` already works.
+    contribs.push(...unconds(`skill:${sk.id}`), ...unconds('skill:all'));
+    stats[`skill:${sk.id}`] = makeStat(`skill:${sk.id}`, sk.name, contribs, [...conds(`skill:${sk.id}`), ...conds('skill:all')]);
   }
   const skillRanksSpent = Object.values(dec.skillRanks).reduce((a, b) => a + b, 0);
 
@@ -1133,7 +1145,9 @@ function weaponAttacks(doc: CharacterDoc, stats: Record<string, Stat>, bab: numb
     } else {
       strDamage = strMod;
     }
-    const dmgMod = strDamage + (fb?.damage ?? 0) + qb.damage + (pa?.damage ?? 0);
+    // Buffs and penalties that hit weapon damage generally (Divine Favor, Sickened) ride here.
+    const dmgStat = stats['damage:weapon'];
+    const dmgMod = strDamage + (fb?.damage ?? 0) + qb.damage + (pa?.damage ?? 0) + (dmgStat?.total ?? 0);
     if (!proficient) {
       notes.push(w.group === 'exotic'
         ? `Not proficient: −4 to attack. ${w.name} is exotic — Exotic Weapon Proficiency removes the penalty.`
@@ -1165,6 +1179,7 @@ function weaponAttacks(doc: CharacterDoc, stats: Record<string, Stat>, bab: numb
       ...(fb?.damageLines ?? []),
       ...(qb.damage ? [{ label: `Enhancement ${qb.label}`, value: qb.damage }] : []),
       ...(pa ? [{ label: `Power Attack${paScale === 'oneAndHalf' ? ' (1½×)' : paScale === 'half' ? ' (½×)' : ''}`, value: pa.damage }] : []),
+      ...(dmgStat?.lines ?? []),
     ];
     lines.push({
       id: w.id, name: thrown ? `${w.name} (thrown)` : w.name, kind, slot, bonuses,

@@ -234,6 +234,33 @@ export interface DeityDef {
   portfolio: string;
 }
 
+/** A spell that puts a running, numeric effect on the caster's own sheet.
+ *
+ *  Only spells whose bonus is unconditional and expressible as a typed bonus carry one. Anything
+ *  that depends on the target ("+2 AC against evil"), grants a miss chance, or changes the shape of
+ *  a roll stays prose — the same line the rest of the engine draws between totals and annotations.
+ *
+ *  `at(casterLevel)` is a function rather than a table because the scaling rules genuinely differ:
+ *  "+1 per three levels, max +3" and "+2, plus 1 per six levels, max +5" have no common shape. */
+export interface SpellBuffDef {
+  at(casterLevel: number): { effects: Effect[]; rounds: number };
+  /** How the spell scales, in words, for the play sheet's cast button. */
+  scaling: string;
+  /** Parts of the spell the engine does not compute — an extra attack, temporary hit points —
+   *  surfaced on the running-effect so the reader is not misled by what the numbers omit. */
+  caveat?: string;
+}
+
+/** Damage a spell deals, as a dice formula at a given caster level ("5d6" for a fireball at CL 5).
+ *  Only spells whose damage is a plain formula carry this; anything conditional stays prose. */
+export interface SpellDamageDef {
+  at(casterLevel: number): string;
+  /** What the roll represents when it is not simply "damage" — "healed", "temporary HP". */
+  label?: string;
+  /** Caster-level detail the formula alone does not carry ("4 missiles", "2 rays"). */
+  note?(casterLevel: number): string;
+}
+
 export interface SpellDef {
   id: string;
   name: string;
@@ -247,6 +274,10 @@ export interface SpellDef {
   dur: string;
   save: string;
   desc: string;
+  /** Present when casting this spell starts a numeric, running effect on the caster. */
+  buff?: SpellBuffDef;
+  /** Present when the spell's damage (or healing) is a rollable formula. */
+  damage?: SpellDamageDef;
 }
 
 export interface SchoolDef {
