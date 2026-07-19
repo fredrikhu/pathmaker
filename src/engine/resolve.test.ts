@@ -1591,6 +1591,74 @@ describe('armour and shield special abilities', () => {
   });
 });
 
+describe('weapon proficiency', () => {
+  /** A level-3 character of `cls`/`race` wielding `weapon`, optionally with feats. */
+  function wielder(cls: string, weapon: string, race = 'human', feats: Record<string, string> = {}, params: Record<string, string> = {}): CharacterDoc {
+    let d = newCharacter('t-prof', 'Tam');
+    d = withDecision(d, 'ability-base', { str: 14, dex: 14, con: 12, int: 12, wis: 12, cha: 10 });
+    d = withDecision(d, 'race', race);
+    d = withDecision(d, 'alignment', 'N');
+    d = withDecision(d, 'class', cls);
+    d = withDecision(d, 'feats', feats);
+    d = withDecision(d, 'feat-params', params);
+    return { ...atLevel(d, 3), equipped: { armor: null, mainHand: weapon, offHand: null } };
+  }
+  const primary = (d: CharacterDoc) => resolve(d).sheet.attacks[0].bonuses[0];
+  const line = (d: CharacterDoc) => resolve(d).sheet.attacks[0];
+
+  it('a proficient weapon takes no penalty', () => {
+    // Fighter 3: BAB +3, Str 14 (+2) = +5 with a martial longsword.
+    expect(primary(wielder('fighter', 'longsword'))).toBe(5);
+  });
+
+  it('costs -4 when the class does not grant the weapon group', () => {
+    // A wizard is proficient with club/dagger/crossbows/quarterstaff only.
+    const wiz = wielder('wizard', 'longsword');
+    expect(primary(wiz)).toBe(primary(wielder('wizard', 'dagger')) - 4 + 0);
+    expect(line(wiz).attackLines.some((b) => b.label === 'Not proficient' && b.value === -4)).toBe(true);
+    expect(line(wiz).notes.join(' ')).toContain('Not proficient');
+  });
+
+  it('applies to exotic weapons even for a fighter with full martial training', () => {
+    const fighter = wielder('fighter', 'bastard-sword');
+    expect(primary(fighter)).toBe(1); // +3 BAB +2 Str −4
+    expect(primary(wielder('fighter', 'longsword'))).toBe(5);
+  });
+
+  it('Exotic Weapon Proficiency removes the penalty for the named weapon only', () => {
+    const feats = { 'feat-1': 'exotic-weapon-proficiency' };
+    const withEwp = wielder('fighter', 'bastard-sword', 'human', feats, { 'feat-1': 'bastard-sword' });
+    expect(primary(withEwp)).toBe(5);
+    // The same feat pointed at a different weapon does not help.
+    const wrongPick = wielder('fighter', 'bastard-sword', 'human', feats, { 'feat-1': 'whip' });
+    expect(primary(wrongPick)).toBe(1);
+  });
+
+  it('a class list naming a specific weapon grants it (monk and the kama)', () => {
+    // The monk's proficiency list names kama/nunchaku/sai/siangham/shuriken directly.
+    expect(line(wielder('monk', 'kama')).attackLines.some((b) => b.label === 'Not proficient')).toBe(false);
+    // …but not other exotic weapons.
+    expect(line(wielder('monk', 'whip')).attackLines.some((b) => b.label === 'Not proficient')).toBe(true);
+  });
+
+  it('racial familiarity reclassifies an exotic weapon as martial', () => {
+    // A dwarf fighter wields the dwarven waraxe without penalty; a human fighter cannot.
+    expect(primary(wielder('fighter', 'dwarven-waraxe', 'dwarf'))).toBe(primary(wielder('fighter', 'dwarven-waraxe', 'human')) + 4);
+    expect(line(wielder('fighter', 'dwarven-waraxe', 'dwarf')).attackLines.some((b) => b.label === 'Not proficient')).toBe(false);
+  });
+
+  it('familiarity-as-martial does not help a class without martial proficiency', () => {
+    // A dwarf wizard still takes −4: "treat as martial" is worthless without martial training.
+    expect(line(wielder('wizard', 'dwarven-waraxe', 'dwarf')).attackLines.some((b) => b.label === 'Not proficient')).toBe(true);
+  });
+
+  it('familiarity that grants outright proficiency works regardless of class', () => {
+    // The elf's familiarity makes them proficient with longbows outright, wizard or not.
+    expect(line(wielder('wizard', 'longbow', 'elf')).attackLines.some((b) => b.label === 'Not proficient')).toBe(false);
+    expect(line(wielder('wizard', 'longbow', 'human')).attackLines.some((b) => b.label === 'Not proficient')).toBe(true);
+  });
+});
+
 describe('lizardfolk', () => {
   // The playable lizardfolk is the 8-RP race-builder entry: +1 natural armour, not the +5 of the
   // Bestiary monster. The RP budget is the check — 2 + 2 + 1 + 1 + 2 = 8, and +5 natural armour

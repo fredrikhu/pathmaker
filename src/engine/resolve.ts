@@ -217,7 +217,6 @@ function collectEffects(dec: Decisions, doc: CharacterDoc, level: number): Effec
   for (const t of [...standard, ...alternates]) if (t.effects) effects.push(...t.effects);
 
   // Class features gained so far (e.g. druid Nature Sense's +2 to Nature/Survival).
-  const klass = dec.classId ? C.classById.get(dec.classId) : undefined;
   for (const feat of allClassFeatures(dec, level, false)) if (feat.effects) effects.push(...feat.effects);
 
   // Feats (orphaned feats suspended — see validFeatIds)
@@ -229,7 +228,7 @@ function collectEffects(dec: Decisions, doc: CharacterDoc, level: number): Effec
     effects.push(...f.effects);
   }
   // Parameterised feats whose bonus lands on a specific stat (Skill Focus → that skill).
-  effects.push(...paramFeatEffects(doc, dec, klass, level));
+  effects.push(...paramFeatEffects(doc, dec, level));
 
   // Worn magic items — only those the body slots can actually support.
   for (const { item, active } of wornItemsWithStatus(doc)) if (active) effects.push(...item.effects);
@@ -440,6 +439,8 @@ export function resolve(doc: CharacterDoc): Resolution {
     (byTarget.get(target) ?? []).filter((e) => !e.condition).map((e) => ({ type: e.type, value: e.value, note: e.note }));
 
   const bab = sumBab(classes.map((c) => ({ bab: c.klass.bab, goodSaves: c.klass.goodSaves, levels: c.levels })));
+  // Parameterised feats (Weapon/Skill/Spell Focus, Exotic Weapon Proficiency), resolved once.
+  const featParams = activeFeatParams(doc, dec, level);
   // For prerequisites ("caster level 5th"), a multiclass caster is judged on their best class.
   const clvl = classes.reduce((best, c) => {
     const p = c.klass.spellcasting;
@@ -758,7 +759,7 @@ export function resolve(doc: CharacterDoc): Resolution {
   // ---- Spell save DC ----
   // The per-spell DC is this + the spell's level; Spell Focus adds on top for its school only, so
   // those stay alongside the stat rather than folded into a single number.
-  const spellFocus = spellFocusBonuses(doc, dec, klass, level);
+  const spellFocus = spellFocusBonuses(doc, dec, level);
   if (sc) {
     stats['spell:dc'] = makeStat('spell:dc', 'Spell save DC (+ spell level)', [
       { type: 'base', value: 10, note: 'Base' },
@@ -798,7 +799,8 @@ export function resolve(doc: CharacterDoc): Resolution {
     ...(spellsKnown && spellsKnown.length ? { spellsKnown } : {}),
     progression,
     pools: classes.flatMap((c) => classPools(c.klass, c.levels, mods)),
-    attacks: weaponAttacks(doc, stats, bab, mods.str, weaponFeatBonuses(activeFeatParams(doc, dec, klass, level)), itemQuality(doc), new Set(featIds)),
+    attacks: weaponAttacks(doc, stats, bab, mods.str, weaponFeatBonuses(featParams), itemQuality(doc), new Set(featIds),
+      proficiencyCtx(dec, classes, featParams)),
     combatOptions: {
       canPowerAttack: featIds.includes('power-attack'),
       canTwoWeapon: Boolean(doc.equipped.mainHand && doc.equipped.offHand),
@@ -816,7 +818,7 @@ function fmtSigned(v: number): string { return v >= 0 ? `+${v}` : `−${Math.abs
 
 /** Every feat the character actually has (chosen in a live slot, or class-granted), paired with its
  *  chosen parameter. Values are catalogue ids; a legacy display name is tolerated and mapped back. */
-function activeFeatParams(doc: CharacterDoc, dec: Decisions, klass: C.ClassDef | undefined, level: number): { featId: string; param: string | null }[] {
+function activeFeatParams(doc: CharacterDoc, dec: Decisions, level: number): { featId: string; param: string | null }[] {
   const params = (doc.decisions['feat-params'] as Record<string, string>) ?? {};
   const race = dec.raceId ? C.raceById.get(dec.raceId) : undefined;
   const slotKeys = new Set(featSlots(dec, race, level).map((s) => s.key));
@@ -825,9 +827,12 @@ function activeFeatParams(doc: CharacterDoc, dec: Decisions, klass: C.ClassDef |
     if (!fid || !slotKeys.has(key)) continue;
     out.push({ featId: fid, param: normalizeParam(fid, params[key]) });
   }
-  for (const g of klass?.grantedFeats ?? []) {
-    if (g.level > level) continue;
-    out.push({ featId: g.feat, param: normalizeParam(g.feat, params[grantedParamKey(g.feat, g.level)]) });
+  // Granted feats come from every class, each at its own class level.
+  for (const c of classBreakdown(dec, level)) {
+    for (const g of c.klass.grantedFeats ?? []) {
+      if (g.level > c.levels) continue;
+      out.push({ featId: g.feat, param: normalizeParam(g.feat, params[grantedParamKey(g.feat, g.level)]) });
+    }
   }
   return out;
 }
@@ -844,9 +849,9 @@ function normalizeParam(featId: string, raw: string | undefined): string | null 
 
 /** Effects from parameterised feats that land on a named stat. Weapon feats are handled separately
  *  (they apply per attack line, not to a stat); this covers the skill-targeted ones. */
-function paramFeatEffects(doc: CharacterDoc, dec: Decisions, klass: C.ClassDef | undefined, level: number): Effect[] {
+function paramFeatEffects(doc: CharacterDoc, dec: Decisions, level: number): Effect[] {
   const out: Effect[] = [];
-  for (const { featId, param } of activeFeatParams(doc, dec, klass, level)) {
+  for (const { featId, param } of activeFeatParams(doc, dec, level)) {
     if (!param) continue;
     if (featId === 'skill-focus') {
       // +3, rising to +6 once you have 10 ranks in that skill.
@@ -858,9 +863,9 @@ function paramFeatEffects(doc: CharacterDoc, dec: Decisions, klass: C.ClassDef |
 }
 
 /** Spell-save-DC bonuses per school, from Spell Focus and Greater Spell Focus. */
-function spellFocusBonuses(doc: CharacterDoc, dec: Decisions, klass: C.ClassDef | undefined, level: number): { school: string; bonus: number }[] {
+function spellFocusBonuses(doc: CharacterDoc, dec: Decisions, level: number): { school: string; bonus: number }[] {
   const map = new Map<string, number>();
-  for (const { featId, param } of activeFeatParams(doc, dec, klass, level)) {
+  for (const { featId, param } of activeFeatParams(doc, dec, level)) {
     if (!param) continue;
     if (featId === 'spell-focus' || featId === 'greater-spell-focus') {
       map.set(param, (map.get(param) ?? 0) + 1);
@@ -956,7 +961,51 @@ function iterativeBonuses(primary: number, bab: number): number[] {
 /** Ready-to-use attack lines for the character's wielded/carried weapons: the iterative sequence,
  *  Strength-scaled damage, the weapon's own dice/crit, and any weapon-parameterised feat bonuses
  *  (Weapon Focus & co.) that name this specific weapon. Magic enhancement is still not modelled. */
-function weaponAttacks(doc: CharacterDoc, stats: Record<string, Stat>, bab: number, strMod: number, featBonuses: Map<string, WeaponFeatBonus>, quality: Record<string, ItemQuality>, featIds: Set<string>): AttackLine[] {
+/** Penalty on attack rolls for using a weapon you are not proficient with. */
+export const NON_PROFICIENT_PENALTY = -4;
+
+/** What the character may wield without penalty. Assembled once per resolve, because it draws on
+ *  class proficiency lists, racial Weapon Familiarity, and Exotic Weapon Proficiency picks. */
+interface ProficiencyCtx {
+  /** Weapon groups the classes grant outright ('simple', 'martial'). */
+  groups: Set<string>;
+  /** Specific weapon ids granted by a class list, a racial trait, or a feat. */
+  weapons: Set<string>;
+  /** Exotic weapons a racial familiarity reclassifies as martial. */
+  asMartial: Set<string>;
+}
+
+function proficiencyCtx(dec: Decisions, classes: ClassEntry[], featParams: { featId: string; param: string | null }[]): ProficiencyCtx {
+  const groups = new Set<string>();
+  const weapons = new Set<string>();
+  const asMartial = new Set<string>();
+  for (const c of classes) {
+    for (const entry of c.klass.proficiencies.weapons) {
+      // The lists mix group names with specific weapon ids.
+      if (entry === 'simple' || entry === 'martial') groups.add(entry);
+      else weapons.add(entry);
+    }
+  }
+  const { standard, alternates } = activeRacialTraits(dec);
+  for (const t of [...standard, ...alternates]) {
+    for (const id of t.weaponFamiliarity?.proficient ?? []) weapons.add(id);
+    for (const id of t.weaponFamiliarity?.martial ?? []) asMartial.add(id);
+  }
+  for (const f of featParams) {
+    if (f.featId === 'exotic-weapon-proficiency' && f.param) weapons.add(f.param);
+  }
+  return { groups, weapons, asMartial };
+}
+
+function isProficientWith(w: C.WeaponDef, p: ProficiencyCtx): boolean {
+  if (p.weapons.has(w.id)) return true;
+  // Racial familiarity reclassifies an exotic weapon as martial — which only helps if the
+  // character's class actually grants martial proficiency.
+  const group = p.asMartial.has(w.id) ? 'martial' : w.group;
+  return p.groups.has(group);
+}
+
+function weaponAttacks(doc: CharacterDoc, stats: Record<string, Stat>, bab: number, strMod: number, featBonuses: Map<string, WeaponFeatBonus>, quality: Record<string, ItemQuality>, featIds: Set<string>, prof: ProficiencyCtx): AttackLine[] {
   const melee = stats['attack:melee'];
   const ranged = stats['attack:ranged'];
   if (!melee || !ranged) return [];
@@ -989,11 +1038,14 @@ function weaponAttacks(doc: CharacterDoc, stats: Record<string, Stat>, bab: numb
     const paScale: PowerAttackScale = slot === 'off' ? 'half' : w.hands === 'two' ? 'oneAndHalf' : 'normal';
     const pa = usingPowerAttack && kind === 'melee' ? powerAttackAmounts(bab, paScale) : null;
     const twfPenalty = usingTwoWeapon && slot === 'main' ? twp.primary : usingTwoWeapon && slot === 'off' ? twp.off : 0;
+    const proficient = isProficientWith(w, prof);
     const optionLines: BreakdownLine[] = [
+      ...(proficient ? [] : [{ label: 'Not proficient', value: NON_PROFICIENT_PENALTY }]),
       ...(pa ? [{ label: 'Power Attack', value: pa.penalty }] : []),
       ...(twfPenalty ? [{ label: slot === 'off' ? 'Two-weapon (off hand)' : 'Two-weapon (primary)', value: twfPenalty }] : []),
     ];
-    const attackTotal = base.total + (fb?.attack ?? 0) + qb.attack + (pa?.penalty ?? 0) + twfPenalty;
+    const attackTotal = base.total + (fb?.attack ?? 0) + qb.attack + (pa?.penalty ?? 0) + twfPenalty
+      + (proficient ? 0 : NON_PROFICIENT_PENALTY);
     // The off hand gets one attack (plus Improved/Greater), not the BAB iteratives.
     const bonuses = usingTwoWeapon && slot === 'off'
       ? offHandAttackBonuses(attackTotal, featIds.has('improved-two-weapon-fighting'), featIds.has('greater-two-weapon-fighting'))
@@ -1017,6 +1069,11 @@ function weaponAttacks(doc: CharacterDoc, stats: Record<string, Stat>, bab: numb
       strDamage = strMod;
     }
     const dmgMod = strDamage + (fb?.damage ?? 0) + qb.damage + (pa?.damage ?? 0);
+    if (!proficient) {
+      notes.push(w.group === 'exotic'
+        ? `Not proficient: −4 to attack. ${w.name} is exotic — Exotic Weapon Proficiency removes the penalty.`
+        : `Not proficient: −4 to attack. Your class does not grant ${w.group} weapons.`);
+    }
     if (kind === 'melee' && w.range) notes.push(`Can be thrown (${w.range} ft): thrown attacks use Dex and add Str to damage.`);
     // Unconditional property damage rides on the damage string; conditional ones become notes.
     const extraDice = props.map((p) => p.damageDice).filter(Boolean) as string[];

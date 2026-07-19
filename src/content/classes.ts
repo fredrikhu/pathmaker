@@ -73,7 +73,7 @@ export const CLASSES: ClassDef[] = [
     hitDie: 8, bab: 'threequarter', goodSaves: ['ref', 'will'], skillRanks: 6,
     classSkills: [...CRAFT_ALL, ...KNOW_ALL, 'acrobatics', 'appraise', 'bluff', 'climb', 'diplomacy', 'disguise', 'escape-artist', 'intimidate', 'linguistics', 'perception', 'perform-oratory', 'perform-strings', 'profession-any', 'sense-motive', 'sleight-of-hand', 'spellcraft', 'stealth', 'use-magic-device'],
     startingGold: 105,
-    proficiencies: { weapons: ['simple', 'longsword', 'rapier', 'sap', 'shortbow', 'shortsword', 'whip'], armor: ['light', 'shield'] },
+    proficiencies: { weapons: ['simple', 'longsword', 'rapier', 'sap', 'shortbow', 'short-sword', 'whip'], armor: ['light', 'shield'] },
     features1: [
       { id: 'bard-performance', name: 'Bardic Performance', desc: 'Inspire courage: allies gain a morale bonus on attack and damage rolls and saves against fear.' },
       { id: 'bard-knowledge', name: 'Bardic Knowledge', desc: 'Add half class level (minimum 1) on all Knowledge checks, and may make them untrained.' },
@@ -114,7 +114,7 @@ export const CLASSES: ClassDef[] = [
     hitDie: 8, bab: 'threequarter', goodSaves: ['fort', 'ref', 'will'], skillRanks: 4,
     classSkills: [...CRAFT_ALL, 'acrobatics', 'climb', 'escape-artist', 'intimidate', 'know-history', 'know-religion', 'perception', 'perform-oratory', 'profession-any', 'ride', 'sense-motive', 'stealth', 'swim'],
     startingGold: 35, alignment: ['LG', 'LN', 'LE'],
-    proficiencies: { weapons: ['club', 'dagger', 'crossbow-light', 'handaxe', 'javelin', 'kama', 'nunchaku', 'quarterstaff', 'sai', 'shuriken', 'siangham', 'sling', 'spear'], armor: [] },
+    proficiencies: { weapons: ['club', 'dagger', 'light-crossbow', 'handaxe', 'javelin', 'kama', 'nunchaku', 'quarterstaff', 'sai', 'shuriken', 'siangham', 'sling', 'spear'], armor: [] },
     features1: [
       { id: 'monk-flurry', name: 'Flurry of Blows', desc: 'As a full attack, make one extra attack with unarmed strikes or special monk weapons at a −1 penalty to all.' },
       { id: 'monk-unarmed', name: 'Unarmed Strike', desc: 'Deal lethal 1d6 damage with unarmed strikes and are always armed. Gain Improved Unarmed Strike.' },
@@ -156,7 +156,7 @@ export const CLASSES: ClassDef[] = [
     hitDie: 8, bab: 'threequarter', goodSaves: ['ref'], skillRanks: 8,
     classSkills: [...CRAFT_ALL, 'acrobatics', 'appraise', 'bluff', 'climb', 'diplomacy', 'disable-device', 'disguise', 'escape-artist', 'intimidate', 'know-dungeoneering', 'know-local', 'linguistics', 'perception', 'perform-oratory', 'profession-any', 'sense-motive', 'sleight-of-hand', 'stealth', 'swim', 'use-magic-device'],
     startingGold: 140,
-    proficiencies: { weapons: ['simple', 'hand-crossbow', 'rapier', 'sap', 'shortbow', 'shortsword'], armor: ['light'] },
+    proficiencies: { weapons: ['simple', 'hand-crossbow', 'rapier', 'sap', 'shortbow', 'short-sword'], armor: ['light'] },
     features1: [
       { id: 'rogue-sneak-attack', name: 'Sneak Attack', desc: '+1d6 damage when the target is denied its Dex bonus to AC or is flanked.' },
       { id: 'rogue-trapfinding', name: 'Trapfinding', desc: 'Add half level to Perception to locate traps and to Disable Device; can disarm magic traps.' },
@@ -198,7 +198,7 @@ export const CLASSES: ClassDef[] = [
     hitDie: 6, bab: 'half', goodSaves: ['will'], skillRanks: 2,
     classSkills: [...CRAFT_ALL, ...KNOW_ALL, 'appraise', 'fly', 'linguistics', 'profession-any', 'spellcraft'],
     startingGold: 70,
-    proficiencies: { weapons: ['club', 'dagger', 'crossbow-light', 'crossbow-heavy', 'quarterstaff'], armor: [] },
+    proficiencies: { weapons: ['club', 'dagger', 'light-crossbow', 'heavy-crossbow', 'quarterstaff'], armor: [] },
     features1: [
       { id: 'wizard-cantrips', name: 'Cantrips', desc: 'Prepare a number of 0-level spells that can be cast at will (they are not expended).' },
       { id: 'wizard-scribe-scroll', name: 'Scribe Scroll', desc: 'Gain Scribe Scroll as a bonus feat at 1st level.' },
@@ -403,7 +403,7 @@ export const CLASSES: ClassDef[] = [
     hitDie: 10, bab: 'full', goodSaves: ['fort', 'ref'], skillRanks: 4,
     classSkills: ['acrobatics', 'climb', ...CRAFT_ALL, 'escape-artist', 'handle-animal', 'intimidate', 'know-dungeoneering', 'know-local', 'perception', 'profession-any', 'ride', 'sense-motive', 'swim'],
     startingGold: 105,
-    proficiencies: { weapons: ['simple', 'handaxe', 'shortsword'], armor: ['light', 'shield'] },
+    proficiencies: { weapons: ['simple', 'handaxe', 'short-sword'], armor: ['light', 'shield'] },
     features1: [
       { id: 'brw-unarmed', name: 'Improved Unarmed Strike', desc: 'Deal 1d6 lethal unarmed damage and count as armed; gain Improved Unarmed Strike.' },
       { id: 'brw-flexibility', name: 'Martial Flexibility', desc: 'As a move action, gain a combat feat you don’t have for a short time, a few times per day.' },
@@ -430,7 +430,7 @@ export const CLASSES: ClassDef[] = [
     hitDie: 8, bab: 'threequarter', goodSaves: ['ref', 'will'], skillRanks: 6,
     classSkills: ['acrobatics', 'appraise', 'bluff', 'climb', ...CRAFT_ALL, 'diplomacy', 'disable-device', 'disguise', 'escape-artist', 'heal', 'intimidate', ...KNOW_ALL, 'linguistics', 'perception', 'perform-oratory', 'profession-any', 'sense-motive', 'sleight-of-hand', 'spellcraft', 'stealth', 'use-magic-device'],
     startingGold: 105,
-    proficiencies: { weapons: ['simple', 'hand-crossbow', 'rapier', 'sap', 'shortbow', 'shortsword'], armor: ['light'] },
+    proficiencies: { weapons: ['simple', 'hand-crossbow', 'rapier', 'sap', 'shortbow', 'short-sword'], armor: ['light'] },
     features1: [
       { id: 'inv-alchemy', name: 'Alchemy', desc: 'Prepare Int-based extracts from a formula book, like an alchemist.' },
       { id: 'inv-inspiration', name: 'Inspiration', desc: 'A pool of ½ level + Int; spend to add 1d6 to a check.' },

@@ -43,6 +43,36 @@ export const WEAPONS: WeaponDef[] = [
   { id: 'comp-shortbow', name: 'Shortbow, composite', cost: 75, weight: 2, dmg: '1d6', crit: '×3', range: 70, dmgType: 'P', group: 'martial', hands: 'ranged' },
   { id: 'longbow', name: 'Longbow', cost: 75, weight: 3, dmg: '1d8', crit: '×3', range: 100, dmgType: 'P', group: 'martial', hands: 'ranged' },
   { id: 'comp-longbow', name: 'Longbow, composite', cost: 100, weight: 3, dmg: '1d8', crit: '×3', range: 110, dmgType: 'P', group: 'martial', hands: 'ranged' },
+  // Sap — martial light, referenced by the bard/rogue proficiency lists but never authored.
+  { id: 'sap', name: 'Sap', cost: 1, weight: 2, dmg: '1d6', crit: '×2', dmgType: 'B', group: 'martial', hands: 'light' },
+
+  // ---- Exotic weapons (Core Rulebook) ----
+  // Wielding one without Exotic Weapon Proficiency (or a racial familiarity that reclassifies it)
+  // costs −4 on attack rolls, which the engine folds into the attack line.
+  // Double weapons carry both ends in the damage string, as the quarterstaff already does.
+  { id: 'kama', name: 'Kama', cost: 2, weight: 2, dmg: '1d6', crit: '×2', dmgType: 'S', group: 'exotic', hands: 'light' },
+  { id: 'nunchaku', name: 'Nunchaku', cost: 2, weight: 2, dmg: '1d6', crit: '×2', dmgType: 'B', group: 'exotic', hands: 'light' },
+  { id: 'sai', name: 'Sai', cost: 1, weight: 1, dmg: '1d4', crit: '×2', dmgType: 'B', group: 'exotic', hands: 'light' },
+  { id: 'siangham', name: 'Siangham', cost: 3, weight: 1, dmg: '1d6', crit: '×2', dmgType: 'P', group: 'exotic', hands: 'light' },
+  { id: 'bastard-sword', name: 'Sword, bastard', cost: 35, weight: 6, dmg: '1d10', crit: '19–20/×2', dmgType: 'S', group: 'exotic', hands: 'one' },
+  { id: 'dwarven-waraxe', name: 'Waraxe, dwarven', cost: 30, weight: 8, dmg: '1d10', crit: '×3', dmgType: 'S', group: 'exotic', hands: 'one' },
+  { id: 'whip', name: 'Whip', cost: 1, weight: 2, dmg: '1d3', crit: '×2', dmgType: 'S', group: 'exotic', hands: 'one' },
+  { id: 'orc-double-axe', name: 'Axe, orc double', cost: 60, weight: 15, dmg: '1d8/1d8', crit: '×3', dmgType: 'S', group: 'exotic', hands: 'two' },
+  { id: 'spiked-chain', name: 'Chain, spiked', cost: 25, weight: 10, dmg: '2d4', crit: '×2', dmgType: 'P', group: 'exotic', hands: 'two' },
+  { id: 'elven-curve-blade', name: 'Curve blade, elven', cost: 80, weight: 7, dmg: '1d10', crit: '18–20/×2', dmgType: 'S', group: 'exotic', hands: 'two' },
+  { id: 'dire-flail', name: 'Flail, dire', cost: 90, weight: 10, dmg: '1d8/1d8', crit: '×2', dmgType: 'B', group: 'exotic', hands: 'two' },
+  { id: 'gnome-hooked-hammer', name: 'Hammer, gnome hooked', cost: 20, weight: 6, dmg: '1d8/1d6', crit: '×3/×4', dmgType: 'B or P', group: 'exotic', hands: 'two' },
+  { id: 'totem-spear', name: 'Spear, totem', cost: 25, weight: 6, dmg: '1d10', crit: '×3', range: 10, dmgType: 'P or S', group: 'exotic', hands: 'two' },
+  { id: 'two-bladed-sword', name: 'Sword, two-bladed', cost: 100, weight: 10, dmg: '1d8/1d8', crit: '19–20/×2', dmgType: 'S', group: 'exotic', hands: 'two' },
+  { id: 'dwarven-urgrosh', name: 'Urgrosh, dwarven', cost: 50, weight: 12, dmg: '1d8/1d6', crit: '×3', dmgType: 'P or S', group: 'exotic', hands: 'two' },
+  { id: 'bola', name: 'Bola', cost: 5, weight: 2, dmg: '1d4', crit: '×2', range: 10, dmgType: 'B', group: 'exotic', hands: 'ranged' },
+  { id: 'hand-crossbow', name: 'Crossbow, hand', cost: 100, weight: 2, dmg: '1d4', crit: '19–20/×2', range: 30, dmgType: 'P', group: 'exotic', hands: 'ranged' },
+  { id: 'repeating-crossbow-heavy', name: 'Crossbow, repeating heavy', cost: 400, weight: 12, dmg: '1d10', crit: '19–20/×2', range: 120, dmgType: 'P', group: 'exotic', hands: 'ranged' },
+  { id: 'repeating-crossbow-light', name: 'Crossbow, repeating light', cost: 250, weight: 6, dmg: '1d8', crit: '19–20/×2', range: 80, dmgType: 'P', group: 'exotic', hands: 'ranged' },
+  { id: 'shuriken', name: 'Shuriken', cost: 0.2, weight: 0.1, dmg: '1d2', crit: '×2', range: 10, dmgType: 'P', group: 'exotic', hands: 'ranged' },
+  { id: 'halfling-sling-staff', name: 'Sling staff, halfling', cost: 20, weight: 3, dmg: '1d8', crit: '×3', range: 80, dmgType: 'B', group: 'exotic', hands: 'ranged' },
+  // Not authored: the net. It deals no damage at all, and the attack line is built around a
+  // damage string — listing it would print a damage figure the weapon does not have.
 ];
 
 export const ARMORS: ArmorDef[] = [

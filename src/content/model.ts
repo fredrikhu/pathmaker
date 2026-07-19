@@ -10,6 +10,11 @@ export interface RacialTraitDef {
   grantsFeatSlot?: string;
   /** Extra skill ranks per level (human Skilled). */
   skillRanksPerLevel?: number;
+  /** Racial Weapon Familiarity. `proficient` grants outright proficiency with those weapons;
+   *  `martial` reclassifies exotic weapons as martial, which only helps a character whose class
+   *  already has martial proficiency. Living on the trait (not the race) means an alternate
+   *  trait that replaces Weapon Familiarity correctly takes the proficiency away with it. */
+  weaponFamiliarity?: { proficient?: string[]; martial?: string[] };
 }
 
 export interface AltTraitDef extends RacialTraitDef {

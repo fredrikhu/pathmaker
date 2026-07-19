@@ -345,6 +345,44 @@ describe('spells', () => {
   });
 });
 
+describe('weapon proficiency data', () => {
+  // Nothing consumed these lists until the proficiency rule existed, so they had drifted: they
+  // referenced 'crossbow-light', 'crossbow-heavy' and 'shortsword', none of which are real ids.
+  // A silently-unmatched id now means a wrong −4 on someone's attack line.
+  const GROUPS = new Set(['simple', 'martial', 'firearms']);
+  it('every weapon named in a class proficiency list is a real weapon or a group', () => {
+    for (const c of C.CLASSES) {
+      for (const entry of c.proficiencies.weapons) {
+        if (GROUPS.has(entry)) continue;
+        expect(C.weaponById.get(entry), `${c.id} proficiency "${entry}" matches no weapon`).toBeTruthy();
+      }
+    }
+  });
+
+  it('every weapon named by a racial Weapon Familiarity is a real weapon', () => {
+    for (const r of C.RACES) {
+      for (const t of [...r.traits, ...r.altTraits]) {
+        const fam = t.weaponFamiliarity;
+        if (!fam) continue;
+        for (const id of [...(fam.proficient ?? []), ...(fam.martial ?? [])]) {
+          expect(C.weaponById.get(id), `${r.id}/${t.id} familiarity "${id}" matches no weapon`).toBeTruthy();
+        }
+        // Reclassifying as martial only makes sense for a weapon that is exotic to begin with.
+        for (const id of fam.martial ?? []) {
+          expect(C.weaponById.get(id)!.group, `${r.id}/${t.id}: "${id}" is not exotic`).toBe('exotic');
+        }
+      }
+    }
+  });
+
+  it('Exotic Weapon Proficiency offers exactly the exotic weapons', () => {
+    const opts = C.featById.get('exotic-weapon-proficiency')!.param!.options.map((o) => o.id).sort();
+    const exotic = C.WEAPONS.filter((w) => w.group === 'exotic').map((w) => w.id).sort();
+    expect(opts).toEqual(exotic);
+    expect(exotic.length).toBeGreaterThan(0);
+  });
+});
+
 describe('equipment', () => {
   it('costs and weights are non-negative and lookups resolve', () => {
     for (const w of [...C.WEAPONS, ...C.ARMORS, ...C.GEAR]) {

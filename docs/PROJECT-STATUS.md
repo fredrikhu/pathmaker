@@ -6,7 +6,7 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 
 ## ▶ Resume here (last session end)
 
-**All five roadmap phases are done and committed** (branch `master`, working tree clean, 305 tests
+**All five roadmap phases are done and committed** (branch `master`, working tree clean, 316 tests
 passing; run `npx tsc --noEmit && npx vitest run && npm run build` to confirm). Pathmaker covers the
 full arc: build a character 1–20, play it at the table (HP, spells, pools, conditions), run the clock
 (rounds, timed effects, rest), and track consumables/charges/encumbrance live.
@@ -232,9 +232,11 @@ Still open from that audit:
   bonuses, so they're deliberately not force-added.
 
 ### Content breadth (solid core coverage, not exhaustive)
-- **Weapons**: 39 core simple/martial weapons (verified against d20pfsrd — damage/crit/type/range/cost/
-  weight), feeding the equipment step and the play-sheet attack lines. Exotic weapons and magic
-  enhancements not yet modeled. **Feats**: 64 verified Core feats (combat/general/skill/spellcasting/
+- **Weapons**: 60 core weapons (verified against d20pfsrd — damage/crit/type/range/cost/weight),
+  feeding the equipment step and the play-sheet attack lines. **Exotic weapons are in**, along with
+  the proficiency rule they exist for (see below). Not authored: the net, which deals no damage at
+  all — the attack line is built around a damage string, so listing it would print a damage figure
+  the weapon does not have. **Feats**: 64 verified Core feats (combat/general/skill/spellcasting/
   metamagic/item-creation) — not the full splatbook catalogue. **Spells**: ~130 across levels 0–9 (core-scope) — not exhaustive
   full lists. **Subsystem option lists** (rage powers, talents, hexes, discoveries, arcana, mysteries,
   revelations, etc.) are expanded core-scope sets, not exhaustive. **Traits/equipment**: core subset.
@@ -469,6 +471,26 @@ item weight for coins, and per-arrow ammunition.
       is filed under the character's class decision on load. Legacy entries with no class to
       belong to are dropped rather than left in a shape the new code would read as class ids.
       The migration is idempotent and covered by `character.test.ts`.
+- **Exotic weapons + the weapon-proficiency rule: done.** The 21 Core exotic weapons are authored
+  (kama/nunchaku/sai/siangham, bastard sword, dwarven waraxe, whip, the five double weapons, spiked
+  chain, elven curve blade, totem spear, bola, hand and repeating crossbows, shuriken, halfling
+  sling staff), read from the weapons table's markup and filtered to Core-Rulebook rows.
+  - Exotic weapons only mean anything if **not** being proficient costs something, so the −4
+    non-proficiency penalty is now modelled and folded into the attack line with its own breakdown
+    row and an explanatory note. This also fixes the same gap for simple/martial weapons — a wizard
+    with a longsword previously showed no penalty either.
+  - Proficiency draws on three sources: the class list, **racial Weapon Familiarity**, and the new
+    **Exotic Weapon Proficiency** feat (parameterised, offering only exotic weapons).
+  - Familiarity distinguishes its two halves properly: `proficient` grants the weapon outright,
+    while `martial` merely reclassifies an exotic weapon — which is **worthless to a class without
+    martial training**. A dwarf fighter wields the waraxe cleanly; a dwarf wizard still takes −4.
+    The data lives on the *trait*, so an alternate trait that replaces Weapon Familiarity takes the
+    proficiency with it.
+  - **Dwarf and gnome were missing their Weapon Familiarity traits entirely** — added, verified.
+  - **The class proficiency lists had never been validated**, because nothing consumed them: they
+    named `crossbow-light`, `crossbow-heavy` and `shortsword`, none of which are real weapon ids,
+    and `sap`, which was not in the catalogue at all. All fixed, with a content test asserting every
+    id in a proficiency list or a familiarity resolves — a silent mismatch is now a wrong −4.
 - **Power Attack & two-weapon fighting: done** (`src/engine/combat.ts`, numbers verified against both
   feat pages). These are **declared per attack**, not passive, so they live in play state
   (`PlayState.powerAttack` / `twoWeapon`) as play-sheet toggles and are folded in **only while on** —

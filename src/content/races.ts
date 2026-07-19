@@ -31,6 +31,7 @@ const CORE_RACES: RaceDef[] = [
       { id: 'dwarf-stability', name: 'Stability', desc: '+4 racial bonus to CMD when resisting a bull rush or trip attempt while standing on the ground.', effects: [{ target: 'cmd', type: 'racial', value: 4, note: 'Stability (Dwarf)', condition: 'vs bull rush / trip while on the ground' }] },
       { id: 'dwarf-greed', name: 'Greed', desc: '+2 racial bonus on Appraise checks made to determine the price of nonmagical goods that contain precious metals or gemstones.', effects: [{ target: 'skill:appraise', type: 'racial', value: 2, note: 'Greed (Dwarf)', condition: 'precious metals and gems' }] },
       { id: 'dwarf-stonecunning', name: 'Stonecunning', desc: '+2 bonus on Perception checks to notice unusual stonework; automatic check when within 10 feet.', effects: [{ target: 'skill:perception', type: 'racial', value: 2, note: 'Stonecunning (Dwarf)', condition: 'unusual stonework' }] },
+      { id: 'dwarf-weapon-familiarity', name: 'Weapon Familiarity', desc: 'Proficient with battleaxes, heavy picks, and warhammers; treat any weapon with "dwarven" in its name as martial.', weaponFamiliarity: { proficient: ['battleaxe', 'heavy-pick', 'warhammer'], martial: ['dwarven-waraxe', 'dwarven-urgrosh'] } },
       { id: 'dwarf-hatred', name: 'Hatred', desc: '+1 bonus on attack rolls against humanoids of the orc and goblinoid subtypes.', effects: [{ target: 'attack:melee', type: 'racial', value: 1, note: 'Hatred (Dwarf)', condition: 'vs orcs and goblinoids' }] },
       { id: 'dwarf-slow-steady', name: 'Slow and Steady', desc: 'Speed 20 feet, never modified by armor or encumbrance.' },
     ],
@@ -50,7 +51,7 @@ const CORE_RACES: RaceDef[] = [
       { id: 'elf-immunities', name: 'Elven Immunities', desc: 'Immune to magic sleep effects; +2 racial saving throw bonus against enchantment spells and effects.', effects: [{ target: 'save:all', type: 'racial', value: 2, note: 'Elven Immunities', condition: 'vs enchantment' }] },
       { id: 'elf-keen-senses', name: 'Keen Senses', desc: '+2 racial bonus on Perception checks.', effects: [{ target: 'skill:perception', type: 'racial', value: 2, note: 'Keen Senses (Elf)' }] },
       { id: 'elf-magic', name: 'Elven Magic', desc: '+2 racial bonus on caster level checks made to overcome spell resistance, and +2 on Spellcraft checks to identify the properties of magic items.', effects: [{ target: 'skill:spellcraft', type: 'racial', value: 2, note: 'Elven Magic', condition: 'identifying magic items' }] },
-      { id: 'elf-weapon-familiarity', name: 'Weapon Familiarity', desc: 'Proficient with longbows, longswords, rapiers, and shortbows; treat any weapon with "elven" in its name as martial.' },
+      { id: 'elf-weapon-familiarity', name: 'Weapon Familiarity', desc: 'Proficient with longbows, longswords, rapiers, and shortbows; treat any weapon with "elven" in its name as martial.', weaponFamiliarity: { proficient: ['longbow', 'comp-longbow', 'longsword', 'rapier', 'shortbow', 'comp-shortbow'], martial: ['elven-curve-blade'] } },
     ],
     altTraits: [
       { id: 'elf-fleet-footed', name: 'Fleet-Footed', replaces: ['elf-keen-senses', 'elf-weapon-familiarity'], desc: 'Receive Run as a bonus feat and a +2 racial bonus on initiative checks.', effects: [{ target: 'init', type: 'racial', value: 2, note: 'Fleet-Footed (Elf)' }] },
@@ -69,6 +70,7 @@ const CORE_RACES: RaceDef[] = [
       { id: 'gnome-illusion-resistance', name: 'Illusion Resistance', desc: '+2 racial saving throw bonus against illusion spells and effects.', effects: [{ target: 'save:all', type: 'racial', value: 2, note: 'Illusion Resistance', condition: 'vs illusions' }] },
       { id: 'gnome-keen-senses', name: 'Keen Senses', desc: '+2 racial bonus on Perception checks.', effects: [{ target: 'skill:perception', type: 'racial', value: 2, note: 'Keen Senses (Gnome)' }] },
       { id: 'gnome-magic', name: 'Gnome Magic', desc: '+1 to the DC of illusion spells cast; spell-like abilities: dancing lights, ghost sound, prestidigitation, speak with animals 1/day.' },
+      { id: 'gnome-weapon-familiarity', name: 'Weapon Familiarity', desc: 'Treat any weapon with "gnome" in its name as martial.', weaponFamiliarity: { martial: ['gnome-hooked-hammer'] } },
       { id: 'gnome-hatred', name: 'Hatred', desc: '+1 bonus on attack rolls against humanoids of the reptilian and goblinoid subtypes.', effects: [{ target: 'attack:melee', type: 'racial', value: 1, note: 'Hatred (Gnome)', condition: 'vs reptilians and goblinoids' }] },
       { id: 'gnome-obsessive', name: 'Obsessive', desc: '+2 racial bonus on one Craft or Profession skill.' },
     ],
@@ -104,7 +106,7 @@ const CORE_RACES: RaceDef[] = [
       { id: 'halforc-darkvision', name: 'Darkvision', desc: 'Half-orcs can see in the dark up to 60 feet.' },
       { id: 'halforc-intimidating', name: 'Intimidating', desc: '+2 racial bonus on Intimidate checks.', effects: [{ target: 'skill:intimidate', type: 'racial', value: 2, note: 'Intimidating (Half-orc)' }] },
       { id: 'halforc-ferocity', name: 'Orc Ferocity', desc: 'Once per day, when brought below 0 hit points but not killed, fight on for one more round as if disabled.' },
-      { id: 'halforc-weapon-familiarity', name: 'Weapon Familiarity', desc: 'Proficient with greataxes and falchions; treat any weapon with "orc" in its name as martial.' },
+      { id: 'halforc-weapon-familiarity', name: 'Weapon Familiarity', desc: 'Proficient with greataxes and falchions; treat any weapon with "orc" in its name as martial.', weaponFamiliarity: { proficient: ['greataxe', 'falchion'], martial: ['orc-double-axe'] } },
       { id: 'halforc-orc-blood', name: 'Orc Blood', desc: 'Half-orcs count as both humans and orcs for any effect related to race.' },
     ],
     altTraits: [
@@ -123,7 +125,7 @@ const CORE_RACES: RaceDef[] = [
       { id: 'halfling-luck', name: 'Halfling Luck', desc: '+1 racial bonus on all saving throws.', effects: [{ target: 'save:all', type: 'luck', value: 1, note: 'Halfling Luck' }] },
       { id: 'halfling-keen-senses', name: 'Keen Senses', desc: '+2 racial bonus on Perception checks.', effects: [{ target: 'skill:perception', type: 'racial', value: 2, note: 'Keen Senses (Halfling)' }] },
       { id: 'halfling-sure-footed', name: 'Sure-Footed', desc: '+2 racial bonus on Acrobatics and Climb checks.', effects: [{ target: 'skill:acrobatics', type: 'racial', value: 2, note: 'Sure-Footed (Halfling)' }, { target: 'skill:climb', type: 'racial', value: 2, note: 'Sure-Footed (Halfling)' }] },
-      { id: 'halfling-weapon-familiarity', name: 'Weapon Familiarity', desc: 'Proficient with slings; treat any weapon with "halfling" in its name as martial.' },
+      { id: 'halfling-weapon-familiarity', name: 'Weapon Familiarity', desc: 'Proficient with slings; treat any weapon with "halfling" in its name as martial.', weaponFamiliarity: { proficient: ['sling'], martial: ['halfling-sling-staff'] } },
     ],
     altTraits: [
       { id: 'halfling-fleet-of-foot', name: 'Fleet of Foot', replaces: ['halfling-sure-footed', 'halfling-weapon-familiarity'], desc: 'Base speed 30 feet instead of 20 feet.' },
