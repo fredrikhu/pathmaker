@@ -2,8 +2,8 @@ import type { RaceDef } from './model';
 
 // Exotic races that are cleanly "just data" at our fidelity. The rest of the exotic/monstrous
 // tier is deferred: the 31+ RP monster PCs (Drider, Gargoyle, Trox, Drow Noble) are full monster
-// stat blocks, Kasatha's four arms is a combat mechanic, several others need fly speeds / construct
-// types / dual heritages, and a few (Lizardfolk, etc.) returned ambiguous source numbers.
+// stat blocks, Kasatha's four arms is a combat mechanic, and several others need fly speeds /
+// construct types / dual heritages.
 
 export const EXOTIC_RACES: RaceDef[] = [
   {
@@ -32,5 +32,25 @@ export const EXOTIC_RACES: RaceDef[] = [
     altTraits: [],
     languagesAuto: ['gnoll'],
     languagesBonus: ['abyssal', 'common', 'draconic', 'elven', 'gnome', 'goblin', 'orc'],
+  },
+  {
+    // The playable lizardfolk is the 8-RP race-builder entry, whose natural armour is +1. The
+    // +5 that gets quoted belongs to the Bestiary monster, which is a different stat block —
+    // the RP budget settles it: 2 (flexible) + 2 (natural armour) + 1 (swim) + 1 (bite)
+    // + 2 (claws) = 8, and a +5 natural armour could not fit an 8-RP race at all.
+    id: 'lizardfolk', name: 'Lizardfolk', sub: '+2 Str, +2 Con',
+    desc: 'Proud reptilian predators of the deep swamps, at home in the water and fiercely protective of their wetland territories.',
+    size: 'medium', speed: 30, speeds: { swim: 30 }, abilityMods: { str: 2, con: 2 },
+    traits: [
+      { id: 'lizardfolk-armor', name: 'Natural Armor', desc: '+1 natural armor bonus from tough scaly skin.', effects: [{ target: 'ac', type: 'natural-armor', value: 1, note: 'Natural Armor (Lizardfolk)' }] },
+      { id: 'lizardfolk-swim', name: 'Swim', desc: 'A 30-ft swim speed and a +8 racial bonus on Swim checks.', effects: [{ target: 'skill:swim', type: 'racial', value: 8, note: 'Swim (Lizardfolk)' }] },
+      { id: 'lizardfolk-bite', name: 'Bite', desc: 'A natural bite attack dealing 1d3 damage — a primary attack, or secondary while wielding manufactured weapons.' },
+      { id: 'lizardfolk-claws', name: 'Claws', desc: 'Two claw attacks dealing 1d4 damage each, both primary natural attacks.' },
+      { id: 'lizardfolk-xenophobic', name: 'Xenophobic', desc: 'Lizardfolk begin play knowing only their own racial language.' },
+    ],
+    altTraits: [],
+    // Xenophobic: their racial language only — notably no Common.
+    languagesAuto: ['draconic'],
+    languagesBonus: ['aklo', 'aquan', 'boggard', 'common', 'goblin', 'gnoll', 'orc'],
   },
 ];

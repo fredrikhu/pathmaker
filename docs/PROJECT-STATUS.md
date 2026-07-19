@@ -6,7 +6,7 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 
 ## ▶ Resume here (last session end)
 
-**All five roadmap phases are done and committed** (branch `master`, working tree clean, 297 tests
+**All five roadmap phases are done and committed** (branch `master`, working tree clean, 301 tests
 passing; run `npx tsc --noEmit && npx vitest run && npm run build` to confirm). Pathmaker covers the
 full arc: build a character 1–20, play it at the table (HP, spells, pools, conditions), run the clock
 (rounds, timed effects, rest), and track consumables/charges/encumbrance live.
@@ -17,7 +17,8 @@ armour special abilities**, the **worn-item catalogue** with body slots enforced
 two-weapon fighting** as play-sheet toggles, and **multiclass**.
 
 From here the work is breadth and polish rather than new phases. The open items are the deferral
-backlog below — chiefly the two remaining blocked-on-verification items (vampire hunter, lizardfolk) and the out-of-scope classes and races.
+backlog below. Only **one** blocked-on-verification item remains (the vampire hunter class table);
+the rest is deliberately out-of-scope classes and races, and breadth rather than correctness.
 
 Everything below is the durable detail. When resuming, read this file, then `docs/DESIGN.md`.
 
@@ -30,7 +31,7 @@ Working, verified (60 tests passing, typecheck clean):
 - **Engine** (`src/engine/`): pure `resolve(doc) → { sheet, slots, issues, steps }`; typed-bonus
   stacking; predicate DSL; uniform choice slots; non-blocking validation; localStorage + migrations.
 - **Content**: 31 classes (11 core + Warpriest + 12 base + 9 hybrid − see deferrals), 39 races
-  (7 core + 16 featured + 14 uncommon + Android/Gnoll), ~20 core feats, level 0–1 spells, sample
+  (7 core + 16 featured + 14 uncommon + Android/Gnoll/Lizardfolk), ~20 core feats, level 0–1 spells, sample
   traits, core equipment, ~20 deities.
 
 ### Key conventions / decisions (don't relitigate without reason)
@@ -189,7 +190,16 @@ Still open from that audit:
   - **Every class that casts now has a verified table** — a content test asserts the set is empty.
 - **Vampire Hunter** full class table (unverifiable) → keeps only its level-1 `features1` fallback,
   and carries no `spellcasting` block at all rather than a table of guesses.
-- **Lizardfolk** natural-armor value (source gave +1 vs the canonical +5) → race held.
+- ~~**Lizardfolk** natural-armor value~~ — **resolved, and the race is now in.** The conflict was
+  between *different stat blocks for the same name*, not a bad source: the playable race is the
+  **8-RP race-builder entry** (+1 natural armour), while the +5 belongs to the Bestiary monster,
+  and a third-party version quotes +2. The RP budget decides it without needing a tiebreak source:
+  2 (flexible +2 Str/+2 Con) + 2 (natural armour) + 1 (swim) + 1 (bite) + 2 (claws) = **8 RP**,
+  matching the entry's own title — a +5 natural armour could not fit an 8-RP race at all.
+  - Authored in `races-exotic.ts` with +1 natural armour, 30-ft swim speed and the +8 racial Swim
+    bonus as real effects; bite/claws are descriptive (natural attacks aren't modelled — the same
+    reason the amulet of mighty fists is absent).
+  - **Xenophobic** is modelled literally: `languagesAuto: ['draconic']` with **no Common**.
 
 ### Classes not in scope / deferred
 - **Vigilante** — level-1 specialization changes BAB (Avenger full / Stalker ¾) and the Warlock

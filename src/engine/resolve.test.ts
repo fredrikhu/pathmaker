@@ -3,6 +3,7 @@ import { resolve, doubleThreatRange } from './resolve';
 import { newCharacter, withDecision } from './character';
 import type { CharacterDoc } from './types';
 import { emptyPlayState } from './types';
+import * as C from '../content/index';
 
 // Golden characters — numbers hand-computed against the PF1e core rules.
 
@@ -1587,6 +1588,50 @@ describe('armour and shield special abilities', () => {
   it('shield abilities apply to the shield', () => {
     const inv = resolve(armoured({ 'heavy-shield': { masterwork: true, enhancement: 1, properties: ['bashing'] } })).sheet.inventory;
     expect(inv.find((i) => i.id === 'heavy-shield')!.properties).toEqual(['Bashing']);
+  });
+});
+
+describe('lizardfolk', () => {
+  // The playable lizardfolk is the 8-RP race-builder entry: +1 natural armour, not the +5 of the
+  // Bestiary monster. The RP budget is the check — 2 + 2 + 1 + 1 + 2 = 8, and +5 natural armour
+  // could not fit an 8-RP race.
+  function lizardfolk(): CharacterDoc {
+    let d = newCharacter('t-liz', 'Sskar');
+    d = withDecision(d, 'ability-base', { str: 14, dex: 14, con: 12, int: 10, wis: 12, cha: 8 });
+    d = withDecision(d, 'race', 'lizardfolk');
+    d = withDecision(d, 'alignment', 'N');
+    d = withDecision(d, 'class', 'fighter');
+    return d;
+  }
+
+  it('grants +1 natural armour, which stacks with Dex as a different bonus type', () => {
+    const sheet = resolve(lizardfolk()).sheet;
+    expect(sheet.stats['ac'].total).toBe(10 + 2 + 1);
+    // Natural armour is not a Dex bonus, so it survives being caught flat-footed.
+    expect(sheet.stats['ac:ff'].total).toBe(10 + 1);
+    // …and it is not an armour bonus, so touch AC does not include it.
+    expect(sheet.stats['ac:touch'].total).toBe(10 + 2);
+  });
+
+  it('applies +2 Str / +2 Con with no penalty, and a 30-ft swim speed', () => {
+    const sheet = resolve(lizardfolk()).sheet;
+    expect(sheet.stats['ability:str'].total).toBe(16);
+    expect(sheet.stats['ability:con'].total).toBe(14);
+    expect(sheet.stats['ability:int'].total).toBe(10); // no Int penalty on this entry
+    expect(sheet.speed.swim).toBe(30);
+  });
+
+  it('gives the +8 racial bonus on Swim', () => {
+    const withRace = resolve(lizardfolk()).sheet.stats['skill:swim'].total;
+    const human = { ...lizardfolk(), decisions: { ...lizardfolk().decisions, race: 'human' } } as CharacterDoc;
+    // Human Str 14 (no racial Str here) vs lizardfolk Str 16: +1 from the ability, +8 from the trait.
+    expect(withRace - resolve(human).sheet.stats['skill:swim'].total).toBe(9);
+  });
+
+  it('is xenophobic: starts with its racial language and not Common', () => {
+    const race = C.raceById.get('lizardfolk')!;
+    expect(race.languagesAuto).toEqual(['draconic']);
+    expect(race.languagesAuto).not.toContain('common');
   });
 });
 
