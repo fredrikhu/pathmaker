@@ -4,7 +4,7 @@
 //
 // Rules verified against d20pfsrd (Special Abilities: Damage Reduction, Energy Resistance).
 
-import type { DamageKind, DamageReduction, Defenses, EnergyResistance, EnergyType } from './types';
+import type { DamageKind, DamageReduction, Defenses, EnergyAbsorption, EnergyResistance, EnergyType } from './types';
 
 export const ENERGY_TYPES: EnergyType[] = ['acid', 'cold', 'electricity', 'fire', 'sonic'];
 
@@ -16,10 +16,14 @@ export interface DamageResult {
   /** How much was stopped. */
   prevented: number;
   /** The single reduction that applied, if any. Only ever one: neither DR nor energy resistance
-   *  stacks — the best applicable one is used. */
+   *  stacks — the best applicable one is used. Absorption (protection from energy) is reported via
+   *  `deplete` instead, since it mutates state rather than being a fixed reduction. */
   source: DamageReduction | EnergyResistance | null;
   /** Plain-language reason, for the log. */
   explain: string;
+  /** How much a protection-from-energy pool absorbed and which timer to subtract it from. The
+   *  caller reduces that pool and ends the spell if it hits zero — this function stays pure. */
+  deplete?: { timerId: string; amount: number };
 }
 
 /** The best damage reduction that this attack does not bypass.
@@ -42,6 +46,14 @@ export function bestResistance(resistances: EnergyResistance[], type: EnergyType
   return applicable.reduce((best, r) => (r.amount > best.amount ? r : best));
 }
 
+/** The absorption pool that should soak this energy type. Multiple protection-from-energy of the
+ *  same type do not stack, so the one with the most left is used — it lasts longest. */
+export function bestAbsorb(pools: EnergyAbsorption[], type: EnergyType): EnergyAbsorption | null {
+  const applicable = pools.filter((p) => p.type === type && p.remaining > 0);
+  if (applicable.length === 0) return null;
+  return applicable.reduce((best, p) => (p.remaining > best.remaining ? p : best));
+}
+
 export interface ApplyOptions {
   /** Which DR the incoming attack got through — "adamantine", "magic", "silver"… Only the player
    *  knows what hit them, so this is declared rather than derived. */
@@ -61,14 +73,29 @@ export function applyDamage(amount: number, kind: DamageKind, defenses: Defenses
   if (incoming === 0) return none('no damage');
 
   if (isEnergy(kind)) {
+    // Protection from energy absorbs the whole type until its pool is spent, and takes precedence
+    // over resistance ("the protection spell absorbs damage until its power is exhausted"). Only
+    // the overflow on the discharging hit reaches resistance, so the two never touch the same points.
+    const pool = bestAbsorb(defenses.absorb, kind);
+    const absorbed = pool ? Math.min(incoming, pool.remaining) : 0;
+    const afterAbsorb = incoming - absorbed;
+    const discharged = pool !== null && absorbed >= pool.remaining;
+
     const r = bestResistance(defenses.resistances, kind);
-    if (!r) return none(`${incoming} ${kind} — no resistance`);
-    const prevented = Math.min(incoming, r.amount);
+    const resisted = r ? Math.min(afterAbsorb, r.amount) : 0;
+    const applied = afterAbsorb - resisted;
+
+    if (absorbed === 0 && resisted === 0) return none(`${incoming} ${kind} — no protection`);
+
+    const parts = [`${incoming} ${kind}`];
+    if (absorbed) parts.push(`− ${absorbed} absorbed (${pool!.note}${discharged ? ', discharged' : ''})`);
+    if (resisted) parts.push(`− ${resisted} (${r!.note}, resist ${r!.amount})`);
     return {
-      applied: incoming - prevented,
-      prevented,
-      source: r,
-      explain: `${incoming} ${kind} − ${prevented} (${r.note}, resist ${r.amount})`,
+      applied,
+      prevented: absorbed + resisted,
+      source: r ?? null,
+      explain: `${parts.join(' ')} → ${applied}`,
+      ...(pool && absorbed > 0 ? { deplete: { timerId: pool.timerId, amount: absorbed } } : {}),
     };
   }
 

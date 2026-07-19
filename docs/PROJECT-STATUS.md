@@ -6,7 +6,7 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 
 ## ▶ Resume here (last session end)
 
-**All five roadmap phases are done and committed** (branch `master`, working tree clean, 460 tests
+**All five roadmap phases are done and committed** (branch `master`, working tree clean, 471 tests
 passing; run `npx tsc --noEmit && npx vitest run && npm run build` to confirm). Pathmaker covers the
 full arc: build a character 1–20, play it at the table (HP, spells, pools, conditions), run the clock
 (rounds, timed effects, rest), and track consumables/charges/encumbrance live.
@@ -677,6 +677,20 @@ item weight for coins, and per-arrow ammunition.
     spiritual weapon or flaming sphere is now a real move action on the tracker. **Protection from
     energy** (a depleting pool) is still deferred; the action economy was the shared prerequisite,
     not the pool itself.
+- **Protection from energy: done — the last excluded spell effect.** It is a **depleting pool**,
+  not a flat resistance: it absorbs the whole chosen energy type until **12 points per caster level
+  (max 120)** are spent, then discharges. `Timer.absorb` holds the pool; `applyDamage` reports a
+  `deplete` so the play sheet subtracts what was absorbed and removes the timer at zero — the engine
+  stays pure, the mat holds the state.
+  - **Absorb takes precedence over resistance and never touches the same points**: the pool soaks
+    up to its remaining charge, and only the overflow on the discharging hit reaches resist energy
+    (the rules: "the protection spell absorbs damage until its power is exhausted"). Verified end to
+    end — a CL 6 fire pool (72) took 50 fire to 0, then 30 more absorbed 22, discharged, and let 8
+    land; the chip and defenses line disappeared when the pool emptied.
+  - Uses the resist-energy cast-time param for its type, and the chip shows the pool remaining live.
+- **All the excluded spell-effect categories are now resolved or accounted for.** Miss chances,
+  DR/energy resistance, self-directed attackers, the action economy and both energy wards are done;
+  what stays prose (target-imposed conditions, areas, utility) genuinely cannot be totalled honestly.
 - **Power Attack & two-weapon fighting: done** (`src/engine/combat.ts`, numbers verified against both
   feat pages). These are **declared per attack**, not passive, so they live in play state
   (`PlayState.powerAttack` / `twoWeapon`) as play-sheet toggles and are folded in **only while on** —

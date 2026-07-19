@@ -170,6 +170,19 @@ export const SPELL_BUFFS: Record<string, SpellBuffDef> = {
     },
   },
 
+  // A depleting pool, not a flat reduction: protection from energy soaks the whole chosen type
+  // until 12 points per caster level (max 120) are spent, then discharges. Same cast-time type
+  // choice as resist energy; the pool lives on the timer and shrinks as damage is applied.
+  'protection-from-energy': {
+    scaling: 'absorbs 12 points per caster level of a chosen energy type (max 120), for 10 minutes per level or until spent',
+    param: { label: 'Energy type', options: ENERGY_CHOICES },
+    caveat: 'Absorbs the whole type until its pool is exhausted, then ends. Overlaps resist energy rather than stacking.',
+    at: (cl, param) => {
+      const type = (ENERGY_CHOICES.some((c) => c.id === param) ? param : ENERGY_CHOICES[0].id) as EnergyType;
+      return { effects: [], rounds: cl * 10 * MINUTE, absorb: { type, amount: Math.min(cl * 12, 120) } };
+    },
+  },
+
   // Not a stat bonus at all: stoneskin reduces incoming damage, so it rides `dr` rather than
   // `effects`. Its discharge (10 points prevented per caster level) is not tracked — see caveat.
   stoneskin: {

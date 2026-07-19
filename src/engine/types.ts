@@ -90,11 +90,23 @@ export interface EnergyResistance {
   note: string;
 }
 
+/** A depleting pool that absorbs all damage of one energy type until exhausted — protection from
+ *  energy. Unlike resistance it is stateful: what it absorbs is subtracted from `remaining`, and
+ *  the spell ends when the pool hits zero. `timerId` links it back to the running effect. */
+export interface EnergyAbsorption {
+  type: EnergyType;
+  remaining: number;
+  note: string;
+  timerId: string;
+}
+
 /** What reduces damage on its way in. Kept apart from `stats` because none of it is a bonus to a
  *  roll — it is arithmetic applied to a number the sheet never generates. */
 export interface Defenses {
   dr: DamageReduction[];
   resistances: EnergyResistance[];
+  /** Absorption pools (protection from energy) that soak a whole energy type until spent. */
+  absorb: EnergyAbsorption[];
 }
 
 /** A self-directed attacker a spell leaves on the field (spiritual weapon, flaming sphere). Its
@@ -134,6 +146,9 @@ export interface Timer {
   resistances?: EnergyResistance[];
   /** A self-directed attacker this spell placed on the field, which the mat rolls each round. */
   attacker?: IndependentAttacker;
+  /** A protection-from-energy pool this spell placed: absorbs `remaining` more points of `type`
+   *  damage before the spell discharges. Depletes as damage is applied. */
+  absorb?: { type: EnergyType; remaining: number };
 }
 
 /** Session state that changes during play, kept separate from the build `decisions`. */

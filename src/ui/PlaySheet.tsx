@@ -125,6 +125,16 @@ export function PlaySheet({ id }: { id: string }) {
       bypassed: bypassChoices.filter((b) => bypassed[b]),
     });
     damage(r.applied);
+    // Protection from energy is stateful: subtract what it absorbed, and end the spell if spent.
+    if (r.deplete) {
+      const dep = r.deplete;
+      applyClock((p) => ({
+        ...p,
+        timers: p.timers
+          .map((t) => (t.id === dep.timerId && t.absorb ? { ...t, absorb: { ...t.absorb, remaining: t.absorb.remaining - dep.amount } } : t))
+          .filter((t) => !t.absorb || t.absorb.remaining > 0),
+      }));
+    }
     log({ source: 'Damage taken', detail: r.explain, total: r.applied });
     setIncomingAmount('');
   };
@@ -386,6 +396,9 @@ export function PlaySheet({ id }: { id: string }) {
                         {atkLabel ? `${atkLabel} · ` : ''}{atk.damage} {atk.dmgType}{atk.save ? ` · ${atk.save}` : ''}
                       </span>
                     ) : null}
+                    {t.absorb ? (
+                      <span className="text-muted num" style={{ fontSize: 11 }}>absorbs {t.absorb.type} · <strong>{t.absorb.remaining}</strong> left</span>
+                    ) : null}
                     <span style={{ flex: 1 }} />
                     {/* A self-directed attacker acts each round on your turn — roll it here. */}
                     {atk?.attackBonuses && (
@@ -502,10 +515,11 @@ export function PlaySheet({ id }: { id: string }) {
                 );
               })}
             </div>
-            {(sheet.defenses.dr.length > 0 || sheet.defenses.resistances.length > 0) ? (
+            {(sheet.defenses.dr.length > 0 || sheet.defenses.resistances.length > 0 || sheet.defenses.absorb.length > 0) ? (
               <div className="text-muted" style={{ fontSize: 11, marginTop: 7 }}>
                 {sheet.defenses.dr.map((d) => `DR ${d.amount}/${d.bypass} (${d.note})`)
                   .concat(sheet.defenses.resistances.map((r) => `resist ${r.type} ${r.amount} (${r.note})`))
+                  .concat(sheet.defenses.absorb.map((a) => `absorb ${a.type} · ${a.remaining} left (${a.note})`))
                   .join(' · ')}
               </div>
             ) : (

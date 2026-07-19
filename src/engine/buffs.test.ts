@@ -319,3 +319,31 @@ describe('resist energy — a cast-time energy-type choice', () => {
     expect(def.resistances).toEqual([{ type: 'fire', amount: 20, note: 'Resist Energy' }]);
   });
 });
+
+describe('protection from energy — an absorbing pool on a timer', () => {
+  const pfe = spell('protection-from-energy');
+
+  it('places a pool of 12 per caster level, capped at 120', () => {
+    expect(spellBuffTimer(pfe, 6, 'x', 'fire')!.absorb).toEqual({ type: 'fire', remaining: 72 });
+    expect(spellBuffTimer(pfe, 10, 'x', 'cold')!.absorb!.remaining).toBe(120);
+    expect(spellBuffTimer(pfe, 20, 'x', 'acid')!.absorb!.remaining).toBe(120); // capped
+  });
+
+  it('names the chosen type on the chip and lasts 10 minutes per level', () => {
+    const t = spellBuffTimer(pfe, 5, 'x', 'electricity')!;
+    expect(t.label).toContain('Electricity');
+    expect(t.remaining).toBe(5 * 100);
+  });
+
+  it('reaches the sheet as an absorption pool the damage entry can deplete', () => {
+    let d = newCharacter('t-pfe', 'Ward');
+    d = withDecision(d, 'ability-base', { str: 10, dex: 12, con: 12, int: 10, wis: 14, cha: 10 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'alignment', 'N');
+    d = withDecision(d, 'class', 'cleric');
+    d = { ...d, level: 6, play: { ...emptyPlayState(), timers: [spellBuffTimer(pfe, 6, 't1', 'fire')!] } };
+    expect(resolve(d).sheet.defenses.absorb).toEqual([
+      { type: 'fire', remaining: 72, note: 'Protection from Energy (Fire)', timerId: 't1' },
+    ]);
+  });
+});

@@ -557,7 +557,15 @@ describe('cast-time buff parameters', () => {
       expect(p.options.length, `${s.id} has an empty param`).toBeGreaterThan(0);
       // The first option is the documented fallback; it must produce something.
       const out = s.buff!.at(5, p.options[0].id);
-      expect(out.effects.length + (out.resistances?.length ?? 0) + (out.dr?.length ?? 0), `${s.id} default param`).toBeGreaterThan(0);
+      const produced = out.effects.length + (out.resistances?.length ?? 0) + (out.dr?.length ?? 0) + (out.absorb ? 1 : 0);
+      expect(produced, `${s.id} default param`).toBeGreaterThan(0);
     }
+  });
+
+  it("protection from energy is a depleting pool of 12 per caster level, capped at 120", () => {
+    const at = C.spellById.get('protection-from-energy')!.buff!.at;
+    expect(at(6, 'fire').absorb).toEqual({ type: 'fire', amount: 72 });
+    expect(at(10, 'cold').absorb!.amount).toBe(120);
+    expect(at(20, 'acid').absorb!.amount).toBe(120); // capped
   });
 });

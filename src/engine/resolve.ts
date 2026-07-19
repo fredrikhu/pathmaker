@@ -3,7 +3,7 @@ import type {
   Ability, Alignment, CharacterDoc, ChoiceSlot, Effect, Issue, Resolution,
   Sheet, SlotOption, Stat,
 } from './types';
-import type { AttackLine, BreakdownLine, CastingBlock, ConditionalBonus, DamageReduction, Defenses, EnergyResistance, GrantedFeat, InventoryItem, PlayState, ProgressionRow, ResourcePool } from './types';
+import type { AttackLine, BreakdownLine, CastingBlock, ConditionalBonus, DamageReduction, Defenses, EnergyAbsorption, EnergyResistance, GrantedFeat, InventoryItem, PlayState, ProgressionRow, ResourcePool } from './types';
 import { ABILITIES, abilityMod } from './types';
 import { evalPredicate, explainFailure, type PredicateCtx } from './predicates';
 import { stack, type Contribution } from './stack';
@@ -109,6 +109,7 @@ function readDecisions(doc: CharacterDoc): Decisions {
 function gatherDefenses(dec: Decisions, classes: ClassEntry[], play: PlayState | undefined): Defenses {
   const dr: DamageReduction[] = [];
   const resistances: EnergyResistance[] = [];
+  const absorb: EnergyAbsorption[] = [];
 
   const { standard, alternates } = activeRacialTraits(dec);
   for (const t of [...standard, ...alternates]) {
@@ -127,8 +128,18 @@ function gatherDefenses(dec: Decisions, classes: ClassEntry[], play: PlayState |
   for (const t of play?.timers ?? []) {
     for (const d of t.dr ?? []) dr.push(d);
     for (const r of t.resistances ?? []) resistances.push(r);
+    // A protection-from-energy pool with charge left; `timerId` links it back for depletion.
+    if (t.absorb && t.absorb.remaining > 0) {
+      absorb.push({ type: t.absorb.type, remaining: t.absorb.remaining, note: labelBase(t.label), timerId: t.id });
+    }
   }
-  return { dr, resistances };
+  return { dr, resistances, absorb };
+}
+
+/** The spell name from a timer label — "Protection from Energy (Fire, CL 6)" → "Protection from
+ *  Energy (Fire)" — for a defenses readout that names the ward without the caster-level noise. */
+function labelBase(label: string): string {
+  return label.replace(/, CL \d+\)/, ')');
 }
 
 function activeRacialTraits(dec: Decisions): { standard: C.RacialTraitDef[]; alternates: C.AltTraitDef[] } {

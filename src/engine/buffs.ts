@@ -16,12 +16,13 @@ export function spellBuffTimer(spell: SpellDef, casterLevel: number, id: string,
   // so the label and the effect it drives always agree on what was cast.
   const opts = spell.buff.param?.options;
   const chosen = opts ? (opts.find((o) => o.id === param) ?? opts[0]) : undefined;
-  const { effects, rounds, dr, resistances } = spell.buff.at(cl, chosen?.id);
+  const { effects, rounds, dr, resistances, absorb } = spell.buff.at(cl, chosen?.id);
   const label = chosen ? `${spell.name} (${chosen.name}, CL ${cl})` : `${spell.name} (CL ${cl})`;
   return {
     id, label, remaining: rounds, effects, spellId: spell.id,
     ...(dr?.length ? { dr } : {}),
     ...(resistances?.length ? { resistances } : {}),
+    ...(absorb ? { absorb: { type: absorb.type, remaining: absorb.amount } } : {}),
   };
 }
 

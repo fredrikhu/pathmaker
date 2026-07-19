@@ -253,6 +253,8 @@ export interface SpellBuffDef {
     /** Damage reduction / energy resistance the spell grants, which are not stat bonuses. */
     dr?: DamageReduction[];
     resistances?: EnergyResistance[];
+    /** A depleting absorption pool (protection from energy): soaks `amount` points of `type`. */
+    absorb?: { type: EnergyType; amount: number };
   };
   /** How the spell scales, in words, for the play sheet's cast button. */
   scaling: string;
