@@ -1683,6 +1683,97 @@ describe('weapon proficiency', () => {
   });
 });
 
+describe('thrown weapons', () => {
+  // Str 18 (+4) / Dex 14 (+2): the two modes differ in both attack and damage, so a mistake in
+  // either direction is visible.
+  function thrower(weapon: string, str = 18, dex = 14): CharacterDoc {
+    let d = newCharacter('t-throw', 'Kell');
+    d = withDecision(d, 'ability-base', { str, dex, con: 12, int: 10, wis: 12, cha: 10 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'alignment', 'N');
+    d = withDecision(d, 'class', 'fighter');
+    return { ...atLevel(d, 3), equipped: { armor: null, mainHand: weapon, offHand: null } };
+  }
+  const lines = (d: CharacterDoc) => resolve(d).sheet.attacks;
+  const thrownLine = (d: CharacterDoc) => lines(d).find((a) => a.mode === 'thrown')!;
+  const meleeLine = (d: CharacterDoc) => lines(d).find((a) => a.mode === undefined)!;
+
+  it('gives a throwable melee weapon a second line, not a note to apply yourself', () => {
+    const dagger = lines(thrower('dagger'));
+    expect(dagger).toHaveLength(2);
+    expect(dagger[0].mode).toBeUndefined();
+    expect(dagger[1].mode).toBe('thrown');
+    expect(dagger[1].name).toContain('(thrown)');
+  });
+
+  it('rolls the thrown attack off Dex and the melee attack off Str', () => {
+    // BAB +3. Melee: +3 Str +4 = +7. Thrown: +3 Dex +2 = +5.
+    expect(meleeLine(thrower('dagger')).bonuses[0]).toBe(7);
+    expect(thrownLine(thrower('dagger')).bonuses[0]).toBe(5);
+    expect(thrownLine(thrower('dagger')).kind).toBe('ranged');
+  });
+
+  it('adds Strength to thrown damage', () => {
+    expect(thrownLine(thrower('dagger')).damage).toBe('1d4+4');
+  });
+
+  it('never applies the 1½× two-handed multiplier to a thrown weapon', () => {
+    // A spear wielded two-handed deals 1½× Str; thrown, it deals 1× — it has left your hands.
+    expect(meleeLine(thrower('spear')).damage).toBe('1d8+6');
+    expect(thrownLine(thrower('spear')).damage).toBe('1d8+4');
+  });
+
+  it('caps thrown range at five increments', () => {
+    // Dagger: 10 ft increment → 50 ft, not the 100 ft a projectile weapon would reach.
+    expect(thrownLine(thrower('dagger')).notes.join(' ')).toContain('Maximum range 50 ft');
+    expect(thrownLine(thrower('shortspear')).notes.join(' ')).toContain('Maximum range 100 ft');
+  });
+
+  it('leaves weapons that are already ranged with a single line', () => {
+    // A javelin is thrown in its only mode; it must not sprout a duplicate.
+    expect(lines(thrower('javelin'))).toHaveLength(1);
+    expect(lines(thrower('javelin'))[0].mode).toBeUndefined();
+    expect(lines(thrower('longbow'))).toHaveLength(1);
+  });
+
+  it('gives a melee weapon with no range increment no thrown line', () => {
+    expect(lines(thrower('longsword'))).toHaveLength(1);
+  });
+
+  it('points the melee line at the thrown line rather than restating the rules', () => {
+    expect(meleeLine(thrower('dagger')).notes.join(' ')).toContain('listed separately');
+  });
+
+  it('carries the same enhancement and feats into both modes', () => {
+    let d = thrower('dagger');
+    d = withDecision(d, 'item-quality', { dagger: { masterwork: true, enhancement: 1 } });
+    d = { ...d, purchases: { dagger: 1 } };
+    // +1 on both attack lines and +1 damage on both — it is one weapon.
+    expect(meleeLine(d).bonuses[0]).toBe(8);
+    expect(thrownLine(d).bonuses[0]).toBe(6);
+    expect(meleeLine(d).damage).toBe('1d4+5');
+    expect(thrownLine(d).damage).toBe('1d4+5');
+  });
+
+  it('does not apply Power Attack to a thrown attack', () => {
+    // Power Attack is melee-only, so the thrown line must be untouched by the toggle.
+    let d = thrower('dagger');
+    d = withDecision(d, 'feats', { 'feat-1': 'power-attack' });
+    const off: CharacterDoc = { ...d, play: { ...emptyPlayState(), powerAttack: false } };
+    const on: CharacterDoc = { ...d, play: { ...emptyPlayState(), powerAttack: true } };
+    expect(meleeLine(on).bonuses[0]).toBe(meleeLine(off).bonuses[0] - 1);
+    expect(thrownLine(on).bonuses[0]).toBe(thrownLine(off).bonuses[0]);
+    expect(thrownLine(on).damage).toBe(thrownLine(off).damage);
+  });
+
+  it('halves Strength on damage for a thrown off-hand weapon', () => {
+    let d = thrower('dagger');
+    d = { ...d, equipped: { armor: null, mainHand: 'longsword', offHand: 'dagger' } };
+    const thrown = resolve(d).sheet.attacks.find((a) => a.mode === 'thrown' && a.slot === 'off')!;
+    expect(thrown.damage).toBe('1d4+2');
+  });
+});
+
 describe('composite bows and the Strength rating', () => {
   // Str 18 (+4) unless overridden — enough headroom to see a rating cap bite.
   function archer(weapon: string, rating?: number, str = 18): CharacterDoc {

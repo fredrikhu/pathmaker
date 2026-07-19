@@ -266,6 +266,9 @@ export interface AttackLine {
   kind: 'melee' | 'ranged';
   /** Where the weapon sits: main hand, off hand, or otherwise carried. */
   slot: 'main' | 'off' | 'carried';
+  /** Present on the second line a throwable melee weapon produces. The melee and thrown modes of
+   *  one weapon share an `id`, so anything keying attack lines must include this. */
+  mode?: 'thrown';
   /** Iterative attack bonuses, highest first (e.g. [6, 1] = "+6/+1"). */
   bonuses: number[];
   /** Breakdown of the primary (highest) attack bonus. */

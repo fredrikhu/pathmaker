@@ -308,7 +308,7 @@ export function PlaySheet({ id }: { id: string }) {
                 annotations: atk.notes,
               });
               return (
-                <div key={`${atk.slot}:${atk.id}`} onMouseEnter={open} onMouseLeave={tip.leave} onClick={open}
+                <div key={`${atk.slot}:${atk.id}:${atk.mode ?? 'normal'}`} onMouseEnter={open} onMouseLeave={tip.leave} onClick={open}
                   style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', cursor: 'pointer', padding: '4px 0', borderBottom: '1px solid rgba(233,233,237,.05)' }}>
                   <span style={{ width: 150, fontSize: 13.5, fontWeight: 500 }}>
                     {atk.qualityLabel && <span style={{ color: 'var(--color-accent-300)' }}>{atk.qualityLabel} </span>}

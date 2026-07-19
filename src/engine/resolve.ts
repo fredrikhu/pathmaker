@@ -968,6 +968,9 @@ function iterativeBonuses(primary: number, bab: number): number[] {
 /** Penalty on attack rolls for using a weapon you are not proficient with. */
 export const NON_PROFICIENT_PENALTY = -4;
 
+/** A thrown weapon reaches five range increments; a projectile weapon reaches ten. */
+export const THROWN_MAX_INCREMENTS = 5;
+
 /** What the character may wield without penalty. Assembled once per resolve, because it draws on
  *  class proficiency lists, racial Weapon Familiarity, and Exotic Weapon Proficiency picks. */
 interface ProficiencyCtx {
@@ -1058,12 +1061,12 @@ function weaponAttacks(doc: CharacterDoc, stats: Record<string, Stat>, bab: numb
   // while the toggle is on) and a stale flag must not penalise a single-weapon attack.
   const usingTwoWeapon = (doc.play?.twoWeapon ?? false) && Boolean(doc.equipped.mainHand && offHandWeapon);
   const twp = twoWeaponPenalties(featIds.has('two-weapon-fighting'), offHandWeapon?.hands === 'light');
-  const add = (id: string | null, slot: AttackLine['slot']): void => {
-    if (!id || seen.has(id)) return;
-    const w = C.weaponById.get(id);
-    if (!w) return;
-    seen.add(id);
-    const kind: 'melee' | 'ranged' = w.hands === 'ranged' ? 'ranged' : 'melee';
+  // A melee weapon with a range increment can be thrown, which is a different attack entirely:
+  // it rolls off Dex rather than Str and never gets the two-handed damage multiplier. Rather than
+  // annotate the melee line with rules the reader has to apply themselves, throwing gets its own
+  // line — same weapon, same enhancement and feats, different numbers.
+  const push = (w: C.WeaponDef, slot: AttackLine['slot'], thrown: boolean): void => {
+    const kind: 'melee' | 'ranged' = thrown || w.hands === 'ranged' ? 'ranged' : 'melee';
     const base = kind === 'ranged' ? ranged : melee;
     // Weapon-parameterised feats (Weapon Focus & co.) apply only to the weapon they name.
     const fb = featBonuses.get(w.id);
@@ -1099,7 +1102,13 @@ function weaponAttacks(doc: CharacterDoc, stats: Record<string, Stat>, bab: numb
     // Strength contribution, scaled by how the weapon is held; feat damage adds on top.
     let strDamage = 0;
     const notes: string[] = [];
-    if (kind === 'ranged') {
+    if (thrown) {
+      // A thrown weapon adds Strength to damage, but never the 1½× two-handed multiplier: that
+      // rule is about a weapon "you are wielding two-handed", and a thrown one has left your hands.
+      strDamage = slot === 'off' ? Math.floor(strMod * 0.5) : strMod;
+      notes.push('Thrown: rolls off Dex, adds Str to damage (no 1½× — the weapon has left your hands).');
+      if (w.range) notes.push(`Maximum range ${w.range * THROWN_MAX_INCREMENTS} ft (${THROWN_MAX_INCREMENTS} range increments), at −2 per increment past the first.`);
+    } else if (kind === 'ranged') {
       if (w.strToDamage) {
         // The sling and halfling sling staff add Strength to damage just as thrown weapons do.
         strDamage = strMod;
@@ -1134,7 +1143,7 @@ function weaponAttacks(doc: CharacterDoc, stats: Record<string, Stat>, bab: numb
     }
     if (w.note) notes.push(w.note);
     notes.push(...firearmNotes(w, proficient));
-    if (kind === 'melee' && w.range) notes.push(`Can be thrown (${w.range} ft): thrown attacks use Dex and add Str to damage.`);
+    if (kind === 'melee' && w.range) notes.push(`Can be thrown (${w.range} ft) — its thrown attack is listed separately.`);
     // Unconditional property damage rides on the damage string; conditional ones become notes.
     const extraDice = props.map((p) => p.damageDice).filter(Boolean) as string[];
     const baseDamage = dmgMod !== 0 ? `${w.dmg}${fmtSigned(dmgMod)}` : w.dmg;
@@ -1144,8 +1153,9 @@ function weaponAttacks(doc: CharacterDoc, stats: Record<string, Stat>, bab: numb
       else if (!p.damageDice && !p.extraAttack && !p.doublesThreat) notes.push(`${p.name}: ${p.desc}`);
       if (p.restriction) notes.push(`${p.name} applies to ${p.restriction}.`);
     }
-    const scaleNote = w.hands === 'two' && slot !== 'off' ? ' (1½×)'
-      : slot === 'off' ? ' (½×)'
+    const scaleNote = slot === 'off' ? ' (½×)'
+      : thrown ? ''
+      : w.hands === 'two' ? ' (1½×)'
       : bow && strMod > rating ? ` (capped at the bow's +${rating})` : '';
     // Most ranged weapons add no Strength at all, so the row is omitted rather than shown as +0 —
     // but slings and composite bows do, and for them it has to be visible.
@@ -1157,7 +1167,8 @@ function weaponAttacks(doc: CharacterDoc, stats: Record<string, Stat>, bab: numb
       ...(pa ? [{ label: `Power Attack${paScale === 'oneAndHalf' ? ' (1½×)' : paScale === 'half' ? ' (½×)' : ''}`, value: pa.damage }] : []),
     ];
     lines.push({
-      id: w.id, name: w.name, kind, slot, bonuses,
+      id: w.id, name: thrown ? `${w.name} (thrown)` : w.name, kind, slot, bonuses,
+      ...(thrown ? { mode: 'thrown' as const } : {}),
       attackLines: [...base.lines, ...(fb?.attackLines ?? []), ...qualityLines, ...optionLines],
       damage, damageLines,
       crit: props.some((p) => p.doublesThreat) ? doubleThreatRange(w.crit) : w.crit,
@@ -1166,6 +1177,16 @@ function weaponAttacks(doc: CharacterDoc, stats: Record<string, Stat>, bab: numb
       ...(props.length ? { properties: props.map((p) => p.name) } : {}),
       notes,
     });
+  };
+  const add = (id: string | null, slot: AttackLine['slot']): void => {
+    if (!id || seen.has(id)) return;
+    const w = C.weaponById.get(id);
+    if (!w) return;
+    seen.add(id);
+    push(w, slot, false);
+    // Melee weapons that carry a range increment (dagger, spear, trident…) get a thrown line too.
+    // Weapons that are already ranged do not — a javelin is thrown in its only mode.
+    if (w.hands !== 'ranged' && w.range) push(w, slot, true);
   };
   add(doc.equipped.mainHand, 'main');
   add(doc.equipped.offHand, 'off');

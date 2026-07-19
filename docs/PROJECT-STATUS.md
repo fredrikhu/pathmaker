@@ -6,7 +6,7 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 
 ## ▶ Resume here (last session end)
 
-**All five roadmap phases are done and committed** (branch `master`, working tree clean, 351 tests
+**All five roadmap phases are done and committed** (branch `master`, working tree clean, 362 tests
 passing; run `npx tsc --noEmit && npx vitest run && npm run build` to confirm). Pathmaker covers the
 full arc: build a character 1–20, play it at the table (HP, spells, pools, conditions), run the clock
 (rounds, timed effects, rest), and track consumables/charges/encumbrance live.
@@ -529,8 +529,21 @@ item weight for coins, and per-arrow ammunition.
     damage (composite bows and slings excepted)" — but slings got no Strength at all, so the note
     described a rule the engine did not implement. The sling and the halfling sling staff now add the
     full Strength modifier, as their descriptions specify.
-  - Still not modelled: **thrown weapons**, which add Str to damage but need a melee weapon to expose a
-    second, ranged attack mode. The "can be thrown" note remains a note.
+- **Thrown weapons: done.** A melee weapon with a range increment (dagger, club, shortspear, spear,
+  trident) now produces a **second attack line** rather than a note the reader has to apply. The two
+  modes are genuinely different attacks: thrown rolls off **Dex**, melee off Str.
+  - Thrown adds Str to damage but **never the 1½× two-handed multiplier** — that rule is about a
+    weapon "you are wielding two-handed", and a thrown one has left your hands. A Str 18 fighter's
+    spear reads **1d8+6 melee, 1d8+4 thrown**, which is the case that makes the distinction visible.
+  - Thrown range caps at **five** range increments (projectile weapons get ten), stated on the line.
+  - **Power Attack does not reach the thrown line** — it is melee-only, and the existing `kind`
+    gate handles that for free once throwing is a ranged attack. Off-hand throwing halves Str as
+    any off-hand attack does. Enhancement, masterwork and weapon feats apply to *both* modes: it is
+    one weapon.
+  - `AttackLine.mode` distinguishes them. The two modes share a weapon `id`, so **anything keying
+    attack lines must include the mode** — the play sheet's React key does.
+  - Weapons that are already ranged (javelin, dart, shuriken, bola) keep their single line; throwing
+    is their only mode.
 - **Power Attack & two-weapon fighting: done** (`src/engine/combat.ts`, numbers verified against both
   feat pages). These are **declared per attack**, not passive, so they live in play state
   (`PlayState.powerAttack` / `twoWeapon`) as play-sheet toggles and are folded in **only while on** —
