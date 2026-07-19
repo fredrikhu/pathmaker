@@ -200,3 +200,45 @@ describe('arcanist spell tables', () => {
     expect(spellsPreparedPerLevel(undefined, 5)).toEqual([]);
   });
 });
+
+describe('four-level spontaneous casters (bloodrager, vampire hunter)', () => {
+  // Both share FOUR_LEVEL for slots per day and differ only in spells known — read from each
+  // class's own table markup. The vampire hunter's per-day grid turned out to be identical to
+  // the paladin/ranger one, which is why only the known tables are new.
+  it('both spend the same slots per day as a paladin or ranger', () => {
+    for (const t of ['bloodrager', 'vampire-hunter'] as const) {
+      expect(spellSlotsPerDay(t, 3, 0)).toEqual([]);           // no casting before 4th
+      expect(spellSlotsPerDay(t, 4, 0)).toEqual(spellSlotsPerDay('four', 4, 0));
+      expect(spellSlotsPerDay(t, 13, 0)).toEqual(spellSlotsPerDay('four', 13, 0));
+      expect(spellSlotsPerDay(t, 20, 0)).toEqual([0, 4, 4, 3, 3]);
+    }
+  });
+
+  it('a 0 in the table means castable only with a bonus spell from a high ability', () => {
+    expect(spellSlotsPerDay('vampire-hunter', 4, 0)).toEqual([0, 0]);
+    // Wis 14 (+2): the bonus spell makes that 1st-level slot real.
+    expect(spellSlotsPerDay('vampire-hunter', 4, 2)).toEqual([0, 1]);
+  });
+
+  it('but they know different numbers of spells', () => {
+    // Neither has orisons, hence the leading 0.
+    expect(spellsKnownPerLevel('bloodrager', 3)).toEqual([]);
+    expect(spellsKnownPerLevel('bloodrager', 4)).toEqual([0, 2]);
+    expect(spellsKnownPerLevel('vampire-hunter', 4)).toEqual([0, 2]);
+    // They diverge from 9th: the bloodrager knows 5 first-level spells, the hunter 4.
+    expect(spellsKnownPerLevel('bloodrager', 9)).toEqual([0, 5, 4]);
+    expect(spellsKnownPerLevel('vampire-hunter', 9)).toEqual([0, 4, 4]);
+    expect(spellsKnownPerLevel('bloodrager', 12)).toEqual([0, 6, 5, 4]);
+    expect(spellsKnownPerLevel('vampire-hunter', 12)).toEqual([0, 5, 4, 4]);
+    expect(spellsKnownPerLevel('bloodrager', 20)).toEqual([0, 6, 6, 6, 5]);
+    expect(spellsKnownPerLevel('vampire-hunter', 20)).toEqual([0, 6, 6, 6, 5]);
+  });
+
+  it('the repeated rows are real — these known tables plateau', () => {
+    // Both sources print identical consecutive rows; this pins them so a future "tidy-up"
+    // does not invent a progression that the class does not have.
+    expect(spellsKnownPerLevel('vampire-hunter', 17)).toEqual(spellsKnownPerLevel('vampire-hunter', 18));
+    expect(spellsKnownPerLevel('bloodrager', 15)).toEqual(spellsKnownPerLevel('bloodrager', 16));
+    expect(spellsKnownPerLevel('bloodrager', 18)).toEqual(spellsKnownPerLevel('bloodrager', 20));
+  });
+});

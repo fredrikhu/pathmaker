@@ -6,7 +6,7 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 
 ## ▶ Resume here (last session end)
 
-**All five roadmap phases are done and committed** (branch `master`, working tree clean, 301 tests
+**All five roadmap phases are done and committed** (branch `master`, working tree clean, 305 tests
 passing; run `npx tsc --noEmit && npx vitest run && npm run build` to confirm). Pathmaker covers the
 full arc: build a character 1–20, play it at the table (HP, spells, pools, conditions), run the clock
 (rounds, timed effects, rest), and track consumables/charges/encumbrance live.
@@ -17,8 +17,9 @@ armour special abilities**, the **worn-item catalogue** with body slots enforced
 two-weapon fighting** as play-sheet toggles, and **multiclass**.
 
 From here the work is breadth and polish rather than new phases. The open items are the deferral
-backlog below. Only **one** blocked-on-verification item remains (the vampire hunter class table);
-the rest is deliberately out-of-scope classes and races, and breadth rather than correctness.
+backlog below. **The blocked-on-verification list is now empty** — every item that was held for an
+untrustworthy source has been resolved. What remains is deliberately out-of-scope classes and races,
+and breadth rather than correctness.
 
 Everything below is the durable detail. When resuming, read this file, then `docs/DESIGN.md`.
 
@@ -188,8 +189,22 @@ Still open from that audit:
     spells and can cast 5.
   - Intelligence bonus spells raise slots per day only, never the prepared count.
   - **Every class that casts now has a verified table** — a content test asserts the set is empty.
-- **Vampire Hunter** full class table (unverifiable) → keeps only its level-1 `features1` fallback,
-  and carries no `spellcasting` block at all rather than a table of guesses.
+- ~~**Vampire Hunter** full class table~~ — **resolved; the class is now complete.** Table 1–1 was
+  read from the class page's markup. Its BAB and saves matched the existing stat block exactly, and
+  its **Spells per Day grid turned out to be the standard four-level progression already encoded as
+  `FOUR_LEVEL`** (paladin/ranger) — so the only genuinely new data was the Spells Known table.
+  - Spontaneous, **Wisdom**-based, drawing on the **inquisitor list**: no orisons, nothing above
+    4th level, casting from 4th. Bonus spells per day from a high Wisdom; a `0` in the table means
+    the slot exists only once the Wisdom bonus supplies it.
+  - Full per-level progression authored from the Special column, with technique feats as the
+    class's bonus-feat track (1st, 3rd, then every three levels). **This was the last of the 31
+    classes without per-level content — Part B is now 31/31.**
+  - **A gap found along the way:** the four-level *spontaneous* casters (bloodrager, vampire hunter)
+    share `FOUR_LEVEL` for slots but know **different** numbers of spells, and `spellsKnownPerLevel`
+    handled neither — the bloodrager had been showing no spells-known counts at all. Both known
+    tables are now encoded under their own table tags, verified from each class's own page.
+  - The repeated rows in both known tables are **in the source** (these tables plateau); a test
+    pins them so a later "tidy-up" can't invent a progression the classes don't have.
 - ~~**Lizardfolk** natural-armor value~~ — **resolved, and the race is now in.** The conflict was
   between *different stat blocks for the same name*, not a bad source: the playable race is the
   **8-RP race-builder entry** (+1 natural armour), while the +5 belongs to the Bestiary monster,
@@ -245,7 +260,7 @@ Still open from that audit:
 | Phase | Scope | Status |
 | --- | --- | --- |
 | 1 | Level-1 character creator | **done** |
-| 2 | **Level-up** — multi-level engine + per-level decisions | **done** (Part A engine/UI + Part B content, 30/31 classes; multiclass added later) |
+| 2 | **Level-up** — multi-level engine + per-level decisions | **done** (Part A engine/UI + Part B content, 31/31 classes; multiclass added later) |
 | 3 | Interactive play sheet — HP/resource/spell tracking, conditions, prepared spells, rest | **done** |
 | 4 | Time & campaign clock — buff durations, rest resets | **done** |
 | 5 | Live inventory — consumables, charges, encumbrance in play | **done** |
@@ -261,9 +276,8 @@ UI: header level stepper, Advancement step (progression table + per-level HP + a
 feat slots grouped by level, skill cap = level. Golden tests at levels 5/7/4 + Toughness
 scaling + retroactive-Con + level-down suspend. Single-class only; multiclass model-ready.
 
-**Part B — verified per-class progression content: done (30/31 classes).** Per-level `features`,
-`bonusFeats`, and per-level subsystem `ClassChoiceDef.levels` are authored for all classes except
-vampire-hunter, verified against each class's d20pfsrd table (mechanical facts from source, prose
+**Part B — verified per-class progression content: done (31/31 classes).** Per-level `features`,
+`bonusFeats`, and per-level subsystem `ClassChoiceDef.levels` are authored for every class, verified against each class's d20pfsrd table (mechanical facts from source, prose
 paraphrased). The data lives in `src/content/class-features.ts` (`CLASS_PROGRESSION`, attached to
 the class defs by a loop in `classes.ts`); subsystem option lists in `subsystems.ts`. Subsystem
 picks working: rage powers, rogue/slayer talents (+ advanced), alchemist discoveries, magus arcana,

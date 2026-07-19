@@ -7,8 +7,8 @@ import {
 import { CLASS_PROGRESSION } from './class-features';
 import type { CasterProgression, SpellTable } from '../engine/progression';
 
-// Caster level progression + the verified slots/known table for each casting class. Classes with
-// unique tables not yet encoded (arcanist, vampire-hunter) are omitted → no slot numbers shown.
+// Caster level progression + the verified slots/known table for each casting class. Every class
+// that casts now has one; a content test asserts the set of table-less casters is empty.
 const CASTER: Record<string, { progression: CasterProgression; table: SpellTable }> = {
   cleric: { progression: 'full', table: 'prepared-full' },
   druid: { progression: 'full', table: 'prepared-full' },
@@ -28,7 +28,11 @@ const CASTER: Record<string, { progression: CasterProgression; table: SpellTable
   investigator: { progression: 'six', table: 'extract' },
   paladin: { progression: 'four', table: 'four' },
   ranger: { progression: 'four', table: 'four' },
-  bloodrager: { progression: 'four', table: 'four' },
+  // The two four-level *spontaneous* casters share the slots grid but know different numbers
+  // of spells, so each carries its own tag.
+  bloodrager: { progression: 'four', table: 'bloodrager' },
+  'vampire-hunter': { progression: 'four', table: 'vampire-hunter' },
+  arcanist: { progression: 'full', table: 'arcanist' },
 };
 
 // Class skill lists use the skill ids from skills.ts. Craft/Knowledge/Profession/Perform
@@ -357,6 +361,9 @@ export const CLASSES: ClassDef[] = [
       { id: 'vh-technique', name: 'Technique Feat', desc: 'Gain a bonus combat or technique feat.' },
       { id: 'vh-track', name: 'Track', desc: 'Add half your level to Survival checks to follow tracks.' },
     ],
+    // Spontaneous divine caster from 4th level, drawing on the inquisitor list: no orisons, and
+    // nothing above 4th level. Wisdom-based, with bonus spells per day from a high Wisdom.
+    spellcasting: { kind: 'spontaneous', ability: 'wis', list: 'divine', slots1: [0, 0], known1: [0, 0] },
   },
 
   // ─────────────────────────── HYBRID CLASSES ───────────────────────────
@@ -373,7 +380,7 @@ export const CLASSES: ClassDef[] = [
       { id: 'arc-cantrips', name: 'Cantrips', desc: 'Prepare 0-level arcanist spells, cast at will.' },
     ],
     choices: [{ id: 'exploit', label: 'Arcanist exploit', kind: 'list', count: 1, options: ARCANIST_EXPLOITS }],
-    spellcasting: { kind: 'prepared-book', ability: 'int', list: 'arcane', progression: 'full', table: 'arcanist', slots1: [4, 2], bookPicks1: 'threePlusInt' },
+    spellcasting: { kind: 'prepared-book', ability: 'int', list: 'arcane', slots1: [4, 2], bookPicks1: 'threePlusInt' },
   },
   {
     id: 'bloodrager', name: 'Bloodrager', sub: 'Hybrid · d10 · bloodrage',

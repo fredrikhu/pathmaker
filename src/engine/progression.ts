@@ -272,6 +272,53 @@ const SPONT_SIX_KNOWN: number[][] = [
   [6, 6, 6, 6, 6, 5, 5],
 ];
 
+// ---- Four-level spontaneous casters (bloodrager, vampire hunter) ------------------------
+// Both spend the shared FOUR_LEVEL slots table but know *different* numbers of spells, so each
+// needs its own known grid. Neither has orisons, hence the leading 0. Read from each class's
+// own table markup; the repeated rows near the top are in the source (these tables plateau).
+
+const BLOODRAGER_KNOWN: number[][] = [
+  [], [], [],
+  [0, 2],
+  [0, 3],
+  [0, 4],
+  [0, 4, 2],
+  [0, 4, 3],
+  [0, 5, 4],
+  [0, 5, 4, 2],
+  [0, 5, 4, 3],
+  [0, 6, 5, 4],
+  [0, 6, 5, 4, 2],
+  [0, 6, 5, 4, 3],
+  [0, 6, 6, 5, 4],
+  [0, 6, 6, 5, 4],
+  [0, 6, 6, 5, 4],
+  [0, 6, 6, 6, 5],
+  [0, 6, 6, 6, 5],
+  [0, 6, 6, 6, 5],
+];
+
+const VAMPIRE_HUNTER_KNOWN: number[][] = [
+  [], [], [],
+  [0, 2],
+  [0, 3],
+  [0, 4],
+  [0, 4, 2],
+  [0, 4, 3],
+  [0, 4, 4],
+  [0, 5, 4, 2],
+  [0, 5, 4, 3],
+  [0, 5, 4, 4],
+  [0, 5, 5, 4, 2],
+  [0, 6, 5, 4, 3],
+  [0, 6, 5, 4, 4],
+  [0, 6, 5, 5, 4],
+  [0, 6, 6, 5, 4],
+  [0, 6, 6, 5, 4],
+  [0, 6, 6, 5, 5],
+  [0, 6, 6, 6, 5],
+];
+
 // ---- Arcanist ---------------------------------------------------------------------------
 // The arcanist is the one class with *two* spell tables: it prepares spells like a wizard and
 // then casts them spontaneously from a separate pool of slots. Both are transcribed from the
@@ -334,7 +381,7 @@ const ARCANIST_PREPARED: number[][] = [
 /** A caster's slot/known identity. All arrays are indexed by absolute spell level (0 = cantrips). */
 export type SpellTable =
   | 'prepared-full' | 'spontaneous-full' | 'bard' | 'spont-six' | 'prepared-six' | 'extract'
-  | 'four' | 'arcanist';
+  | 'four' | 'arcanist' | 'bloodrager' | 'vampire-hunter';
 
 function baseSlotTable(table: SpellTable): number[][] {
   switch (table) {
@@ -344,7 +391,11 @@ function baseSlotTable(table: SpellTable): number[][] {
     case 'spont-six': return SIX_LEVEL;
     case 'prepared-six': return PREPARED_SIX;
     case 'extract': return EXTRACT_SIX;
-    case 'four': return FOUR_LEVEL;
+    // The two four-level spontaneous casters share the slots table and differ only in what
+    // they know, so they are separate tags with the same per-day grid.
+    case 'four':
+    case 'bloodrager':
+    case 'vampire-hunter': return FOUR_LEVEL;
     case 'arcanist': return ARCANIST_PER_DAY;
   }
 }
@@ -357,7 +408,7 @@ export function spellsPreparedPerLevel(table: SpellTable | undefined, level: num
 }
 
 /** Total spell slots per day at a class level: the base table plus ability bonus spells.
- *  Returns [] when the class has no encoded table (e.g. arcanist / vampire-hunter). */
+ *  Returns [] when the class has no encoded table. */
 export function spellSlotsPerDay(table: SpellTable | undefined, level: number, abilityMod: number): number[] {
   if (!table || level < 1) return [];
   const base = baseSlotTable(table)[Math.min(20, level) - 1] ?? [];
@@ -370,6 +421,8 @@ export function spellsKnownPerLevel(table: SpellTable | undefined, level: number
   const src = table === 'spontaneous-full' ? SORCERER_KNOWN
     : table === 'bard' ? BARD_KNOWN
     : table === 'spont-six' ? SPONT_SIX_KNOWN
+    : table === 'bloodrager' ? BLOODRAGER_KNOWN
+    : table === 'vampire-hunter' ? VAMPIRE_HUNTER_KNOWN
     : null;
   if (!src) return [];
   return src[Math.min(20, level) - 1] ?? [];

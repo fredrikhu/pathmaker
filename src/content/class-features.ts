@@ -525,4 +525,28 @@ export const CLASS_PROGRESSION: Record<string, ClassProgression> = {
     ],
     choices: [{ id: 'shifter-aspect-extra', label: 'Additional aspect', kind: 'list', count: 1, levels: [5, 10, 15, 20], options: SHIFTER_ASPECTS }],
   },
+  // Table 1–1 read from the class page's markup. Technique feats are the class's bonus-feat
+  // track: 1st, 3rd, and every three levels after.
+  'vampire-hunter': {
+    bonusFeats: { levels: [1, 3, 6, 9, 12, 15, 18], label: 'Technique feat' },
+    features: [
+      f(1, 'vh-detect-undead', 'Detect Undead', 'Use detect undead at will; a move action pinpoints one target within 60 ft.'),
+      f(1, 'vh-track', 'Track', 'Add half your level to Survival checks to follow tracks.'),
+      f(1, 'vh-focus', 'Vampiric Focus', 'Mimic one common vampiric power, gaining its bonus or special ability.'),
+      f(2, 'vh-relentless', 'Relentless', 'Press an undead quarry without faltering.'),
+      f(4, 'vh-spellcasting', 'Spellcasting', 'Begin casting divine spells spontaneously from the inquisitor list (no orisons, nothing above 4th level).'),
+      f(4, 'vh-stake', 'Stake', 'Drive a stake home against a helpless or staggered vampire.'),
+      f(5, 'vh-relentless-band', 'Relentless Band', 'Extend your relentless pursuit to allies around you.'),
+      f(7, 'vh-vampire-tracker', 'Vampire Tracker', 'Follow a vampire’s trail with supernatural accuracy.'),
+      f(8, 'vh-second-focus', 'Second Vampiric Focus', 'Select a second vampiric focus.'),
+      f(10, 'vh-swift-tracker', 'Swift Tracker', 'Track at full speed without penalty.'),
+      f(11, 'vh-vampire-bane', 'Vampire Bane', 'Your attacks bite deeper against vampires.'),
+      f(13, 'vh-remove-vampirism', 'Remove Vampirism', 'Free a victim from a vampire’s corruption.'),
+      f(14, 'vh-quarry', 'Quarry', 'Designate a target for bonus attacks and guaranteed tracking.'),
+      f(16, 'vh-third-focus', 'Third Vampiric Focus', 'Select a third vampiric focus.'),
+      f(17, 'vh-critical-reflexes', 'Critical Reflexes', 'Turn a foe’s opening into a telling blow.'),
+      f(19, 'vh-improved-quarry', 'Improved Quarry', 'Quarry bonuses increase and re-designate as a free action.'),
+      f(20, 'vh-master', 'Master Vampire Hunter', 'The culmination of the hunt — destroy the undead you have studied.'),
+    ],
+  },
 };
