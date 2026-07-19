@@ -1,5 +1,9 @@
 import type { ArmorDef, GearDef, WeaponDef } from './model';
 
+// Several firearms double as a melee weapon (an axe musket is also an axe). The firearm table
+// carries no melee profile for them, so rather than invent one the attack line says so.
+const NOTE_DOUBLE = 'Also a melee weapon; only its firearm mode is modelled here.';
+
 // Core-rulebook weapon table, verified against d20pfsrd (Medium damage, crit, cost, weight, type).
 export const WEAPONS: WeaponDef[] = [
   // --- Simple ---
@@ -73,6 +77,64 @@ export const WEAPONS: WeaponDef[] = [
   { id: 'halfling-sling-staff', name: 'Sling staff, halfling', cost: 20, weight: 3, dmg: '1d8', crit: '×3', range: 80, dmgType: 'B', group: 'exotic', hands: 'ranged' },
   // Not authored: the net. It deals no damage at all, and the attack line is built around a
   // damage string — listing it would print a damage figure the weapon does not have.
+
+  // ---- Firearms (Ultimate Combat) ----
+  // Their own proficiency group: Exotic Weapon Proficiency (firearms) grants all of them at once.
+  // Medium damage, crit, range, misfire, capacity and weight read from the UC firearms table.
+  // Only PRG:UC entries are authored — the table's later-supplement rows (dragoon pistol/musket,
+  // paddle-foot pistol, cylinder rifle) are out of scope, and the breech-loader and air repeater
+  // are skipped because their rows carry no source at all.
+  // Also skipped: the culverin, whose row gives no cone size for its grapeshot and which carries
+  // its own unsupported-firing rules (−4 and knocked prone).
+
+  // --- Early, one-handed ---
+  { id: 'pistol', name: 'Pistol', cost: 1000, weight: 4, dmg: '1d8', crit: '×4', range: 20, dmgType: 'B and P', group: 'firearms', hands: 'ranged',
+    firearm: { era: 'early', grip: 'one', misfire: '1', burst: 5, capacity: 1 } },
+  { id: 'coat-pistol', name: 'Pistol, coat', cost: 750, weight: 1, dmg: '1d4', crit: '×3', range: 10, dmgType: 'B and P', group: 'firearms', hands: 'ranged',
+    firearm: { era: 'early', grip: 'one', misfire: '1', burst: 5, capacity: 1 } },
+  { id: 'dagger-pistol', name: 'Pistol, dagger', cost: 740, weight: 1, dmg: '1d4', crit: '×3', range: 10, dmgType: 'B and P', group: 'firearms', hands: 'ranged',
+    note: NOTE_DOUBLE, firearm: { era: 'early', grip: 'one', misfire: '1', burst: 5, capacity: 1 } },
+  { id: 'sword-cane-pistol', name: 'Pistol, sword cane', cost: 775, weight: 1, dmg: '1d4', crit: '×3', range: 10, dmgType: 'B and P', group: 'firearms', hands: 'ranged',
+    note: NOTE_DOUBLE, firearm: { era: 'early', grip: 'one', misfire: '1', burst: 5, capacity: 1 } },
+  { id: 'double-barreled-pistol', name: 'Pistol, double-barreled', cost: 1750, weight: 5, dmg: '1d8', crit: '×4', range: 20, dmgType: 'B and P', group: 'firearms', hands: 'ranged',
+    firearm: { era: 'early', grip: 'one', misfire: '1–2', burst: 5, capacity: 2 } },
+  // The UC table prints a 20 ft. range increment; the weapon's own description says 10 ft.
+  // The table wins here, as the printed stat block — the discrepancy is upstream, not ours.
+  { id: 'dragon-pistol', name: 'Pistol, dragon', cost: 1000, weight: 3, dmg: '1d6', crit: '×4', range: 20, dmgType: 'B and P', group: 'firearms', hands: 'ranged',
+    firearm: { era: 'early', grip: 'one', misfire: '1–2', burst: 5, capacity: 1, scatter: { cone: 15 } } },
+  { id: 'buckler-gun', name: 'Buckler gun', cost: 750, weight: 6, dmg: '1d6', crit: '×4', range: 10, dmgType: 'B and P', group: 'firearms', hands: 'ranged',
+    note: NOTE_DOUBLE, firearm: { era: 'early', grip: 'one', misfire: '1', burst: 5, capacity: 2 } },
+  { id: 'pepperbox', name: 'Pepperbox', cost: 3000, weight: 5, dmg: '1d8', crit: '×4', range: 20, dmgType: 'B and P', group: 'firearms', hands: 'ranged',
+    firearm: { era: 'early', grip: 'one', misfire: '1–2', burst: 5, capacity: 6 } },
+  // --- Early, two-handed ---
+  { id: 'musket', name: 'Musket', cost: 1500, weight: 9, dmg: '1d12', crit: '×4', range: 40, dmgType: 'B and P', group: 'firearms', hands: 'ranged',
+    firearm: { era: 'early', grip: 'two', misfire: '1–2', burst: 5, capacity: 1 } },
+  { id: 'axe-musket', name: 'Musket, axe', cost: 1600, weight: 6, dmg: '1d8', crit: '×4', range: 30, dmgType: 'B and P', group: 'firearms', hands: 'ranged',
+    note: NOTE_DOUBLE, firearm: { era: 'early', grip: 'two', misfire: '1–2', burst: 5, capacity: 1 } },
+  { id: 'warhammer-musket', name: 'Musket, warhammer', cost: 1600, weight: 6, dmg: '1d8', crit: '×4', range: 30, dmgType: 'B and P', group: 'firearms', hands: 'ranged',
+    note: NOTE_DOUBLE, firearm: { era: 'early', grip: 'two', misfire: '1–2', burst: 5, capacity: 1 } },
+  { id: 'double-barreled-musket', name: 'Musket, double-barreled', cost: 2500, weight: 11, dmg: '1d12', crit: '×4', range: 40, dmgType: 'B and P', group: 'firearms', hands: 'ranged',
+    firearm: { era: 'early', grip: 'two', misfire: '1–3', burst: 5, capacity: 2 } },
+  // The table prints "special" for range: the blunderbuss's own description gives a 10 ft.
+  // increment when it fires a bullet, which is the mode the attack line shows.
+  { id: 'blunderbuss', name: 'Blunderbuss', cost: 2000, weight: 8, dmg: '1d8', crit: '×2', range: 10, dmgType: 'B and P', group: 'firearms', hands: 'ranged',
+    firearm: { era: 'early', grip: 'two', misfire: '1–2', burst: 10, capacity: 1, scatter: { cone: 15 } } },
+  { id: 'fire-lance', name: 'Fire lance', cost: 25, weight: 4, dmg: '1d6', crit: '×4', range: 10, dmgType: 'P', group: 'firearms', hands: 'ranged',
+    firearm: { era: 'early', grip: 'two', misfire: '1–4', burst: 5, capacity: 1 } },
+  { id: 'double-hackbut', name: 'Double hackbut', cost: 4000, weight: 18, dmg: '2d12', crit: '×4', range: 50, dmgType: 'B and P', group: 'firearms', hands: 'ranged',
+    firearm: { era: 'early', grip: 'two', misfire: '1–2', burst: 5, capacity: 2 } },
+  // --- Advanced --- (touch AC out to five range increments; misfire rows print no burst radius)
+  { id: 'revolver', name: 'Revolver', cost: 4000, weight: 4, dmg: '1d8', crit: '×4', range: 20, dmgType: 'B and P', group: 'firearms', hands: 'ranged',
+    firearm: { era: 'advanced', grip: 'one', misfire: '1', capacity: 6 } },
+  { id: 'rifle', name: 'Rifle', cost: 5000, weight: 12, dmg: '1d10', crit: '×4', range: 80, dmgType: 'B and P', group: 'firearms', hands: 'ranged',
+    firearm: { era: 'advanced', grip: 'two', misfire: '1', capacity: 1 } },
+  { id: 'pepperbox-rifle', name: 'Rifle, pepperbox', cost: 7000, weight: 15, dmg: '1d10', crit: '×4', range: 80, dmgType: 'B and P', group: 'firearms', hands: 'ranged',
+    firearm: { era: 'advanced', grip: 'two', misfire: '1–2', capacity: 4 } },
+  { id: 'shotgun', name: 'Shotgun', cost: 5000, weight: 12, dmg: '1d8', crit: '×2', range: 20, dmgType: 'B and P', group: 'firearms', hands: 'ranged',
+    firearm: { era: 'advanced', grip: 'two', misfire: '1–2', capacity: 1, scatter: { cone: 30 } } },
+  // Its description does not restate the cone size, so none is claimed here.
+  { id: 'double-barreled-shotgun', name: 'Shotgun, double-barreled', cost: 7000, weight: 15, dmg: '1d8', crit: '×2', range: 20, dmgType: 'B and P', group: 'firearms', hands: 'ranged',
+    firearm: { era: 'advanced', grip: 'two', misfire: '1–2', capacity: 2, scatter: {} } },
 ];
 
 export const ARMORS: ArmorDef[] = [
@@ -114,6 +176,23 @@ export const GEAR: GearDef[] = [
   { id: 'arrows', name: 'Arrows (20)', cost: 1, weight: 3, consumable: true },
   { id: 'crossbow-bolts', name: 'Crossbow bolts (10)', cost: 1, weight: 1, consumable: true },
   { id: 'sling-bullets', name: 'Sling bullets (10)', cost: 0.1, weight: 5, consumable: true },
+  // --- Firearm ammunition and upkeep (Ultimate Combat) ---
+  // A shot needs both a projectile and a dose of black powder, unless it comes as a cartridge.
+  { id: 'black-powder-dose', name: 'Black powder (dose)', cost: 10, weight: 0, consumable: true, note: 'one shot; useless once wet' },
+  { id: 'black-powder-keg', name: 'Black powder (keg)', cost: 1000, weight: 5, note: '100 doses' },
+  { id: 'powder-horn', name: 'Powder horn', cost: 3, weight: 1, note: 'holds 10 doses and keeps them dry' },
+  { id: 'firearm-bullets', name: 'Firearm bullets (30)', cost: 30, weight: 0.5, consumable: true },
+  { id: 'pellets', name: 'Pellets (30 handfuls)', cost: 30, weight: 0.5, consumable: true, note: 'ammunition for a scatter shot' },
+  { id: 'bullet-pitted', name: 'Firearm bullet, pitted', cost: 5, weight: 0, consumable: true },
+  { id: 'bullet-silver', name: 'Firearm bullet, silver', cost: 25, weight: 0, consumable: true },
+  { id: 'bullet-adamantine', name: 'Bullet, adamantine', cost: 61, weight: 0, consumable: true },
+  { id: 'cartridge-paper', name: 'Alchemical cartridge, paper (bullet or pellet)', cost: 12, weight: 0, consumable: true, note: 'loads faster; misfire +1' },
+  { id: 'cartridge-flare', name: 'Alchemical cartridge, flare', cost: 10, weight: 0, consumable: true },
+  { id: 'cartridge-salt-shot', name: 'Alchemical cartridge, salt shot', cost: 12, weight: 0, consumable: true },
+  { id: 'cartridge-entangling', name: 'Alchemical cartridge, entangling shot', cost: 40, weight: 0, consumable: true },
+  { id: 'cartridge-dragons-breath', name: "Alchemical cartridge, dragon's breath", cost: 40, weight: 0, consumable: true },
+  { id: 'metal-cartridge', name: 'Metal cartridge', cost: 15, weight: 0, consumable: true, note: 'ammunition for advanced firearms' },
+  { id: 'gunsmiths-kit', name: "Gunsmith's kit", cost: 15, weight: 2, note: 'required to use Gunsmithing' },
   // --- Magic consumables ---
   { id: 'potion-clw', name: 'Potion of cure light wounds', cost: 50, weight: 0, consumable: true, note: 'heals 1d8+1' },
   { id: 'wand-clw', name: 'Wand of cure light wounds', cost: 750, weight: 0, charges: 50, note: '1d8+1 per charge' },

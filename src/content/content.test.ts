@@ -375,11 +375,67 @@ describe('weapon proficiency data', () => {
     }
   });
 
-  it('Exotic Weapon Proficiency offers exactly the exotic weapons', () => {
+  // Firearms are the one exception: the feat names the whole group rather than a single gun.
+  it('Exotic Weapon Proficiency offers the exotic weapons plus the firearm group', () => {
     const opts = C.featById.get('exotic-weapon-proficiency')!.param!.options.map((o) => o.id).sort();
-    const exotic = C.WEAPONS.filter((w) => w.group === 'exotic').map((w) => w.id).sort();
-    expect(opts).toEqual(exotic);
+    const exotic = C.WEAPONS.filter((w) => w.group === 'exotic').map((w) => w.id);
+    expect(opts).toEqual([...exotic, C.FIREARM_GROUP_ID].sort());
     expect(exotic.length).toBeGreaterThan(0);
+  });
+
+  it('no individual firearm is offered as an Exotic Weapon Proficiency pick', () => {
+    const opts = new Set(C.featById.get('exotic-weapon-proficiency')!.param!.options.map((o) => o.id));
+    for (const w of C.WEAPONS.filter((w) => w.group === 'firearms')) {
+      expect(opts.has(w.id), `${w.id} should be covered by the group pick, not listed separately`).toBe(false);
+    }
+  });
+});
+
+describe('firearms', () => {
+  const firearms = C.WEAPONS.filter((w) => w.firearm);
+
+  it('every firearm is in the firearms proficiency group and is ranged', () => {
+    expect(firearms.length).toBeGreaterThan(0);
+    for (const w of firearms) {
+      expect(w.group, w.id).toBe('firearms');
+      expect(w.hands, w.id).toBe('ranged');
+    }
+  });
+
+  it('and nothing outside that group claims firearm stats', () => {
+    for (const w of C.WEAPONS.filter((w) => w.group === 'firearms')) {
+      expect(w.firearm, `${w.id} is in the firearms group but has no firearm block`).toBeTruthy();
+    }
+  });
+
+  it('carries a capacity, a misfire range, and a range increment to measure touch AC from', () => {
+    for (const w of firearms) {
+      expect(w.firearm!.capacity, w.id).toBeGreaterThan(0);
+      // As printed: "1" or a range like "1–2". A bare number or an en-dashed pair, nothing else.
+      expect(w.firearm!.misfire, w.id).toMatch(/^\d(–\d)?$/);
+      expect(w.range, `${w.id} needs a range increment`).toBeGreaterThan(0);
+    }
+  });
+
+  it('gives early firearms a misfire burst radius and advanced firearms none', () => {
+    // The UC table prints the radius in the misfire column for early firearms only.
+    for (const w of firearms) {
+      if (w.firearm!.era === 'early') expect(w.firearm!.burst, w.id).toBeGreaterThan(0);
+      else expect(w.firearm!.burst, w.id).toBeUndefined();
+    }
+  });
+
+  it('grants the gunslinger Gunsmithing at 1st level', () => {
+    const granted = C.classById.get('gunslinger')!.grantedFeats ?? [];
+    expect(granted.some((g) => g.feat === 'gunsmithing' && g.level === 1)).toBe(true);
+    expect(C.featById.get('gunsmithing')).toBeTruthy();
+  });
+
+  it("offers the gunslinger's starting firearm choices as real weapons", () => {
+    const choice = C.classById.get('gunslinger')!.choices!.find((c) => c.id === 'firearm')!;
+    for (const o of choice.options!) {
+      expect(C.weaponById.get(o.id)?.firearm, `starting firearm "${o.id}"`).toBeTruthy();
+    }
   });
 });
 

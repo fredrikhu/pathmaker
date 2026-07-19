@@ -7,8 +7,14 @@ import { SKILLS } from './skills';
 // keeps the catalogue id so the engine can match the pick to a weapon/skill without string-matching.
 const byName = (a: { name: string }, b: { name: string }) => a.name.localeCompare(b.name);
 const WEAPON_OPTIONS = WEAPONS.map((w) => ({ id: w.id, name: w.name })).sort(byName);
-// Exotic Weapon Proficiency only ever names an exotic weapon, so the picker offers just those.
-const EXOTIC_WEAPON_OPTIONS = WEAPONS.filter((w) => w.group === 'exotic').map((w) => ({ id: w.id, name: w.name })).sort(byName);
+// Exotic Weapon Proficiency names one exotic weapon — except for firearms, where the single pick
+// "firearms" grants the whole group at once. That option carries the group id, not a weapon id.
+export const FIREARM_GROUP_ID = 'firearms';
+const EXOTIC_WEAPON_OPTIONS = [
+  // Named for how the feat reads on the sheet — "Exotic Weapon Proficiency (Firearms)".
+  { id: FIREARM_GROUP_ID, name: 'Firearms' },
+  ...WEAPONS.filter((w) => w.group === 'exotic').map((w) => ({ id: w.id, name: w.name })).sort(byName),
+];
 const SKILL_OPTIONS = SKILLS.map((s) => ({ id: s.id, name: s.name })).sort(byName);
 const CROSSBOW_OPTIONS = WEAPONS.filter((w) => w.id.includes('crossbow')).map((w) => ({ id: w.id, name: w.name }));
 const SCHOOL_OPTIONS = ['Abjuration', 'Conjuration', 'Divination', 'Enchantment', 'Evocation', 'Illusion', 'Necromancy', 'Transmutation']
@@ -37,8 +43,10 @@ export const FEATS: FeatDef[] = [
     benefit: '+1 bonus on attack rolls with the selected weapon.', prerequisites: { bab: 1 },
     param: { label: 'Weapon', options: WEAPON_OPTIONS } },
   { id: 'exotic-weapon-proficiency', name: 'Exotic Weapon Proficiency', types: ['combat'], reqText: 'BAB +1',
-    benefit: 'You make attacks with the selected exotic weapon normally, without the −4 non-proficiency penalty.',
+    benefit: 'You make attacks with the selected exotic weapon normally, without the −4 non-proficiency penalty. Choosing firearms grants proficiency with every firearm at once.',
     prerequisites: { bab: 1 }, param: { label: 'Weapon', options: EXOTIC_WEAPON_OPTIONS } },
+  { id: 'gunsmithing', name: 'Gunsmithing', types: ['general'], reqText: '—',
+    benefit: "With a gunsmith's kit you can craft and repair firearms, craft bullets and cartridges, and mix black powder without a Craft check. An hour's work each day restores one broken firearm." },
   { id: 'two-weapon-fighting', name: 'Two-Weapon Fighting', types: ['combat'], reqText: 'Dex 15',
     benefit: 'Reduce the penalties for fighting with two weapons.', prerequisites: { ability: 'dex', gte: 15 } },
   { id: 'point-blank-shot', name: 'Point-Blank Shot', types: ['combat'], reqText: '—',

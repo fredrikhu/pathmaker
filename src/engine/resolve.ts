@@ -982,7 +982,7 @@ function proficiencyCtx(dec: Decisions, classes: ClassEntry[], featParams: { fea
   for (const c of classes) {
     for (const entry of c.klass.proficiencies.weapons) {
       // The lists mix group names with specific weapon ids.
-      if (entry === 'simple' || entry === 'martial') groups.add(entry);
+      if (entry === 'simple' || entry === 'martial' || entry === C.FIREARM_GROUP_ID) groups.add(entry);
       else weapons.add(entry);
     }
   }
@@ -992,9 +992,44 @@ function proficiencyCtx(dec: Decisions, classes: ClassEntry[], featParams: { fea
     for (const id of t.weaponFamiliarity?.martial ?? []) asMartial.add(id);
   }
   for (const f of featParams) {
-    if (f.featId === 'exotic-weapon-proficiency' && f.param) weapons.add(f.param);
+    // Exotic Weapon Proficiency names one weapon, except for firearms — that pick grants the group.
+    if (f.featId !== 'exotic-weapon-proficiency' || !f.param) continue;
+    if (f.param === C.FIREARM_GROUP_ID) groups.add(C.FIREARM_GROUP_ID);
+    else weapons.add(f.param);
   }
   return { groups, weapons, asMartial };
+}
+
+/** What a firearm does that no other weapon does. None of this is a bonus — it changes which AC
+ *  you roll against, how far you can shoot, and what happens on a natural 1 — so it stays notes
+ *  on the attack line rather than being folded into a total the engine cannot know is right. */
+function firearmNotes(w: C.WeaponDef, proficient: boolean): string[] {
+  const f = w.firearm;
+  if (!f) return [];
+  const notes: string[] = [];
+  const maxIncrements = f.era === 'early' ? 5 : 10;
+  const touchIncrements = f.era === 'early' ? 1 : 5;
+  if (w.range) {
+    const touch = w.range * touchIncrements;
+    notes.push(`${f.era === 'early' ? 'Early' : 'Advanced'} firearm: resolves against touch AC within ${touch} ft`
+      + `${touchIncrements > 1 ? ` (${touchIncrements} range increments)` : ''}, then normally at −2 per further increment.`
+      + ` Maximum range ${w.range * maxIncrements} ft.`);
+    notes.push('Touch-AC shots are not touch attacks for feats such as Deadly Aim.');
+  }
+  notes.push(`Misfire ${f.misfire}: the shot misses and the firearm gains the broken condition`
+    + ` (−2 attack, half damage, misfire value +4)${f.burst ? `; a misfire while broken makes it explode in a ${f.burst} ft burst` : ''}.`);
+  const reload = f.era === 'advanced'
+    ? 'a move action to reload to full capacity'
+    : `${f.grip === 'one' ? 'a standard action' : 'a full-round action'} to reload each barrel`;
+  notes.push(`Capacity ${f.capacity}; ${reload}. Loading provokes, and needs a free hand.`);
+  if (f.grip === 'two') notes.push('Two-handed firearm: −4 on the attack roll if fired one-handed.');
+  if (f.scatter) {
+    notes.push(f.scatter.cone
+      ? `Scatter: instead of a bullet, fire pellets in a ${f.scatter.cone} ft cone — a separate attack roll at −2 against each creature, with no precision damage.`
+      : 'Scatter: instead of a bullet, fire pellets in a cone — a separate attack roll at −2 against each creature, with no precision damage.');
+  }
+  if (!proficient) notes.push('Not proficient: shots you load also take +4 to the misfire value.');
+  return notes;
 }
 
 function isProficientWith(w: C.WeaponDef, p: ProficiencyCtx): boolean {
@@ -1072,8 +1107,12 @@ function weaponAttacks(doc: CharacterDoc, stats: Record<string, Stat>, bab: numb
     if (!proficient) {
       notes.push(w.group === 'exotic'
         ? `Not proficient: −4 to attack. ${w.name} is exotic — Exotic Weapon Proficiency removes the penalty.`
-        : `Not proficient: −4 to attack. Your class does not grant ${w.group} weapons.`);
+        : w.group === 'firearms'
+          ? 'Not proficient: −4 to attack. Exotic Weapon Proficiency (firearms) covers every firearm at once.'
+          : `Not proficient: −4 to attack. Your class does not grant ${w.group} weapons.`);
     }
+    if (w.note) notes.push(w.note);
+    notes.push(...firearmNotes(w, proficient));
     if (kind === 'melee' && w.range) notes.push(`Can be thrown (${w.range} ft): thrown attacks use Dex and add Str to damage.`);
     // Unconditional property damage rides on the damage string; conditional ones become notes.
     const extraDice = props.map((p) => p.damageDice).filter(Boolean) as string[];

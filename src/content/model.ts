@@ -163,8 +163,34 @@ export interface WeaponDef {
   crit: string;
   range?: number;
   dmgType: string;
-  group: 'simple' | 'martial' | 'exotic';
+  /** Proficiency group. Firearms are exotic in spirit but form their own group: Exotic Weapon
+   *  Proficiency (firearms) grants all of them at once, rather than one weapon at a time. */
+  group: 'simple' | 'martial' | 'exotic' | 'firearms';
   hands: 'light' | 'one' | 'two' | 'ranged';
+  /** Caveat surfaced on the attack line — e.g. a weapon whose second mode is not modelled. */
+  note?: string;
+  /** Firearm-only stats (Ultimate Combat). Present ⇒ the weapon follows the firearm rules:
+   *  it resolves against touch AC at close range, misfires, and reloads by the action listed. */
+  firearm?: FirearmDef;
+}
+
+export interface FirearmDef {
+  /** Early firearms touch-attack within one range increment and cap at five; advanced firearms
+   *  touch-attack within five increments and cap at ten. */
+  era: 'early' | 'advanced';
+  /** Whether it is wielded in one or two hands. `WeaponDef.hands` is 'ranged' for every ranged
+   *  weapon, so the grip that drives reload time and the one-handed firing penalty lives here. */
+  grip: 'one' | 'two';
+  /** Natural attack rolls that misfire, as printed ("1" or "1–2"). */
+  misfire: string;
+  /** Radius of the explosion when a misfire is rolled on an already-broken firearm, in feet.
+   *  Absent where the table prints "see text" rather than a distance. */
+  burst?: number;
+  /** Shots held at once. For early firearms this is usually the number of barrels. */
+  capacity: number;
+  /** Fires a cone of pellets as an alternative to a single bullet. `cone` is omitted where the
+   *  weapon's description does not restate the cone size. */
+  scatter?: { cone?: number };
 }
 
 export interface ArmorDef {

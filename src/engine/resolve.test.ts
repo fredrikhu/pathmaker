@@ -1657,6 +1657,99 @@ describe('weapon proficiency', () => {
     expect(line(wielder('wizard', 'longbow', 'elf')).attackLines.some((b) => b.label === 'Not proficient')).toBe(false);
     expect(line(wielder('wizard', 'longbow', 'human')).attackLines.some((b) => b.label === 'Not proficient')).toBe(true);
   });
+
+  // Firearms are the one proficiency group a single feat pick covers wholesale.
+  it('Exotic Weapon Proficiency (firearms) covers every firearm at once', () => {
+    const feats = { 'feat-1': 'exotic-weapon-proficiency' };
+    const params = { 'feat-1': 'firearms' };
+    // BAB +3, ranged uses Dex 14 (+2) = +5 once proficient; −4 without.
+    expect(primary(wielder('fighter', 'pistol'))).toBe(1);
+    expect(primary(wielder('fighter', 'pistol', 'human', feats, params))).toBe(5);
+    // The same single pick also covers a firearm the character never named.
+    expect(primary(wielder('fighter', 'musket', 'human', feats, params))).toBe(5);
+    // …but grants nothing outside the group.
+    expect(primary(wielder('fighter', 'bastard-sword', 'human', feats, params))).toBe(1);
+  });
+
+  it('the gunslinger is proficient with firearms from the class list', () => {
+    expect(line(wielder('gunslinger', 'musket')).attackLines.some((b) => b.label === 'Not proficient')).toBe(false);
+  });
+
+  it('points a non-proficient shooter at the group feat, not the single weapon', () => {
+    const notes = line(wielder('fighter', 'pistol')).notes.join(' ');
+    expect(notes).toContain('Exotic Weapon Proficiency (firearms)');
+    // Non-proficiency costs more than the −4 for a firearm: it fouls the shots you load.
+    expect(notes).toContain('misfire value');
+  });
+});
+
+describe('firearm rules', () => {
+  function shooter(weapon: string): CharacterDoc {
+    let d = newCharacter('t-gun', 'Reva');
+    d = withDecision(d, 'ability-base', { str: 12, dex: 16, con: 12, int: 10, wis: 14, cha: 10 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'alignment', 'N');
+    d = withDecision(d, 'class', 'gunslinger');
+    return { ...atLevel(d, 3), equipped: { armor: null, mainHand: weapon, offHand: null } };
+  }
+  const notesFor = (w: string) => resolve(shooter(w)).sheet.attacks[0].notes.join(' ');
+
+  it('states the touch-AC band and maximum range for an early firearm', () => {
+    // Pistol: 20 ft increment. Touch AC inside one increment; five increments of range in total.
+    const n = notesFor('pistol');
+    expect(n).toContain('touch AC within 20 ft');
+    expect(n).toContain('Maximum range 100 ft');
+  });
+
+  it('gives an advanced firearm the wider touch band and longer reach', () => {
+    // Revolver: 20 ft increment, touch AC out to five increments, ten increments of range.
+    const n = notesFor('revolver');
+    expect(n).toContain('touch AC within 100 ft (5 range increments)');
+    expect(n).toContain('Maximum range 200 ft');
+  });
+
+  it('does not treat the touch-AC shot as a touch attack', () => {
+    expect(notesFor('pistol')).toContain('not touch attacks for feats such as Deadly Aim');
+  });
+
+  it('reports reload time by era and grip, not by a single rule', () => {
+    // Early firearms are muzzle-loaded per barrel; advanced ones are chamber-loaded wholesale.
+    expect(notesFor('pistol')).toContain('a standard action to reload each barrel');
+    expect(notesFor('musket')).toContain('a full-round action to reload each barrel');
+    expect(notesFor('revolver')).toContain('a move action to reload to full capacity');
+  });
+
+  it('describes the misfire consequence, including the burst on an already-broken gun', () => {
+    const n = notesFor('musket');
+    expect(n).toContain('Misfire 1–2');
+    expect(n).toContain('broken condition');
+    expect(n).toContain('5 ft burst');
+    // Advanced firearms print no burst radius, so none is claimed.
+    expect(notesFor('revolver')).not.toContain('burst');
+  });
+
+  it('flags the one-handed firing penalty only for two-handed firearms', () => {
+    expect(notesFor('musket')).toContain('−4 on the attack roll if fired one-handed');
+    expect(notesFor('pistol')).not.toContain('fired one-handed');
+  });
+
+  it('describes scatter with a cone size only where the source gives one', () => {
+    expect(notesFor('blunderbuss')).toContain('pellets in a 15 ft cone');
+    expect(notesFor('double-barreled-shotgun')).toContain('pellets in a cone');
+    expect(notesFor('pistol')).not.toContain('Scatter');
+  });
+
+  it('says plainly that a double weapon is only half modelled', () => {
+    expect(notesFor('axe-musket')).toContain('only its firearm mode is modelled');
+  });
+
+  it('adds no Str to firearm damage and leaves the attack bonus to Dex', () => {
+    // Gunslinger 3: BAB +3, Dex 16 (+3) = +6, and damage is the die alone.
+    const attack = resolve(shooter('pistol')).sheet.attacks[0];
+    expect(attack.bonuses[0]).toBe(6);
+    expect(attack.damage).toBe('1d8');
+    expect(attack.kind).toBe('ranged');
+  });
 });
 
 describe('lizardfolk', () => {

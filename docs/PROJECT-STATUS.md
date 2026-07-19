@@ -6,7 +6,7 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 
 ## ▶ Resume here (last session end)
 
-**All five roadmap phases are done and committed** (branch `master`, working tree clean, 316 tests
+**All five roadmap phases are done and committed** (branch `master`, working tree clean, 335 tests
 passing; run `npx tsc --noEmit && npx vitest run && npm run build` to confirm). Pathmaker covers the
 full arc: build a character 1–20, play it at the table (HP, spells, pools, conditions), run the clock
 (rounds, timed effects, rest), and track consumables/charges/encumbrance live.
@@ -72,8 +72,7 @@ Two related gaps were found and closed:
   generated-placeholder description in the content set.
 
 Still open from that audit:
-- **Gunslinger's Gunsmithing** is the only unmodelled granted feat — the feat isn't in the catalogue and
-  firearms aren't modelled at all, so adding it would dangle. The class feature text already describes it.
+- ~~**Gunslinger's Gunsmithing**~~ — resolved; see *Firearms* below.
 - **Bonus domain spells** are still not modelled per-spell (the extra domain slot is a +1 count
   approximation in the engine); only the granted powers are authored.
 
@@ -232,7 +231,7 @@ Still open from that audit:
   bonuses, so they're deliberately not force-added.
 
 ### Content breadth (solid core coverage, not exhaustive)
-- **Weapons**: 60 core weapons (verified against d20pfsrd — damage/crit/type/range/cost/weight),
+- **Weapons**: 80 weapons (verified against d20pfsrd — damage/crit/type/range/cost/weight),
   feeding the equipment step and the play-sheet attack lines. **Exotic weapons are in**, along with
   the proficiency rule they exist for (see below). Not authored: the net, which deals no damage at
   all — the attack line is built around a damage string, so listing it would print a damage figure
@@ -491,6 +490,31 @@ item weight for coins, and per-arrow ammunition.
     named `crossbow-light`, `crossbow-heavy` and `shortsword`, none of which are real weapon ids,
     and `sap`, which was not in the catalogue at all. All fixed, with a content test asserting every
     id in a proficiency list or a familiarity resolves — a silent mismatch is now a wrong −4.
+- **Firearms: done** (Ultimate Combat). 20 guns authored from the UC firearms table's markup —
+  8 early one-handed, 7 early two-handed, 5 advanced — plus the ammunition (black powder, bullets,
+  pellets, the five alchemical cartridges, metal cartridges), a powder horn and a gunsmith's kit.
+  - `WeaponDef.firearm` (`{era, grip, misfire, burst, capacity, scatter}`) marks a gun; presence of
+    that block *is* what makes a weapon follow the firearm rules.
+  - Firearms are **their own proficiency group**, not one-exotic-weapon-at-a-time: Exotic Weapon
+    Proficiency (firearms) is a single pick covering every gun, so `EXOTIC_WEAPON_OPTIONS` carries a
+    group option (`FIREARM_GROUP_ID`) that adds to `groups` rather than `weapons`. The gunslinger's
+    class list already said `firearms`; that string is now a real group instead of a dangling id.
+  - **The distinctive rules stay notes, not numbers.** Touch AC within the first range increment
+    (early) or first five (advanced), the 5×/10× maximum range, misfire → broken → burst, capacity
+    and reload action, the −4 for firing a two-handed gun one-handed, and scatter cones are all
+    annotations on the attack line. None of them is a bonus to a total, and the engine cannot know
+    the range to the target — so inventing a number would be worse than stating the rule.
+  - **Gunsmithing** is authored and granted to the gunslinger at 1st, closing the last unmodelled
+    granted feat. The **battered starting firearm** itself is not granted as an item.
+  - Deliberately not authored, each for a stated reason: the **culverin** (its row gives no cone size
+    for its grapeshot, and it carries its own unsupported-firing rules), the **breech-loader** and
+    **air repeater** (their table rows carry no source at all), and the four later-supplement rows
+    (dragoon pistol/musket, paddle-foot pistol, cylinder rifle) as out of scope.
+  - Known upstream conflict: the **dragon pistol**'s table row prints a 20 ft. range increment while
+    its own description says 10 ft. The table wins, as the printed stat block; noted in the data.
+  - Several guns (axe musket, warhammer musket, dagger/sword-cane pistol, buckler gun) **double as a
+    melee weapon**, and the firearm table carries no melee profile for them. Rather than invent one,
+    the attack line says only the firearm mode is modelled (`WeaponDef.note`).
 - **Power Attack & two-weapon fighting: done** (`src/engine/combat.ts`, numbers verified against both
   feat pages). These are **declared per attack**, not passive, so they live in play state
   (`PlayState.powerAttack` / `twoWeapon`) as play-sheet toggles and are folded in **only while on** —

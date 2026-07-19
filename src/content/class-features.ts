@@ -250,6 +250,7 @@ export const CLASS_PROGRESSION: Record<string, ClassProgression> = {
   },
   gunslinger: {
     bonusFeats: { levels: [4, 8, 12, 16, 20], label: 'Gunslinger bonus feat' },
+    grantedFeats: [{ level: 1, feat: 'gunsmithing', note: 'Gunsmith: comes with a battered firearm of your choice.' }],
     features: [
       f(1, 'gun-deeds-1', "Deeds: Deadeye, Gunslinger's Dodge, Quick Clear", 'Spend grit on daring feats.'),
       f(3, 'gun-deeds-3', 'Deeds: Gunslinger Initiative, Pistol-Whip, Utility Shot', 'New deeds unlock.'),
