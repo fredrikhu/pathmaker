@@ -313,9 +313,11 @@ Still open from that audit:
   list usually a level lower; the druid cure/utility lines a level or two above the cleric/arcane
   levels — cure moderate/serious/critical, wall of fire, stoneskin, true seeing, heal, regenerate,
   word of recall, the mass cures; plus cleric offsets like banishment 6, antimagic field 8,
-  repulsion 7, locate object 3, bestow curse arcane 4). Golden tests pin a representative set. The
-  only residual is a few generous list *memberships* (e.g. mass cure light on druid) — a separate,
-  smaller membership question, not a level one.
+  repulsion 7, locate object 3, bestow curse arcane 4). Golden tests pin a representative set.
+  **List memberships were then cleaned up too:** dropped the mass-cure line from druid (druids get
+  the single-target cures but no mass cures) and Wail of the Banshee from the base cleric list (it is
+  a Death-domain spell — the domain still reaches it by id), and corrected Blindness/Deafness to
+  cleric 3. Spell levels and memberships are now consistent across all lists.
 - **Spellbook budget** is a soft nudge (free distribution across accessible levels), not a per-level cap.
 - **Param feats are computed**: weapon ones (Weapon Focus / Specialization + Greater forms) into the
   per-weapon attack lines, Skill Focus into the skill total, Spell Focus into a per-school DC note.

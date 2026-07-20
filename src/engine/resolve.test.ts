@@ -1019,6 +1019,20 @@ describe('per-list spell levels', () => {
     expect([at('bestow-curse', 'divine'), at('bestow-curse', 'arcane')]).toEqual([3, 4]);
   });
 
+  it('list memberships: the mass-cure line is not druid, and a domain-only spell stays off the base list', () => {
+    const lists = (id: string) => C.spellById.get(id)!.lists;
+    // Druids get the single-target cure line but none of the mass cures.
+    expect(lists('mass-cure-light-wounds')).not.toContain('druid');
+    expect(lists('mass-cure-critical-wounds')).not.toContain('druid');
+    expect(lists('cure-critical-wounds')).toContain('druid'); // the single-target one they do get
+    // Wail of the Banshee is a Death-domain spell, not on the base cleric list — but the domain
+    // still reaches it (domain access is by id, independent of the spell's lists).
+    expect(lists('wail-of-the-banshee')).not.toContain('divine');
+    expect(C.DOMAINS.find((d) => d.id === 'death')!.spells).toContain('wail-of-the-banshee');
+    // Blindness/Deafness is bard/wizard 2 but cleric 3.
+    expect(C.spellLevelOn(C.spellById.get('blindness')!, 'divine')).toBe(3);
+  });
+
   // The builder's spell step files a spell at the caster's list level (spontaneous & prepared-book;
   // prepared-list casters like the cleric know the whole list and get no build-time pick).
   it('the spell step offers a divergent spell at the caster’s own list level', () => {
