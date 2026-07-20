@@ -941,17 +941,38 @@ describe('conditions that remove Dex to AC', () => {
 });
 
 describe('domain / specialist bonus spell slot', () => {
-  it('a cleric with two domains gains +1 slot at each accessible spell level', () => {
+  // The bonus slot is now modelled as a distinct, restricted slot (bonusSlot) rather than +1 to the
+  // per-day count — so the count is the true base and the restriction can be enforced.
+  function cleric(domains: string[]): CharacterDoc {
     let d = newCharacter('t-cle-dom', 'Kore');
     d = withDecision(d, 'ability-base', { str: 10, dex: 12, con: 12, int: 10, wis: 16, cha: 10 });
     d = withDecision(d, 'race', 'human');
     d = withDecision(d, 'floating-bonus', ['cha']);
     d = withDecision(d, 'class', 'cleric');
-    d = withDecision(d, 'class-choices', { domains: ['war', 'healing'] });
-    // Base [4,5,4,3,1] (Wis 16 = +3 bonus at levels 1–3), +1 domain slot at levels 1–4.
-    expect(resolve(atLevel(d, 7)).sheet.spellSlots).toEqual([4, 6, 5, 4, 2]);
+    d = withDecision(d, 'class-choices', { domains });
+    return atLevel(d, 7);
+  }
+  const block = (d: CharacterDoc) => resolve(d).sheet.casting[0];
+
+  it('leaves the per-day count at its true base (no +1 approximation)', () => {
+    // Base [4,5,4,3,1] (Wis 16 = +3 bonus at levels 1–3) — the domain slot is separate now.
+    expect(block(cleric(['war', 'healing'])).slots).toEqual([4, 5, 4, 3, 1]);
   });
-  it('a specialist wizard gains the school slot but a universalist does not', () => {
+
+  it('gives a cleric a domain bonus slot whose allowed spells union the two domains', () => {
+    const bs = block(cleric(['war', 'healing'])).bonusSlot!;
+    expect(bs.kind).toBe('domain');
+    // War 1 = magic weapon, Healing 1 = cure light wounds; both are offered at level 1.
+    expect(bs.allowedByLevel![1].sort()).toEqual(['cure-light-wounds', 'magic-weapon'].sort());
+    // Healing 6 = heal (War 6 = blade barrier); both at 6.
+    expect(bs.allowedByLevel![6].sort()).toEqual(['blade-barrier', 'heal'].sort());
+  });
+
+  it('a cleric without domains gets no bonus slot', () => {
+    expect(block(cleric([])).bonusSlot).toBeUndefined();
+  });
+
+  it('a specialist wizard gets a school-restricted bonus slot; a universalist gets none', () => {
     const wiz = (school: string) => {
       let d = newCharacter('t-wiz-' + school, 'Nyx');
       d = withDecision(d, 'ability-base', { str: 8, dex: 14, con: 12, int: 16, wis: 12, cha: 10 });
@@ -959,11 +980,12 @@ describe('domain / specialist bonus spell slot', () => {
       d = withDecision(d, 'floating-bonus', ['int']);
       d = withDecision(d, 'class', 'wizard');
       d = withDecision(d, 'class-choices', { school: [school] });
-      return resolve(atLevel(d, 1)).sheet.spellSlots![1];
+      return resolve(atLevel(d, 1)).sheet.casting[0];
     };
-    // Wizard 1, Int 18 (+4): base 1 + 1 Int bonus = 2 first-level. Specialist adds +1 → 3.
-    expect(wiz('evocation')).toBe(3);
-    expect(wiz('universalist')).toBe(2);
+    // Base count unchanged now: Int 18 (+4) → base 1 + 1 Int bonus = 2 first-level (no +1).
+    expect(wiz('evocation').slots![1]).toBe(2);
+    expect(wiz('evocation').bonusSlot).toEqual({ kind: 'school', label: 'Evocation', school: 'Evocation' });
+    expect(wiz('universalist').bonusSlot).toBeUndefined();
   });
 });
 

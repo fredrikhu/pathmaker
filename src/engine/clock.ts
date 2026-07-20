@@ -81,7 +81,7 @@ export function rest(play: PlayState): AdvanceResult {
   const restored: PlayState = {
     ...p,
     hpDamage: 0, nonlethal: 0, tempHp: 0,
-    usedSlots: {}, usedPools: {}, castPrepared: {},
+    usedSlots: {}, usedPools: {}, castPrepared: {}, castBonus: {},
     round: 0, initiative: null, actionsUsed: {},
   };
   return tick(restored, REST_ROUNDS);

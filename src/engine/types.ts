@@ -168,6 +168,12 @@ export interface PlayState {
   prepared?: Record<string, Record<number, string[]>>;
   /** Prepared casters: class id → spell level → which prepared slot indices have been cast. */
   castPrepared?: Record<string, Record<number, number[]>>;
+  /** The one restricted bonus slot a cleric (domain) or specialist wizard (school) gets per level:
+   *  class id → spell level → the single spell prepared there. Kept apart from `prepared` because
+   *  it obeys a different restriction (a domain spell, or a specialty-school spell). */
+  preparedBonus?: Record<string, Record<number, string>>;
+  /** Whether that bonus slot has been cast: class id → spell level → cast. Cleared by Rest. */
+  castBonus?: Record<string, Record<number, boolean>>;
   /** Current combat round; 0 when not in an encounter (phase 4). */
   round: number;
   /** Initiative rolled for the current encounter, or null outside one. */
@@ -193,7 +199,7 @@ export type ActionType = 'standard' | 'move' | 'swift';
 
 export const emptyPlayState = (): PlayState => ({
   hpDamage: 0, tempHp: 0, nonlethal: 0, usedSlots: {}, conditions: [], usedPools: {},
-  prepared: {}, castPrepared: {}, round: 0, initiative: null, timers: [],
+  prepared: {}, castPrepared: {}, preparedBonus: {}, castBonus: {}, round: 0, initiative: null, timers: [],
   consumed: {}, usedCharges: {}, powerAttack: false, twoWeapon: false, actionsUsed: {},
 });
 
@@ -309,6 +315,18 @@ export interface CastingBlock {
   preparedPerLevel?: number[];
   /** 10 + this class's casting-ability modifier; the per-spell DC adds the spell's level. */
   dcBase: number;
+  /** The one restricted bonus slot per spell level a cleric-with-domains or a specialist wizard
+   *  gets (replacing the old +1-to-the-count approximation). Absent for everyone else. */
+  bonusSlot?: {
+    kind: 'domain' | 'school';
+    /** Row label on the play tracker, e.g. "Domain" or "Evocation". */
+    label: string;
+    /** Domain slot: allowed spell ids at each spell level (index = spell level; index 0 unused).
+     *  Only spells that exist in the catalogue are listed, so the picker can always offer them. */
+    allowedByLevel?: string[][];
+    /** School slot: the specialty school name, used to filter the spellbook pool. */
+    school?: string;
+  };
 }
 
 /** A class resource with a per-day/points maximum (rage rounds, ki, channel, grit…). */

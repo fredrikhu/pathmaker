@@ -195,6 +195,25 @@ export function PlaySheet({ id }: { id: string }) {
       return { castPrepared: { ...p.castPrepared, [cls]: { ...p.castPrepared?.[cls], [l]: [...set] } } };
     });
 
+  // The one restricted bonus slot (cleric domain / specialist school) per level, tracked apart from
+  // the regular prepared slots because it obeys a different restriction.
+  const preparedBonusAt = (cls: string, l: number) => play.preparedBonus?.[cls]?.[l] ?? '';
+  const castBonusAt = (cls: string, l: number) => play.castBonus?.[cls]?.[l] ?? false;
+  const setPreparedBonus = (cls: string, l: number, spell: string) =>
+    updatePlay((p) => ({ preparedBonus: { ...p.preparedBonus, [cls]: { ...p.preparedBonus?.[cls], [l]: spell } } }));
+  const toggleCastBonus = (cls: string, l: number) =>
+    updatePlay((p) => ({ castBonus: { ...p.castBonus, [cls]: { ...p.castBonus?.[cls], [l]: !(p.castBonus?.[cls]?.[l]) } } }));
+  /** The spells the bonus slot may hold at a level: the domain spell(s), or spellbook spells of the
+   *  specialty school. */
+  const bonusPool = (block: typeof sheet.casting[number], level: number) => {
+    const bs = block.bonusSlot;
+    if (!bs) return [];
+    const pool = bs.kind === 'domain'
+      ? (bs.allowedByLevel?.[level] ?? []).map((id) => spellById.get(id)).filter(Boolean) as typeof SPELLS
+      : preparablePool(block.classId, level).filter((sp) => sp.school === bs.school);
+    return pool.slice().sort((a, b) => a.name.localeCompare(b.name));
+  };
+
   // Each class casts off its own ability, so the DC base comes from that class's block. Spell
   // Focus is school-specific, so it's listed alongside rather than folded into the number.
   const focusNote = sheet.spellFocus.map((f) => `${fmtMod(f.bonus)} ${f.school}`).join(', ');
@@ -979,6 +998,41 @@ export function PlaySheet({ id }: { id: string }) {
                           );
                         })}
                       </div>
+                      {(() => {
+                        // The one restricted bonus slot (domain / specialty school) for this level.
+                        const bs = block.bonusSlot;
+                        if (!bs) return null;
+                        const options = bonusPool(block, level);
+                        // A domain with no spell authored at this level offers no bonus slot yet.
+                        if (bs.kind === 'domain' && options.length === 0) return null;
+                        const cur = preparedBonusAt(cls, level);
+                        const casted = castBonusAt(cls, level);
+                        const sp = cur ? spellById.get(cur) : undefined;
+                        const dmg = sp ? spellDamageAt(sp, block.casterLevel) : null;
+                        return (
+                          <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <span className="micro" style={{ minWidth: 62, color: 'var(--color-accent-300)' }} title={`Bonus ${bs.kind} slot — restricted to a ${bs.kind === 'domain' ? 'domain' : bs.school} spell`}>+ {bs.label}</span>
+                            <select className="input" style={{ flex: 1, maxWidth: 240, padding: '4px 6px', fontSize: 12, opacity: casted ? 0.5 : 1, textDecoration: casted ? 'line-through' : 'none' }}
+                              value={cur} onChange={(e) => setPreparedBonus(cls, level, e.target.value)}>
+                              <option value="">— {bs.kind === 'domain' ? 'domain' : bs.school} spell —</option>
+                              {options.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
+                            </select>
+                            {dmg && (
+                              <RollButton label={dmg.formula} title={`Roll ${dmg.formula} ${dmg.label}${dmg.note ? ` — ${dmg.note}` : ''}`}
+                                onRoll={() => rollDamageFor(`${sp!.name} ${dmg.label}${dmg.note ? ` (${dmg.note})` : ''}`, dmg.formula)} />
+                            )}
+                            <button className="btn btn-ghost" style={{ fontSize: 11, flex: 'none', color: casted ? 'var(--color-accent-300)' : undefined }}
+                              disabled={!cur}
+                              title={casted ? 'restore' : (sp?.buff || sp?.attacker) ? 'mark cast and start its running effect' : 'mark cast'}
+                              onClick={() => {
+                                if (!casted && (sp?.buff || sp?.attacker)) castRunning(sp.id);
+                                toggleCastBonus(cls, level);
+                              }}>
+                              {casted ? '↺' : 'cast'}
+                            </button>
+                          </div>
+                        );
+                      })()}
                     </div>
                   );
                 })}

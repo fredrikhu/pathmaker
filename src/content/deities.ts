@@ -66,10 +66,53 @@ const DOMAIN_POWERS: Record<string, ReturnType<typeof p>[]> = {
   weather: [p('Storm Burst', 1, 'Ranged touch attack for 1d6 nonlethal +1 per two cleric levels; 3 + Wis/day.'), p('Lightning Lord', 8, 'Call down bolts of lightning (as call lightning); cleric level bolts/day.')],
 };
 
+// The nine domain spells per domain (index 0 = 1st level … index 8 = 9th), from the CRB domain
+// lists. Entries are catalogue spell ids, or null where that domain spell is not yet authored in
+// the common-scope catalogue — a null level simply grants no bonus domain slot yet. A cleric with
+// the domain gets a bonus slot per level restricted to the matching domain spell.
+const N = null;
+const DOMAIN_SPELLS: Record<string, (string | null)[]> = {
+  //        1st                2nd                 3rd                  4th                     5th               6th                    7th   8th   9th
+  air:       ['obscuring-mist', 'wind-wall',        'gaseous-form',      'air-walk',             N,                'chain-lightning',     N,    N,    N],
+  animal:    [N,                'hold-animal',      'dominate-animal',   'summon-natures-ally-iv', N,              N,                     N,    N,    N],
+  artifice:  ['animate-rope',   N,                  N,                   N,                      N,                N,                     N,    N,    N],
+  chaos:     [N,                'align-weapon',     'magic-circle-against-evil', N,              N,                N,                     N,    N,    N],
+  charm:     ['charm-person',   'calm-emotions',    'suggestion',        'heroism',              'charm-monster',  N,                     N,    N,    'dominate-monster'],
+  community: ['bless',          N,                  'prayer',            N,                      N,                'heroes-feast',        N,    'mass-cure-critical-wounds', 'miracle'],
+  darkness:  ['obscuring-mist', N,                  N,                   N,                      'summon-monster-v', N,                   N,    N,    N],
+  death:     ['cause-fear',     'death-knell',      'animate-dead',      'death-ward',           'slay-living',    N,                     'destruction', N, N],
+  destruction:['true-strike',   'shatter',          N,                   'inflict-critical-wounds', 'shout',       'harm',               'disintegrate', 'earthquake', N],
+  earth:     ['magic-stone',    N,                  N,                   N,                      N,                'stoneskin',           N,    'earthquake', N],
+  evil:      ['protection-from-evil', 'align-weapon', 'magic-circle-against-evil', N,            N,                N,                     N,    N,    N],
+  fire:      ['burning-hands',  'produce-flame',    'fireball',          'wall-of-fire',         'fire-shield',    N,                     N,    N,    N],
+  glory:     ['shield-of-faith', N,                 'searing-light',     N,                      'righteous-might', N,                    N,    N,    'gate'],
+  good:      ['protection-from-evil', 'align-weapon', 'magic-circle-against-evil', N,            N,                'blade-barrier',       N,    N,    N],
+  healing:   ['cure-light-wounds', 'cure-moderate-wounds', 'cure-serious-wounds', 'cure-critical-wounds', N,       'heal',                'regenerate', 'mass-cure-critical-wounds', 'mass-heal'],
+  knowledge: ['comprehend-languages', 'detect-thoughts', N,             'divination',           'true-seeing',    'find-the-path',       N,    N,    N],
+  law:       [N,                'align-weapon',     'magic-circle-against-evil', N,              N,                'hold-monster',        N,    N,    N],
+  liberation:['remove-fear',    N,                  'remove-curse',      'freedom-of-movement',  'break-enchantment', 'greater-dispel-magic', N, 'mind-blank', N],
+  luck:      ['true-strike',    'aid',              'protection-from-energy', 'freedom-of-movement', 'break-enchantment', 'mislead',      N,    N,    'miracle'],
+  madness:   [N,                'touch-of-idiocy',  N,                   'confusion',            N,                'phantasmal-killer',   N,    N,    N],
+  magic:     ['identify',       N,                  'dispel-magic',      N,                      'spell-resistance', 'antimagic-field',   N,    N,    N],
+  nobility:  ['divine-favor',   N,                  'magic-vestment',    N,                      'greater-command', N,                    N,    N,    'storm-of-vengeance'],
+  plant:     ['entangle',       'barkskin',         N,                   'command-plants',       'wall-of-thorns', N,                     N,    N,    N],
+  protection:['sanctuary',      N,                  'protection-from-energy', 'spell-immunity',  'spell-resistance', 'antimagic-field',   N,    'mind-blank', N],
+  repose:    ['deathwatch',     N,                  N,                   'death-ward',           'slay-living',    N,                     'destruction', N, N],
+  rune:      [N,                N,                  N,                   N,                      N,                N,                     N,    N,    N],
+  strength:  ['enlarge-person', 'bulls-strength',   'magic-vestment',    'spell-immunity',       'righteous-might', 'stoneskin',          N,    N,    N],
+  sun:       ['endure-elements', 'heat-metal',      'searing-light',     'fire-shield',          'flame-strike',   N,                     N,    N,    N],
+  travel:    ['longstrider',    N,                  'fly',               'dimension-door',       'teleport',       'find-the-path',       N,    N,    N],
+  trickery:  ['disguise-self',  'invisibility',     N,                   'confusion',            N,                'mislead',             N,    N,    'time-stop'],
+  war:       ['magic-weapon',   'spiritual-weapon', 'magic-vestment',    'divine-power',         'flame-strike',   'blade-barrier',       N,    'power-word-stun', 'power-word-kill'],
+  water:     ['obscuring-mist', 'fog-cloud',        'water-breathing',   N,                      'ice-storm',      'cone-of-cold',        N,    'horrid-wilting', N],
+  weather:   ['obscuring-mist', 'fog-cloud',        'call-lightning',    'sleet-storm',          'ice-storm',      N,                     N,    N,    'storm-of-vengeance'],
+};
+
 export const DOMAINS: DomainDef[] = Object.entries(DOMAIN_POWERS).map(([id, powers]) => ({
   id,
   name: id.charAt(0).toUpperCase() + id.slice(1),
   powers,
+  spells: DOMAIN_SPELLS[id] ?? Array(9).fill(null),
   desc: powers.map((pw) => `${pw.name} (${ordinalLevel(pw.level)}): ${pw.desc}`).join(' · '),
 }));
 

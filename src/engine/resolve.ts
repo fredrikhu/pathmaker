@@ -769,12 +769,26 @@ export function resolve(doc: CharacterDoc): Resolution {
     const csc = c.klass.spellcasting;
     if (!csc) return [];
     const table = spellTableFor(csc);
-    let slots = spellSlotsPerDay(table, c.levels, mods[csc.ability]);
-    // Domain (cleric) and specialist-school (non-universalist wizard) grant one bonus slot per
-    // spell level for that restricted spell — approximated as +1 to each accessible level's count.
-    const domainSlot = c.klass.id === 'cleric' && (dec.classChoices['domains']?.length ?? 0) > 0;
-    const schoolSlot = c.klass.id === 'wizard' && (dec.classChoices['school']?.length ?? 0) > 0 && !(dec.classChoices['school'] ?? []).includes('universalist');
-    if (slots && (domainSlot || schoolSlot)) slots = slots.map((n, lvl) => (lvl >= 1 && n > 0 ? n + 1 : n));
+    const slots = spellSlotsPerDay(table, c.levels, mods[csc.ability]);
+    // Domain (cleric) and specialist-school (non-universalist wizard) grant one bonus slot per spell
+    // level, restricted to a domain spell / a specialty-school spell. Modelled as its own slot
+    // (rather than the old +1 to the count), so the restriction can actually be enforced.
+    const hasDomains = c.klass.id === 'cleric' && (dec.classChoices['domains']?.length ?? 0) > 0;
+    const isSpecialist = c.klass.id === 'wizard' && (dec.classChoices['school']?.length ?? 0) > 0 && !(dec.classChoices['school'] ?? []).includes('universalist');
+    let bonusSlot: CastingBlock['bonusSlot'];
+    if (hasDomains) {
+      const doms = (dec.classChoices['domains'] ?? []).map((id) => C.domainById.get(id)).filter(Boolean) as C.DomainDef[];
+      // allowedByLevel[L] = the union of the chosen domains' spells at spell level L (skipping the
+      // levels whose domain spell isn't in the catalogue yet).
+      const allowedByLevel: string[][] = [];
+      for (let L = 1; L <= 9; L++) {
+        allowedByLevel[L] = [...new Set(doms.map((d) => d.spells[L - 1]).filter((x): x is string => !!x))];
+      }
+      bonusSlot = { kind: 'domain', label: 'Domain', allowedByLevel };
+    } else if (isSpecialist) {
+      const schoolName = C.schoolById.get((dec.classChoices['school'] ?? [])[0])?.name ?? 'School';
+      bonusSlot = { kind: 'school', label: schoolName, school: schoolName };
+    }
     return [{
       classId: c.klass.id,
       className: c.klass.name,
@@ -789,6 +803,7 @@ export function resolve(doc: CharacterDoc): Resolution {
         : {}),
       // Each class's DC uses its own casting ability.
       dcBase: 10 + mods[csc.ability],
+      ...(bonusSlot ? { bonusSlot } : {}),
     }];
   });
   // The primary casting class, kept for the single-caster views that show one number.

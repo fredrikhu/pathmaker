@@ -329,8 +329,13 @@ export interface DomainDef {
   name: string;
   /** Composed from `powers` — "Name (1st): effect · Name (8th): effect". */
   desc: string;
-  /** The domain's two granted powers (cleric). Bonus domain spells are not modelled. */
+  /** The domain's two granted powers (cleric). */
   powers: { name: string; level: number; desc: string }[];
+  /** The nine domain spells, one per spell level: index 0 = the 1st-level spell … index 8 = 9th.
+   *  Each is a spell id in the catalogue, or `null` where that domain spell is not yet authored in
+   *  the (common-scope) catalogue. A cleric with this domain gets a bonus slot per level that can
+   *  only hold the matching domain spell; a `null` level simply offers no bonus slot yet. */
+  spells: (string | null)[];
 }
 
 /** Warpriest blessing (keyed by the matching domain id): the minor power granted at 1st level and

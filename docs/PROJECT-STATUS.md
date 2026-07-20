@@ -39,9 +39,15 @@ races (Vigilante/Omdura, Occult/Alternate/NPC/Unchained, monster/advanced races)
 gaps that need engine work — now being worked in priority order. **Done: Improved Critical** (threat
 range doubles on the attack line, reusing the keen hook, no stacking) and **Shield Focus / Greater
 Shield Focus / Fleet** (the conditional feats, gated in `resolve` where equipped shield and armour
-weight are known — Shield Focus folds into the shield's bonus, Fleet adds +5 ft in light/no armour).
-Next in that queue: bonus domain / specialist-school spells per-spell (currently a +1 count
-approximation), then per-list spell levels — see the deferral backlog below.
+weight are known — Shield Focus folds into the shield's bonus, Fleet adds +5 ft in light/no armour). **Bonus domain /
+specialist-school spells are now a distinct, restricted slot** (not the old +1-to-the-count): the
+`CastingBlock.bonusSlot` carries a domain slot (allowed spell ids per level, unioned across the
+chosen domains) or a specialist-school slot (spellbook filtered by the specialty school), and the
+play tracker renders that extra slot with its filtered picker. Domain lists are authored for all 33
+domains (`DOMAIN_SPELLS`), ~149 refs against the current catalogue with `null` where the domain spell
+isn't in the common-scope set yet — **a follow-on batch adds those missing spells (elemental swarm,
+wail of the banshee, the alignment/creation lines…) to fill the nulls.** Next in the queue after
+that: per-list spell levels — see the deferral backlog below.
 
 Everything below is the durable detail. When resuming, read this file, then `docs/DESIGN.md`.
 
@@ -95,8 +101,10 @@ Two related gaps were found and closed:
 
 Still open from that audit:
 - ~~**Gunslinger's Gunsmithing**~~ — resolved; see *Firearms* below.
-- **Bonus domain spells** are still not modelled per-spell (the extra domain slot is a +1 count
-  approximation in the engine); only the granted powers are authored.
+- **Bonus domain spells are now modelled per-spell** — a distinct `CastingBlock.bonusSlot` restricted
+  to the chosen domains' spell at each level (see the Resume-here note). Domain lists are authored for
+  all 33 domains; a follow-on batch fills the `null` levels whose domain spell isn't in the catalogue
+  yet. Granted powers were already authored.
 
 ### Session feedback fixes (2026-07)
 
@@ -476,8 +484,10 @@ item weight for coins, and per-arrow ammunition.
 - **Conditions** expanded 11 → 22 (added panicked, deafened, cowering, pinned, flat-footed, helpless,
   paralyzed, dazed, staggered, nauseated, confused). A `loseDexToAc` flag on conditions now drops the
   Dex bonus from AC/touch/CMD (flat-footed, blinded, stunned, cowering, pinned, paralyzed, helpless).
-- **Domain / specialist-school bonus spell slot** — cleric-with-domains and non-universalist wizard get
-  +1 slot per accessible level (approximated as +1 to the count; the restriction isn't enforced).
+- **Domain / specialist-school bonus spell slot** — now a distinct, *restricted* slot (`CastingBlock.
+  bonusSlot`), not the old +1-to-the-count: a cleric's domain slot offers the union of the chosen
+  domains' spell at each level; a specialist wizard's slot offers the spellbook filtered to the
+  specialty school. The play tracker renders it with its filtered picker; Rest clears its cast state.
 - **Spell save DC** (10 + spell level + casting mod) shown on the play sheet.
 - **Multiple pools per class**: paladin now has lay-on-hands **and** smite-evil; monk has ki **and**
   stunning fist. Added druid **wild shape** uses (4th–19th). A **skills panel** (trained skills + totals)
