@@ -734,199 +734,6 @@ export function PlaySheet({ id }: { id: string }) {
         </div>
       )}
 
-      {/* Skills (trained) */}
-      {trainedSkills.length > 0 && (
-        <div style={{ background: 'var(--color-surface)', borderRadius: 12, padding: 18, marginTop: 18 }}>
-          <div className="micro" style={{ marginBottom: 10 }}>Skills</div>
-          <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
-            {trainedSkills.map((sid) => {
-              const shown = fmtMod(sheet.stats[`skill:${sid}`]?.total ?? 0);
-              const open = statTip(`skill:${sid}`, shown);
-              return (
-                <span key={sid} onMouseEnter={open} onMouseLeave={tip.leave} onClick={open}
-                  style={{ padding: '5px 11px', borderRadius: 999, fontSize: 12.5, background: 'var(--color-neutral-800)', cursor: 'pointer' }}>
-                  {skillById.get(sid)?.name} <span className="num" style={{ fontWeight: 600, color: 'var(--color-accent-300)' }}>{shown}</span>
-                </span>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Resource pools */}
-      {pools.length > 0 && (
-        <div style={{ background: 'var(--color-surface)', borderRadius: 12, padding: 18, marginTop: 18 }}>
-          <div className="micro" style={{ marginBottom: 12 }}>Resources</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {pools.map((pool) => {
-              const used = usedPoolAt(pool.id);
-              const remaining = pool.max - used;
-              return (
-                <div key={pool.id} style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-                  <span style={{ width: 148, fontSize: 13, fontWeight: 500 }}>{pool.name}</span>
-                  {pool.max <= 10 ? (
-                    <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-                      {Array.from({ length: pool.max }).map((_, i) => {
-                        const spent = i < used;
-                        return (
-                          <button key={i} title={spent ? 'restore' : 'spend'}
-                            onClick={() => setUsedPool(pool.id, spent ? i : i + 1, pool.max)}
-                            style={{ width: 22, height: 22, borderRadius: 6, cursor: 'pointer', border: '1px solid var(--color-divider)', background: spent ? 'transparent' : 'var(--color-accent)', opacity: spent ? 0.5 : 1 }} />
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                      <button className="stepper" style={{ width: 26, height: 26 }} disabled={remaining <= 0} onClick={() => adjustPool(pool.id, 1, pool.max)}>−</button>
-                      <button className="stepper" style={{ width: 26, height: 26 }} disabled={used <= 0} onClick={() => adjustPool(pool.id, -1, pool.max)}>+</button>
-                    </div>
-                  )}
-                  <span className="num" style={{ fontSize: 14, fontWeight: 600, color: remaining <= 0 ? 'var(--warn-fg)' : undefined }}>{remaining}</span>
-                  <span className="text-muted" style={{ fontSize: 12 }}>/ {pool.max} {pool.unit}</span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Inventory (phase 5) */}
-      {sheet.inventory.length > 0 && (
-        <div style={{ background: 'var(--color-surface)', borderRadius: 12, padding: 18, marginTop: 18 }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
-            <div className="micro">Inventory</div>
-            <span className="text-muted" style={{ fontSize: 11.5 }}>
-              carrying <span className="num" style={{ color: sheet.load.label === 'Light' ? 'var(--color-accent-300)' : 'var(--warn-fg)' }}>{sheet.load.current} lb</span>
-              {' · '}{sheet.load.label.toLowerCase()} load (light ≤{sheet.load.light}, medium ≤{sheet.load.medium}, heavy ≤{sheet.load.heavy})
-              {sheet.speed.reducedFrom ? ` · speed ${sheet.speed.base} ft` : ''}
-            </span>
-            <span style={{ flex: 1 }} />
-            <button className="btn btn-ghost" style={{ fontSize: 11 }} title="Refill consumables and recharge to the amounts on your build"
-              onClick={() => applyClock(restock)}>Restock</button>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-            {sheet.inventory.map((it) => {
-              const out = it.consumable && it.qty === 0;
-              return (
-                <div key={it.id} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12.5, opacity: out ? 0.5 : 1 }}>
-                  <span style={{ minWidth: 200, fontWeight: 500 }}>
-                    {it.name}
-                    {it.equipped && <span className="tag tag-neutral" style={{ fontSize: 9.5, marginLeft: 6 }}>{it.equipped === 'main' ? 'wielded' : it.equipped === 'off' ? 'off-hand' : it.equipped}</span>}
-                    {it.properties?.map((p) => (
-                      <span key={p} className="tag tag-neutral" style={{ fontSize: 9.5, marginLeft: 4 }}>{p}</span>
-                    ))}
-                  </span>
-
-                  {it.charges ? (
-                    <>
-                      <span className="num" style={{ minWidth: 62, color: it.charges.remaining <= 5 ? 'var(--warn-fg)' : 'var(--color-accent-300)' }}>
-                        {it.charges.remaining}/{it.charges.max}
-                      </span>
-                      <button className="btn btn-secondary" style={{ fontSize: 11 }} disabled={it.charges.remaining <= 0}
-                        onClick={() => applyClock((p) => spendCharges(p, it.id, 1, it.charges!.remaining))}>use charge</button>
-                      <button className="btn btn-ghost" style={{ fontSize: 11 }} disabled={it.charges.remaining >= it.charges.max}
-                        onClick={() => applyClock((p) => restoreCharges(p, it.id, 1))}>+1</button>
-                    </>
-                  ) : it.consumable ? (
-                    <>
-                      <span className="num" style={{ minWidth: 62, color: out ? 'var(--warn-fg)' : undefined }}>{it.qty}/{it.purchased}</span>
-                      <button className="btn btn-secondary" style={{ fontSize: 11 }} disabled={it.qty <= 0}
-                        onClick={() => applyClock((p) => consume(p, it.id, 1, it.qty))}>use</button>
-                      <button className="btn btn-ghost" style={{ fontSize: 11 }} disabled={it.qty >= it.purchased}
-                        onClick={() => applyClock((p) => unconsume(p, it.id, 1))}>+1</button>
-                    </>
-                  ) : (
-                    <span className="num text-muted" style={{ minWidth: 62 }}>×{it.qty}</span>
-                  )}
-
-                  <span style={{ flex: 1 }} />
-                  {it.note && <span className="text-muted" style={{ fontSize: 11 }}>{it.note}</span>}
-                  <span className="num text-muted" style={{ fontSize: 11.5, minWidth: 52, textAlign: 'right' }}>{it.weight} lb</span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Conditions */}
-      <div style={{ background: 'var(--color-surface)', borderRadius: 12, padding: 18, marginTop: 18 }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
-          <div className="micro">Conditions</div>
-          {conditions.length > 0 && <span className="text-muted" style={{ fontSize: 11.5 }}>active penalties are folded into the stats above</span>}
-        </div>
-        <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
-          {CONDITIONS.map((c) => {
-            const on = conditions.includes(c.id);
-            const t = on ? timerFor(c.id) : undefined;
-            return (
-              <button key={c.id} onClick={() => toggleCondition(c.id)} title={c.desc}
-                style={{ padding: '5px 12px', borderRadius: 999, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit',
-                  border: `1px solid ${on ? 'var(--warn-fg)' : 'var(--color-divider)'}`,
-                  background: on ? 'var(--warn)' : 'transparent',
-                  color: on ? 'var(--warn-fg)' : 'var(--color-text)' }}>
-                {c.name}
-                {t && <span className="num" style={{ marginLeft: 6, fontSize: 10.5, opacity: 0.85 }}>⏱ {durationLabel(t.remaining)}</span>}
-              </button>
-            );
-          })}
-        </div>
-        {conditions.length > 0 && (
-          <div style={{ fontSize: 11.5, color: 'var(--color-neutral-400)', marginTop: 10, lineHeight: 1.6 }}>
-            {conditions.map((id) => conditionById.get(id)?.desc).filter(Boolean).join(' ')}
-          </div>
-        )}
-      </div>
-
-      {/* Senses & innate abilities — a reminder for the things that are easy to forget you have:
-          racial senses (badges) and innate spell-like abilities (daily uses tracked like a pool). */}
-      {(sheet.senses.length > 0 || sheet.spellLikeAbilities.length > 0) && (
-        <div style={{ background: 'var(--color-surface)', borderRadius: 12, padding: 18, marginTop: 18 }}>
-          <div className="micro" style={{ marginBottom: 12 }}>Senses &amp; innate abilities</div>
-          {sheet.senses.length > 0 && (
-            <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', marginBottom: sheet.spellLikeAbilities.length > 0 ? 14 : 0 }}>
-              {sheet.senses.map((s) => (
-                <span key={s} style={{ padding: '5px 12px', borderRadius: 999, fontSize: 12, border: '1px solid var(--color-divider)', color: 'var(--color-text)' }}>{s}</span>
-              ))}
-            </div>
-          )}
-          {sheet.spellLikeAbilities.length > 0 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {sheet.spellLikeAbilities.map((sla) => {
-                const atWill = sla.uses === 'at-will';
-                const max = atWill ? 0 : (sla.uses as number);
-                const used = usedPoolAt(sla.id);
-                return (
-                  <div key={sla.id} style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                    <span style={{ minWidth: 150, fontSize: 13, fontWeight: 500 }}>{sla.name}</span>
-                    {atWill ? (
-                      <span className="text-muted" style={{ fontSize: 12 }}>at will</span>
-                    ) : (
-                      <>
-                        <div style={{ display: 'flex', gap: 5 }}>
-                          {Array.from({ length: max }).map((_, i) => {
-                            const spent = i < used;
-                            return (
-                              <button key={i} title={spent ? 'restore' : 'use'} onClick={() => setUsedPool(sla.id, spent ? i : i + 1, max)}
-                                style={{ width: 22, height: 22, borderRadius: 6, cursor: 'pointer', border: '1px solid var(--color-divider)', background: spent ? 'transparent' : 'var(--color-accent)', opacity: spent ? 0.5 : 1 }} />
-                            );
-                          })}
-                        </div>
-                        <span className="num text-muted" style={{ fontSize: 12 }}>{max - used}/{max} per day</span>
-                      </>
-                    )}
-                    <span className="text-muted" style={{ fontSize: 11.5 }}>
-                      {sla.source}{sla.note ? ` · ${sla.note}` : ''}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-          <p className="text-muted" style={{ fontSize: 11, marginTop: 12 }}>Spell-like abilities behave as the named spell; daily uses reset on Rest.</p>
-        </div>
-      )}
-
       {/* One panel per casting class. A multiclass caster tracks each class separately, because
           the slots, the preparation and the recovery are all per class. */}
       {sheet.casting.filter((b) => b.slots?.some((n) => n > 0)).map((block) => {
@@ -1094,6 +901,199 @@ export function PlaySheet({ id }: { id: string }) {
           </div>
         );
       })}
+
+      {/* Resource pools */}
+      {pools.length > 0 && (
+        <div style={{ background: 'var(--color-surface)', borderRadius: 12, padding: 18, marginTop: 18 }}>
+          <div className="micro" style={{ marginBottom: 12 }}>Resources</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {pools.map((pool) => {
+              const used = usedPoolAt(pool.id);
+              const remaining = pool.max - used;
+              return (
+                <div key={pool.id} style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                  <span style={{ width: 148, fontSize: 13, fontWeight: 500 }}>{pool.name}</span>
+                  {pool.max <= 10 ? (
+                    <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                      {Array.from({ length: pool.max }).map((_, i) => {
+                        const spent = i < used;
+                        return (
+                          <button key={i} title={spent ? 'restore' : 'spend'}
+                            onClick={() => setUsedPool(pool.id, spent ? i : i + 1, pool.max)}
+                            style={{ width: 22, height: 22, borderRadius: 6, cursor: 'pointer', border: '1px solid var(--color-divider)', background: spent ? 'transparent' : 'var(--color-accent)', opacity: spent ? 0.5 : 1 }} />
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                      <button className="stepper" style={{ width: 26, height: 26 }} disabled={remaining <= 0} onClick={() => adjustPool(pool.id, 1, pool.max)}>−</button>
+                      <button className="stepper" style={{ width: 26, height: 26 }} disabled={used <= 0} onClick={() => adjustPool(pool.id, -1, pool.max)}>+</button>
+                    </div>
+                  )}
+                  <span className="num" style={{ fontSize: 14, fontWeight: 600, color: remaining <= 0 ? 'var(--warn-fg)' : undefined }}>{remaining}</span>
+                  <span className="text-muted" style={{ fontSize: 12 }}>/ {pool.max} {pool.unit}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Inventory (phase 5) */}
+      {sheet.inventory.length > 0 && (
+        <div style={{ background: 'var(--color-surface)', borderRadius: 12, padding: 18, marginTop: 18 }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
+            <div className="micro">Inventory</div>
+            <span className="text-muted" style={{ fontSize: 11.5 }}>
+              carrying <span className="num" style={{ color: sheet.load.label === 'Light' ? 'var(--color-accent-300)' : 'var(--warn-fg)' }}>{sheet.load.current} lb</span>
+              {' · '}{sheet.load.label.toLowerCase()} load (light ≤{sheet.load.light}, medium ≤{sheet.load.medium}, heavy ≤{sheet.load.heavy})
+              {sheet.speed.reducedFrom ? ` · speed ${sheet.speed.base} ft` : ''}
+            </span>
+            <span style={{ flex: 1 }} />
+            <button className="btn btn-ghost" style={{ fontSize: 11 }} title="Refill consumables and recharge to the amounts on your build"
+              onClick={() => applyClock(restock)}>Restock</button>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+            {sheet.inventory.map((it) => {
+              const out = it.consumable && it.qty === 0;
+              return (
+                <div key={it.id} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12.5, opacity: out ? 0.5 : 1 }}>
+                  <span style={{ minWidth: 200, fontWeight: 500 }}>
+                    {it.name}
+                    {it.equipped && <span className="tag tag-neutral" style={{ fontSize: 9.5, marginLeft: 6 }}>{it.equipped === 'main' ? 'wielded' : it.equipped === 'off' ? 'off-hand' : it.equipped}</span>}
+                    {it.properties?.map((p) => (
+                      <span key={p} className="tag tag-neutral" style={{ fontSize: 9.5, marginLeft: 4 }}>{p}</span>
+                    ))}
+                  </span>
+
+                  {it.charges ? (
+                    <>
+                      <span className="num" style={{ minWidth: 62, color: it.charges.remaining <= 5 ? 'var(--warn-fg)' : 'var(--color-accent-300)' }}>
+                        {it.charges.remaining}/{it.charges.max}
+                      </span>
+                      <button className="btn btn-secondary" style={{ fontSize: 11 }} disabled={it.charges.remaining <= 0}
+                        onClick={() => applyClock((p) => spendCharges(p, it.id, 1, it.charges!.remaining))}>use charge</button>
+                      <button className="btn btn-ghost" style={{ fontSize: 11 }} disabled={it.charges.remaining >= it.charges.max}
+                        onClick={() => applyClock((p) => restoreCharges(p, it.id, 1))}>+1</button>
+                    </>
+                  ) : it.consumable ? (
+                    <>
+                      <span className="num" style={{ minWidth: 62, color: out ? 'var(--warn-fg)' : undefined }}>{it.qty}/{it.purchased}</span>
+                      <button className="btn btn-secondary" style={{ fontSize: 11 }} disabled={it.qty <= 0}
+                        onClick={() => applyClock((p) => consume(p, it.id, 1, it.qty))}>use</button>
+                      <button className="btn btn-ghost" style={{ fontSize: 11 }} disabled={it.qty >= it.purchased}
+                        onClick={() => applyClock((p) => unconsume(p, it.id, 1))}>+1</button>
+                    </>
+                  ) : (
+                    <span className="num text-muted" style={{ minWidth: 62 }}>×{it.qty}</span>
+                  )}
+
+                  <span style={{ flex: 1 }} />
+                  {it.note && <span className="text-muted" style={{ fontSize: 11 }}>{it.note}</span>}
+                  <span className="num text-muted" style={{ fontSize: 11.5, minWidth: 52, textAlign: 'right' }}>{it.weight} lb</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Conditions */}
+      <div style={{ background: 'var(--color-surface)', borderRadius: 12, padding: 18, marginTop: 18 }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
+          <div className="micro">Conditions</div>
+          {conditions.length > 0 && <span className="text-muted" style={{ fontSize: 11.5 }}>active penalties are folded into the stats above</span>}
+        </div>
+        <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
+          {CONDITIONS.map((c) => {
+            const on = conditions.includes(c.id);
+            const t = on ? timerFor(c.id) : undefined;
+            return (
+              <button key={c.id} onClick={() => toggleCondition(c.id)} title={c.desc}
+                style={{ padding: '5px 12px', borderRadius: 999, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit',
+                  border: `1px solid ${on ? 'var(--warn-fg)' : 'var(--color-divider)'}`,
+                  background: on ? 'var(--warn)' : 'transparent',
+                  color: on ? 'var(--warn-fg)' : 'var(--color-text)' }}>
+                {c.name}
+                {t && <span className="num" style={{ marginLeft: 6, fontSize: 10.5, opacity: 0.85 }}>⏱ {durationLabel(t.remaining)}</span>}
+              </button>
+            );
+          })}
+        </div>
+        {conditions.length > 0 && (
+          <div style={{ fontSize: 11.5, color: 'var(--color-neutral-400)', marginTop: 10, lineHeight: 1.6 }}>
+            {conditions.map((id) => conditionById.get(id)?.desc).filter(Boolean).join(' ')}
+          </div>
+        )}
+      </div>
+
+      {/* Skills (trained) */}
+      {trainedSkills.length > 0 && (
+        <div style={{ background: 'var(--color-surface)', borderRadius: 12, padding: 18, marginTop: 18 }}>
+          <div className="micro" style={{ marginBottom: 10 }}>Skills</div>
+          <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
+            {trainedSkills.map((sid) => {
+              const shown = fmtMod(sheet.stats[`skill:${sid}`]?.total ?? 0);
+              const open = statTip(`skill:${sid}`, shown);
+              return (
+                <span key={sid} onMouseEnter={open} onMouseLeave={tip.leave} onClick={open}
+                  style={{ padding: '5px 11px', borderRadius: 999, fontSize: 12.5, background: 'var(--color-neutral-800)', cursor: 'pointer' }}>
+                  {skillById.get(sid)?.name} <span className="num" style={{ fontWeight: 600, color: 'var(--color-accent-300)' }}>{shown}</span>
+                </span>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Senses & innate abilities — a reminder for the things that are easy to forget you have:
+          racial senses (badges) and innate spell-like abilities (daily uses tracked like a pool). */}
+      {(sheet.senses.length > 0 || sheet.spellLikeAbilities.length > 0) && (
+        <div style={{ background: 'var(--color-surface)', borderRadius: 12, padding: 18, marginTop: 18 }}>
+          <div className="micro" style={{ marginBottom: 12 }}>Senses &amp; innate abilities</div>
+          {sheet.senses.length > 0 && (
+            <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', marginBottom: sheet.spellLikeAbilities.length > 0 ? 14 : 0 }}>
+              {sheet.senses.map((s) => (
+                <span key={s} style={{ padding: '5px 12px', borderRadius: 999, fontSize: 12, border: '1px solid var(--color-divider)', color: 'var(--color-text)' }}>{s}</span>
+              ))}
+            </div>
+          )}
+          {sheet.spellLikeAbilities.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {sheet.spellLikeAbilities.map((sla) => {
+                const atWill = sla.uses === 'at-will';
+                const max = atWill ? 0 : (sla.uses as number);
+                const used = usedPoolAt(sla.id);
+                return (
+                  <div key={sla.id} style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                    <span style={{ minWidth: 150, fontSize: 13, fontWeight: 500 }}>{sla.name}</span>
+                    {atWill ? (
+                      <span className="text-muted" style={{ fontSize: 12 }}>at will</span>
+                    ) : (
+                      <>
+                        <div style={{ display: 'flex', gap: 5 }}>
+                          {Array.from({ length: max }).map((_, i) => {
+                            const spent = i < used;
+                            return (
+                              <button key={i} title={spent ? 'restore' : 'use'} onClick={() => setUsedPool(sla.id, spent ? i : i + 1, max)}
+                                style={{ width: 22, height: 22, borderRadius: 6, cursor: 'pointer', border: '1px solid var(--color-divider)', background: spent ? 'transparent' : 'var(--color-accent)', opacity: spent ? 0.5 : 1 }} />
+                            );
+                          })}
+                        </div>
+                        <span className="num text-muted" style={{ fontSize: 12 }}>{max - used}/{max} per day</span>
+                      </>
+                    )}
+                    <span className="text-muted" style={{ fontSize: 11.5 }}>
+                      {sla.source}{sla.note ? ` · ${sla.note}` : ''}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          <p className="text-muted" style={{ fontSize: 11, marginTop: 12 }}>Spell-like abilities behave as the named spell; daily uses reset on Rest.</p>
+        </div>
+      )}
 
       <p className="text-muted" style={{ fontSize: 11, marginTop: 16 }}>Play state (HP, conditions, resources, prepared/expended spells) is saved with the character. Rest clears damage, resources, and cast spells.</p>
     </div>
