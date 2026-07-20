@@ -168,6 +168,10 @@ export interface PlayState {
   prepared?: Record<string, Record<number, string[]>>;
   /** Prepared casters: class id → spell level → which prepared slot indices have been cast. */
   castPrepared?: Record<string, Record<number, number[]>>;
+  /** Metamagic applied to a prepared spell: class id → slot level → slot index → metamagic feat
+   *  ids. A lower-level spell prepared in a higher slot (metamagic raises its effective level to
+   *  fill it) records the feats here. Absent ⇒ no metamagic on that slot. */
+  preparedMeta?: Record<string, Record<number, Record<number, string[]>>>;
   /** The one restricted bonus slot a cleric (domain) or specialist wizard (school) gets per level:
    *  class id → spell level → the single spell prepared there. Kept apart from `prepared` because
    *  it obeys a different restriction (a domain spell, or a specialty-school spell). */
@@ -438,6 +442,9 @@ export interface Sheet {
   attacks: AttackLine[];
   /** Feats granted automatically by the class up to this level (read-only in Feats). */
   grantedFeats: GrantedFeat[];
+  /** All active feat ids (selected + granted), so the play sheet can offer feat-gated tools like
+   *  metamagic without re-deriving the feat set. */
+  feats: string[];
   /** Carried items with play-time quantities/charges; `load` is computed from these. */
   inventory: InventoryItem[];
   /** Which declared combat options this character can actually use, so the UI never has to ask

@@ -309,6 +309,24 @@ describe('source-dependent features (bloodline powers, order abilities)', () => 
       expect(feats.map((f) => f.level), `witch ${pid} levels`).toEqual([2, 4, 6, 8, 10, 12, 14, 16, 18]);
     }
   });
+  it('every metamagic def maps to a real feat with a 0–4 level adjustment (nine Core feats)', () => {
+    for (const m of C.METAMAGIC) {
+      expect(C.featById.has(m.id), `metamagic ${m.id} is not a real feat`).toBe(true);
+      expect(m.levelAdj, `${m.id} levelAdj`).toBeGreaterThanOrEqual(0);
+      expect(m.levelAdj, `${m.id} levelAdj`).toBeLessThanOrEqual(4);
+    }
+    expect(C.METAMAGIC.length).toBe(9);
+    expect(C.metamagicById.get('heighten-spell')!.heighten).toBe(true);
+  });
+  it('effectiveSpellLevel sums flat adjustments and honours Heighten', () => {
+    expect(C.effectiveSpellLevel(3, [])).toBe(3);
+    expect(C.effectiveSpellLevel(3, ['empower-spell'])).toBe(5);                    // +2
+    expect(C.effectiveSpellLevel(1, ['maximize-spell', 'extend-spell'])).toBe(5);   // +3 +1
+    expect(C.effectiveSpellLevel(2, ['quicken-spell'])).toBe(6);                    // +4
+    expect(C.effectiveSpellLevel(2, ['heighten-spell'], 5)).toBe(5);               // heighten up to 5
+    expect(C.effectiveSpellLevel(4, ['heighten-spell'], 2)).toBe(4);               // heighten never lowers
+    expect(C.effectiveSpellLevel(3, ['empower-spell', 'unknown-x'])).toBe(5);       // unknown ignored
+  });
   it('the eidolon evolution pool has 20 non-decreasing entries (APG Table 2-9)', () => {
     expect(C.EIDOLON_EVOLUTION_POOL.length).toBe(20);
     expect(C.EIDOLON_EVOLUTION_POOL[0]).toBe(3);

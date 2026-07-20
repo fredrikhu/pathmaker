@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { loadCharacter } from '../storage/store';
 import { newCharacter } from '../engine/character';
-import { ABILITIES, abilityMod, emptyPlayState, normalizePlayState, fmtMod, type Ability, type ActionType, type DamageKind, type PlayState, type Timer } from '../engine/types';
+import { ABILITIES, abilityMod, emptyPlayState, normalizePlayState, fmtMod, type Ability, type ActionType, type CastingBlock, type DamageKind, type PlayState, type Timer } from '../engine/types';
 import {
   advanceTime, nextRound, startEncounter, endEncounter, addTimer, removeTimer, rest as restPlay,
   durationLabel, ROUNDS_PER_MINUTE, ROUNDS_PER_HOUR,
@@ -11,7 +11,7 @@ import { rollAttack, rollDamage, rollSave, rollMissChance, threatRange, CONCEALM
 import { applyDamage, bypassOptions, ENERGY_TYPES } from '../engine/damage';
 import { spellBuffTimer, spellDamageAt, spellAttackerTimer } from '../engine/buffs';
 import { spendAction, resetActions, COMMON_ACTIONS, type ActionCost } from '../engine/actions';
-import { CONDITIONS, conditionById, SPELLS, spellById, spellLevelOn, classById, skillById } from '../content/index';
+import { CONDITIONS, conditionById, SPELLS, spellById, spellLevelOn, classById, skillById, METAMAGIC, effectiveSpellLevel, type MetamagicDef } from '../content/index';
 import { useCharacter } from './useCharacter';
 import { useTip } from './Tooltip';
 import { navigate } from './App';
@@ -184,8 +184,32 @@ export function PlaySheet({ id }: { id: string }) {
     updatePlay((p) => {
       const arr = [...(p.prepared?.[cls]?.[l] ?? [])];
       arr[i] = spell;
-      return { prepared: { ...p.prepared, [cls]: { ...p.prepared?.[cls], [l]: arr } } };
+      // Changing the spell in a slot drops any metamagic that was applied to it.
+      const metaLvl = { ...(p.preparedMeta?.[cls]?.[l] ?? {}) };
+      delete metaLvl[i];
+      return {
+        prepared: { ...p.prepared, [cls]: { ...p.prepared?.[cls], [l]: arr } },
+        preparedMeta: { ...p.preparedMeta, [cls]: { ...p.preparedMeta?.[cls], [l]: metaLvl } },
+      };
     });
+
+  // Metamagic owned by the character (feat ids on the sheet), and per-prepared-slot application.
+  const ownedMeta = METAMAGIC.filter((m) => sheet.feats.includes(m.id));
+  const preparedMetaAt = (cls: string, l: number, i: number) => play.preparedMeta?.[cls]?.[l]?.[i] ?? [];
+  const togglePreparedMeta = (cls: string, l: number, i: number, mid: string) =>
+    updatePlay((p) => {
+      const cur = new Set(p.preparedMeta?.[cls]?.[l]?.[i] ?? []);
+      cur.has(mid) ? cur.delete(mid) : cur.add(mid);
+      const lvlMap = { ...(p.preparedMeta?.[cls]?.[l] ?? {}), [i]: [...cur] };
+      return { preparedMeta: { ...p.preparedMeta, [cls]: { ...p.preparedMeta?.[cls], [l]: lvlMap } } };
+    });
+  /** The pool preparable in a slot of `maxLevel` when metamagic is in play: every spell of base
+   *  level 1..maxLevel, so a lower spell can be metamagically raised to fill the slot. */
+  const preparablePoolUpTo = (cls: string, maxLevel: number) => {
+    const out: ReturnType<typeof preparablePool> = [];
+    for (let l = 1; l <= maxLevel; l++) out.push(...preparablePool(cls, l));
+    return out;
+  };
   const toggleCast = (cls: string, l: number, i: number) =>
     updatePlay((p) => {
       const set = new Set(p.castPrepared?.[cls]?.[l] ?? []);
@@ -787,11 +811,24 @@ export function PlaySheet({ id }: { id: string }) {
               </div>
             )}
 
+            {/* Spontaneous casters apply metamagic at cast time: pick a spell + the feats you own,
+                and it spends a slot of the raised effective level. */}
+            {!isPrepared && ownedMeta.length > 0 && (
+              <MetamagicSpontaneousTool
+                block={block} ownedMeta={ownedMeta}
+                usedAt={(l) => usedAt(cls, l)}
+                spend={(l) => setUsed(cls, l, usedAt(cls, l) + 1)}
+              />
+            )}
+
             {isPrepared && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 {slots.map((perDay, level) => {
                   if (perDay <= 0 || level === 0) return null;
-                  const pool = preparablePool(cls, level);
+                  // With metamagic, a lower-level spell can be raised to fill this slot, so the pool
+                  // opens up to every base level ≤ this slot's level.
+                  const pool = ownedMeta.length ? preparablePoolUpTo(cls, level) : preparablePool(cls, level);
+                  const csList = classById.get(cls)?.spellcasting?.list;
                   const prep = preparedAt(cls, level);
                   const cast = new Set(castAt(cls, level));
                   // The arcanist prepares one number of spells and casts a different number of
@@ -826,12 +863,18 @@ export function PlaySheet({ id }: { id: string }) {
                           const filled = !!prep[i];
                           const sp = prep[i] ? spellById.get(prep[i]!) : undefined;
                           const dmg = sp ? spellDamageAt(sp, block.casterLevel) : null;
+                          const applied = ownedMeta.length ? preparedMetaAt(cls, level, i) : [];
+                          const baseLvl = sp && csList ? spellLevelOn(sp, csList) : null;
+                          // Heighten fills a slot up to its own level; other metamagic add flat levels.
+                          const eff = baseLvl != null ? effectiveSpellLevel(baseLvl, applied, level) : null;
+                          const overSlot = eff != null && eff > level;
                           return (
-                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                               <select className="input" style={{ flex: 1, padding: '4px 6px', fontSize: 12, opacity: casted ? 0.5 : 1, textDecoration: casted ? 'line-through' : 'none' }}
                                 value={prep[i] ?? ''} onChange={(e) => setPreparedAt(cls, level, i, e.target.value)}>
                                 <option value="">— empty —</option>
-                                {pool.map((sp) => <option key={sp.id} value={sp.id}>{sp.name}</option>)}
+                                {pool.map((s) => <option key={s.id} value={s.id}>{s.name}{ownedMeta.length && csList && spellLevelOn(s, csList) !== level ? ` (L${spellLevelOn(s, csList)})` : ''}</option>)}
                               </select>
                               {dmg && (
                                 <RollButton label={dmg.formula} title={`Roll ${dmg.formula} ${dmg.label}${dmg.note ? ` — ${dmg.note}` : ''}`}
@@ -849,6 +892,30 @@ export function PlaySheet({ id }: { id: string }) {
                                   }}>
                                   {casted ? '↺' : 'cast'}
                                 </button>
+                              )}
+                              </div>
+                              {/* Metamagic chips: toggle the feats you own onto this prepared spell. A
+                                  lower-level spell raised to this slot's level "fits"; over it warns. */}
+                              {ownedMeta.length > 0 && filled && (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap', paddingLeft: 2 }}>
+                                  {ownedMeta.map((m) => {
+                                    const on = applied.includes(m.id);
+                                    return (
+                                      <button key={m.id} title={`${m.name} Spell — ${m.desc}${m.levelAdj ? ` (+${m.levelAdj})` : ''}`}
+                                        onClick={() => togglePreparedMeta(cls, level, i, m.id)}
+                                        style={{ fontSize: 10, padding: '1px 6px', borderRadius: 999, cursor: 'pointer', fontFamily: 'inherit',
+                                          border: `1px solid ${on ? 'var(--color-accent)' : 'var(--color-divider)'}`,
+                                          background: on ? 'var(--color-accent)' : 'transparent', color: on ? '#fff' : 'var(--color-neutral-400)' }}>
+                                        {m.name}
+                                      </button>
+                                    );
+                                  })}
+                                  {applied.length > 0 && (
+                                    <span style={{ fontSize: 10.5, color: overSlot ? 'var(--warn)' : 'var(--color-neutral-500)' }}>
+                                      {overSlot ? `needs a level-${eff} slot` : `effective L${eff}`}
+                                    </span>
+                                  )}
+                                </div>
                               )}
                             </div>
                           );
@@ -1104,6 +1171,72 @@ export function PlaySheet({ id }: { id: string }) {
  *  state is part of play, not the build. Disabled when the character can't take the option. */
 /** A small die button. Rolling sits inside a row that opens a breakdown card on click, so the
  *  event has to stop there — otherwise every roll also pops a tooltip over the log. */
+/** Spontaneous casters apply metamagic at cast time: pick a known spell, toggle the metamagic feats
+ *  you own, and spend a slot of the raised effective level (blocked when it exceeds your max level
+ *  or no such slot is free). */
+function MetamagicSpontaneousTool({ block, ownedMeta, usedAt, spend }: {
+  block: CastingBlock;
+  ownedMeta: MetamagicDef[];
+  usedAt: (level: number) => number;
+  spend: (level: number) => void;
+}) {
+  const [spellId, setSpellId] = useState('');
+  const [applied, setApplied] = useState<string[]>([]);
+  const [heightenTo, setHeightenTo] = useState<number | ''>('');
+  const list = classById.get(block.classId)?.spellcasting?.list;
+  const slots = block.slots ?? [];
+  const maxLevel = slots.reduce((m, n, l) => (n > 0 ? l : m), 0);
+  const options = list
+    ? SPELLS.filter((s) => s.lists.includes(list as never) && spellLevelOn(s, list) >= 1 && spellLevelOn(s, list) <= maxLevel)
+        .slice().sort((a, b) => spellLevelOn(a, list) - spellLevelOn(b, list) || a.name.localeCompare(b.name))
+    : [];
+  const sp = spellId ? spellById.get(spellId) : undefined;
+  const base = sp && list ? spellLevelOn(sp, list) : null;
+  const heightenOn = applied.includes('heighten-spell');
+  const eff = base != null ? effectiveSpellLevel(base, applied, heightenOn && heightenTo !== '' ? Number(heightenTo) : undefined) : null;
+  const overCap = eff != null && eff > maxLevel;
+  const noSlot = eff != null && !overCap && usedAt(eff) >= (slots[eff] ?? 0);
+  const canCast = eff != null && eff >= 1 && !overCap && !noSlot;
+  const toggle = (mid: string) => setApplied((a) => (a.includes(mid) ? a.filter((x) => x !== mid) : [...a, mid]));
+  return (
+    <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--color-divider)' }}>
+      <div className="micro" style={{ marginBottom: 6 }}>Cast with metamagic</div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        <select className="input" style={{ padding: '4px 6px', fontSize: 12, minWidth: 160 }} value={spellId} onChange={(e) => setSpellId(e.target.value)}>
+          <option value="">— pick a spell —</option>
+          {options.map((s) => <option key={s.id} value={s.id}>{s.name} (L{spellLevelOn(s, list!)})</option>)}
+        </select>
+        {ownedMeta.map((m) => {
+          const on = applied.includes(m.id);
+          return (
+            <button key={m.id} title={`${m.name} Spell — ${m.desc}${m.levelAdj ? ` (+${m.levelAdj})` : ''}`} onClick={() => toggle(m.id)}
+              style={{ fontSize: 10.5, padding: '2px 8px', borderRadius: 999, cursor: 'pointer', fontFamily: 'inherit',
+                border: `1px solid ${on ? 'var(--color-accent)' : 'var(--color-divider)'}`,
+                background: on ? 'var(--color-accent)' : 'transparent', color: on ? '#fff' : 'var(--color-neutral-400)' }}>
+              {m.name}
+            </button>
+          );
+        })}
+        {heightenOn && (
+          <label style={{ fontSize: 11, color: 'var(--color-neutral-400)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            to L<input type="number" className="input" min={base ?? 1} max={maxLevel} value={heightenTo}
+              onChange={(e) => setHeightenTo(e.target.value === '' ? '' : Number(e.target.value))} style={{ width: 44, padding: '2px 4px', fontSize: 11 }} />
+          </label>
+        )}
+        {eff != null && (
+          <span style={{ fontSize: 11.5, color: overCap || noSlot ? 'var(--warn)' : 'var(--color-neutral-400)' }}>
+            → {overCap ? `L${eff} exceeds your max (L${maxLevel})` : `spends a level-${eff} slot${noSlot ? ' (none left)' : ''}`}
+          </span>
+        )}
+        <button className="btn btn-secondary" style={{ fontSize: 11.5 }} disabled={!canCast}
+          onClick={() => { if (eff != null) spend(eff); }}>
+          Spend slot
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function RollButton({ label, title, onRoll }: { label: string; title: string; onRoll: () => void }) {
   return (
     <button className="btn btn-ghost" title={title}

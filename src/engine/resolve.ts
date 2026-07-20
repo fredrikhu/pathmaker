@@ -924,6 +924,7 @@ export function resolve(doc: CharacterDoc): Resolution {
     },
     defenses: gatherDefenses(dec, classes, doc.play),
     grantedFeats: allGrantedFeats(dec, level, (doc.decisions['feat-params'] as Record<string, string>) ?? {}),
+    feats: featIds,
     inventory,
     worn: wornItemsWithStatus(doc).map(({ item, active }) =>
       ({ id: item.id, name: item.name, slot: item.slot, cost: item.cost, desc: item.desc, active })),
