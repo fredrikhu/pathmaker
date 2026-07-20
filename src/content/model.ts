@@ -86,7 +86,24 @@ export type ClassChoiceKind =
   | 'warpriest-blessings'
   | 'sorcerer-bloodline'
   | 'oracle-revelation'
+  | 'eidolon-evolutions'
   | 'list';
+
+/** One eidolon evolution: a point-buy purchase from the summoner's evolution pool. */
+export interface EvolutionDef {
+  id: string;
+  name: string;
+  /** Evolution-point cost (1–4). */
+  cost: number;
+  desc: string;
+  /** Minimum summoner level to select. Omitted ⇒ 1. */
+  minLevel?: number;
+  /** Base form(s) that may take this evolution (biped/quadruped/serpentine). Omitted ⇒ any. */
+  forms?: string[];
+  /** True if the evolution can be selected more than once (each purchase costs `cost` again).
+   *  The builder currently offers each evolution as a single take; noted for reference. */
+  multi?: boolean;
+}
 
 export interface ClassChoiceDef {
   id: string; // slot suffix, e.g. "school"

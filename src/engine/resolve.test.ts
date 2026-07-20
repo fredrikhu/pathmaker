@@ -945,6 +945,40 @@ describe('source-dependent features appear in the progression by chosen source',
     // First bonus spell isn't granted before 7th.
     expect(resolve(atLevel(d, 6)).sheet.progression[5].features).not.toContain('Bonus Spell (1st): Ray of Enfeeblement');
   });
+  it('a summoner gets an eidolon evolution point-buy sized to the pool, with level/form gating', () => {
+    let d = newCharacter('t-summ', 'Balazar');
+    d = withDecision(d, 'ability-base', { str: 8, dex: 12, con: 12, int: 10, wis: 10, cha: 16 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['cha']);
+    d = withDecision(d, 'alignment', 'N');
+    d = withDecision(d, 'class', 'summoner');
+    d = withDecision(d, 'class-choices', { 'eidolon-form': ['biped'], evolutions: ['bite', 'claws'] });
+    const r = resolve(atLevel(d, 1));
+    const slot = r.slots.find((s) => s.id === 'evolutions')!;
+    expect(slot.pointBudget).toBe(3);   // level-1 pool
+    expect(slot.pointsSpent).toBe(2);   // bite (1) + claws (1)
+    expect(r.issues.some((i) => i.slot === 'evolutions' && /1 evolution point unspent/.test(i.message))).toBe(true);
+    // Large (4 pts, min summoner 8) is gated by level; Pounce is gated by base form (quadruped).
+    expect(slot.options.find((o) => o.id === 'large')!.legal).toBe(false);
+    expect(slot.options.find((o) => o.id === 'pounce')!.legal).toBe(false);
+    const r8 = resolve(atLevel(d, 8));
+    const slot8 = r8.slots.find((s) => s.id === 'evolutions')!;
+    expect(slot8.pointBudget).toBe(11); // level-8 pool
+    expect(slot8.options.find((o) => o.id === 'large')!.legal).toBe(true);
+  });
+  it('an over-budget eidolon raises a warning about the evolution pool', () => {
+    let d = newCharacter('t-summ2', 'Balazar');
+    d = withDecision(d, 'ability-base', { str: 8, dex: 12, con: 12, int: 10, wis: 10, cha: 16 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['cha']);
+    d = withDecision(d, 'alignment', 'N');
+    d = withDecision(d, 'class', 'summoner');
+    // Five 1-point evolutions at level 1 (pool 3) → over by 2.
+    d = withDecision(d, 'class-choices', { 'eidolon-form': ['biped'], evolutions: ['bite', 'claws', 'gills', 'scent', 'reach'] });
+    const r = resolve(atLevel(d, 1));
+    expect(r.slots.find((s) => s.id === 'evolutions')!.pointsSpent).toBe(5);
+    expect(r.issues.some((i) => i.slot === 'evolutions' && /over its evolution pool by 2 points/.test(i.message))).toBe(true);
+  });
   it('an alchemist gains a grand-discovery pick at level 20, and not before', () => {
     let d = newCharacter('t-alch', 'Damiel');
     d = withDecision(d, 'ability-base', { str: 10, dex: 14, con: 12, int: 16, wis: 10, cha: 8 });

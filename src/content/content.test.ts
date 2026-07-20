@@ -17,7 +17,7 @@ const BONUS_TYPES = new Set([
 const SPELL_LISTS = new Set(['arcane', 'bard', 'divine', 'druid', 'ranger', 'paladin']);
 const CHOICE_KINDS = new Set([
   'wizard-school', 'wizard-opposition', 'arcane-bond', 'cleric-domains', 'warpriest-blessings',
-  'sorcerer-bloodline', 'oracle-revelation', 'list',
+  'sorcerer-bloodline', 'oracle-revelation', 'eidolon-evolutions', 'list',
 ]);
 
 const skillIds = new Set(C.SKILLS.map((s) => s.id));
@@ -308,6 +308,33 @@ describe('source-dependent features (bloodline powers, order abilities)', () => 
     for (const [pid, feats] of Object.entries(C.WITCH_PATRON_SPELLS)) {
       expect(feats.map((f) => f.level), `witch ${pid} levels`).toEqual([2, 4, 6, 8, 10, 12, 14, 16, 18]);
     }
+  });
+  it('the eidolon evolution pool has 20 non-decreasing entries (APG Table 2-9)', () => {
+    expect(C.EIDOLON_EVOLUTION_POOL.length).toBe(20);
+    expect(C.EIDOLON_EVOLUTION_POOL[0]).toBe(3);
+    expect(C.EIDOLON_EVOLUTION_POOL[19]).toBe(26);
+    for (let i = 1; i < 20; i++) expect(C.EIDOLON_EVOLUTION_POOL[i], `pool level ${i + 1}`).toBeGreaterThanOrEqual(C.EIDOLON_EVOLUTION_POOL[i - 1]);
+  });
+  it('every eidolon evolution has a unique id, a 1–4 cost, a valid min level, and real forms', () => {
+    const ids = new Set<string>();
+    const forms = new Set(C.SUMMONER_EIDOLON_FORMS.map((f) => f.id));
+    for (const e of C.EIDOLON_EVOLUTIONS) {
+      expect(ids.has(e.id), `duplicate evolution id ${e.id}`).toBe(false);
+      ids.add(e.id);
+      expect(e.cost, `${e.id} cost`).toBeGreaterThanOrEqual(1);
+      expect(e.cost, `${e.id} cost`).toBeLessThanOrEqual(4);
+      if (e.minLevel != null) {
+        expect(e.minLevel, `${e.id} minLevel`).toBeGreaterThanOrEqual(1);
+        expect(e.minLevel, `${e.id} minLevel`).toBeLessThanOrEqual(20);
+      }
+      for (const f of e.forms ?? []) expect(forms.has(f), `${e.id} references unknown form ${f}`).toBe(true);
+    }
+    expect(C.EIDOLON_EVOLUTIONS.length, 'expected the full APG evolution set').toBe(48);
+  });
+  it('the summoner offers an eidolon-evolutions point-buy choice', () => {
+    const summ = C.classById.get('summoner');
+    const choices = [...(summ?.choices ?? []), ...(C.CLASS_PROGRESSION['summoner']?.choices ?? [])];
+    expect(choices.some((c) => c.kind === 'eidolon-evolutions'), 'summoner has no eidolon-evolutions choice').toBe(true);
   });
   it('the alchemist offers a grand-discovery pick at level 20 from the six APG grand discoveries', () => {
     const alch = C.classById.get('alchemist');

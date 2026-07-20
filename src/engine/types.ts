@@ -274,6 +274,11 @@ export interface ChoiceSlot {
   options: SlotOption[];
   /** Display-only slots render without interaction (e.g. "all cantrips: automatic"). */
   auto?: boolean;
+  /** Point-buy slots (eidolon evolutions): the total pool available and the points spent so far.
+   *  When present, the UI shows "spent / budget points" and lets selection run up to the budget
+   *  rather than a fixed pick count. Each option carries its cost in `meta.cost`. */
+  pointBudget?: number;
+  pointsSpent?: number;
 }
 
 /** One row of the class advancement table: what the character gains at a given level. */

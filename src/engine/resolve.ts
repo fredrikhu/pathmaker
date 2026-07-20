@@ -1442,7 +1442,7 @@ function buildSlotsAndIssues(
     for (const ch of entry.klass.choices ?? []) {
       // Universalist wizard → no opposition slot.
       if (ch.kind === 'wizard-opposition' && (dec.classChoices['school'] ?? []).includes('universalist')) continue;
-      const options = classChoiceOptions(ch, dec);
+      const options = classChoiceOptions(ch, dec, entry.levels);
       // A choice may recur across levels (e.g. a talent at 2, 4, 6…). Level-1 grants keep the
       // bare key; later grants are suffixed `<id>-L<level>`.
       for (const gLvl of (ch.levels ?? [1])) {
@@ -1450,6 +1450,21 @@ function buildSlotsAndIssues(
         const slotId = gLvl === 1 ? ch.id : `${ch.id}-L${gLvl}`;
         const selected = dec.classChoices[slotId] ?? [];
         const label = gLvl === 1 ? ch.label : `${ch.label} (level ${gLvl})`;
+        // Eidolon evolutions are a point-buy: the limit is the evolution pool, not a pick count.
+        if (ch.kind === 'eidolon-evolutions') {
+          const budget = evolutionPool(entry.levels);
+          const costOf = (id: string) => C.EIDOLON_EVOLUTIONS.find((e) => e.id === id)?.cost ?? 0;
+          const spent = selected.reduce((a, id) => a + costOf(id), 0);
+          slots.push({ id: slotId, step: 'class', label, count: options.length, multi: true, selected, options, pointBudget: budget, pointsSpent: spent });
+          if (spent < budget)
+            issues.push({ severity: 'info', step: 'class', slot: slotId, message: `${budget - spent} evolution point${budget - spent === 1 ? '' : 's'} unspent` });
+          if (spent > budget)
+            issues.push({ severity: 'warning', step: 'class', slot: slotId, message: `Eidolon over its evolution pool by ${spent - budget} point${spent - budget === 1 ? '' : 's'}` });
+          const illegal = selected.filter((id) => options.find((o) => o.id === id) && !options.find((o) => o.id === id)!.legal);
+          if (illegal.length)
+            issues.push({ severity: 'warning', step: 'class', slot: slotId, message: `Not yet available: ${illegal.map((id) => C.EIDOLON_EVOLUTIONS.find((e) => e.id === id)?.name ?? id).join(', ')}` });
+          continue;
+        }
         slots.push({ id: slotId, step: 'class', label, count: ch.count, multi: ch.count > 1, selected, options });
         if (selected.length < ch.count)
           issues.push({ severity: 'info', step: 'class', slot: slotId, message: `Choose ${label.toLowerCase()} (${selected.length}/${ch.count})` });
@@ -1772,7 +1787,13 @@ function altWouldInvalidate(a: C.AltTraitDef, dec: Decisions): { slotLabel: stri
   return out;
 }
 
-function classChoiceOptions(ch: C.ClassChoiceDef, dec: Decisions): SlotOption[] {
+/** The eidolon's evolution pool at a given summoner class level (1–20). */
+function evolutionPool(summonerLevel: number): number {
+  const i = Math.min(20, Math.max(1, summonerLevel)) - 1;
+  return C.EIDOLON_EVOLUTION_POOL[i];
+}
+
+function classChoiceOptions(ch: C.ClassChoiceDef, dec: Decisions, level = 1): SlotOption[] {
   switch (ch.kind) {
     case 'wizard-school':
       return C.SCHOOLS.map((s) => ({ id: s.id, name: s.name, desc: s.desc, legal: true }));
@@ -1815,6 +1836,23 @@ function classChoiceOptions(ch: C.ClassChoiceDef, dec: Decisions): SlotOption[] 
       const list = mystery ? C.ORACLE_REVELATIONS[mystery] : undefined;
       if (!list) return [];
       return list.map((o) => ({ id: o.id, name: o.name, desc: o.desc, legal: true }));
+    }
+    case 'eidolon-evolutions': {
+      const form = (dec.classChoices['eidolon-form'] ?? [])[0];
+      return C.EIDOLON_EVOLUTIONS.map((e) => {
+        const minLevel = e.minLevel ?? 1;
+        const levelOk = level >= minLevel;
+        const formOk = !e.forms || !form || e.forms.includes(form);
+        const legal = levelOk && formOk;
+        const whyNot = !levelOk ? `Requires summoner level ${minLevel}`
+          : !formOk ? `Requires a ${e.forms!.join(' or ')} eidolon`
+          : undefined;
+        return {
+          id: e.id, name: e.name,
+          desc: `◆ ${e.cost} pt${e.cost === 1 ? '' : 's'} · ${e.desc}`,
+          legal, whyNot, meta: { cost: e.cost },
+        };
+      });
     }
     case 'list':
       return (ch.options ?? []).map((o) => ({ id: o.id, name: o.name, desc: o.desc, legal: true }));

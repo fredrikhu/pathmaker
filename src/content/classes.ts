@@ -2,7 +2,7 @@ import type { ClassDef } from './model';
 import {
   CAVALIER_ORDERS, GUNSLINGER_FIREARMS, ORACLE_MYSTERIES, ORACLE_CURSES, WITCH_PATRONS,
   WITCH_HEXES, SUMMONER_EIDOLON_FORMS, ARCANIST_EXPLOITS, BLOODRAGER_BLOODLINES,
-  SHIFTER_ASPECTS, SHAMAN_SPIRITS,
+  SHIFTER_ASPECTS, SHAMAN_SPIRITS, EIDOLON_EVOLUTIONS,
 } from './subsystems';
 import { CLASS_PROGRESSION } from './class-features';
 import type { CasterProgression, SpellTable } from '../engine/progression';
@@ -328,7 +328,10 @@ export const CLASSES: ClassDef[] = [
       { id: 'sum-life-link', name: 'Life Link', desc: 'Sacrifice your own hit points to keep your eidolon in the fight.' },
       { id: 'sum-summon-monster', name: 'Summon Monster I', desc: 'Cast summon monster I as a spell-like ability 3 + Cha modifier times per day.' },
     ],
-    choices: [{ id: 'eidolon-form', label: 'Eidolon base form', kind: 'list', count: 1, options: SUMMONER_EIDOLON_FORMS }],
+    choices: [
+      { id: 'eidolon-form', label: 'Eidolon base form', kind: 'list', count: 1, options: SUMMONER_EIDOLON_FORMS },
+      { id: 'evolutions', label: 'Eidolon evolutions', kind: 'eidolon-evolutions', count: EIDOLON_EVOLUTIONS.length },
+    ],
     spellcasting: { kind: 'spontaneous', ability: 'cha', list: 'arcane', slots1: [999, 1], known1: [4, 2] },
   },
   {

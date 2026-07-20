@@ -2,6 +2,8 @@
 // kind: 'list'. These are representative core-scope subsets (like our spell/feat content),
 // not the exhaustive published lists — the schema supports adding more as pure data.
 
+import type { EvolutionDef } from './model';
+
 type Opt = { id: string; name: string; desc: string };
 
 const opt = (id: string, name: string, desc: string): Opt => ({ id, name, desc });
@@ -394,6 +396,71 @@ export const SUMMONER_EIDOLON_FORMS: Opt[] = [
   opt('biped', 'Biped', 'Two legs, two arms; strong at wielding weapons and reach.'),
   opt('quadruped', 'Quadruped', 'Four legs; fast and strong, good for mounts and maulers.'),
   opt('serpentine', 'Serpentine', 'A long body with reach and a grabbing tail.'),
+];
+
+/** The eidolon's evolution pool by summoner level (index 0 = level 1 … index 19 = level 20).
+ *  Table 2-9: Eidolon Base Statistics, APG — verified against the legacy PRD + d20pfsrd (both agree). */
+export const EIDOLON_EVOLUTION_POOL = [3, 4, 5, 7, 8, 9, 10, 11, 13, 14, 15, 16, 17, 19, 20, 21, 22, 23, 25, 26];
+
+const ev = (id: string, name: string, cost: number, desc: string, extra: Partial<EvolutionDef> = {}): EvolutionDef =>
+  ({ id, name, cost, desc, ...extra });
+
+/** The APG eidolon evolutions, each with its point cost, minimum summoner level, and base-form
+ *  restriction. Verified against the APG evolution list (Archives of Nethys). `multi` marks
+ *  evolutions the rules allow more than once; the builder offers each as a single take. */
+export const EIDOLON_EVOLUTIONS: EvolutionDef[] = [
+  // 1-point
+  ev('bite', 'Bite', 1, 'A primary bite attack (1d6, 1d8 if Large).'),
+  ev('claws', 'Claws', 1, 'Two primary claw attacks (1d4). Requires the limbs (legs) evolution.', { multi: true }),
+  ev('climb', 'Climb', 1, 'A climb speed equal to base speed.', { multi: true }),
+  ev('gills', 'Gills', 1, 'Breathe underwater indefinitely.'),
+  ev('improved-damage', 'Improved Damage', 1, "Increase one natural attack's damage die by one step.", { multi: true }),
+  ev('improved-natural-armor', 'Improved Natural Armor', 1, '+2 natural armor bonus.', { multi: true }),
+  ev('magic-attacks', 'Magic Attacks', 1, 'Natural attacks count as magic for overcoming DR.'),
+  ev('mount', 'Mount', 1, 'Serve as a combat-trained mount (must be a size larger than its rider).', { forms: ['quadruped', 'serpentine'] }),
+  ev('pincers', 'Pincers', 1, 'Two secondary pincer attacks (1d6).', { multi: true }),
+  ev('pounce', 'Pounce', 1, 'Make a full attack at the end of a charge.', { forms: ['quadruped'] }),
+  ev('pull', 'Pull', 1, 'One attack type can drag foes 5 ft closer.', { multi: true }),
+  ev('push', 'Push', 1, 'One attack type can shove foes 5 ft away.', { multi: true }),
+  ev('reach', 'Reach', 1, "One attack's reach increases by 5 ft."),
+  ev('resistance', 'Resistance', 1, 'Energy resistance 5 to one energy type (10 at higher pools).', { multi: true }),
+  ev('scent', 'Scent', 1, 'Gain the scent ability.'),
+  ev('skilled', 'Skilled', 1, '+8 racial bonus to one skill.', { multi: true }),
+  ev('slam', 'Slam', 1, 'A primary slam attack (1d8).', { multi: true }),
+  ev('sting', 'Sting', 1, 'A primary sting attack (1d6).', { multi: true }),
+  ev('swim', 'Swim', 1, 'A swim speed equal to base speed.', { multi: true }),
+  ev('tail', 'Tail', 1, '+2 racial bonus on Acrobatics to balance.', { multi: true }),
+  ev('tail-slap', 'Tail Slap', 1, 'A secondary tail slap attack (1d6).', { multi: true }),
+  ev('tentacle', 'Tentacle', 1, 'A secondary tentacle attack (1d4) with reach.', { multi: true }),
+  ev('wing-buffet', 'Wing Buffet', 1, 'Two secondary wing buffet attacks (1d6). Requires wings/flight.'),
+  // 2-point
+  ev('ability-increase', 'Ability Increase', 2, '+2 to one ability score.', { multi: true }),
+  ev('constrict', 'Constrict', 2, 'Deal extra damage when grappling with grab.', { forms: ['serpentine'] }),
+  ev('energy-attacks', 'Energy Attacks', 2, 'Natural attacks deal +1d6 energy damage of one type.', { minLevel: 5 }),
+  ev('gore', 'Gore', 2, 'A primary gore attack (1d6).'),
+  ev('grab', 'Grab', 2, 'One attack type gains the grab ability.'),
+  ev('immunity', 'Immunity', 2, 'Immunity to one energy type.', { minLevel: 7, multi: true }),
+  ev('limbs', 'Limbs', 2, 'An extra pair of limbs (legs or arms).', { multi: true }),
+  ev('poison', 'Poison', 2, 'A bite or sting delivers poison (Con damage).', { minLevel: 7 }),
+  ev('rake', 'Rake', 2, 'Two primary rake attacks (1d4) against grappled foes.', { minLevel: 4, forms: ['quadruped'] }),
+  ev('rend', 'Rend', 2, 'Two hits with claws deal an extra bonus of damage.', { minLevel: 6 }),
+  ev('trample', 'Trample', 2, 'Overrun smaller foes for damage as a full-round action.', { forms: ['biped', 'quadruped'] }),
+  ev('tremorsense', 'Tremorsense', 2, 'Tremorsense 30 ft.', { minLevel: 7 }),
+  ev('trip', 'Trip', 2, 'A successful bite can trip the target.'),
+  ev('weapon-training', 'Weapon Training', 2, 'Gain Simple Weapon Proficiency (martial for +2 more points).'),
+  // 3-point
+  ev('blindsense', 'Blindsense', 3, 'Blindsense 30 ft.', { minLevel: 9 }),
+  ev('burrow', 'Burrow', 3, 'A burrow speed equal to half base speed.', { minLevel: 9 }),
+  ev('damage-reduction', 'Damage Reduction', 3, 'DR 5 bypassed by one alignment (10 at 15th+).', { minLevel: 9 }),
+  ev('frightful-presence', 'Frightful Presence', 3, 'Frightful presence that can shake or panic foes.', { minLevel: 11 }),
+  ev('swallow-whole', 'Swallow Whole', 3, 'Swallow a grappled foe smaller than itself.', { minLevel: 9 }),
+  ev('web', 'Web', 3, 'Spin webs to entangle foes.', { minLevel: 7 }),
+  // 4-point
+  ev('blindsight', 'Blindsight', 4, 'Blindsight 30 ft.', { minLevel: 11 }),
+  ev('breath-weapon', 'Breath Weapon', 4, 'A cone or line breath weapon of one energy type.', { minLevel: 9 }),
+  ev('fast-healing', 'Fast Healing', 4, 'Fast healing 1 while it has 1+ hp.', { minLevel: 11 }),
+  ev('large', 'Large', 4, 'Grow to Large: +8 Str, +4 Con, +2 natural armor, −2 Dex.', { minLevel: 8 }),
+  ev('spell-resistance', 'Spell Resistance', 4, "SR equal to 11 + the summoner's level.", { minLevel: 9 }),
 ];
 
 export const ARCANIST_EXPLOITS: Opt[] = [

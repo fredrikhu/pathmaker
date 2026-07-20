@@ -136,7 +136,12 @@ function ChoiceSlotView({ slot, onToggle }: { slot: ChoiceSlot; onToggle: (slot:
 
   return (
     <div>
-      <div style={{ fontSize: 12.5, marginBottom: 6 }}>{slot.label} <span className="text-muted">({slot.selected.length}/{slot.count})</span></div>
+      <div style={{ fontSize: 12.5, marginBottom: 6 }}>
+        {slot.label}{' '}
+        {slot.pointBudget != null
+          ? <span className="text-muted" style={{ color: (slot.pointsSpent ?? 0) > slot.pointBudget ? 'var(--warn)' : undefined }}>({slot.pointsSpent ?? 0}/{slot.pointBudget} points)</span>
+          : <span className="text-muted">({slot.selected.length}/{slot.count})</span>}
+      </div>
       {many && (
         <input className="input" style={{ width: 220, marginBottom: 8 }} placeholder={`Search ${slot.label.toLowerCase()}…`} value={q} onChange={(e) => setQ(e.target.value)} />
       )}
