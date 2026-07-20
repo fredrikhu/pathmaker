@@ -27,6 +27,17 @@ const attack = (value: number, type: Effect['type'], note: string): Effect[] => 
   { target: 'attack:ranged', type, value, note },
 ];
 
+/** A +4 enhancement to one ability for 1 minute per caster level — the shape shared by Bull's
+ *  Strength and its five siblings (Cat's Grace, Bear's Endurance, Eagle's Splendor, Fox's Cunning,
+ *  Owl's Wisdom). The score change flows out through the mod to everything derived from it. */
+const abilityBuff = (ability: 'str' | 'dex' | 'con' | 'int' | 'wis' | 'cha', note: string): SpellBuffDef => ({
+  scaling: '+4 enhancement to the ability, for 1 minute per caster level',
+  at: (cl) => ({
+    rounds: cl * MINUTE,
+    effects: [{ target: `ability:${ability}`, type: 'enhancement', value: 4, note }],
+  }),
+});
+
 export const SPELL_BUFFS: Record<string, SpellBuffDef> = {
   'divine-favor': {
     scaling: '+1 luck per three caster levels (min +1, max +3), for 1 minute',
@@ -206,6 +217,63 @@ export const SPELL_BUFFS: Record<string, SpellBuffDef> = {
       ],
     }),
   },
+
+  // The five siblings of Bull's Strength — each a +4 enhancement to one ability for 1 minute per
+  // caster level. Like the belts and headbands, raising the score flows out to everything derived
+  // from it (a Con buff raises HP across every level, Dex reaches AC/Reflex/ranged, and so on).
+  'cats-grace': abilityBuff('dex', "Cat's Grace"),
+  'bears-endurance': abilityBuff('con', "Bear's Endurance"),
+  'eagles-splendor': abilityBuff('cha', "Eagle's Splendor"),
+  'foxs-cunning': abilityBuff('int', "Fox's Cunning"),
+  'owls-wisdom': abilityBuff('wis', "Owl's Wisdom"),
+
+  // A +10 ft enhancement to speed for 1 hour per level. Same type as expeditious retreat, so the
+  // engine's stacking rule already keeps the larger of the two rather than adding them.
+  longstrider: {
+    scaling: '+10 ft base land speed, for 1 hour per caster level',
+    at: (cl) => ({
+      rounds: cl * HOUR,
+      effects: [{ target: 'speed', type: 'enhancement', value: 10, note: 'Longstrider' }],
+    }),
+  },
+
+  // Morale bonuses on the rolls the spell names — no weapon damage, unlike Prayer/Good Hope.
+  heroism: {
+    scaling: '+2 morale on attacks, saves, and skill checks, for 10 minutes per caster level',
+    at: (cl) => ({
+      rounds: cl * 10 * MINUTE,
+      effects: [
+        ...attack(2, 'morale', 'Heroism'),
+        { target: 'save:all', type: 'morale', value: 2, note: 'Heroism' },
+        { target: 'skill:all', type: 'morale', value: 2, note: 'Heroism' },
+      ],
+    }),
+  },
+  'greater-heroism': {
+    scaling: '+4 morale on attacks, saves, and skill checks, for 1 minute per caster level',
+    caveat: 'Also grants immunity to fear and 8 temporary hit points — enter those in the HP tracker.',
+    at: (cl) => ({
+      rounds: cl * MINUTE,
+      effects: [
+        ...attack(4, 'morale', 'Greater Heroism'),
+        { target: 'save:all', type: 'morale', value: 4, note: 'Greater Heroism' },
+        { target: 'skill:all', type: 'morale', value: 4, note: 'Greater Heroism' },
+      ],
+    }),
+  },
+  // Good Hope's morale bonus reaches weapon damage as well, which Heroism's does not.
+  'good-hope': {
+    scaling: '+2 morale on attacks, weapon damage, saves, ability checks, and skill checks, for 1 minute per caster level',
+    at: (cl) => ({
+      rounds: cl * MINUTE,
+      effects: [
+        ...attack(2, 'morale', 'Good Hope'),
+        { target: 'damage:weapon', type: 'morale', value: 2, note: 'Good Hope' },
+        { target: 'save:all', type: 'morale', value: 2, note: 'Good Hope' },
+        { target: 'skill:all', type: 'morale', value: 2, note: 'Good Hope' },
+      ],
+    }),
+  },
 };
 
 /** Per-caster-level dice, capped: "1d6 per level, maximum 10d6". */
@@ -291,10 +359,23 @@ export const SPELL_DAMAGE: Record<string, SpellDamageDef> = {
     },
   },
 
-  // --- Healing (and the temporary hit points Aid grants) ---
+  'shocking-grasp': { at: (cl) => `${clamp(cl, 1, 5)}d6`, note: () => '+3 to hit against metal armour or a foe holding metal' },
+  'sound-burst': { at: () => '1d8', note: () => 'sonic; a failed Fortitude save also stuns for 1 round' },
+  shout: { at: () => '5d6', note: () => 'sonic cone; a failed Fortitude save also deafens for 2d6 rounds' },
+  'flame-blade': { at: (cl) => `1d8+${clamp(Math.floor(cl / 2), 0, 10)}`, note: () => 'fire, on a melee touch attack with the blade' },
+  'call-lightning-storm': { at: () => '3d10', note: () => 'per bolt, one bolt per round' },
+
+  // Inflict wounds — the mirror of cure, dealing negative energy (and healing undead instead).
+  'inflict-light-wounds': { at: (cl) => `1d8+${clamp(cl, 1, 5)}`, note: () => 'negative energy — heals undead instead' },
+  'inflict-moderate-wounds': { at: (cl) => `2d8+${clamp(cl, 1, 10)}`, note: () => 'negative energy — heals undead instead' },
+  'inflict-serious-wounds': { at: (cl) => `3d8+${clamp(cl, 1, 15)}`, note: () => 'negative energy — heals undead instead' },
+  'inflict-critical-wounds': { at: (cl) => `4d8+${clamp(cl, 1, 20)}`, note: () => 'negative energy — heals undead instead' },
+
+  // --- Healing (and the temporary hit points Aid / False Life grant) ---
   'cure-light-wounds': { label: 'healed', at: (cl) => `1d8+${clamp(cl, 1, 5)}` },
   'cure-moderate-wounds': { label: 'healed', at: (cl) => `2d8+${clamp(cl, 1, 10)}` },
   'cure-serious-wounds': { label: 'healed', at: (cl) => `3d8+${clamp(cl, 1, 15)}` },
   'cure-critical-wounds': { label: 'healed', at: (cl) => `4d8+${clamp(cl, 1, 20)}` },
   aid: { label: 'temporary HP', at: (cl) => `1d8+${clamp(cl, 1, 10)}` },
+  'false-life': { label: 'temporary HP', at: (cl) => `1d10+${clamp(cl, 1, 10)}` },
 };

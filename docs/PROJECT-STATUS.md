@@ -21,11 +21,12 @@ backlog below. **The blocked-on-verification list is now empty** — every item 
 untrustworthy source has been resolved. What remains is deliberately out-of-scope classes and races,
 and breadth rather than correctness.
 
-**In progress — the "just more data" breadth pass** (working the content catalogues to full Core
-Rulebook coverage, in order): **① Feats — done** (the whole CRB list, ~173 feats; see Content
-breadth). **② Spells**, **③ subsystem option lists**, **④ traits & equipment** are next, each
-verified and test-gated. Scope boundary is the Core Rulebook plus the named expansions already in
-(UC firearms, APG classes); splatbook-wide breadth stays out.
+**In progress — the "just more data" breadth pass** (working the content catalogues, in order):
+**① Feats — done** (the whole CRB list, ~173 feats). **② Spells — done** (common-spell breadth,
+~270 spells; per the user's scope choice this is the common spells at each level/list, not the
+exhaustive ~500). **③ subsystem option lists**, **④ traits & equipment** are next, each verified and
+test-gated. Scope boundary is the Core Rulebook plus the named expansions already in (UC firearms,
+APG classes); splatbook-wide breadth stays out.
 
 Everything below is the durable detail. When resuming, read this file, then `docs/DESIGN.md`.
 
@@ -243,8 +244,13 @@ Still open from that audit:
   all — the attack line is built around a damage string, so listing it would print a damage figure
   the weapon does not have. **Feats**: the full **Core Rulebook** catalogue (~173 feats across
   combat/general/skill/spellcasting/metamagic/item-creation) — the whole CRB list is now authored,
-  verified against d20pfsrd; splatbook feats remain out of scope. **Spells**: ~130 across levels 0–9 (core-scope) — not exhaustive
-  full lists. **Subsystem option lists** (rage powers, talents, hexes, discoveries, arcana, mysteries,
+  verified against d20pfsrd; splatbook feats remain out of scope. **Spells**: ~270 across levels 0–9
+  (core-scope) — the **common-spell breadth** pass added the CRB spells players actually reach for at
+  each level and list (cantrips/orisons, the buff line, control, summons, inflict wounds, and more).
+  The five ability-boost buffs (Cat's Grace … Owl's Wisdom), Longstrider, Heroism/Greater Heroism and
+  Good Hope carry computed effects; Shocking Grasp, Sound Burst, Shout, Flame Blade, the inflict-wounds
+  line, Call Lightning Storm and False Life carry damage/temp-HP hooks. Still not exhaustive — the
+  obscure long tail and per-list level differences remain (the single-level model). **Subsystem option lists** (rage powers, talents, hexes, discoveries, arcana, mysteries,
   revelations, etc.) are expanded core-scope sets, not exhaustive. **Traits/equipment**: core subset.
   - **Feat fidelity**: numeric bonuses that are unconditional flow into the stat graph (Magical
     Aptitude +2 Spellcraft/UMD, the save/skill feats). **Simple/Martial Weapon Proficiency are wired

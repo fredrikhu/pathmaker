@@ -217,6 +217,43 @@ describe('buffs that are not flat bonuses', () => {
     expect(buffed.stats['cmb'].total).toBe(base.stats['cmb'].total + 2);
   });
 
+  it("Cat's Grace raises Dexterity, so AC, Reflex and ranged attack all follow", () => {
+    const base = resolve(fighter()).sheet;
+    const buffed = resolve(withBuff(fighter(), 'cats-grace', 5)).sheet;
+    // Dex 12 (+1) → 16 (+3): the mod rises by 2, reaching everything Dex feeds.
+    expect(buffed.stats['ability:dex'].total).toBe(base.stats['ability:dex'].total + 4);
+    expect(buffed.stats['ac'].total).toBe(base.stats['ac'].total + 2);
+    expect(buffed.stats['save:ref'].total).toBe(base.stats['save:ref'].total + 2);
+    expect(buffed.stats['attack:ranged'].total).toBe(base.stats['attack:ranged'].total + 2);
+  });
+
+  it("Bear's Endurance raises Constitution, so HP rises retroactively across every level", () => {
+    const base = resolve(fighter()).sheet; // fighter 4, d10
+    const buffed = resolve(withBuff(fighter(), 'bears-endurance', 5)).sheet;
+    // Con 12 (+1) → 16 (+3): +2 per Hit Die × 4 levels = +8 max HP.
+    expect(buffed.stats['hp:max'].total).toBe(base.stats['hp:max'].total + 8);
+  });
+
+  it('Heroism is a flat morale bonus on attacks, saves, and skills (not weapon damage)', () => {
+    const base = resolve(fighter()).sheet;
+    const buffed = resolve(withBuff(fighter(), 'heroism', 5)).sheet;
+    expect(buffed.stats['attack:melee'].total).toBe(base.stats['attack:melee'].total + 2);
+    expect(buffed.stats['save:will'].total).toBe(base.stats['save:will'].total + 2);
+    // Heroism does not touch weapon damage — Good Hope does.
+    expect(buffed.attacks[0].damage).toBe(base.attacks[0].damage);
+  });
+
+  it('Longstrider and Expeditious Retreat are both enhancement, so the larger wins rather than stacking', () => {
+    const base = resolve(fighter()).sheet;
+    const long = resolve(withBuff(fighter(), 'longstrider', 5)).sheet;
+    expect(long.speed.base).toBe(base.speed.base + 10);
+    const both = resolve({ ...fighter(), play: { ...emptyPlayState(), timers: [
+      spellBuffTimer(spell('longstrider'), 5, 't1')!, spellBuffTimer(spell('expeditious-retreat'), 5, 't2')!,
+    ] } }).sheet;
+    // +10 and +30 are both enhancement bonuses to speed — only the +30 applies.
+    expect(both.speed.base).toBe(base.speed.base + 30);
+  });
+
   it('Protection from Evil totals nothing, because both its bonuses are evil-specific', () => {
     const base = resolve(fighter()).sheet;
     const buffed = resolve(withBuff(fighter(), 'protection-from-evil', 5)).sheet;
