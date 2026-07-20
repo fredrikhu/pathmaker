@@ -7,14 +7,17 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 ## ▶ Resume here (last session end)
 
 **Current state** — branch `main`, working tree clean, **498 tests** passing (`origin/main` at
-`77bb2ab`); run `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
+`9b94514`); run `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
-**Most recent session — play-mat UX compaction + trait validation** (commit `77bb2ab`):
+**Most recent session — play-mat UX compaction + trait validation** (commits `77bb2ab`, `9b94514`):
 - **Play sheet space savings** (`PlaySheet.tsx`): the Running-effects add form folds behind an
   Add/Close toggle (its selects size to content instead of each stretching to its own row); the HP
   card moved Temp HP / Nonlethal up beside the HP number; Saving throws folded into the At-a-glance
   panel as a vertical stack, dropping the standalone panel plus the vs-DC field and the natural-20 note
   (the `saveDc` plumbing in `rollSavingThrow` was removed with it).
+- **Play sheet section reorder** (`PlaySheet.tsx`): section order is now Attacks → Spells → Resources
+  → Conditions → Skills → Senses (Spells pulled up right below Attacks; Resources/Conditions moved
+  above Skills).
 - **Builder trait validation** (`resolve.ts`): an `info` issue fires when fewer traits are selected
   than the budget (2, or 3 with a drawback) — "Choose N more trait(s)"; five golden tests cover the
   counts, the drawback bump, and that over-budget still errors.
@@ -396,8 +399,9 @@ Remaining Part-B deferrals / fidelity notes:
   bloodrager, caster level = level − 3). Each verified against d20pfsrd and anchor-golden-tested.
   Paladin/ranger/bloodrager gained minimal `spellcasting` blocks; four-level casters never get a
   creation-time spell step and show nothing before 4th level. Display filters spell levels whose total
-  is 0 (hides the cantrip gap and 0-base levels). **Still deferred:** arcanist (9-level, unique per-day
-  grid we couldn't verify from a clean source) and vampire-hunter (`table` unset → no slot numbers).
+  is 0 (hides the cantrip gap and 0-base levels). **Every casting class now has a verified table** —
+  arcanist (9-level) and vampire-hunter (four-level) were the last holdouts and are now filled; a
+  content test asserts the set of table-less casters is empty.
 - **Fixed a latent bard/skald bug:** the six-level per-day table was indexed from 1st level while the
   engine assumes index 0 = cantrips, so bard slots displayed one level off and skipped the Cha bonus
   spell. The table is now cantrip-indexed (cantrips at-will, hidden in display).
@@ -409,8 +413,9 @@ Remaining Part-B deferrals / fidelity notes:
   holds the fixed per-level abilities; the engine injects the chosen source's into the advancement
   progression (`sourceFeatures` in resolve.ts). **Gunslinger deeds** are named per level. Still
   descriptive (specific ability names not authored yet): bloodrager bloodline powers.
-- **vampire-hunter** keeps only its level-1 `features1` fallback — its table couldn't be verified
-  cleanly (same policy as the deferred Vigilante/Omdura classes).
+- **vampire-hunter is now fully authored** — a per-level `features` progression (technique bonus
+  feats + vampiric focus, stake, relentless line, etc.) and a verified four-level spontaneous caster
+  table, so it no longer falls back to the level-1-only stub.
 - **Toughness** scales correctly (`max(3, level)` HP), special-cased in the engine.
 - **Favored-class bonus is now chosen per level** (`fcb-by-level` map; the overall `fcb` is the default
   for unset levels) — the Advancement table has a per-level HP/skill FCB picker.
