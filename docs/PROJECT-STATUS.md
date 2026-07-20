@@ -6,11 +6,11 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 
 ## ▶ Resume here (last session end)
 
-**Current state** — branch `main`, working tree clean, **507 tests** passing (`origin/main` at
-`ecb6d93`); run `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
+**Current state** — branch `main`, working tree clean, **509 tests** passing (`origin/main` at
+`c4e4c7f`); run `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
 **Most recent session — play-mat UX, trait validation, and a subsystem-content pass**
-(commits `77bb2ab` → `ecb6d93`). The subsystem-content pass closed out the "descriptive" gaps we
+(commits `77bb2ab` → `c4e4c7f`). The subsystem-content pass closed out the "descriptive" gaps we
 found by walking the subsystem lists:
 - **Every class now has its own subsystem list — no cross-class reuse.** Authored `SLAYER_TALENTS` +
   `SLAYER_ADVANCED_TALENTS` (keyed off studied target), `INVESTIGATOR_TALENTS` (inspiration / studied
@@ -20,11 +20,11 @@ found by walking the subsystem lists:
   (10 bloodlines, 1/4/8/12/16/20), `SHAMAN_SPIRIT_ABILITIES` (10 spirits, 1/8/16/20 — spirit / greater /
   true / manifestation), and the two missing cavalier orders (Flame + Star, so `CAVALIER_ORDER_ABILITIES`
   now covers all 7 at 2/8/15) join the sorcerer-bloodline list in `source-features.ts`, injected into the
-  advancement progression by chosen source via `sourceFeatures` (resolve.ts). No source-feature list is
-  descriptive-only. Each has a **coverage test** (every option id has abilities at the exact level set,
-  so a new source can't silently fall back to the generic feature) + a golden progression test. Only
-  remaining thread here: the oracle **final revelation** (fixed 20th-level capstone per mystery) is not
-  per-source authored; revelations themselves are picked and fully covered.
+  advancement progression by chosen source via `sourceFeatures` (resolve.ts). The **oracle final
+  revelation** is now authored too — `ORACLE_FINAL_REVELATIONS` gives all 10 mysteries their fixed
+  20th-level capstone (replacing the generic placeholder). No source-feature list is descriptive-only.
+  Each has a **coverage test** (every option id has abilities at the exact level set, so a new source
+  can't silently fall back to the generic feature) + a golden progression test.
 - Also corrected stale Phase 2 notes (arcanist/vampire-hunter caster tables are verified and filled;
   vampire-hunter has a full feature progression).
 - **Play sheet space savings** (`PlaySheet.tsx`): the Running-effects add form folds behind an
