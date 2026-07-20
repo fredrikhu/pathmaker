@@ -845,6 +845,19 @@ describe('source-dependent features appear in the progression by chosen source',
     const r = resolve(atLevel(d, 3));
     expect(r.sheet.progression[0].features).not.toContain('Claws');
   });
+  it('a draconic bloodrager shows its own powers (Breath Weapon at 8, Dragon Wings at 12)', () => {
+    let d = newCharacter('t-brag', 'Crowe');
+    d = withDecision(d, 'ability-base', { str: 16, dex: 12, con: 14, int: 10, wis: 10, cha: 12 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['str']);
+    d = withDecision(d, 'alignment', 'CN');
+    d = withDecision(d, 'class', 'bloodrager');
+    d = withDecision(d, 'class-choices', { bloodline: ['draconic'] });
+    const r = resolve(atLevel(d, 12));
+    expect(r.sheet.progression[0].features).toContain('Claws');         // level 1
+    expect(r.sheet.progression[7].features).toContain('Breath Weapon'); // level 8 — bloodrager, not the sorcerer's level-9 breath
+    expect(r.sheet.progression[11].features).toContain('Dragon Wings'); // level 12
+  });
 });
 
 describe('multi-level spell selection', () => {

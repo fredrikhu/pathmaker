@@ -278,8 +278,11 @@ Still open from that audit:
 - **Omdura** — obscure; ambiguous BAB in the source.
 - **Never in scope** (user chose Base+Hybrid): Occult (Kineticist/Medium/Mesmerist/Occultist/
   Psychic/Spiritualist), Alternate (Antipaladin/Ninja/Samurai), NPC classes, Unchained variants.
-- **Bloodrager bloodline-power names** are descriptive (per-level powers not named per bloodline);
-  the source-feature mechanism exists (`source-features.ts`) and could hold them if authored.
+- **Bloodrager bloodline powers are now authored** — all 10 core bloodlines (aberrant, abyssal,
+  arcane, celestial, destined, draconic, elemental, fey, infernal, undead) carry their named powers
+  at 1st/4th/8th/12th/16th/20th in `BLOODRAGER_BLOODLINE_POWERS` (`source-features.ts`), verified
+  against d20pfsrd and injected into the advancement progression by chosen bloodline (same mechanism
+  as sorcerer bloodlines / cavalier orders).
 
 ### Races
 - **Kasatha** (four arms is a combat mechanic), **monster-tier** (Drider, Gargoyle, Trox, Drow
@@ -409,10 +412,10 @@ Remaining Part-B deferrals / fidelity notes:
   reuse the rogue-talent list; shaman hexes reuse the witch-hex list; every option list is a
   core-scope subset. **Oracle revelations are now interactive** — a source-dependent `oracle-revelation`
   choice filters options by the chosen mystery (`ORACLE_REVELATIONS` per mystery). **Sorcerer
-  bloodline powers and cavalier order abilities now display per source** — `source-features.ts`
-  holds the fixed per-level abilities; the engine injects the chosen source's into the advancement
-  progression (`sourceFeatures` in resolve.ts). **Gunslinger deeds** are named per level. Still
-  descriptive (specific ability names not authored yet): bloodrager bloodline powers.
+  bloodline powers, bloodrager bloodline powers, and cavalier order abilities now display per
+  source** — `source-features.ts` holds the fixed per-level abilities; the engine injects the chosen
+  source's into the advancement progression (`sourceFeatures` in resolve.ts). **Gunslinger deeds**
+  are named per level. No source-feature list remains descriptive-only.
 - **vampire-hunter is now fully authored** — a per-level `features` progression (technique bonus
   feats + vampiric focus, stake, relentless line, etc.) and a verified four-level spontaneous caster
   table, so it no longer falls back to the level-1-only stub.

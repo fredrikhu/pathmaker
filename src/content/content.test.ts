@@ -202,6 +202,7 @@ describe('source-dependent features (bloodline powers, order abilities)', () => 
     const sources: [string, Record<string, { level: number; name: string }[]>][] = [
       ['sorcerer bloodline', C.SORCERER_BLOODLINE_POWERS],
       ['cavalier order', C.CAVALIER_ORDER_ABILITIES],
+      ['bloodrager bloodline', C.BLOODRAGER_BLOODLINE_POWERS],
     ];
     for (const [label, map] of sources) {
       for (const [sid, feats] of Object.entries(map)) {
@@ -215,6 +216,16 @@ describe('source-dependent features (bloodline powers, order abilities)', () => 
   it('bloodline power keys reference real sorcerer bloodlines', () => {
     for (const bid of Object.keys(C.SORCERER_BLOODLINE_POWERS)) {
       expect(C.bloodlineById.has(bid), `bloodline power for unknown bloodline "${bid}"`).toBe(true);
+    }
+  });
+  it('every bloodrager bloodline has powers at 1/4/8/12/16/20, keyed to a real bloodline option', () => {
+    const optionIds = new Set(C.BLOODRAGER_BLOODLINES.map((o) => o.id));
+    const powerIds = new Set(Object.keys(C.BLOODRAGER_BLOODLINE_POWERS));
+    // Every option is covered, and every key is a real option (no orphans / typos).
+    for (const id of optionIds) expect(powerIds.has(id), `bloodrager bloodline "${id}" has no powers`).toBe(true);
+    for (const id of powerIds) expect(optionIds.has(id), `bloodrager powers for unknown bloodline "${id}"`).toBe(true);
+    for (const [bid, feats] of Object.entries(C.BLOODRAGER_BLOODLINE_POWERS)) {
+      expect(feats.map((f) => f.level), `bloodrager ${bid} levels`).toEqual([1, 4, 8, 12, 16, 20]);
     }
   });
 });
