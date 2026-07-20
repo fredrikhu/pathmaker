@@ -320,7 +320,6 @@ export const CLASS_PROGRESSION: Record<string, ClassProgression> = {
       f(1, 'oracle-curse', "Oracle's Curse", 'A hindrance that grants compensating powers as you level.'),
       f(1, 'oracle-orisons', 'Orisons', 'Cast 0-level divine spells at will.'),
       f(1, 'oracle-revelation', 'Revelation', 'A power from your mystery; gain more at 3rd, 7th, 11th, 15th, 19th.'),
-      f(20, 'oracle-final-revelation', 'Final Revelation', 'A capstone power unique to your mystery.'),
     ],
     // mystery + curse are defined inline on the class; here we add only the per-level revelation
     // pick, whose options are source-dependent on the chosen mystery (see classChoiceOptions).

@@ -277,6 +277,15 @@ describe('source-dependent features (bloodline powers, order abilities)', () => 
       expect(feats.map((f) => f.level), `cavalier ${oid} levels`).toEqual([2, 8, 15]);
     }
   });
+  it('every oracle mystery has a final revelation at 20, keyed to a real mystery option', () => {
+    const optionIds = new Set(C.ORACLE_MYSTERIES.map((o) => o.id));
+    const finalIds = new Set(Object.keys(C.ORACLE_FINAL_REVELATIONS));
+    for (const id of optionIds) expect(finalIds.has(id), `oracle mystery "${id}" has no final revelation`).toBe(true);
+    for (const id of finalIds) expect(optionIds.has(id), `oracle final revelation for unknown mystery "${id}"`).toBe(true);
+    for (const [mid, feats] of Object.entries(C.ORACLE_FINAL_REVELATIONS)) {
+      expect(feats.map((f) => f.level), `oracle ${mid} final revelation level`).toEqual([20]);
+    }
+  });
 });
 
 describe('feats', () => {

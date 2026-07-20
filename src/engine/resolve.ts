@@ -219,6 +219,7 @@ function sourceFeatures(dec: Decisions): C.LeveledFeatureDef[] {
   if (dec.classId === 'sorcerer') add(C.SORCERER_BLOODLINE_POWERS, dec.classChoices['bloodline']?.[0], 'sorc-bl');
   if (dec.classId === 'bloodrager') add(C.BLOODRAGER_BLOODLINE_POWERS, dec.classChoices['bloodline']?.[0], 'br-bl');
   if (dec.classId === 'shaman') add(C.SHAMAN_SPIRIT_ABILITIES, dec.classChoices['spirit']?.[0], 'shaman-spirit');
+  if (dec.classId === 'oracle') add(C.ORACLE_FINAL_REVELATIONS, dec.classChoices['mystery']?.[0], 'oracle-final');
   if (dec.classId === 'cavalier') add(C.CAVALIER_ORDER_ABILITIES, dec.classChoices['order']?.[0], 'cav-ord');
   return out;
 }

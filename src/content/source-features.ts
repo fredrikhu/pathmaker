@@ -238,3 +238,18 @@ export const SHAMAN_SPIRIT_ABILITIES: Record<string, SourceFeature[]> = {
     { level: 20, name: 'Manifestation', desc: 'You embody air and lightning — resistant to electricity and shaping air spells with free metamagic.' },
   ],
 };
+
+/** Oracle final revelations, keyed by mystery id — the fixed 20th-level capstone of each mystery.
+ *  (The revelations chosen along the way are a separate per-mystery pick; see ORACLE_REVELATIONS.) */
+export const ORACLE_FINAL_REVELATIONS: Record<string, SourceFeature[]> = {
+  battle: [{ level: 20, name: 'Final Revelation', desc: 'Move your full speed during a full attack; your crits ignore DR, you gain AC against crits confirmed on you, and you cling to life well past 0 hp.' }],
+  bones: [{ level: 20, name: 'Final Revelation', desc: 'Cast bleed or stabilize as a free action once per round (and auto-stabilize); animate dead at will and, once per day, power word kill a frail foe.' }],
+  flame: [{ level: 20, name: 'Final Revelation', desc: 'Apply Enlarge, Extend, Silent, or Still Spell to any fire spell without raising its level or casting time.' }],
+  heavens: [{ level: 20, name: 'Final Revelation', desc: 'A bonus on all saves equal to your Charisma modifier; auto-stabilize, immunity to fear, auto-confirmed crits, and rebirth as a star child if slain.' }],
+  life: [{ level: 20, name: 'Final Revelation', desc: 'Immunity to bleed, death effects, exhaustion, fatigue, nausea, negative levels, and sickened; auto-succeed massive-damage saves and cling to life past 0 hp.' }],
+  lore: [{ level: 20, name: 'Final Revelation', desc: 'Take 20 on every Knowledge check, and cast wish once per day without material components.' }],
+  nature: [{ level: 20, name: 'Final Revelation', desc: 'Once per day, cocoon yourself and emerge with a new creature type — cleansed of poison and disease and fully healed.' }],
+  stone: [{ level: 20, name: 'Final Revelation', desc: 'Apply Enlarge, Extend, Silent, or Still Spell to any acid or earth spell without raising its level or casting time.' }],
+  waves: [{ level: 20, name: 'Final Revelation', desc: 'Apply Enlarge, Extend, Silent, or Still Spell to any cold or water spell without raising its level or casting time.' }],
+  wind: [{ level: 20, name: 'Final Revelation', desc: 'Apply Enlarge, Extend, Silent, or Still Spell to any air or electricity spell without raising its level or casting time.' }],
+};

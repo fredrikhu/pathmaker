@@ -883,6 +883,18 @@ describe('source-dependent features appear in the progression by chosen source',
     expect(r.sheet.progression[1].features).toContain('Foolhardy Rush');  // 2nd
     expect(r.sheet.progression[7].features).toContain('Daunting Success'); // 8th
   });
+  it('an oracle shows its mystery final revelation at 20, and nothing there without a mystery', () => {
+    let d = newCharacter('t-oracle', 'Alahra');
+    d = withDecision(d, 'ability-base', { str: 8, dex: 12, con: 12, int: 10, wis: 10, cha: 16 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['cha']);
+    d = withDecision(d, 'alignment', 'N');
+    d = withDecision(d, 'class', 'oracle');
+    const withMystery = resolve(atLevel(withDecision(d, 'class-choices', { mystery: ['battle'] }), 20));
+    expect(withMystery.sheet.progression[19].features).toContain('Final Revelation');
+    const noMystery = resolve(atLevel(d, 20));
+    expect(noMystery.sheet.progression[19].features).not.toContain('Final Revelation');
+  });
 });
 
 describe('multi-level spell selection', () => {
