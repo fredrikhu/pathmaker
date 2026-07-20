@@ -44,11 +44,10 @@ specialist-school spells are now a distinct, restricted slot** (not the old +1-t
 `CastingBlock.bonusSlot` carries a domain slot (allowed spell ids per level, unioned across the
 chosen domains) or a specialist-school slot (spellbook filtered by the specialty school), and the
 play tracker renders that extra slot with its filtered picker. Domain lists are authored for all 33
-domains (`DOMAIN_SPELLS`) and **now nearly complete** — the missing-domain-spell batch added ~107
-spells (the alignment lines, the elemental high-level line, the creation/hand/word lines, sunbeam/
-sunburst, and the domain utility spells), taking the catalogue to **~377 spells** and dropping the
-`null` levels from ~148 to ~22 (only genuinely obscure or level-ambiguous entries remain: the aligned
-dispels, the shadow line, a few rune spells). **Per-list spell levels are now modelled** — `SpellDef.
+domains (`DOMAIN_SPELLS`) and **complete** — all 33 domains × 9 levels are filled (a content test
+pins it), after two batches added ~130 spells (the alignment lines, the elemental high-level line,
+the creation/hand/word/shadow lines, the aligned dispels, the rune spells, and the domain utility
+spells), taking the catalogue to **~400 spells**. **Per-list spell levels are now modelled** — `SpellDef.
 levelByList` overrides the flat level where a spell differs by list (Hold Person is cleric/bard 2 but
 sorc-wiz 3; Dispel Magic is druid 4; Fear/Hold Monster/Mislead/Break Enchantment/Suggestion/Hideous
 Laughter are a level lower on the bard list). Both consumers — the builder's spell step and the play
@@ -113,9 +112,8 @@ Two related gaps were found and closed:
 Still open from that audit:
 - ~~**Gunslinger's Gunsmithing**~~ — resolved; see *Firearms* below.
 - **Bonus domain spells are now modelled per-spell** — a distinct `CastingBlock.bonusSlot` restricted
-  to the chosen domains' spell at each level (see the Resume-here note). Domain lists are authored for
-  all 33 domains and nearly complete (~22 obscure `null` levels remain). Granted powers were already
-  authored.
+  to the chosen domains' spell at each level (see the Resume-here note). Domain lists are complete —
+  all 33 domains × 9 levels filled (content-test-pinned). Granted powers were already authored.
 
 ### Session feedback fixes (2026-07)
 

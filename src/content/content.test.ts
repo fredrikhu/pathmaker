@@ -324,19 +324,20 @@ describe('deities and bloodlines', () => {
       expect(d.desc, `domain ${d.id}: desc should name its first power`).toContain(d.powers[0].name);
     }
   });
-  it('every domain lists nine spell slots, and each authored domain spell resolves', () => {
+  it('every domain lists nine spell slots, all authored and resolving to a real spell', () => {
     const spellIds = new Set(C.SPELLS.map((s) => s.id));
     let authored = 0;
     for (const d of C.DOMAINS) {
       expect(d.spells.length, `domain ${d.id}: expected 9 domain-spell slots`).toBe(9);
-      for (const id of d.spells) {
-        if (id === null) continue; // a level whose domain spell isn't in the catalogue yet
+      for (let lvl = 0; lvl < 9; lvl++) {
+        const id = d.spells[lvl];
+        expect(id, `domain ${d.id}: level ${lvl + 1} domain spell is not authored`).not.toBeNull();
         authored++;
-        expect(spellIds.has(id), `domain ${d.id}: domain spell "${id}" is not a real spell`).toBe(true);
+        expect(spellIds.has(id!), `domain ${d.id}: domain spell "${id}" is not a real spell`).toBe(true);
       }
     }
-    // Guard against the whole table silently going null.
-    expect(authored).toBeGreaterThan(100);
+    // All 33 domains × 9 levels are filled.
+    expect(authored).toBe(C.DOMAINS.length * 9);
   });
   it('every domain has a matching warpriest blessing with minor + major powers', () => {
     for (const d of C.DOMAINS) {

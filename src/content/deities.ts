@@ -67,38 +67,37 @@ const DOMAIN_POWERS: Record<string, ReturnType<typeof p>[]> = {
 };
 
 // The nine domain spells per domain (index 0 = 1st level … index 8 = 9th), from the CRB domain
-// lists. Entries are catalogue spell ids, or null where that domain spell is not yet authored in
-// the common-scope catalogue — a null level simply grants no bonus domain slot yet. A cleric with
-// the domain gets a bonus slot per level restricted to the matching domain spell.
-const N = null;
+// lists — now complete for all 33 domains (every entry a catalogue spell id). A cleric with the
+// domain gets a bonus slot per level restricted to the matching domain spell. The type still admits
+// null so a future domain can leave a level open, but none currently do.
 const DOMAIN_SPELLS: Record<string, (string | null)[]> = {
   //        1st                     2nd                 3rd                          4th                     5th                  6th                    7th                8th                9th
   air:       ['obscuring-mist',      'wind-wall',        'gaseous-form',              'air-walk',             'control-winds',     'chain-lightning',     'elemental-body-iv', 'whirlwind',      'elemental-swarm'],
   animal:    ['calm-animals',        'hold-animal',      'dominate-animal',           'summon-natures-ally-iv', 'beast-shape-iii', 'antilife-shell',      'animal-shapes',   'summon-natures-ally-viii', 'shapechange'],
   artifice:  ['animate-rope',        'wood-shape',       'stone-shape',               'minor-creation',       'fabricate',         'major-creation',      'wall-of-iron',    'instant-summons', 'prismatic-sphere'],
-  chaos:     ['protection-from-law', 'align-weapon',     'magic-circle-against-law',  'chaos-hammer',         N,                   'animate-objects',     'word-of-chaos',   'cloak-of-chaos',  'summon-monster-ix'],
+  chaos:     ['protection-from-law', 'align-weapon',     'magic-circle-against-law',  'chaos-hammer',         'dispel-law',        'animate-objects',     'word-of-chaos',   'cloak-of-chaos',  'summon-monster-ix'],
   charm:     ['charm-person',        'calm-emotions',    'suggestion',                'heroism',              'charm-monster',     'geas-quest',          'insanity',        'demand',          'dominate-monster'],
   community: ['bless',               'shield-other',     'prayer',                    'imbue-with-spell-ability', 'telepathic-bond', 'heroes-feast',      'refuge',          'mass-cure-critical-wounds', 'miracle'],
-  darkness:  ['obscuring-mist',      'blindness',        'deeper-darkness',           N,                      'summon-monster-v',  N,                     'power-word-blind', N,                N],
-  death:     ['cause-fear',          'death-knell',      'animate-dead',              'death-ward',           'slay-living',       'create-undead',       'destruction',     N,                 'wail-of-the-banshee'],
+  darkness:  ['obscuring-mist',      'blindness',        'deeper-darkness',           'shadow-conjuration',   'summon-monster-v',  'shadow-walk',         'power-word-blind', 'greater-shadow-evocation', 'shades'],
+  death:     ['cause-fear',          'death-knell',      'animate-dead',              'death-ward',           'slay-living',       'create-undead',       'destruction',     'create-greater-undead', 'wail-of-the-banshee'],
   destruction:['true-strike',        'shatter',          'rage',                      'inflict-critical-wounds', 'shout',          'harm',                'disintegrate',    'earthquake',      'implosion'],
   earth:     ['magic-stone',         'soften-earth-and-stone', 'stone-shape',         'spike-stones',         'wall-of-stone',     'stoneskin',           'elemental-body-iv', 'earthquake',    'elemental-swarm'],
-  evil:      ['protection-from-good', 'align-weapon',    'magic-circle-against-good', 'unholy-blight',        N,                   'create-undead',       'blasphemy',       'unholy-aura',     'summon-monster-ix'],
+  evil:      ['protection-from-good', 'align-weapon',    'magic-circle-against-good', 'unholy-blight',        'dispel-good',       'create-undead',       'blasphemy',       'unholy-aura',     'summon-monster-ix'],
   fire:      ['burning-hands',       'produce-flame',    'fireball',                  'wall-of-fire',         'fire-shield',       'fire-seeds',          'elemental-body-iv', 'incendiary-cloud', 'elemental-swarm'],
   glory:     ['shield-of-faith',     'bless-weapon',     'searing-light',             'holy-smite',           'righteous-might',   'undeath-to-death',    'holy-sword',      'holy-aura',       'gate'],
   good:      ['protection-from-evil', 'align-weapon',    'magic-circle-against-evil', 'holy-smite',           'dispel-evil',       'blade-barrier',       'holy-word',       'holy-aura',       'summon-monster-ix'],
-  healing:   ['cure-light-wounds',   'cure-moderate-wounds', 'cure-serious-wounds',   'cure-critical-wounds', N,                   'heal',                'regenerate',      'mass-cure-critical-wounds', 'mass-heal'],
-  knowledge: ['comprehend-languages', 'detect-thoughts', 'speak-with-dead',          'divination',           'true-seeing',       'find-the-path',       N,                 N,                 N],
-  law:       ['protection-from-chaos', 'align-weapon',   'magic-circle-against-chaos', 'order-s-wrath',       N,                   'hold-monster',        'dictum',          'shield-of-law',   'summon-monster-ix'],
-  liberation:['remove-fear',         N,                  'remove-curse',              'freedom-of-movement',  'break-enchantment', 'greater-dispel-magic', 'refuge',         'mind-blank',      N],
-  luck:      ['true-strike',         'aid',              'protection-from-energy',    'freedom-of-movement',  'break-enchantment', 'mislead',             N,                 N,                 'miracle'],
+  healing:   ['cure-light-wounds',   'cure-moderate-wounds', 'cure-serious-wounds',   'cure-critical-wounds', 'breath-of-life',    'heal',                'regenerate',      'mass-cure-critical-wounds', 'mass-heal'],
+  knowledge: ['comprehend-languages', 'detect-thoughts', 'speak-with-dead',          'divination',           'true-seeing',       'find-the-path',       'legend-lore',     'discern-location', 'foresight'],
+  law:       ['protection-from-chaos', 'align-weapon',   'magic-circle-against-chaos', 'order-s-wrath',       'dispel-chaos',      'hold-monster',        'dictum',          'shield-of-law',   'summon-monster-ix'],
+  liberation:['remove-fear',         'remove-paralysis', 'remove-curse',              'freedom-of-movement',  'break-enchantment', 'greater-dispel-magic', 'refuge',         'mind-blank',      'freedom'],
+  luck:      ['true-strike',         'aid',              'protection-from-energy',    'freedom-of-movement',  'break-enchantment', 'mislead',             'spell-turning',   'moment-of-prescience', 'miracle'],
   madness:   ['lesser-confusion',    'touch-of-idiocy',  'rage',                      'confusion',            'nightmare',         'phantasmal-killer',   'insanity',        'scintillating-pattern', 'weird'],
-  magic:     ['identify',            'magic-mouth',      'dispel-magic',              'imbue-with-spell-ability', 'spell-resistance', 'antimagic-field',  N,                 'protection-from-spells', 'mages-disjunction'],
-  nobility:  ['divine-favor',        N,                  'magic-vestment',            'discern-lies',         'greater-command',   'geas-quest',          'repulsion',       'demand',          'storm-of-vengeance'],
+  magic:     ['identify',            'magic-mouth',      'dispel-magic',              'imbue-with-spell-ability', 'spell-resistance', 'antimagic-field',  'spell-turning',   'protection-from-spells', 'mages-disjunction'],
+  nobility:  ['divine-favor',        'enthrall',         'magic-vestment',            'discern-lies',         'greater-command',   'geas-quest',          'repulsion',       'demand',          'storm-of-vengeance'],
   plant:     ['entangle',            'barkskin',         'plant-growth',              'command-plants',       'wall-of-thorns',    'repel-wood',          'animate-plants',  'control-plants',  'shambler'],
   protection:['sanctuary',           'shield-other',     'protection-from-energy',    'spell-immunity',       'spell-resistance',  'antimagic-field',     'repulsion',       'mind-blank',      'prismatic-sphere'],
-  repose:    ['deathwatch',          N,                  'speak-with-dead',           'death-ward',           'slay-living',       'undeath-to-death',    'destruction',     'waves-of-exhaustion', 'wail-of-the-banshee'],
-  rune:      [N,                     N,                  'glyph-of-warding',          'explosive-runes',      N,                   N,                     'instant-summons', 'symbol-of-death', N],
+  repose:    ['deathwatch',          'gentle-repose',    'speak-with-dead',           'death-ward',           'slay-living',       'undeath-to-death',    'destruction',     'waves-of-exhaustion', 'wail-of-the-banshee'],
+  rune:      ['erase',               'secret-page',      'glyph-of-warding',          'explosive-runes',      'lesser-planar-binding', 'greater-glyph-of-warding', 'instant-summons', 'symbol-of-death', 'teleportation-circle'],
   strength:  ['enlarge-person',      'bulls-strength',   'magic-vestment',            'spell-immunity',       'righteous-might',   'stoneskin',           'grasping-hand',   'clenched-fist',   'crushing-hand'],
   sun:       ['endure-elements',     'heat-metal',       'searing-light',             'fire-shield',          'flame-strike',      'fire-seeds',          'sunbeam',         'sunburst',        'prismatic-sphere'],
   travel:    ['longstrider',         'locate-object',    'fly',                       'dimension-door',       'teleport',          'find-the-path',       'greater-teleport', 'phase-door',     'astral-projection'],
