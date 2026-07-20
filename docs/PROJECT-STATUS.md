@@ -36,8 +36,11 @@ play-sheet toggles, and **multiclass**.
 **What's left is not "just data."** The blocked-on-verification list is empty — every item held for an
 untrustworthy source has been resolved. The open backlog is deliberately out-of-scope classes and
 races (Vigilante/Omdura, Occult/Alternate/NPC/Unchained, monster/advanced races) and the fidelity
-gaps that would need engine work (Improved Critical's threat-range, bonus domain spells per-spell,
-per-list spell levels) — see the deferral backlog below.
+gaps that need engine work — now being worked in priority order. **Done: Improved Critical** (the
+chosen weapon's threat range doubles on its attack line, reusing the keen hook, no stacking). Next in
+that queue: Shield Focus / Fleet (conditional feats the effect model can't yet gate on equipped
+shield / armour weight), then bonus domain / specialist-school spells per-spell, then per-list spell
+levels — see the deferral backlog below.
 
 Everything below is the durable detail. When resuming, read this file, then `docs/DESIGN.md`.
 
@@ -270,9 +273,11 @@ Still open from that audit:
   - **Feat fidelity**: numeric bonuses that are unconditional flow into the stat graph (Magical
     Aptitude +2 Spellcraft/UMD, the save/skill feats). **Simple/Martial Weapon Proficiency are wired
     into the proficiency engine** — they clear the −4 non-proficiency penalty (Martial names one
-    weapon, Simple grants the group), so a feat can never leave a wrong penalty showing. The rest of
-    the new combat feats are situational and stay benefit-text (the project's standing line): notably
-    **Improved Critical**'s threat-range doubling (would need the keen-style engine hook), **Shield
+    weapon, Simple grants the group), so a feat can never leave a wrong penalty showing.
+    **Improved Critical is now computed** — the chosen weapon's threat range doubles on its attack
+    line, reusing the keen `doubleThreatRange` hook; it correctly does *not* stack with keen (the
+    range doubles once when either is present). The rest of the new combat feats are situational and
+    stay benefit-text (the project's standing line): **Shield
     Focus**'s +1 shield AC and **Fleet**'s +5 speed (both armour/shield-conditional), and
     **Intimidating Prowess** (adds an ability *modifier*, which the flat-bonus effect model can't
     express). Class-feature-gated prereqs the DSL can't state ("channel energy", "cast arcane

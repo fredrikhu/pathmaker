@@ -936,7 +936,7 @@ function spellFocusBonuses(doc: CharacterDoc, dec: Decisions, level: number): { 
 }
 
 /** Per-weapon attack/damage bonuses from weapon-parameterised feats. Keyed by weapon id. */
-interface WeaponFeatBonus { attack: number; damage: number; attackLines: BreakdownLine[]; damageLines: BreakdownLine[] }
+interface WeaponFeatBonus { attack: number; damage: number; attackLines: BreakdownLine[]; damageLines: BreakdownLine[]; doublesThreat: boolean }
 
 const WEAPON_FEAT_BONUSES: Record<string, { attack?: number; damage?: number }> = {
   'weapon-focus': { attack: 1 },
@@ -948,12 +948,17 @@ const WEAPON_FEAT_BONUSES: Record<string, { attack?: number; damage?: number }> 
 function weaponFeatBonuses(entries: { featId: string; param: string | null }[]): Map<string, WeaponFeatBonus> {
   const map = new Map<string, WeaponFeatBonus>();
   for (const { featId, param } of entries) {
+    if (!param) continue;
     const spec = WEAPON_FEAT_BONUSES[featId];
-    if (!spec || !param) continue;
+    // Improved Critical widens the chosen weapon's threat range rather than adding a flat bonus,
+    // so it rides the same per-weapon map as the Weapon Focus line without an attack/damage value.
+    const isImprovedCrit = featId === 'improved-critical';
+    if (!spec && !isImprovedCrit) continue;
     const name = C.featById.get(featId)?.name ?? featId;
-    const cur = map.get(param) ?? { attack: 0, damage: 0, attackLines: [], damageLines: [] };
-    if (spec.attack) { cur.attack += spec.attack; cur.attackLines.push({ label: name, value: spec.attack }); }
-    if (spec.damage) { cur.damage += spec.damage; cur.damageLines.push({ label: name, value: spec.damage }); }
+    const cur = map.get(param) ?? { attack: 0, damage: 0, attackLines: [], damageLines: [], doublesThreat: false };
+    if (spec?.attack) { cur.attack += spec.attack; cur.attackLines.push({ label: name, value: spec.attack }); }
+    if (spec?.damage) { cur.damage += spec.damage; cur.damageLines.push({ label: name, value: spec.damage }); }
+    if (isImprovedCrit) cur.doublesThreat = true;
     map.set(param, cur);
   }
   return map;
@@ -1201,6 +1206,7 @@ function weaponAttacks(doc: CharacterDoc, stats: Record<string, Stat>, bab: numb
           ? 'Not proficient: −4 to attack. Exotic Weapon Proficiency (firearms) covers every firearm at once.'
           : `Not proficient: −4 to attack. Your class does not grant ${w.group} weapons.`);
     }
+    if (fb?.doublesThreat) notes.push('Improved Critical: this weapon’s threat range is doubled (does not stack with keen).');
     if (w.note) notes.push(w.note);
     notes.push(...firearmNotes(w, proficient));
     if (kind === 'melee' && w.range) notes.push(`Can be thrown (${w.range} ft) — its thrown attack is listed separately.`);
@@ -1232,7 +1238,9 @@ function weaponAttacks(doc: CharacterDoc, stats: Record<string, Stat>, bab: numb
       ...(thrown ? { mode: 'thrown' as const } : {}),
       attackLines: [...base.lines, ...(fb?.attackLines ?? []), ...qualityLines, ...optionLines],
       damage, damageLines,
-      crit: props.some((p) => p.doublesThreat) ? doubleThreatRange(w.crit) : w.crit,
+      // Keen and Improved Critical both double the threat range, and never together — applying
+      // doubleThreatRange once when either is present is exactly the "does not stack" rule.
+      crit: (fb?.doublesThreat || props.some((p) => p.doublesThreat)) ? doubleThreatRange(w.crit) : w.crit,
       dmgType: w.dmgType, range: w.range,
       ...(qb.label ? { qualityLabel: qb.label } : {}),
       ...(props.length ? { properties: props.map((p) => p.name) } : {}),

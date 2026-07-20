@@ -1469,6 +1469,35 @@ describe('named weapon properties', () => {
     expect(line(d, 'greataxe').crit).toBe('×3'); // untouched
   });
 
+  it('Improved Critical doubles the chosen weapon’s threat range, and only that weapon', () => {
+    let d = newCharacter('t-ic', 'Critster');
+    d = withDecision(d, 'ability-base', { str: 15, dex: 14, con: 14, int: 10, wis: 12, cha: 8 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'alignment', 'LN');
+    d = withDecision(d, 'class', 'fighter');
+    d = withDecision(d, 'feats', { 'feat-1': 'improved-critical' });
+    d = withDecision(d, 'feat-params', { 'feat-1': 'longsword' });
+    d = { ...atLevel(d, 8), purchases: { longsword: 1, greataxe: 1 }, equipped: { armor: null, mainHand: 'longsword', offHand: null } };
+    const at = (id: string) => resolve(d).sheet.attacks.find((a) => a.id === id)!;
+    expect(at('longsword').crit).toBe('17–20/×2'); // longsword 19–20 doubled
+    expect(at('greataxe').crit).toBe('×3'); // the feat named the longsword, so this is untouched
+    expect(at('longsword').notes.some((n) => n.startsWith('Improved Critical'))).toBe(true);
+  });
+
+  it('Improved Critical does not stack with keen — the range doubles once, not twice', () => {
+    let d = newCharacter('t-ick', 'Critster');
+    d = withDecision(d, 'ability-base', { str: 15, dex: 14, con: 14, int: 10, wis: 12, cha: 8 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'alignment', 'LN');
+    d = withDecision(d, 'class', 'fighter');
+    d = withDecision(d, 'feats', { 'feat-1': 'improved-critical' });
+    d = withDecision(d, 'feat-params', { 'feat-1': 'longsword' });
+    d = withDecision(d, 'item-quality', { longsword: { masterwork: true, enhancement: 1, properties: ['keen'] } });
+    d = { ...atLevel(d, 8), purchases: { longsword: 1 }, equipped: { armor: null, mainHand: 'longsword', offHand: null } };
+    // Both keen and Improved Critical apply, but 19–20 doubles to 17–20 — never to 15–20.
+    expect(resolve(d).sheet.attacks.find((a) => a.id === 'longsword')!.crit).toBe('17–20/×2');
+  });
+
   it('speed adds an extra attack at full bonus', () => {
     const plain = armed({ longsword: { masterwork: true, enhancement: 1 } });
     expect(line(plain, 'longsword').bonuses).toEqual([10, 5]);
