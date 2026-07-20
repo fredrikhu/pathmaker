@@ -89,6 +89,48 @@ export const ROGUE_ADVANCED_TALENTS: Opt[] = [
   opt('advanced-feat', 'Feat', 'Gain a bonus feat of your choice.'),
 ];
 
+// Slayer talents key off studied target rather than sneak attack, so they read differently from
+// rogue talents even where the names overlap. Core-scope representative set.
+export const SLAYER_TALENTS: Opt[] = [
+  opt('combat-trick', 'Combat Trick', 'Gain a bonus combat feat.'),
+  opt('ranger-combat-style', 'Ranger Combat Style', 'Adopt a ranger combat style (archery or two-weapon) and gain one of its feats, ignoring the prerequisites.'),
+  opt('rogue-talent', 'Rogue Talent', 'Select any rogue talent in place of a slayer talent.'),
+  opt('slowing-strike', 'Slowing Strike', 'A hit on your studied target reduces its speed until the start of your next turn.'),
+  opt('foil-scrutiny', 'Foil Scrutiny', 'You resist divinations and others’ attempts to study or observe you.'),
+  opt('poison-use', 'Poison Use', 'Apply and use poison safely, never risking poisoning yourself.'),
+  opt('blood-reader', 'Blood Reader', 'When you study a target, you also learn its current and total hit points.'),
+  opt('deadly-range', 'Deadly Range', 'Deliver your studied precision damage at a longer range.'),
+  opt('studied-ally', 'Studied Ally', 'Spend a use of studied target to grant its bonuses to an ally instead.'),
+  opt('terrain-mastery', 'Terrain Mastery', 'Ignore difficult terrain in one chosen type of terrain.'),
+  opt('trapfinding', 'Trapfinding', 'Find and disable traps, adding half your slayer level to the checks.'),
+  opt('weapon-training-talent', 'Weapon Training', 'Gain Weapon Focus as a bonus feat.'),
+];
+
+export const SLAYER_ADVANCED_TALENTS: Opt[] = [
+  opt('assassinate', 'Assassinate', 'After studying a foe, a sneak attack against it can slay it outright (Fortitude negates).'),
+  opt('marksmans-shot', "Marksman's Shot", 'A precise ranged attack ignores the target’s cover and concealment.'),
+  opt('swift-poison', 'Swift Poison', 'Apply poison to a weapon as a move action (requires Poison Use).'),
+  opt('slayer-camouflage', 'Slayer Camouflage', 'Use Stealth to hide in your mastered terrain even without cover or concealment.'),
+  opt('woodland-stride', 'Woodland Stride', 'Move through natural difficult terrain at your normal speed.'),
+  opt('rogue-advanced-talent', 'Rogue Advanced Talent', 'Select any advanced rogue talent in place of an advanced slayer talent.'),
+];
+
+// Investigator talents key off inspiration and studied combat. Core-scope representative set.
+export const INVESTIGATOR_TALENTS: Opt[] = [
+  opt('alchemist-discovery', 'Alchemist Discovery', 'Select an alchemist discovery you qualify for.'),
+  opt('expanded-inspiration', 'Expanded Inspiration', 'Use inspiration free on Diplomacy, Heal, Knowledge, Perception, and Profession checks.'),
+  opt('amazing-inspiration', 'Amazing Inspiration', 'Your inspiration die becomes a d8.'),
+  opt('tenacious-inspiration', 'Tenacious Inspiration', 'Roll two inspiration dice and use the higher result.'),
+  opt('quick-study', 'Quick Study', 'Activate studied combat as a move action rather than a standard action.'),
+  opt('studied-defense', 'Studied Defense', 'Apply your studied combat bonus as a dodge bonus to AC.'),
+  opt('underworld-inspiration', 'Underworld Inspiration', 'Use inspiration free on Bluff, Disable Device, Sleight of Hand, and Stealth.'),
+  opt('item-lore', 'Item Lore', 'A bonus to identify magic items, with a chance to intuit an unknown item’s properties.'),
+  opt('perceptive-tracking', 'Perceptive Tracking', 'Follow tracks using Perception instead of Survival.'),
+  opt('sickening-offensive', 'Sickening Offensive', 'Your studied strikes leave the target sickened for a round.'),
+  opt('empathy', 'Empathy', 'A bonus on Sense Motive checks to read a creature’s surface emotions.'),
+  opt('rogue-talent', 'Rogue Talent', 'Select any rogue talent in place of an investigator talent.'),
+];
+
 /** Oracle revelations, keyed by mystery id — the options for the source-dependent revelation
  *  pick (levels 1/3/7/11/15/19). Core-scope representative sets per mystery. */
 export const ORACLE_REVELATIONS: Record<string, Opt[]> = {

@@ -158,6 +158,30 @@ describe('classes', () => {
   });
 });
 
+describe('slayer & investigator use their own talent lists', () => {
+  const choiceOptions = (classId: string, choiceId: string) => {
+    const c = C.CLASSES.find((k) => k.id === classId)!;
+    const ch = (c.choices ?? []).find((x) => x.id === choiceId)!;
+    return (ch.options ?? []).map((o) => o.id);
+  };
+  it('slayer talents include slayer-specific picks (not the rogue list)', () => {
+    const base = choiceOptions('slayer', 'slayer-talent');
+    expect(base).toContain('ranger-combat-style'); // genuinely a slayer talent
+    expect(base).toContain('studied-ally');
+    expect(base).not.toContain('bleeding-attack'); // a rogue-only talent, not on our slayer list
+    // Advanced-eligible slot offers base + advanced slayer talents.
+    const adv = choiceOptions('slayer', 'slayer-adv-talent');
+    expect(adv).toContain('assassinate');
+    expect(adv).toContain('ranger-combat-style');
+  });
+  it('investigator talents key off inspiration/studied combat', () => {
+    const opts = choiceOptions('investigator', 'investigator-talent');
+    expect(opts).toContain('expanded-inspiration');
+    expect(opts).toContain('studied-defense');
+    expect(opts).not.toContain('bleeding-attack');
+  });
+});
+
 describe('class progression coverage (Part B)', () => {
   it('every class except the documented deferral has a per-level feature progression', () => {
     const deferred = new Set(['vampire-hunter']);

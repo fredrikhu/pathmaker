@@ -416,9 +416,10 @@ Remaining Part-B deferrals / fidelity notes:
 - **Fixed a latent bard/skald bug:** the six-level per-day table was indexed from 1st level while the
   engine assumes index 0 = cantrips, so bard slots displayed one level off and skipped the Cha bonus
   spell. The table is now cantrip-indexed (cantrips at-will, hidden in display).
-- **Subsystem-list approximations** (kept honest but not exhaustive): slayer & investigator talents
-  reuse the rogue-talent list; shaman hexes reuse the witch-hex list; every option list is a
-  core-scope subset. **Oracle revelations are now interactive** — a source-dependent `oracle-revelation`
+- **Subsystem-list approximations** (kept honest but not exhaustive): **slayer and investigator now
+  have their own talent lists** (`SLAYER_TALENTS` + `SLAYER_ADVANCED_TALENTS`, `INVESTIGATOR_TALENTS`,
+  keyed off studied target / inspiration rather than the rogue list); shaman hexes still reuse the
+  witch-hex list; every option list is a core-scope subset. **Oracle revelations are now interactive** — a source-dependent `oracle-revelation`
   choice filters options by the chosen mystery (`ORACLE_REVELATIONS` per mystery). **Sorcerer
   bloodline powers, bloodrager bloodline powers, and cavalier order abilities now display per
   source** — `source-features.ts` holds the fixed per-level abilities; the engine injects the chosen

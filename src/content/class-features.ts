@@ -9,9 +9,10 @@ import {
   BARBARIAN_RAGE_POWERS, ROGUE_TALENTS, ROGUE_ADVANCED_TALENTS, PALADIN_MERCIES, PALADIN_DIVINE_BOND,
   ALCHEMIST_DISCOVERIES, MAGUS_ARCANA, WITCH_HEXES,
   ARCANIST_EXPLOITS, SHIFTER_ASPECTS,
+  SLAYER_TALENTS, SLAYER_ADVANCED_TALENTS, INVESTIGATOR_TALENTS,
 } from './subsystems';
 
-const ROGUE_TALENTS_ALL = [...ROGUE_TALENTS, ...ROGUE_ADVANCED_TALENTS];
+const SLAYER_TALENTS_ALL = [...SLAYER_TALENTS, ...SLAYER_ADVANCED_TALENTS];
 
 export interface ClassProgression {
   features: LeveledFeatureDef[];
@@ -435,8 +436,8 @@ export const CLASS_PROGRESSION: Record<string, ClassProgression> = {
       f(20, 'slay-master', 'Master Slayer', 'A studied strike can paralyze or kill (Fort negates).'),
     ],
     choices: [
-      { id: 'slayer-talent', label: 'Slayer talent', kind: 'list', count: 1, levels: [2, 4, 6, 8], options: ROGUE_TALENTS },
-      { id: 'slayer-adv-talent', label: 'Slayer talent (advanced eligible)', kind: 'list', count: 1, levels: [10, 12, 14, 16, 18, 20], options: ROGUE_TALENTS_ALL },
+      { id: 'slayer-talent', label: 'Slayer talent', kind: 'list', count: 1, levels: [2, 4, 6, 8], options: SLAYER_TALENTS },
+      { id: 'slayer-adv-talent', label: 'Slayer talent (advanced eligible)', kind: 'list', count: 1, levels: [10, 12, 14, 16, 18, 20], options: SLAYER_TALENTS_ALL },
     ],
   },
   swashbuckler: {
@@ -464,7 +465,7 @@ export const CLASS_PROGRESSION: Record<string, ClassProgression> = {
       f(4, 'inv-swift-alchemy', 'Swift Alchemy', 'Create alchemical items in half the time.'),
       f(20, 'inv-true-inspiration', 'True Inspiration', 'Spend inspiration on nearly any d20 roll and empower extracts.'),
     ],
-    choices: [{ id: 'investigator-talent', label: 'Investigator talent', kind: 'list', count: 1, levels: [3, 5, 7, 9, 11, 13, 15, 17, 19], options: ROGUE_TALENTS }],
+    choices: [{ id: 'investigator-talent', label: 'Investigator talent', kind: 'list', count: 1, levels: [3, 5, 7, 9, 11, 13, 15, 17, 19], options: INVESTIGATOR_TALENTS }],
   },
   hunter: {
     bonusFeats: { levels: [3, 6, 9, 12, 15, 18], label: 'Teamwork feat' },
