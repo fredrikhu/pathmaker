@@ -101,7 +101,7 @@ export interface EvolutionDef {
   /** Base form(s) that may take this evolution (biped/quadruped/serpentine). Omitted ⇒ any. */
   forms?: string[];
   /** True if the evolution can be selected more than once (each purchase costs `cost` again).
-   *  The builder currently offers each evolution as a single take; noted for reference. */
+   *  The builder renders these with a stepper; one-shot evolutions get a take/remove toggle. */
   multi?: boolean;
 }
 

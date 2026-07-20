@@ -1460,7 +1460,7 @@ function buildSlotsAndIssues(
             issues.push({ severity: 'info', step: 'class', slot: slotId, message: `${budget - spent} evolution point${budget - spent === 1 ? '' : 's'} unspent` });
           if (spent > budget)
             issues.push({ severity: 'warning', step: 'class', slot: slotId, message: `Eidolon over its evolution pool by ${spent - budget} point${spent - budget === 1 ? '' : 's'}` });
-          const illegal = selected.filter((id) => options.find((o) => o.id === id) && !options.find((o) => o.id === id)!.legal);
+          const illegal = [...new Set(selected.filter((id) => options.find((o) => o.id === id) && !options.find((o) => o.id === id)!.legal))];
           if (illegal.length)
             issues.push({ severity: 'warning', step: 'class', slot: slotId, message: `Not yet available: ${illegal.map((id) => C.EIDOLON_EVOLUTIONS.find((e) => e.id === id)?.name ?? id).join(', ')}` });
           continue;
@@ -1850,7 +1850,7 @@ function classChoiceOptions(ch: C.ClassChoiceDef, dec: Decisions, level = 1): Sl
         return {
           id: e.id, name: e.name,
           desc: `◆ ${e.cost} pt${e.cost === 1 ? '' : 's'} · ${e.desc}`,
-          legal, whyNot, meta: { cost: e.cost },
+          legal, whyNot, meta: { cost: e.cost, multi: e.multi ? 1 : 0 },
         };
       });
     }

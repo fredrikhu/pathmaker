@@ -979,6 +979,20 @@ describe('source-dependent features appear in the progression by chosen source',
     expect(r.slots.find((s) => s.id === 'evolutions')!.pointsSpent).toBe(5);
     expect(r.issues.some((i) => i.slot === 'evolutions' && /over its evolution pool by 2 points/.test(i.message))).toBe(true);
   });
+  it('a repeatable evolution taken several times spends points per purchase', () => {
+    let d = newCharacter('t-summ3', 'Balazar');
+    d = withDecision(d, 'ability-base', { str: 8, dex: 12, con: 12, int: 10, wis: 10, cha: 16 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['cha']);
+    d = withDecision(d, 'alignment', 'N');
+    d = withDecision(d, 'class', 'summoner');
+    // Ability Increase (2 pts) taken twice + Bite (1 pt) = 5 points.
+    d = withDecision(d, 'class-choices', { 'eidolon-form': ['biped'], evolutions: ['ability-increase', 'ability-increase', 'bite'] });
+    const slot = resolve(atLevel(d, 8)).slots.find((s) => s.id === 'evolutions')!;
+    expect(slot.pointsSpent).toBe(5);
+    expect(slot.options.find((o) => o.id === 'ability-increase')!.meta!.multi).toBe(1); // repeatable
+    expect(slot.options.find((o) => o.id === 'bite')!.meta!.multi).toBe(0);             // one-shot
+  });
   it('an alchemist gains a grand-discovery pick at level 20, and not before', () => {
     let d = newCharacter('t-alch', 'Damiel');
     d = withDecision(d, 'ability-base', { str: 10, dex: 14, con: 12, int: 16, wis: 10, cha: 8 });

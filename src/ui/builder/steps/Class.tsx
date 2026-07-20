@@ -2,7 +2,8 @@ import { useState } from 'react';
 import type { CharCtl } from '../../Builder';
 import { CLASSES, classById } from '../../../content/index';
 import type { ChoiceSlot } from '../../../engine/types';
-import { OptionCard } from '../bits';
+import { OptionCard, Stepper } from '../bits';
+import type { SlotOption } from '../../../engine/types';
 import { useTip } from '../../Tooltip';
 
 export function ClassStep({ ch }: { ch: CharCtl }) {
@@ -29,6 +30,16 @@ export function ClassStep({ ch }: { ch: CharCtl }) {
     } else {
       setChoice(slot.id, cur[0] === optId ? [] : [optId]);
     }
+  };
+
+  // Point-buy slots (eidolon evolutions) store one array entry per purchase, so a repeatable
+  // evolution can appear several times. Add/remove a single occurrence.
+  const addOne = (slotId: string, optId: string) => setChoice(slotId, [...(classChoices[slotId] ?? []), optId]);
+  const removeOne = (slotId: string, optId: string) => {
+    const cur = classChoices[slotId] ?? [];
+    const i = cur.lastIndexOf(optId);
+    if (i < 0) return;
+    setChoice(slotId, [...cur.slice(0, i), ...cur.slice(i + 1)]);
   };
 
   return (
@@ -88,7 +99,7 @@ export function ClassStep({ ch }: { ch: CharCtl }) {
             <h6 style={{ margin: '22px 0 8px', color: 'var(--color-neutral-500)' }}>Class choices</h6>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               {classSlots.map((slot) => (
-                <ChoiceSlotView key={slot.id} slot={slot} onToggle={toggleChoice} />
+                <ChoiceSlotView key={slot.id} slot={slot} onToggle={toggleChoice} onAdd={addOne} onRemove={removeOne} />
               ))}
             </div>
           </>
@@ -125,21 +136,30 @@ function TermBab() {
 /** One class-choice slot: search box when the list is long, and unselectable options
  *  (e.g. domains a deity doesn't grant) sorted to the bottom. Closed lists only —
  *  feats keep their natural order elsewhere. */
-function ChoiceSlotView({ slot, onToggle }: { slot: ChoiceSlot; onToggle: (slot: ChoiceSlot, id: string) => void }) {
+function ChoiceSlotView({ slot, onToggle, onAdd, onRemove }: {
+  slot: ChoiceSlot;
+  onToggle: (slot: ChoiceSlot, id: string) => void;
+  onAdd?: (slotId: string, id: string) => void;
+  onRemove?: (slotId: string, id: string) => void;
+}) {
   const [q, setQ] = useState('');
   const many = slot.options.length > 8;
   const query = q.trim().toLowerCase();
+  const pointBuy = slot.pointBudget != null;
   const options = slot.options
     .filter((o) => !query || o.name.toLowerCase().includes(query))
     .slice()
-    .sort((a, b) => Number(b.legal) - Number(a.legal)); // stable: legal first, illegal sink
+    // Point-buy lists read best grouped by cost (cheap first); others keep legal-first, illegal sink.
+    .sort((a, b) => pointBuy
+      ? (Number(b.legal) - Number(a.legal)) || (Number(a.meta?.cost ?? 0) - Number(b.meta?.cost ?? 0)) || a.name.localeCompare(b.name)
+      : Number(b.legal) - Number(a.legal));
 
   return (
     <div>
       <div style={{ fontSize: 12.5, marginBottom: 6 }}>
         {slot.label}{' '}
-        {slot.pointBudget != null
-          ? <span className="text-muted" style={{ color: (slot.pointsSpent ?? 0) > slot.pointBudget ? 'var(--warn)' : undefined }}>({slot.pointsSpent ?? 0}/{slot.pointBudget} points)</span>
+        {pointBuy
+          ? <span className="text-muted" style={{ color: (slot.pointsSpent ?? 0) > slot.pointBudget! ? 'var(--warn)' : undefined }}>({slot.pointsSpent ?? 0}/{slot.pointBudget} points)</span>
           : <span className="text-muted">({slot.selected.length}/{slot.count})</span>}
       </div>
       {many && (
@@ -148,10 +168,36 @@ function ChoiceSlotView({ slot, onToggle }: { slot: ChoiceSlot; onToggle: (slot:
       {/* Auto-fill grid: one column when narrow, more as the panel widens — long option lists
           (33 blessings/domains) otherwise stack into a very tall scroll. */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(330px, 1fr))', gap: 6, alignItems: 'start' }}>
-        {options.map((o) => (
-          <OptionCard key={o.id} option={o} selected={slot.selected.includes(o.id)} onToggle={() => onToggle(slot, o.id)} />
-        ))}
+        {options.map((o) => {
+          if (pointBuy) {
+            const count = slot.selected.filter((x) => x === o.id).length;
+            // Repeatable evolutions get a stepper (0..n); one-shot ones a take/remove toggle.
+            return o.meta?.multi === 1
+              ? <EvolutionStepperRow key={o.id} option={o} count={count} onAdd={() => onAdd!(slot.id, o.id)} onRemove={() => onRemove!(slot.id, o.id)} />
+              : <OptionCard key={o.id} option={o} selected={count > 0} onToggle={() => (count > 0 ? onRemove!(slot.id, o.id) : onAdd!(slot.id, o.id))} />;
+          }
+          return <OptionCard key={o.id} option={o} selected={slot.selected.includes(o.id)} onToggle={() => onToggle(slot, o.id)} />;
+        })}
       </div>
+    </div>
+  );
+}
+
+/** A repeatable point-buy option (eidolon evolution taken more than once): stepper instead of a
+ *  take/untake button. Mirrors OptionCard's styling. */
+function EvolutionStepperRow({ option, count, onAdd, onRemove }: {
+  option: SlotOption; count: number; onAdd: () => void; onRemove: () => void;
+}) {
+  return (
+    <div style={{ padding: '11px 13px', borderRadius: 8, background: 'var(--color-surface)', opacity: option.legal ? 1 : 0.55, boxShadow: `inset 0 0 0 1px ${count > 0 ? 'var(--color-accent)' : 'transparent'}` }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+        <span style={{ fontSize: 13.5, fontWeight: 500 }}>{option.name}</span>
+        <span className="tag tag-neutral" style={{ fontSize: 10 }}>repeatable</span>
+        <span style={{ flex: 1 }} />
+        <Stepper value={count} onDec={onRemove} onInc={onAdd} canDec={count > 0} canInc={option.legal} />
+      </div>
+      {option.desc && <div style={{ fontSize: 12.5, color: 'var(--color-neutral-400)', marginTop: 3, lineHeight: 1.5 }}>{option.desc}</div>}
+      {!option.legal && option.whyNot && <div style={{ fontSize: 11.5, color: 'var(--err)', marginTop: 5 }}>{option.whyNot}</div>}
     </div>
   );
 }
