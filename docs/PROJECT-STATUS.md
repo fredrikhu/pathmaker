@@ -6,18 +6,23 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 
 ## ▶ Resume here (last session end)
 
-**Current state** — branch `main`, working tree clean, **500 tests** passing (`origin/main` at
-`5b58bdd`); run `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
+**Current state** — branch `main`, working tree clean, **505 tests** passing (`origin/main` at
+`5cc1453`); run `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
-**Most recent session — play-mat UX, trait validation, bloodrager bloodline powers**
-(commits `77bb2ab`, `9b94514`, `2aa4f31`, `5b58bdd`):
-- **Bloodrager bloodline powers authored** (`source-features.ts`): all 10 core bloodlines carry their
-  named powers at 1/4/8/12/16/20 in `BLOODRAGER_BLOODLINE_POWERS`, verified against d20pfsrd and
-  injected into the advancement progression by chosen bloodline (same `sourceFeatures` path as
-  sorcerer bloodlines / cavalier orders). Content test asserts full coverage + exact level set; golden
-  test pins the draconic bloodrager line (Breath Weapon 8 / Dragon Wings 12). This closes the last
-  descriptive-only source-feature list. Also corrected two stale Phase 2 notes (arcanist/vampire-hunter
-  caster tables are verified and filled; vampire-hunter has a full feature progression).
+**Most recent session — play-mat UX, trait validation, and a subsystem-content pass**
+(commits `77bb2ab` → `5cc1453`). The subsystem-content pass closed out the "descriptive" gaps we
+found by walking the subsystem lists:
+- **Every class now has its own subsystem list — no cross-class reuse.** Authored `SLAYER_TALENTS` +
+  `SLAYER_ADVANCED_TALENTS` (keyed off studied target), `INVESTIGATOR_TALENTS` (inspiration / studied
+  combat), and `SHAMAN_HEXES` (Wisdom-keyed general hexes + a Witch Hex option) — replacing the old
+  rogue-list / witch-list reuse. All in `subsystems.ts`, verified against d20pfsrd, core-scope subsets.
+- **Source-feature progressions are all authored now.** `BLOODRAGER_BLOODLINE_POWERS` (10 bloodlines,
+  1/4/8/12/16/20) and `SHAMAN_SPIRIT_ABILITIES` (10 spirits, 1/8/16/20 — spirit / greater / true /
+  manifestation) join the sorcerer-bloodline / cavalier-order lists in `source-features.ts`, injected
+  into the advancement progression by chosen source via `sourceFeatures` (resolve.ts). No source-feature
+  list is descriptive-only anymore. Each has a content coverage test + a golden progression test.
+- Also corrected stale Phase 2 notes (arcanist/vampire-hunter caster tables are verified and filled;
+  vampire-hunter has a full feature progression).
 - **Play sheet space savings** (`PlaySheet.tsx`): the Running-effects add form folds behind an
   Add/Close toggle (its selects size to content instead of each stretching to its own row); the HP
   card moved Temp HP / Nonlethal up beside the HP number; Saving throws folded into the At-a-glance
