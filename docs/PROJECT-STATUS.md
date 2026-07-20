@@ -6,10 +6,10 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 
 ## ▶ Resume here (last session end)
 
-**Current state** — branch `main`, working tree clean, **528 tests** passing (`origin/main` at
-`4327f73`); run `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
+**Current state** — branch `main`, working tree clean, **529 tests** passing (`origin/main` at
+`e9c4e3a`); run `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
-**Latest — eidolon evolution pool** (commit `4327f73`). The last of the four different-in-kind fill-ins,
+**Latest — eidolon evolution pool** (commits `4327f73`, `e9c4e3a`). The last of the four different-in-kind fill-ins,
 and the only one that added a new engine capability rather than content. A **point-buy** subsystem: a
 new `eidolon-evolutions` `ClassChoiceKind`; the summoner spends a per-level pool on evolutions costing
 1–4 points each. `EIDOLON_EVOLUTIONS` (all 48 APG evolutions with cost, min summoner level, and
@@ -23,9 +23,12 @@ over) and per-option `◆ N pts` badges. 3 content + 2 golden tests; browser-ver
 Summoner 8 (counter read 7/11, correct level/form gating). **Verify-don't-guess earned its keep twice:**
 the pool table I remembered (3,4,5,6,6,7…) was wrong — two sources agreed on the real
 **3,4,5,7,8,9,10,11,13,14,15,16,17,19,20,21,22,23,25,26**; and I read the AoN evolutions page in-browser
-to pull all 48 evolutions when the WebFetch summarizer kept dropping the structured data. *Known
-simplification:* multi-take evolutions (e.g. Ability Increase several times) are offered as a single
-take, flagged in `EvolutionDef`.
+to pull all 48 evolutions when the WebFetch summarizer kept dropping the structured data. **Multi-take
+now fully supported** (commit `e9c4e3a`): repeatable evolutions (Ability Increase, Skilled, Claws…)
+store one array entry per purchase and render with a stepper (`− n +`); one-shot evolutions keep the
+take/remove toggle. Options carry `meta.multi` so the UI picks the control; the point-buy sums cost per
+occurrence. Browser-verified the stepper (Ability Increase 2→3 moved the counter 5/11→7/11, persisted as
+a duplicate id). No simplifications remain in the eidolon subsystem.
 
 **All four different-in-kind subsystem fill-ins are now done** (witch patron spells, alchemist grand
 discoveries, bloodline arcana/bonus spells, eidolon evolution pool). No known descriptive or
