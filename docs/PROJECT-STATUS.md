@@ -6,19 +6,28 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 
 ## ▶ Resume here (last session end)
 
-**Current state** — branch `main`, working tree clean, **519 tests** passing (`origin/main` at
-`fff6b94`); run `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
+**Current state** — branch `main`, working tree clean, **523 tests** passing (`origin/main` at
+`e6a1845`); run `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
-**Latest — alchemist grand discoveries** (commit `fff6b94`). Second of the different-in-kind fill-ins:
-`GRAND_DISCOVERIES` (`subsystems.ts`) is the six-option 20th-level capstone list (Awakened Intellect
-+2 Int, Eternal Youth, Fast Healing 5, Philosopher's Stone, Poison Touch, True Mutagen +8 natural
-armor & +8 Str/Dex/Con / −2 Int/Wis/Cha), wired as a level-20 `grand-discovery` choice on the
-alchemist. A single pick at one level, so it's a flat `Opt[]` + `ClassChoiceDef` (like the regular
-discovery list), **not** a `SourceFeature` progression — the engine emits a `grand-discovery-L20`
-slot. Numbers cross-checked against two sources (d20pfsrd + Archives of Nethys). Coverage test
-(choice at level 20 with all six option ids) + a golden test (slot present at 20, absent at 19);
-browser-verified in the Class step. Remaining fill-ins: the summoner eidolon evolution pool, and
-bloodline arcana/bonus spells (sorcerer/bloodrager).
+**Latest — bloodline arcana & bonus spells** (commit `e6a1845`). Third of the different-in-kind
+fill-ins. `SORCERER_BLOODLINE_SPELLS` (`source-features.ts`) gives all 6 CRB bloodlines their arcana
+(level 1) + 9 bonus spells added to spells known at **3/5/7/9/11/13/15/17/19** (spell levels 1st–9th);
+`BLOODRAGER_BLOODLINE_SPELLS` gives all 10 ACG bloodlines 4 bonus spells at **7/10/13/16** (spell
+levels 1st–4th). **Key finding: bloodragers have no bloodline arcana** (only sorcerers do) — confirmed
+by reading the raw class page in-browser when the WebFetch summarizer kept "not finding" it. Both
+maps injected in `resolve.ts` off the existing `bloodline` choice, alongside the already-authored
+bloodline *powers* (so level 1 shows both the power and the arcana). Built with `sorcBloodline(...)` /
+`brBloodline(...)` helpers. All 94 bonus spells cross-checked (d20pfsrd per-bloodline pages + AoN
+legacy); each spell's own level matches its granting level. 2 coverage + 2 golden tests;
+browser-verified the draconic sorcerer's Advancement table. **Only one fill-in remains: the summoner
+eidolon evolution pool** — the big different-in-kind one (a point-buy sub-application with an evolution
+list + max evolution-point budget per level, not a fixed pick-list).
+
+**Prior — alchemist grand discoveries** (commit `fff6b94`). `GRAND_DISCOVERIES` (`subsystems.ts`) is the
+six-option 20th-level capstone (Awakened Intellect +2 Int, Eternal Youth, Fast Healing 5, Philosopher's
+Stone, Poison Touch, True Mutagen +8 natural armor & +8 Str/Dex/Con / −2 Int/Wis/Cha), wired as a
+level-20 `grand-discovery` choice — a flat `Opt[]` + `ClassChoiceDef`, so the engine emits a
+`grand-discovery-L20` slot. Coverage + golden test; browser-verified in the Class step.
 
 **Prior — witch patron bonus spells** (commit `ed4446c`). `WITCH_PATRON_SPELLS` (`source-features.ts`)
 gives all 10 patrons (agility, animals, deception, elements, endurance, healing, plague, shadow,
