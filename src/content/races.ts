@@ -25,7 +25,7 @@ const CORE_RACES: RaceDef[] = [
     desc: 'Dwarves are stoic mountain folk — slow but unstoppable, masters of stone and metal, with long memories for both friendship and grudges.',
     size: 'medium', speed: 20, speedNeverReduced: true, abilityMods: { con: 2, wis: 2, cha: -2 },
     traits: [
-      { id: 'dwarf-darkvision', name: 'Darkvision', desc: 'Dwarves can see in the dark up to 60 feet.' },
+      { id: 'dwarf-darkvision', name: 'Darkvision', desc: 'Dwarves can see in the dark up to 60 feet.', senses: ['Darkvision 60 ft'] },
       { id: 'dwarf-defensive-training', name: 'Defensive Training', desc: '+4 dodge bonus to AC against monsters of the giant subtype.', effects: [{ target: 'ac', type: 'dodge', value: 4, note: 'Defensive Training (Dwarf)', condition: 'vs giants' }] },
       { id: 'dwarf-hardy', name: 'Hardy', desc: '+2 racial bonus on saving throws against poison, spells, and spell-like abilities.', effects: [{ target: 'save:all', type: 'racial', value: 2, note: 'Hardy (Dwarf)', condition: 'vs poison, spells, and spell-like abilities' }] },
       { id: 'dwarf-stability', name: 'Stability', desc: '+4 racial bonus to CMD when resisting a bull rush or trip attempt while standing on the ground.', effects: [{ target: 'cmd', type: 'racial', value: 4, note: 'Stability (Dwarf)', condition: 'vs bull rush / trip while on the ground' }] },
@@ -47,7 +47,7 @@ const CORE_RACES: RaceDef[] = [
     desc: 'Long-lived and graceful, elves favor precision in all things — bows, blades, and above all wizardry.',
     size: 'medium', speed: 30, abilityMods: { dex: 2, int: 2, con: -2 },
     traits: [
-      { id: 'elf-low-light', name: 'Low-Light Vision', desc: 'Elves can see twice as far as humans in conditions of dim light.' },
+      { id: 'elf-low-light', name: 'Low-Light Vision', desc: 'Elves can see twice as far as humans in conditions of dim light.', senses: ['Low-light vision'] },
       { id: 'elf-immunities', name: 'Elven Immunities', desc: 'Immune to magic sleep effects; +2 racial saving throw bonus against enchantment spells and effects.', effects: [{ target: 'save:all', type: 'racial', value: 2, note: 'Elven Immunities', condition: 'vs enchantment' }] },
       { id: 'elf-keen-senses', name: 'Keen Senses', desc: '+2 racial bonus on Perception checks.', effects: [{ target: 'skill:perception', type: 'racial', value: 2, note: 'Keen Senses (Elf)' }] },
       { id: 'elf-magic', name: 'Elven Magic', desc: '+2 racial bonus on caster level checks made to overcome spell resistance, and +2 on Spellcraft checks to identify the properties of magic items.', effects: [{ target: 'skill:spellcraft', type: 'racial', value: 2, note: 'Elven Magic', condition: 'identifying magic items' }] },
@@ -65,11 +65,17 @@ const CORE_RACES: RaceDef[] = [
     desc: 'Small, curious, and touched by the fey, gnomes carry illusion magic in their blood and an obsession in every heart.',
     size: 'small', speed: 20, abilityMods: { con: 2, cha: 2, str: -2 },
     traits: [
-      { id: 'gnome-low-light', name: 'Low-Light Vision', desc: 'Gnomes can see twice as far as humans in dim light.' },
+      { id: 'gnome-low-light', name: 'Low-Light Vision', desc: 'Gnomes can see twice as far as humans in dim light.', senses: ['Low-light vision'] },
       { id: 'gnome-defensive-training', name: 'Defensive Training', desc: '+4 dodge bonus to AC against monsters of the giant subtype.', effects: [{ target: 'ac', type: 'dodge', value: 4, note: 'Defensive Training (Gnome)', condition: 'vs giants' }] },
       { id: 'gnome-illusion-resistance', name: 'Illusion Resistance', desc: '+2 racial saving throw bonus against illusion spells and effects.', effects: [{ target: 'save:all', type: 'racial', value: 2, note: 'Illusion Resistance', condition: 'vs illusions' }] },
       { id: 'gnome-keen-senses', name: 'Keen Senses', desc: '+2 racial bonus on Perception checks.', effects: [{ target: 'skill:perception', type: 'racial', value: 2, note: 'Keen Senses (Gnome)' }] },
-      { id: 'gnome-magic', name: 'Gnome Magic', desc: '+1 to the DC of illusion spells cast; spell-like abilities: dancing lights, ghost sound, prestidigitation, speak with animals 1/day.' },
+      { id: 'gnome-magic', name: 'Gnome Magic', desc: '+1 to the DC of illusion spells cast; spell-like abilities: dancing lights, ghost sound, prestidigitation, speak with animals 1/day.',
+        spellLikeAbilities: [
+          { name: 'Dancing Lights', uses: 1, note: 'requires Cha 11' },
+          { name: 'Ghost Sound', uses: 1, note: 'requires Cha 11' },
+          { name: 'Prestidigitation', uses: 1, note: 'requires Cha 11' },
+          { name: 'Speak with Animals', uses: 1, note: 'requires Cha 11' },
+        ] },
       { id: 'gnome-weapon-familiarity', name: 'Weapon Familiarity', desc: 'Treat any weapon with "gnome" in its name as martial.', weaponFamiliarity: { martial: ['gnome-hooked-hammer'] } },
       { id: 'gnome-hatred', name: 'Hatred', desc: '+1 bonus on attack rolls against humanoids of the reptilian and goblinoid subtypes.', effects: [{ target: 'attack:melee', type: 'racial', value: 1, note: 'Hatred (Gnome)', condition: 'vs reptilians and goblinoids' }] },
       { id: 'gnome-obsessive', name: 'Obsessive', desc: '+2 racial bonus on one Craft or Profession skill.' },
@@ -85,7 +91,7 @@ const CORE_RACES: RaceDef[] = [
     desc: 'Caught between two worlds, half-elves blend human flexibility with elven senses — at home everywhere and nowhere.',
     size: 'medium', speed: 30, abilityMods: 'choice',
     traits: [
-      { id: 'halfelf-low-light', name: 'Low-Light Vision', desc: 'Half-elves can see twice as far as humans in dim light.' },
+      { id: 'halfelf-low-light', name: 'Low-Light Vision', desc: 'Half-elves can see twice as far as humans in dim light.', senses: ['Low-light vision'] },
       { id: 'halfelf-adaptability', name: 'Adaptability', desc: 'Half-elves receive Skill Focus as a bonus feat at 1st level.' },
       { id: 'halfelf-elf-blood', name: 'Elf Blood', desc: 'Half-elves count as both elves and humans for any effect related to race.' },
       { id: 'halfelf-immunities', name: 'Elven Immunities', desc: 'Immune to magic sleep effects; +2 racial saving throw bonus against enchantment spells and effects.', effects: [{ target: 'save:all', type: 'racial', value: 2, note: 'Elven Immunities', condition: 'vs enchantment' }] },
@@ -103,7 +109,7 @@ const CORE_RACES: RaceDef[] = [
     desc: 'Feared and ferocious, half-orcs carry orc blood that grants darkvision and a stubborn refusal to fall.',
     size: 'medium', speed: 30, abilityMods: 'choice',
     traits: [
-      { id: 'halforc-darkvision', name: 'Darkvision', desc: 'Half-orcs can see in the dark up to 60 feet.' },
+      { id: 'halforc-darkvision', name: 'Darkvision', desc: 'Half-orcs can see in the dark up to 60 feet.', senses: ['Darkvision 60 ft'] },
       { id: 'halforc-intimidating', name: 'Intimidating', desc: '+2 racial bonus on Intimidate checks.', effects: [{ target: 'skill:intimidate', type: 'racial', value: 2, note: 'Intimidating (Half-orc)' }] },
       { id: 'halforc-ferocity', name: 'Orc Ferocity', desc: 'Once per day, when brought below 0 hit points but not killed, fight on for one more round as if disabled.' },
       { id: 'halforc-weapon-familiarity', name: 'Weapon Familiarity', desc: 'Proficient with greataxes and falchions; treat any weapon with "orc" in its name as martial.', weaponFamiliarity: { proficient: ['greataxe', 'falchion'], martial: ['orc-double-axe'] } },

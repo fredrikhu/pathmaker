@@ -442,7 +442,22 @@ export interface Sheet {
   defenses: Defenses;
   /** Worn magic items. `active` false means a full body slot is suppressing it. */
   worn: { id: string; name: string; slot: string; cost: number; desc: string; active: boolean }[];
+  /** Special senses (darkvision, low-light, scent…) surfaced on the mat as badges. */
+  senses: string[];
+  /** Innate spell-like abilities. A per-day `uses` is tracked via `play.usedPools[id]`, so it
+   *  clears on Rest like any daily resource; 'at-will' abilities carry no count. */
+  spellLikeAbilities: SpellLikeAbility[];
   summaryLine: string; // "LN Human Fighter 1"
+}
+
+export interface SpellLikeAbility {
+  /** Stable id used as the pool key for tracking daily uses (`sla:<trait>:<slug>`). */
+  id: string;
+  name: string;
+  uses: number | 'at-will';
+  note?: string;
+  /** Where it comes from, for the mat ("Gnome", "Tiefling"). */
+  source: string;
 }
 
 export interface Resolution {

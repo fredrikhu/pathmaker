@@ -1018,6 +1018,35 @@ describe('per-list spell levels', () => {
   });
 });
 
+describe('senses & innate spell-like abilities', () => {
+  const sheetFor = (race: string) => {
+    let d = newCharacter('t-innate-' + race, 'Zim');
+    d = withDecision(d, 'ability-base', { str: 10, dex: 12, con: 12, int: 12, wis: 12, cha: 14 });
+    d = withDecision(d, 'race', race);
+    d = withDecision(d, 'alignment', 'N');
+    d = withDecision(d, 'class', 'fighter');
+    return resolve(d).sheet;
+  };
+
+  it('a gnome has low-light vision and its four 1/day spell-like abilities', () => {
+    const s = sheetFor('gnome');
+    expect(s.senses).toContain('Low-light vision');
+    expect(s.spellLikeAbilities.map((a) => a.name).sort()).toEqual(['Dancing Lights', 'Ghost Sound', 'Prestidigitation', 'Speak with Animals']);
+    expect(s.spellLikeAbilities.every((a) => a.uses === 1 && a.source === 'Gnome')).toBe(true);
+    // Stable, unique pool ids so daily uses can be tracked apart.
+    expect(new Set(s.spellLikeAbilities.map((a) => a.id)).size).toBe(4);
+  });
+
+  it('a tiefling has darkvision and the darkness SLA; a human has neither', () => {
+    const tf = sheetFor('tiefling');
+    expect(tf.senses).toContain('Darkvision 60 ft');
+    expect(tf.spellLikeAbilities.map((a) => a.name)).toContain('Darkness');
+    const human = sheetFor('human');
+    expect(human.senses).toEqual([]);
+    expect(human.spellLikeAbilities).toEqual([]);
+  });
+});
+
 describe('multiple resource pools per class', () => {
   it('paladin has lay-on-hands and smite-evil pools', () => {
     let d = newCharacter('t-pal-pools', 'Seelah');

@@ -18,6 +18,12 @@ export interface RacialTraitDef {
   /** Racial energy resistance (aasimar, tiefling, the elemental-blooded races). Structured so the
    *  play sheet can subtract it, rather than only describing it. */
   energyResistance?: { type: EnergyType; amount: number }[];
+  /** Special senses this trait grants ("Darkvision 60 ft", "Low-light vision", "Scent"), surfaced
+   *  as badges on the play mat so a player doesn't have to remember them. */
+  senses?: string[];
+  /** Innate spell-like abilities. `uses` is per-day, or 'at-will'; a per-day count is tracked as a
+   *  pool on the mat so a player can tick each casting off (reset by Rest). */
+  spellLikeAbilities?: { name: string; uses: number | 'at-will'; note?: string }[];
 }
 
 export interface AltTraitDef extends RacialTraitDef {

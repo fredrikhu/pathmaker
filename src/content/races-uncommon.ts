@@ -11,7 +11,7 @@ export const UNCOMMON_RACES: RaceDef[] = [
     desc: 'The abandoned daughters of hags, changelings are marked by mismatched eyes and a whispering call to their monstrous heritage.',
     size: 'medium', speed: 30, abilityMods: { wis: 2, cha: 2, con: -2 },
     traits: [
-      { id: 'changeling-darkvision', name: 'Darkvision', desc: 'See in the dark up to 60 feet.' },
+      { id: 'changeling-darkvision', name: 'Darkvision', desc: 'See in the dark up to 60 feet.', senses: ['Darkvision 60 ft'] },
       { id: 'changeling-armor', name: 'Natural Armor', desc: '+1 natural armor bonus.', effects: [{ target: 'ac', type: 'natural-armor', value: 1, note: 'Natural Armor (Changeling)' }] },
       { id: 'changeling-claws', name: 'Claws', desc: 'Two claw attacks dealing 1d4 damage each.' },
       { id: 'changeling-heritage', name: 'Hag Heritage', desc: 'One trait inherited from your hag mother (a bonus to melee damage, a save, a skill, or similar depending on the hag type).' },
@@ -25,11 +25,11 @@ export const UNCOMMON_RACES: RaceDef[] = [
     desc: 'Grim, gray dwarves of the deep earth — dour, cruel, and enduring, shaped by ages underground.',
     size: 'medium', speed: 20, speedNeverReduced: true, abilityMods: { con: 2, wis: 2, cha: -4 },
     traits: [
-      { id: 'duergar-darkvision', name: 'Superior Darkvision', desc: 'See in the dark up to 120 feet.' },
+      { id: 'duergar-darkvision', name: 'Superior Darkvision', desc: 'See in the dark up to 120 feet.', senses: ['Darkvision 120 ft'] },
       { id: 'duergar-slow', name: 'Slow and Steady', desc: 'Base speed 20 ft, never modified by armor or encumbrance.' },
       { id: 'duergar-stability', name: 'Stability', desc: '+4 racial bonus to CMD against bull rush and trip while on solid ground.', effects: [{ target: 'cmd', type: 'racial', value: 4, note: 'Stability (Duergar)', condition: 'vs bull rush / trip while on the ground' }] },
       { id: 'duergar-immunities', name: 'Duergar Immunities', desc: 'Immune to paralysis, phantasms, and poison; +2 racial bonus on saves against spells and spell-like abilities.', effects: [{ target: 'save:all', type: 'racial', value: 2, note: 'Duergar Immunities', condition: 'vs spells and spell-like abilities' }] },
-      { id: 'duergar-sla', name: 'Spell-Like Abilities', desc: 'Enlarge person and invisibility once each per day (self only).' },
+      { id: 'duergar-sla', name: 'Spell-Like Abilities', desc: 'Enlarge person and invisibility once each per day (self only).', spellLikeAbilities: [{ name: 'Enlarge Person', uses: 1, note: 'self only' }, { name: 'Invisibility', uses: 1, note: 'self only' }] },
       { id: 'duergar-light-sens', name: 'Light Sensitivity', desc: 'Dazzled in bright light.' },
     ],
     altTraits: [],
@@ -41,7 +41,7 @@ export const UNCOMMON_RACES: RaceDef[] = [
     desc: 'Aquatic descendants of humans fleshwarped by aboleths, gillmen live between land and the crushing deep.',
     size: 'medium', speed: 30, speeds: { swim: 30 }, abilityMods: { con: 2, cha: 2, wis: -2 },
     traits: [
-      { id: 'gillman-low-light', name: 'Low-Light Vision', desc: 'See twice as far as humans in dim light.' },
+      { id: 'gillman-low-light', name: 'Low-Light Vision', desc: 'See twice as far as humans in dim light.', senses: ['Low-light vision'] },
       { id: 'gillman-amphibious', name: 'Amphibious', desc: 'Breathe both air and water; a 30-ft swim speed and Swim is always a class skill.' },
       { id: 'gillman-water-dep', name: 'Water Dependent', desc: 'Must submerge in water once per day or begin to suffocate.' },
       { id: 'gillman-enchant', name: 'Enchantment Resistance', desc: '+2 on saves against non-aboleth enchantments, but −2 against aboleth ones.', effects: [{ target: 'save:all', type: 'racial', value: 2, note: 'Enchantment Resistance', condition: 'vs non-aboleth enchantment' }] },
@@ -55,7 +55,7 @@ export const UNCOMMON_RACES: RaceDef[] = [
     desc: 'Small, tree-dwelling frog-folk of the swamps and rainforests — shy, watchful, and quick to hide.',
     size: 'small', speed: 30, speeds: { climb: 20 }, abilityMods: { dex: 2, wis: 2, str: -2 },
     traits: [
-      { id: 'grippli-darkvision', name: 'Darkvision', desc: 'See in the dark up to 60 feet.' },
+      { id: 'grippli-darkvision', name: 'Darkvision', desc: 'See in the dark up to 60 feet.', senses: ['Darkvision 60 ft'] },
       { id: 'grippli-climb', name: 'Climb Speed', desc: 'A 20-ft climb speed (with a +8 racial bonus on Climb checks).' },
       { id: 'grippli-camouflage', name: 'Camouflage', desc: '+4 racial bonus on Stealth checks in marshes and forests.' },
       { id: 'grippli-swamp', name: 'Swamp Stride', desc: 'Move through difficult swamp terrain at normal speed.' },
@@ -70,7 +70,7 @@ export const UNCOMMON_RACES: RaceDef[] = [
     desc: 'Shapeshifting fox-folk who wear a single human guise, prizing loyalty, mischief, and clever storytelling.',
     size: 'medium', speed: 30, abilityMods: { dex: 2, cha: 2, str: -2 },
     traits: [
-      { id: 'kitsune-low-light', name: 'Low-Light Vision', desc: 'See twice as far as humans in dim light.' },
+      { id: 'kitsune-low-light', name: 'Low-Light Vision', desc: 'See twice as far as humans in dim light.', senses: ['Low-light vision'] },
       { id: 'kitsune-change', name: 'Change Shape', desc: 'Assume a fixed human form as a standard action (+10 on Disguise to appear human).' },
       { id: 'kitsune-bite', name: 'Natural Weapon', desc: 'A bite attack dealing 1d4 damage (true form only).' },
       { id: 'kitsune-agile', name: 'Agile', desc: '+2 racial bonus on Acrobatics checks.', effects: [{ target: 'skill:acrobatics', type: 'racial', value: 2, note: 'Agile (Kitsune)' }] },
@@ -85,7 +85,7 @@ export const UNCOMMON_RACES: RaceDef[] = [
     desc: 'Graceful fish-tailed folk of the seas — proud, beautiful, and nearly helpless out of the water.',
     size: 'medium', speed: 5, speeds: { swim: 50 }, abilityMods: { dex: 2, con: 2, cha: 2 },
     traits: [
-      { id: 'merfolk-low-light', name: 'Low-Light Vision', desc: 'See twice as far as humans in dim light.' },
+      { id: 'merfolk-low-light', name: 'Low-Light Vision', desc: 'See twice as far as humans in dim light.', senses: ['Low-light vision'] },
       { id: 'merfolk-swim', name: 'Aquatic & Swim', desc: 'A 50-ft swim speed; land speed is only 5 ft (they drag themselves ashore).' },
       { id: 'merfolk-amphibious', name: 'Amphibious', desc: 'Breathe both air and water.' },
       { id: 'merfolk-armor', name: 'Natural Armor', desc: '+2 natural armor bonus.', effects: [{ target: 'ac', type: 'natural-armor', value: 2, note: 'Natural Armor (Merfolk)' }] },
@@ -100,7 +100,7 @@ export const UNCOMMON_RACES: RaceDef[] = [
     desc: 'Serpentine humanoids bred by nagas as servitors, proud and dutiful, with scaled hides and reptilian grace.',
     size: 'medium', speed: 30, abilityMods: { str: 2, cha: 2, int: -2 },
     traits: [
-      { id: 'nagaji-low-light', name: 'Low-Light Vision', desc: 'See twice as far as humans in dim light.' },
+      { id: 'nagaji-low-light', name: 'Low-Light Vision', desc: 'See twice as far as humans in dim light.', senses: ['Low-light vision'] },
       { id: 'nagaji-armor', name: 'Natural Armor', desc: '+1 natural armor bonus from scaly flesh.', effects: [{ target: 'ac', type: 'natural-armor', value: 1, note: 'Natural Armor (Nagaji)' }] },
       { id: 'nagaji-resistant', name: 'Resistant', desc: '+2 racial bonus on saves against mind-affecting effects and poison.', effects: [{ target: 'save:all', type: 'racial', value: 2, note: 'Resistant (Nagaji)', condition: 'vs mind-affecting and poison' }] },
       { id: 'nagaji-senses', name: "Serpent's Sense", desc: '+2 racial bonus on Perception, and +2 on Handle Animal with reptiles.', effects: [{ target: 'skill:perception', type: 'racial', value: 2, note: "Serpent's Sense" }] },
@@ -114,7 +114,7 @@ export const UNCOMMON_RACES: RaceDef[] = [
     desc: 'Reincarnating blue-skinned mystics who carry the faint echoes of their many past lives.',
     size: 'medium', speed: 30, abilityMods: { int: 2, wis: 2, con: -2 },
     traits: [
-      { id: 'samsaran-low-light', name: 'Low-Light Vision', desc: 'See twice as far as humans in dim light.' },
+      { id: 'samsaran-low-light', name: 'Low-Light Vision', desc: 'See twice as far as humans in dim light.', senses: ['Low-light vision'] },
       { id: 'samsaran-lifebound', name: 'Lifebound', desc: '+2 racial bonus on saves against death effects, negative energy, and to remove negative levels.', effects: [{ target: 'save:all', type: 'racial', value: 2, note: 'Lifebound', condition: 'vs death and negative energy' }] },
       { id: 'samsaran-shards', name: 'Shards of the Past', desc: 'Choose two skills; gain a +2 racial bonus on each, and they are always class skills (echoes of past lives).' },
       { id: 'samsaran-magic', name: 'Samsaran Magic', desc: 'Comprehend languages, deathwatch, and stabilize once each per day with Cha 11+.' },
@@ -128,7 +128,7 @@ export const UNCOMMON_RACES: RaceDef[] = [
     desc: 'Winged, nocturnal humanoids fiercely defensive of their mountain territory and deeply wary of humankind.',
     size: 'medium', speed: 30, speeds: { fly: 60 }, abilityMods: { dex: 2, cha: -2 },
     traits: [
-      { id: 'strix-darkvision', name: 'Darkvision', desc: 'See in the dark up to 60 feet.' },
+      { id: 'strix-darkvision', name: 'Darkvision', desc: 'See in the dark up to 60 feet.', senses: ['Darkvision 60 ft'] },
       { id: 'strix-fly', name: 'Flight', desc: 'A 60-ft fly speed (average maneuverability).' },
       { id: 'strix-nocturnal', name: 'Nocturnal', desc: '+2 racial bonus on Perception and Stealth checks in dim light or darkness.' },
       { id: 'strix-hatred', name: 'Hatred', desc: '+1 racial bonus on attack rolls against humanoids of the human subtype.', effects: [{ target: 'attack:melee', type: 'racial', value: 1, note: 'Hatred (Strix)', condition: 'vs humans' }] },
@@ -143,7 +143,7 @@ export const UNCOMMON_RACES: RaceDef[] = [
     desc: 'Descendants of mortals and jann, sulis are charismatic diplomats who can wreathe their limbs in elemental power.',
     size: 'medium', speed: 30, abilityMods: { str: 2, cha: 2, int: -2 },
     traits: [
-      { id: 'suli-low-light', name: 'Low-Light Vision', desc: 'See twice as far as humans in dim light.' },
+      { id: 'suli-low-light', name: 'Low-Light Vision', desc: 'See twice as far as humans in dim light.', senses: ['Low-light vision'] },
       { id: 'suli-assault', name: 'Elemental Assault', desc: 'Once per day, shroud your limbs in acid, cold, electricity, or fire for +1d6 damage per hit for several rounds.' },
       { id: 'suli-resist', name: 'Energy Resistance', desc: 'Resistance 5 to acid, cold, electricity, and fire.',
         energyResistance: [{ type: 'acid', amount: 5 }, { type: 'cold', amount: 5 }, { type: 'electricity', amount: 5 }, { type: 'fire', amount: 5 }] },
@@ -158,7 +158,7 @@ export const UNCOMMON_RACES: RaceDef[] = [
     desc: 'Deep gnomes of the underworld — dour, secretive, and extraordinarily hard to catch off guard.',
     size: 'small', speed: 20, abilityMods: { dex: 2, wis: 2, str: -2, cha: -4 },
     traits: [
-      { id: 'svirf-darkvision', name: 'Superior Darkvision', desc: 'See in the dark up to 120 feet (plus low-light vision).' },
+      { id: 'svirf-darkvision', name: 'Superior Darkvision', desc: 'See in the dark up to 120 feet (plus low-light vision).', senses: ['Darkvision 120 ft', 'Low-light vision'] },
       { id: 'svirf-defensive', name: 'Defensive Training', desc: '+2 dodge bonus to AC.', effects: [{ target: 'ac', type: 'dodge', value: 2, note: 'Defensive Training (Svirfneblin)' }] },
       { id: 'svirf-saves', name: 'Fortunate', desc: '+2 racial bonus on all saving throws.', effects: [{ target: 'save:all', type: 'racial', value: 2, note: 'Fortunate (Svirfneblin)' }] },
       { id: 'svirf-sr', name: 'Spell Resistance', desc: 'Spell resistance equal to 11 + class levels.' },
@@ -174,7 +174,7 @@ export const UNCOMMON_RACES: RaceDef[] = [
     desc: 'Agile monkey-folk of the deep jungles — playful, curious, and endlessly nimble in the canopy.',
     size: 'medium', speed: 30, speeds: { climb: 20 }, abilityMods: { dex: 2, wis: 2, cha: -2 },
     traits: [
-      { id: 'vanara-low-light', name: 'Low-Light Vision', desc: 'See twice as far as humans in dim light.' },
+      { id: 'vanara-low-light', name: 'Low-Light Vision', desc: 'See twice as far as humans in dim light.', senses: ['Low-light vision'] },
       { id: 'vanara-climb', name: 'Climb Speed', desc: 'A 20-ft climb speed (with a +8 racial bonus on Climb checks).' },
       { id: 'vanara-tail', name: 'Prehensile Tail', desc: 'A grasping tail that can retrieve a stowed object as a swift action (but cannot wield weapons).' },
       { id: 'vanara-nimble', name: 'Nimble', desc: '+2 racial bonus on Acrobatics and Stealth checks.', effects: [{ target: 'skill:acrobatics', type: 'racial', value: 2, note: 'Nimble (Vanara)' }, { target: 'skill:stealth', type: 'racial', value: 2, note: 'Nimble (Vanara)' }] },
@@ -188,7 +188,7 @@ export const UNCOMMON_RACES: RaceDef[] = [
     desc: 'Sensuous, serpent-eyed humanoids whose blood and saliva carry a natural venom.',
     size: 'medium', speed: 30, abilityMods: { dex: 2, cha: 2, wis: -2 },
     traits: [
-      { id: 'vishkanya-low-light', name: 'Low-Light Vision', desc: 'See twice as far as humans in dim light.' },
+      { id: 'vishkanya-low-light', name: 'Low-Light Vision', desc: 'See twice as far as humans in dim light.', senses: ['Low-light vision'] },
       { id: 'vishkanya-poison-use', name: 'Poison Use', desc: 'Never risk poisoning yourself when applying poison.' },
       { id: 'vishkanya-toxic', name: 'Toxic', desc: 'Envenom a weapon with your saliva/blood a few times per day (1d2 Dex damage for several rounds).' },
       { id: 'vishkanya-limber', name: 'Limber', desc: '+2 racial bonus on Escape Artist and Stealth checks.', effects: [{ target: 'skill:escape-artist', type: 'racial', value: 2, note: 'Limber (Vishkanya)' }, { target: 'skill:stealth', type: 'racial', value: 2, note: 'Limber (Vishkanya)' }] },
@@ -205,7 +205,7 @@ export const UNCOMMON_RACES: RaceDef[] = [
     desc: 'Small shadow-touched folk who believe they are made of living darkness, quiet and inscrutable.',
     size: 'small', speed: 20, abilityMods: { dex: 2, int: 2, wis: -2 },
     traits: [
-      { id: 'wayang-darkvision', name: 'Darkvision', desc: 'See in the dark up to 60 feet.' },
+      { id: 'wayang-darkvision', name: 'Darkvision', desc: 'See in the dark up to 60 feet.', senses: ['Darkvision 60 ft'] },
       { id: 'wayang-shadow-resist', name: 'Shadow Resistance', desc: '+2 racial bonus on saves against spells of the shadow subschool.', effects: [{ target: 'save:all', type: 'racial', value: 2, note: 'Shadow Resistance (Wayang)', condition: 'vs shadow subschool' }] },
       { id: 'wayang-lurker', name: 'Lurker', desc: '+2 racial bonus on Perception and Stealth checks.', effects: [{ target: 'skill:perception', type: 'racial', value: 2, note: 'Lurker (Wayang)' }, { target: 'skill:stealth', type: 'racial', value: 2, note: 'Lurker (Wayang)' }] },
       { id: 'wayang-magic', name: 'Shadow Magic', desc: '+1 to the DC of shadow spells you cast; ghost sound, pass without trace, and ventriloquism once each per day with Cha 11+.' },

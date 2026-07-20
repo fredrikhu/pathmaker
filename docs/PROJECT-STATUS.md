@@ -317,8 +317,12 @@ Still open from that audit:
 - **Param feats are computed**: weapon ones (Weapon Focus / Specialization + Greater forms) into the
   per-weapon attack lines, Skill Focus into the skill total, Spell Focus into a per-school DC note.
   Metamagic feats are still descriptive (they don't alter slot cost or DCs).
-- Spell-like abilities, darkvision, energy resistances are **descriptive** (not computed). Skill/save/
-  stat bonuses (racial, feat, trait, class-feature) **are** real effects.
+- Energy resistances **are** structured (they subtract on the typed-damage entry). Spell-like abilities
+  and senses (darkvision/low-light) are not *computed*, but they are now **surfaced on the play mat**:
+  a "Senses & innate abilities" card shows racial senses as badges and innate SLAs as rows, with each
+  SLA's daily uses tracked as a pool (`sla:<trait>:<slug>` key, cleared by Rest). Structured on the
+  racial traits (`senses` / `spellLikeAbilities`) across all four race tiers. Skill/save/stat bonuses
+  (racial, feat, trait, class-feature) **are** real effects.
 - Racial **variant heritages** (Aasimar/Tiefling sub-bloodlines) not modeled — standard heritage only.
 - **Fly/swim/climb** speeds are display-only; only **land speed** is reduced by armor/encumbrance, and
   that reduction doesn't handle non-proficiency or class-feature exceptions.

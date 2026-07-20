@@ -11,7 +11,7 @@ export const EXOTIC_RACES: RaceDef[] = [
     desc: 'Artificial people of flesh over a synthetic frame, androids are logical, emotionally reserved, and driven by nanite-laced blood.',
     size: 'medium', speed: 30, abilityMods: { dex: 2, int: 2, cha: -2 },
     traits: [
-      { id: 'android-darkvision', name: 'Darkvision', desc: 'See in the dark up to 60 feet (plus low-light vision).' },
+      { id: 'android-darkvision', name: 'Darkvision', desc: 'See in the dark up to 60 feet (plus low-light vision).', senses: ['Darkvision 60 ft', 'Low-light vision'] },
       { id: 'android-constructed', name: 'Constructed', desc: 'Count as both humanoid and construct. +4 on saves vs mind-affecting effects, paralysis, poison, and stun; immune to fatigue, exhaustion, disease, sleep, fear, and emotion effects; cannot gain morale bonuses.', effects: [{ target: 'save:all', type: 'racial', value: 4, note: 'Constructed (Android)', condition: 'vs mind-affecting, paralysis, poison, and stun' }] },
       { id: 'android-nanite-surge', name: 'Nanite Surge', desc: 'Once per day as an immediate action, gain a bonus of 3 + character level on any one d20 roll.' },
       { id: 'android-alert', name: 'Alert', desc: '+2 racial bonus on Perception checks.', effects: [{ target: 'skill:perception', type: 'racial', value: 2, note: 'Alert (Android)' }] },
@@ -26,7 +26,7 @@ export const EXOTIC_RACES: RaceDef[] = [
     desc: 'Hulking hyena-headed humanoids, gnolls are pack hunters and raiders with a scavenger’s cunning and cruelty.',
     size: 'medium', speed: 30, abilityMods: { str: 2, con: 2 },
     traits: [
-      { id: 'gnoll-darkvision', name: 'Darkvision', desc: 'See in the dark up to 60 feet.' },
+      { id: 'gnoll-darkvision', name: 'Darkvision', desc: 'See in the dark up to 60 feet.', senses: ['Darkvision 60 ft'] },
       { id: 'gnoll-armor', name: 'Natural Armor', desc: '+1 natural armor bonus from a thick hide.', effects: [{ target: 'ac', type: 'natural-armor', value: 1, note: 'Natural Armor (Gnoll)' }] },
     ],
     altTraits: [],

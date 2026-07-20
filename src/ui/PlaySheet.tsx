@@ -878,6 +878,55 @@ export function PlaySheet({ id }: { id: string }) {
         )}
       </div>
 
+      {/* Senses & innate abilities — a reminder for the things that are easy to forget you have:
+          racial senses (badges) and innate spell-like abilities (daily uses tracked like a pool). */}
+      {(sheet.senses.length > 0 || sheet.spellLikeAbilities.length > 0) && (
+        <div style={{ background: 'var(--color-surface)', borderRadius: 12, padding: 18, marginTop: 18 }}>
+          <div className="micro" style={{ marginBottom: 12 }}>Senses &amp; innate abilities</div>
+          {sheet.senses.length > 0 && (
+            <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', marginBottom: sheet.spellLikeAbilities.length > 0 ? 14 : 0 }}>
+              {sheet.senses.map((s) => (
+                <span key={s} style={{ padding: '5px 12px', borderRadius: 999, fontSize: 12, border: '1px solid var(--color-divider)', color: 'var(--color-text)' }}>{s}</span>
+              ))}
+            </div>
+          )}
+          {sheet.spellLikeAbilities.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {sheet.spellLikeAbilities.map((sla) => {
+                const atWill = sla.uses === 'at-will';
+                const max = atWill ? 0 : (sla.uses as number);
+                const used = usedPoolAt(sla.id);
+                return (
+                  <div key={sla.id} style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                    <span style={{ minWidth: 150, fontSize: 13, fontWeight: 500 }}>{sla.name}</span>
+                    {atWill ? (
+                      <span className="text-muted" style={{ fontSize: 12 }}>at will</span>
+                    ) : (
+                      <>
+                        <div style={{ display: 'flex', gap: 5 }}>
+                          {Array.from({ length: max }).map((_, i) => {
+                            const spent = i < used;
+                            return (
+                              <button key={i} title={spent ? 'restore' : 'use'} onClick={() => setUsedPool(sla.id, spent ? i : i + 1, max)}
+                                style={{ width: 22, height: 22, borderRadius: 6, cursor: 'pointer', border: '1px solid var(--color-divider)', background: spent ? 'transparent' : 'var(--color-accent)', opacity: spent ? 0.5 : 1 }} />
+                            );
+                          })}
+                        </div>
+                        <span className="num text-muted" style={{ fontSize: 12 }}>{max - used}/{max} per day</span>
+                      </>
+                    )}
+                    <span className="text-muted" style={{ fontSize: 11.5 }}>
+                      {sla.source}{sla.note ? ` · ${sla.note}` : ''}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          <p className="text-muted" style={{ fontSize: 11, marginTop: 12 }}>Spell-like abilities behave as the named spell; daily uses reset on Rest.</p>
+        </div>
+      )}
+
       {/* One panel per casting class. A multiclass caster tracks each class separately, because
           the slots, the preparation and the recovery are all per class. */}
       {sheet.casting.filter((b) => b.slots?.some((n) => n > 0)).map((block) => {

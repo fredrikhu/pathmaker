@@ -3,7 +3,7 @@ import type {
   Ability, Alignment, CharacterDoc, ChoiceSlot, Effect, Issue, Resolution,
   Sheet, SlotOption, Stat,
 } from './types';
-import type { AttackLine, BreakdownLine, CastingBlock, ConditionalBonus, DamageReduction, Defenses, EnergyAbsorption, EnergyResistance, GrantedFeat, InventoryItem, PlayState, ProgressionRow, ResourcePool } from './types';
+import type { AttackLine, BreakdownLine, CastingBlock, ConditionalBonus, DamageReduction, Defenses, EnergyAbsorption, EnergyResistance, GrantedFeat, InventoryItem, PlayState, ProgressionRow, ResourcePool, SpellLikeAbility } from './types';
 import { ABILITIES, abilityMod } from './types';
 import { evalPredicate, explainFailure, type PredicateCtx } from './predicates';
 import { stack, type Contribution } from './stack';
@@ -140,6 +140,23 @@ function gatherDefenses(dec: Decisions, classes: ClassEntry[], play: PlayState |
  *  Energy (Fire)" — for a defenses readout that names the ward without the caster-level noise. */
 function labelBase(label: string): string {
   return label.replace(/, CL \d+\)/, ')');
+}
+
+/** Special senses and innate spell-like abilities from the character's active racial traits,
+ *  collected for the play mat's reminder card. SLA ids are stable so daily uses can be tracked. */
+function gatherInnate(dec: Decisions): { senses: string[]; spellLikeAbilities: SpellLikeAbility[] } {
+  const { standard, alternates } = activeRacialTraits(dec);
+  const source = (dec.raceId ? C.raceById.get(dec.raceId)?.name : '') ?? '';
+  const senses: string[] = [];
+  const spellLikeAbilities: SpellLikeAbility[] = [];
+  for (const t of [...standard, ...alternates]) {
+    for (const s of t.senses ?? []) if (!senses.includes(s)) senses.push(s);
+    for (const sla of t.spellLikeAbilities ?? []) {
+      const slug = sla.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+      spellLikeAbilities.push({ id: `sla:${t.id}:${slug}`, name: sla.name, uses: sla.uses, ...(sla.note ? { note: sla.note } : {}), source });
+    }
+  }
+  return { senses, spellLikeAbilities };
 }
 
 function activeRacialTraits(dec: Decisions): { standard: C.RacialTraitDef[]; alternates: C.AltTraitDef[] } {
@@ -897,6 +914,7 @@ export function resolve(doc: CharacterDoc): Resolution {
     inventory,
     worn: wornItemsWithStatus(doc).map(({ item, active }) =>
       ({ id: item.id, name: item.name, slot: item.slot, cost: item.cost, desc: item.desc, active })),
+    ...gatherInnate(dec),
     summaryLine,
   };
   return { sheet, slots, issues, steps };
