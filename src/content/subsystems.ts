@@ -34,6 +34,15 @@ export const BARBARIAN_RAGE_POWERS: Opt[] = [
   opt('internal-fortitude', 'Internal Fortitude', 'Immune to sickened and nauseated while raging.'),
   opt('roused-anger', 'Roused Anger', 'Enter a rage even while fatigued.'),
   opt('fearless-rage', 'Fearless Rage', 'Immune to the shaken and frightened conditions while raging.'),
+  opt('clear-mind', 'Clear Mind', 'Reroll a failed Will save while raging, once per rage.'),
+  opt('mighty-swing', 'Mighty Swing', 'Automatically confirm a critical hit, once per rage.'),
+  opt('moment-of-clarity', 'Moment of Clarity', 'Act for one round as if you were not raging.'),
+  opt('raging-climber', 'Raging Climber', 'Add your barbarian level to Climb checks while raging.'),
+  opt('raging-leaper', 'Raging Leaper', 'Add your barbarian level to Acrobatics checks to jump while raging.'),
+  opt('raging-swimmer', 'Raging Swimmer', 'Add your barbarian level to Swim checks while raging.'),
+  opt('guarded-life', 'Guarded Life', 'When brought below 0 hp, convert some lethal damage to nonlethal and stay stable.'),
+  opt('elemental-rage', 'Elemental Rage', 'Your melee attacks deal extra energy damage while raging.'),
+  opt('greater-beast-totem', 'Greater Beast Totem', 'Your claws grow and you gain pounce while raging (requires Beast Totem).'),
 ];
 
 export const ROGUE_TALENTS: Opt[] = [
@@ -60,6 +69,13 @@ export const ROGUE_TALENTS: Opt[] = [
   opt('sniper-eye', "Sniper's Eye", 'Deliver sneak attacks at range and ignore some concealment.'),
   opt('distracting-attack', 'Distracting Attack', 'Make a sneak-attacked foe flat-footed to an ally.'),
   opt('cunning-trigger', 'Cunning Trigger', 'Trigger a known trap as a swift action from a distance.'),
+  opt('befuddling-strike', 'Befuddling Strike', 'A sneak-attacked foe takes a penalty on attack rolls against you.'),
+  opt('offensive-defense', 'Offensive Defense', 'A sneak attack grants you a scaling dodge bonus to AC.'),
+  opt('peerless-maneuver', 'Peerless Maneuver', 'Reroll a failed Acrobatics check, once per day.'),
+  opt('terrain-mastery', 'Terrain Mastery', 'Ignore difficult terrain in a chosen environment.'),
+  opt('canny-observer', 'Canny Observer', '+4 on Perception to hear conversation or find hidden objects.'),
+  opt('fast-fingers', 'Fast Fingers', 'Reroll a failed Sleight of Hand check, once per day.'),
+  opt('honeyed-words', 'Honeyed Words', 'Reroll a failed Bluff check, once per day.'),
 ];
 
 export const ROGUE_ADVANCED_TALENTS: Opt[] = [
@@ -196,6 +212,15 @@ export const ALCHEMIST_DISCOVERIES: Opt[] = [
   opt('vestigial-arm', 'Vestigial Arm', 'Grow an extra arm that can hold or use items.'),
   opt('tumor-familiar', 'Tumor Familiar', 'Grow a familiar that can detach and reattach.'),
   opt('wings', 'Wings', 'Grow wings granting a fly speed for a time.'),
+  opt('dispelling-bomb', 'Dispelling Bomb', 'Bombs act as a targeted dispel magic on the primary target.'),
+  opt('stink-bomb', 'Stink Bomb', 'Bombs fill their splash radius with nauseating gas.'),
+  opt('healing-bomb', 'Healing Bomb', 'Throw a bomb of your cure extract to heal instead of harm.'),
+  opt('tanglefoot-bomb', 'Tanglefoot Bomb', 'Bombs entangle the target like a tanglefoot bag.'),
+  opt('delayed-bomb', 'Delayed Bomb', 'Set a bomb to detonate on a later round.'),
+  opt('greater-mutagen', 'Greater Mutagen', 'Your mutagen boosts two physical abilities and gives two skill bonuses.'),
+  opt('grand-mutagen', 'Grand Mutagen', 'Your mutagen boosts all three physical abilities.'),
+  opt('combine-extracts', 'Combine Extracts', 'Prepare two extracts in a single higher-level slot.'),
+  opt('mummification', 'Mummification', 'Preserve your body, gaining DR and immunities of the undead.'),
 ];
 
 export const MAGUS_ARCANA: Opt[] = [
@@ -211,6 +236,12 @@ export const MAGUS_ARCANA: Opt[] = [
   opt('familiar', 'Familiar', 'Gain an arcane familiar.'),
   opt('hasted-assault', 'Hasted Assault', 'Spend pool to gain the benefits of haste briefly.'),
   opt('ghost-blade', 'Ghost Blade', 'Your black blade or weapon can strike incorporeal foes.'),
+  opt('bane-blade', 'Bane Blade', 'Spend pool to give your weapon the bane property against a chosen foe type.'),
+  opt('devoted-blade', 'Devoted Blade', 'Spend pool to add an alignment property to your weapon.'),
+  opt('reflection', 'Reflection', 'Spend pool to reflect a spell back at its caster as an immediate action.'),
+  opt('wand-wielder', 'Wand Wielder', 'Activate a wand in place of a spell during spellstrike or spell combat.'),
+  opt('dispelling-strike', 'Dispelling Strike', 'Spend pool to add a targeted dispel magic to a spellstrike.'),
+  opt('broad-study', 'Broad Study', 'Deliver spells from another of your class lists through spellstrike.'),
 ];
 
 export const CAVALIER_ORDERS: Opt[] = [
@@ -282,6 +313,14 @@ export const WITCH_HEXES: Opt[] = [
   opt('vision', 'Vision', 'Grant a target a prophetic vision by touch.'),
   opt('nails', 'Nails', 'Grow claws that deal scaling damage.'),
   opt('disguise-hex', 'Disguise', 'Alter your appearance at will as disguise self.'),
+  opt('blight', 'Blight', 'Wither the plants and land in an area over time (major hex).'),
+  opt('hoarfrost', 'Hoarfrost', 'Coat a foe in frost that deals cold damage each round (major hex).'),
+  opt('agony', 'Agony', 'Wrack a foe with debilitating pain, leaving it nauseated (major hex).'),
+  opt('beast-of-ill-omen', 'Beast of Ill Omen', 'Send your familiar to curse a foe with misfortune (major hex).'),
+  opt('coven', 'Coven', 'Join with other witches and hags to work greater magic together.'),
+  opt('scar', 'Scar', 'Mark a creature to hex it at any distance.'),
+  opt('life-giver', 'Life Giver', 'Once per day, restore a dead creature to life (grand hex).'),
+  opt('eternal-slumber', 'Eternal Slumber', 'Put a foe into a sleep from which it cannot wake normally (grand hex).'),
 ];
 
 export const SUMMONER_EIDOLON_FORMS: Opt[] = [

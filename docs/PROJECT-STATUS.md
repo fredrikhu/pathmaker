@@ -24,9 +24,11 @@ and breadth rather than correctness.
 **In progress — the "just more data" breadth pass** (working the content catalogues, in order):
 **① Feats — done** (the whole CRB list, ~173 feats). **② Spells — done** (common-spell breadth,
 ~270 spells; per the user's scope choice this is the common spells at each level/list, not the
-exhaustive ~500). **③ subsystem option lists**, **④ traits & equipment** are next, each verified and
-test-gated. Scope boundary is the Core Rulebook plus the named expansions already in (UC firearms,
-APG classes); splatbook-wide breadth stays out.
+exhaustive ~500). **③ Subsystem option lists — done** (rounded the flagship pick-lists out to solid
+core coverage: the CRB barbarian rage powers completed, plus fuller rogue talents, alchemist
+discoveries, magus arcana and witch hexes; these are descriptive picks with no engine numbers).
+**④ Traits & equipment** is next, verified and test-gated. Scope boundary is the Core Rulebook plus
+the named expansions already in (UC firearms, APG classes); splatbook-wide breadth stays out.
 
 Everything below is the durable detail. When resuming, read this file, then `docs/DESIGN.md`.
 
