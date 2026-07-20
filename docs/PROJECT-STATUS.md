@@ -6,29 +6,38 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 
 ## ▶ Resume here (last session end)
 
-**All five roadmap phases are done and committed** (branch `master`, working tree clean, 471 tests
-passing; run `npx tsc --noEmit && npx vitest run && npm run build` to confirm). Pathmaker covers the
-full arc: build a character 1–20, play it at the table (HP, spells, pools, conditions), run the clock
-(rounds, timed effects, rest), and track consumables/charges/encumbrance live.
+**Last session: the "just more data" breadth pass is COMPLETE** (branch `master`, working tree clean,
+477 tests passing; run `npx tsc --noEmit && npx vitest run && npm run build` to confirm). The content
+catalogues were worked to core-scope coverage in order, each verified and test-gated:
+- **① Feats** — the whole CRB list (~173 feats). Simple/Martial Weapon Proficiency were wired into
+  `proficiencyCtx` so they actually clear the −4 non-proficiency penalty.
+- **② Spells** — common-spell breadth (~130 → ~270). Per the user's scope choice this is the common
+  spells players reach for at each level/list, **not** the exhaustive ~500. The five ability-boost
+  buffs, Longstrider, the Heroism line and Good Hope are computed; Shocking Grasp / inflict-wounds /
+  Sound Burst / etc. carry damage hooks.
+- **③ Subsystem option lists** — flagship pick-lists rounded out to solid core coverage (descriptive,
+  no engine numbers).
+- **④ Traits & equipment** — common core/APG traits + the full Core armor table and a fuller
+  adventuring-gear list.
 
-Since the phases closed: magic items and per-weapon combat — **feat parameters** (Weapon/Skill/Spell
-Focus store their chosen weapon/skill/school), **masterwork & magic enhancement**, **named weapon and
-armour special abilities**, the **worn-item catalogue** with body slots enforced, **Power Attack and
-two-weapon fighting** as play-sheet toggles, and **multiclass**.
+Scope boundary was the Core Rulebook plus the named expansions already in (UC firearms, APG classes);
+splatbook-wide breadth stays out. **A note for next time:** the WebFetch summarizer corrupts details
+(it mis-stated Stunning Fist's BAB and invented prerequisites), so verified metadata was authored from
+knowledge and fetches used only as a completeness cross-check.
 
-From here the work is breadth and polish rather than new phases. The open items are the deferral
-backlog below. **The blocked-on-verification list is now empty** — every item that was held for an
-untrustworthy source has been resolved. What remains is deliberately out-of-scope classes and races,
-and breadth rather than correctness.
+**All five roadmap phases are done and committed.** Pathmaker covers the full arc: build a character
+1–20, play it at the table (HP, spells, pools, conditions), run the clock (rounds, timed effects,
+rest), and track consumables/charges/encumbrance live. Since the phases closed: magic items and
+per-weapon combat — **feat parameters** (Weapon/Skill/Spell Focus store their chosen weapon/skill/
+school), **masterwork & magic enhancement**, **named weapon and armour special abilities**, the
+**worn-item catalogue** with body slots enforced, **Power Attack and two-weapon fighting** as
+play-sheet toggles, and **multiclass**.
 
-**Done — the "just more data" breadth pass** (worked the content catalogues in order, each verified
-and test-gated): **① Feats** (the whole CRB list, ~173 feats). **② Spells** (common-spell breadth,
-~270 spells; per the user's scope choice this is the common spells at each level/list, not the
-exhaustive ~500). **③ Subsystem option lists** (rounded the flagship pick-lists out to solid core
-coverage). **④ Traits & equipment** (common core/APG traits + the full Core armor table and a fuller
-adventuring-gear list). Scope boundary was the Core Rulebook plus the named expansions already in
-(UC firearms, APG classes); splatbook-wide breadth stays out. The "just more data" category is
-complete; what remains open is the out-of-scope classes/races and the fidelity notes below.
+**What's left is not "just data."** The blocked-on-verification list is empty — every item held for an
+untrustworthy source has been resolved. The open backlog is deliberately out-of-scope classes and
+races (Vigilante/Omdura, Occult/Alternate/NPC/Unchained, monster/advanced races) and the fidelity
+gaps that would need engine work (Improved Critical's threat-range, bonus domain spells per-spell,
+per-list spell levels) — see the deferral backlog below.
 
 Everything below is the durable detail. When resuming, read this file, then `docs/DESIGN.md`.
 
