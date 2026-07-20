@@ -914,6 +914,37 @@ describe('source-dependent features appear in the progression by chosen source',
     // Higher-level patron spells don't appear before their level.
     expect(resolve(atLevel(d, 8)).sheet.progression[7].features).not.toContain('Patron Spell (5th): Cone of Cold');
   });
+  it('a draconic sorcerer shows its bloodline arcana at 1 and bonus spells (Mage Armor at 3, Wish at 19)', () => {
+    let d = newCharacter('t-sorc', 'Seoni');
+    d = withDecision(d, 'ability-base', { str: 8, dex: 12, con: 12, int: 10, wis: 10, cha: 16 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['cha']);
+    d = withDecision(d, 'alignment', 'N');
+    d = withDecision(d, 'class', 'sorcerer');
+    d = withDecision(d, 'class-choices', { bloodline: ['draconic'] });
+    const r = resolve(atLevel(d, 19));
+    expect(r.sheet.progression[0].features).toContain('Bloodline Arcana');            // level 1
+    expect(r.sheet.progression[2].features).toContain('Bonus Spell (1st): Mage Armor'); // level 3
+    expect(r.sheet.progression[18].features).toContain('Bonus Spell (9th): Wish');       // level 19
+    // Bonus spells don't appear before their level.
+    expect(resolve(atLevel(d, 4)).sheet.progression[2].features).toContain('Bonus Spell (1st): Mage Armor');
+    expect(resolve(atLevel(d, 4)).sheet.progression.length).toBe(4); // no 5th-level bonus spell yet
+  });
+  it('an abyssal bloodrager shows its bonus spells (1st at 7, 4th at 16) and no bloodline arcana', () => {
+    let d = newCharacter('t-br', 'Crunch');
+    d = withDecision(d, 'ability-base', { str: 16, dex: 12, con: 14, int: 8, wis: 10, cha: 12 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['str']);
+    d = withDecision(d, 'alignment', 'CN');
+    d = withDecision(d, 'class', 'bloodrager');
+    d = withDecision(d, 'class-choices', { bloodline: ['abyssal'] });
+    const r = resolve(atLevel(d, 16));
+    expect(r.sheet.progression[6].features).toContain('Bonus Spell (1st): Ray of Enfeeblement'); // level 7
+    expect(r.sheet.progression[15].features).toContain('Bonus Spell (4th): Stoneskin');          // level 16
+    expect(r.sheet.progression.some((p) => p.features.includes('Bloodline Arcana'))).toBe(false);
+    // First bonus spell isn't granted before 7th.
+    expect(resolve(atLevel(d, 6)).sheet.progression[5].features).not.toContain('Bonus Spell (1st): Ray of Enfeeblement');
+  });
   it('an alchemist gains a grand-discovery pick at level 20, and not before', () => {
     let d = newCharacter('t-alch', 'Damiel');
     d = withDecision(d, 'ability-base', { str: 10, dex: 14, con: 12, int: 16, wis: 10, cha: 8 });

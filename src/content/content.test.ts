@@ -236,6 +236,8 @@ describe('source-dependent features (bloodline powers, order abilities)', () => 
       ['shaman spirit', C.SHAMAN_SPIRIT_ABILITIES],
       ['shifter aspect', C.SHIFTER_ASPECT_ABILITIES],
       ['witch patron', C.WITCH_PATRON_SPELLS],
+      ['sorcerer bloodline spells', C.SORCERER_BLOODLINE_SPELLS],
+      ['bloodrager bloodline spells', C.BLOODRAGER_BLOODLINE_SPELLS],
     ];
     for (const [label, map] of sources) {
       for (const [sid, feats] of Object.entries(map)) {
@@ -277,6 +279,25 @@ describe('source-dependent features (bloodline powers, order abilities)', () => 
     for (const id of abilityIds) expect(optionIds.has(id), `shifter abilities for unknown aspect "${id}"`).toBe(true);
     for (const [aid, feats] of Object.entries(C.SHIFTER_ASPECT_ABILITIES)) {
       expect(feats.map((f) => f.level), `shifter ${aid} levels`).toEqual([1, 4, 8, 15]);
+    }
+  });
+  it('every sorcerer bloodline has arcana + bonus spells at 1/3/5/7/9/11/13/15/17/19, keyed to a real bloodline', () => {
+    const optionIds = new Set(C.BLOODLINES.map((b) => b.id));
+    const spellIds = new Set(Object.keys(C.SORCERER_BLOODLINE_SPELLS));
+    for (const id of optionIds) expect(spellIds.has(id), `sorcerer bloodline "${id}" has no arcana/bonus spells`).toBe(true);
+    for (const id of spellIds) expect(optionIds.has(id), `sorcerer bloodline spells for unknown bloodline "${id}"`).toBe(true);
+    for (const [bid, feats] of Object.entries(C.SORCERER_BLOODLINE_SPELLS)) {
+      expect(feats.map((f) => f.level), `sorcerer ${bid} levels`).toEqual([1, 3, 5, 7, 9, 11, 13, 15, 17, 19]);
+      expect(feats[0].name, `sorcerer ${bid} first entry is the arcana`).toBe('Bloodline Arcana');
+    }
+  });
+  it('every bloodrager bloodline has bonus spells at 7/10/13/16 (no arcana), keyed to a real bloodline option', () => {
+    const optionIds = new Set(C.BLOODRAGER_BLOODLINES.map((o) => o.id));
+    const spellIds = new Set(Object.keys(C.BLOODRAGER_BLOODLINE_SPELLS));
+    for (const id of optionIds) expect(spellIds.has(id), `bloodrager bloodline "${id}" has no bonus spells`).toBe(true);
+    for (const id of spellIds) expect(optionIds.has(id), `bloodrager bonus spells for unknown bloodline "${id}"`).toBe(true);
+    for (const [bid, feats] of Object.entries(C.BLOODRAGER_BLOODLINE_SPELLS)) {
+      expect(feats.map((f) => f.level), `bloodrager ${bid} levels`).toEqual([7, 10, 13, 16]);
     }
   });
   it('every witch patron adds a bonus spell at 2/4/6/8/10/12/14/16/18, keyed to a real patron option', () => {

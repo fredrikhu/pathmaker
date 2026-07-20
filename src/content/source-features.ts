@@ -438,3 +438,56 @@ export const WITCH_PATRON_SPELLS: Record<string, SourceFeature[]> = {
   strength: patron('Divine Favor', "Bull's Strength", 'Greater Magic Weapon', 'Divine Power', 'Righteous Might', "Mass Bull's Strength", 'Giant Form I', 'Giant Form II', 'Shapechange'),
   winter: patron('Unshakable Chill', 'Resist Energy', 'Ice Storm', 'Wall of Ice', 'Cone of Cold', 'Freezing Sphere', 'Control Weather', 'Polar Ray', 'Polar Midnight'),
 };
+
+/** Sorcerer bloodline arcana + bonus spells, keyed by bloodline id. The arcana (a passive) is
+ *  gained at 1st level; the nine bonus spells are added to spells known at 3rd level and every two
+ *  levels thereafter (3/5/7/9/11/13/15/17/19), of spell level 1st–9th. Verified against the CRB
+ *  bloodline entries (d20pfsrd). The level-1 bloodline *power* is authored separately in
+ *  SORCERER_BLOODLINE_POWERS; both surface together at 1st level. */
+const ORDSP = ['1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th', '9th'];
+const sorcBloodline = (arcana: string, ...spells: string[]): SourceFeature[] => [
+  { level: 1, name: 'Bloodline Arcana', desc: arcana },
+  ...spells.map((s, i) => ({ level: 3 + i * 2, name: `Bonus Spell (${ORDSP[i]}): ${s}`, desc: `Your bloodline adds ${s} to your spells known.` })),
+];
+
+export const SORCERER_BLOODLINE_SPELLS: Record<string, SourceFeature[]> = {
+  draconic: sorcBloodline(
+    "Whenever you cast a spell that deals energy damage of your bloodline's energy type, it deals +1 point of damage per die.",
+    'Mage Armor', 'Resist Energy', 'Fly', 'Fear', 'Spell Resistance', 'Form of the Dragon I', 'Form of the Dragon II', 'Form of the Dragon III', 'Wish'),
+  arcane: sorcBloodline(
+    "Whenever you apply a metamagic feat that increases the spell's slot by at least one level, that spell's save DC increases by +1.",
+    'Identify', 'Invisibility', 'Dispel Magic', 'Dimension Door', 'Overland Flight', 'True Seeing', 'Greater Teleport', 'Power Word Stun', 'Wish'),
+  celestial: sorcBloodline(
+    'Whenever you cast a summoning spell, the summoned creatures gain DR/evil equal to half your sorcerer level (minimum 1).',
+    'Bless', 'Resist Energy', 'Magic Circle against Evil', 'Remove Curse', 'Flame Strike', 'Greater Dispel Magic', 'Banishment', 'Sunburst', 'Gate'),
+  infernal: sorcBloodline(
+    "Whenever you cast a spell of the charm subschool, increase the spell's save DC by +2.",
+    'Protection from Good', 'Scorching Ray', 'Suggestion', 'Charm Monster', 'Dominate Person', 'Planar Binding', 'Greater Teleport', 'Power Word Stun', 'Meteor Swarm'),
+  abyssal: sorcBloodline(
+    'Whenever you cast a summoning spell, the summoned creatures gain DR/good equal to half your sorcerer level (minimum 1).',
+    'Cause Fear', "Bull's Strength", 'Rage', 'Stoneskin', 'Dismissal', 'Transformation', 'Greater Teleport', 'Unholy Aura', 'Summon Monster IX'),
+  fey: sorcBloodline(
+    "Whenever you cast a spell of the compulsion subschool, increase the spell's save DC by +2.",
+    'Entangle', 'Hideous Laughter', 'Deep Slumber', 'Poison', 'Tree Stride', 'Mislead', 'Phase Door', 'Irresistible Dance', 'Shapechange'),
+};
+
+/** Bloodrager bloodline bonus spells, keyed by bloodline id. A bloodrager adds four spells to
+ *  spells known at 7th/10th/13th/16th level (spell level 1st–4th). Bloodrager bloodlines have NO
+ *  bloodline arcana (only sorcerers do) — verified against the ACG bloodrager (d20pfsrd). Bloodline
+ *  powers are authored separately in BLOODRAGER_BLOODLINE_POWERS. */
+const BR_SPELL_LEVELS = [7, 10, 13, 16];
+const brBloodline = (...spells: string[]): SourceFeature[] =>
+  spells.map((s, i) => ({ level: BR_SPELL_LEVELS[i], name: `Bonus Spell (${ORDSP[i]}): ${s}`, desc: `Your bloodline adds ${s} to your spells known.` }));
+
+export const BLOODRAGER_BLOODLINE_SPELLS: Record<string, SourceFeature[]> = {
+  aberrant: brBloodline('Enlarge Person', 'See Invisibility', 'Displacement', 'Black Tentacles'),
+  abyssal: brBloodline('Ray of Enfeeblement', "Bull's Strength", 'Rage', 'Stoneskin'),
+  arcane: brBloodline('Magic Missile', 'Invisibility', 'Lightning Bolt', 'Dimension Door'),
+  celestial: brBloodline('Bless', 'Resist Energy', 'Heroism', 'Holy Smite'),
+  destined: brBloodline('Shield', 'Blur', 'Protection from Energy', 'Freedom of Movement'),
+  draconic: brBloodline('Shield', 'Resist Energy', 'Fly', 'Fear'),
+  elemental: brBloodline('Burning Hands', 'Scorching Ray', 'Protection from Energy', 'Elemental Body I'),
+  fey: brBloodline('Entangle', 'Hideous Laughter', 'Haste', 'Confusion'),
+  infernal: brBloodline('Protection from Good', 'Scorching Ray', 'Suggestion', 'Fire Shield'),
+  undead: brBloodline('Chill Touch', 'False Life', 'Vampiric Touch', 'Enervation'),
+};
