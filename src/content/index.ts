@@ -13,7 +13,7 @@ export {
 } from './deities';
 export { SPELLS, spellById, spellLevelOn } from './spells';
 export { ORACLE_REVELATIONS, ORACLE_MYSTERIES, ORACLE_CURSES, BLOODRAGER_BLOODLINES, SHAMAN_SPIRITS, CAVALIER_ORDERS } from './subsystems';
-export { SORCERER_BLOODLINE_POWERS, CAVALIER_ORDER_ABILITIES, BLOODRAGER_BLOODLINE_POWERS, SHAMAN_SPIRIT_ABILITIES, ORACLE_FINAL_REVELATIONS, ORACLE_CURSE_ABILITIES } from './source-features';
+export { SORCERER_BLOODLINE_POWERS, CAVALIER_ORDER_ABILITIES, BLOODRAGER_BLOODLINE_POWERS, SHAMAN_SPIRIT_ABILITIES, ORACLE_FINAL_REVELATIONS, ORACLE_CURSE_ABILITIES, SCHOOL_POWERS } from './source-features';
 export type { SourceFeature } from './source-features';
 export { CONDITIONS, conditionById } from './conditions';
 export { WEAPON_PROPERTIES, weaponPropertyById } from './weapon-properties';

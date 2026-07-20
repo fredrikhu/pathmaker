@@ -295,6 +295,22 @@ describe('source-dependent features (bloodline powers, order abilities)', () => 
       expect(feats.map((f) => f.level), `oracle curse ${cid} levels`).toEqual([1, 5, 10, 15]);
     }
   });
+  // Arcane schools grant two powers at 1st + one later, so the shared "unique level" check doesn't
+  // apply — validate coverage and level ranges directly here.
+  it('every arcane school has powers, keyed to a real school option (incl. universalist)', () => {
+    const optionIds = new Set(C.SCHOOLS.map((s) => s.id));
+    const powerIds = new Set(Object.keys(C.SCHOOL_POWERS));
+    for (const id of optionIds) expect(powerIds.has(id), `arcane school "${id}" has no powers`).toBe(true);
+    for (const id of powerIds) expect(optionIds.has(id), `school powers for unknown school "${id}"`).toBe(true);
+    for (const [sid, feats] of Object.entries(C.SCHOOL_POWERS)) {
+      expect(feats.length, `school ${sid}: no powers`).toBeGreaterThanOrEqual(2);
+      for (const f of feats) {
+        expect(f.level, `school ${sid} power level`).toBeGreaterThanOrEqual(1);
+        expect(f.level, `school ${sid} power level`).toBeLessThanOrEqual(20);
+        expect(f.name.length, `school ${sid}: empty power name`).toBeGreaterThan(0);
+      }
+    }
+  });
 });
 
 describe('feats', () => {

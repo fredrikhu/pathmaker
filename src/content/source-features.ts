@@ -294,3 +294,53 @@ export const ORACLE_CURSE_ABILITIES: Record<string, SourceFeature[]> = {
     { level: 15, name: 'Wasting', desc: 'You are immune to the nauseated condition.' },
   ],
 };
+
+/** Wizard arcane school powers, keyed by school id — the specialist powers a wizard gains (usually
+ *  two at 1st and one at 6th/8th; universalist gets two). The bonus specialty spell slot is handled
+ *  separately (CastingBlock.bonusSlot). */
+export const SCHOOL_POWERS: Record<string, SourceFeature[]> = {
+  abjuration: [
+    { level: 1, name: 'Resistance', desc: 'Gain resistance to one energy type, scaling up to immunity at 20th.' },
+    { level: 1, name: 'Protective Ward', desc: 'As a standard action, project an aura granting nearby allies a deflection bonus to AC.' },
+    { level: 6, name: 'Energy Absorption', desc: 'A daily pool that soaks incoming energy damage.' },
+  ],
+  conjuration: [
+    { level: 1, name: "Summoner's Charm", desc: 'Your summoning spells last extra rounds (summon monster becomes permanent at 20th).' },
+    { level: 1, name: 'Acid Dart', desc: 'Loose a ranged touch dart of acid a few times per day.' },
+    { level: 8, name: 'Dimensional Steps', desc: 'Teleport short distances each day, spent from a per-day pool of feet.' },
+  ],
+  divination: [
+    { level: 1, name: 'Forewarned', desc: 'Always act in the surprise round, with a bonus to initiative.' },
+    { level: 1, name: "Diviner's Fortune", desc: 'Touch a creature to grant it an insight bonus on its rolls for a round.' },
+    { level: 8, name: 'Scrying Adept', desc: 'Always aware of scrying sensors, and your own scrying improves.' },
+  ],
+  enchantment: [
+    { level: 1, name: 'Enchanting Smile', desc: 'A bonus on Bluff, Diplomacy, and Intimidate (and reflect enchantments at 20th).' },
+    { level: 1, name: 'Dazing Touch', desc: 'A melee touch dazes a weaker living creature for a round.' },
+    { level: 8, name: 'Aura of Despair', desc: "An aura penalizes nearby foes' rolls for rounds per day." },
+  ],
+  evocation: [
+    { level: 1, name: 'Intense Spells', desc: 'Add half your wizard level to one target’s damage from your evocation spells.' },
+    { level: 1, name: 'Force Missile', desc: 'Unleash a missile of force (as magic missile) a few times per day.' },
+    { level: 8, name: 'Elemental Wall', desc: 'Create a wall of your chosen energy type each day.' },
+  ],
+  illusion: [
+    { level: 1, name: 'Extended Illusions', desc: 'Your concentration illusions linger for extra rounds after you stop concentrating.' },
+    { level: 1, name: 'Blinding Ray', desc: 'A ray that blinds or dazzles a foe a few times per day.' },
+    { level: 8, name: 'Invisibility Field', desc: 'Turn invisible (as greater invisibility) as a swift action for rounds per day.' },
+  ],
+  necromancy: [
+    { level: 1, name: 'Power over Undead', desc: 'Gain Command Undead or Turn Undead as a bonus feat.' },
+    { level: 1, name: 'Grave Touch', desc: 'A melee touch leaves a living creature shaken, then frightened, a few times per day.' },
+    { level: 8, name: 'Life Sight', desc: 'Blindsight that senses living and undead creatures for rounds per day.' },
+  ],
+  transmutation: [
+    { level: 1, name: 'Physical Enhancement', desc: 'An enhancement bonus to one physical ability score, rising as you level.' },
+    { level: 1, name: 'Telekinetic Fist', desc: 'Strike a foe within 30 ft with a telekinetic fist a few times per day.' },
+    { level: 8, name: 'Change Shape', desc: 'Assume beast or elemental forms for a time each day.' },
+  ],
+  universalist: [
+    { level: 1, name: 'Hand of the Apprentice', desc: 'Hurl your melee weapon at a foe as a ranged attack several times per day.' },
+    { level: 8, name: 'Metamagic Mastery', desc: 'Apply a metamagic feat without increasing casting time a few times per day.' },
+  ],
+};

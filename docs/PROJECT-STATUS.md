@@ -436,11 +436,14 @@ Remaining Part-B deferrals / fidelity notes:
   injects the chosen source's into the advancement progression (`sourceFeatures` in resolve.ts):
   sorcerer bloodline powers, bloodrager bloodline powers (1/4/8/12/16/20), shaman spirit abilities
   (1/8/16/20 — spirit / greater / true / manifestation, all 10 spirits), cavalier order abilities
-  (2/8/15, all 7 orders), oracle final revelations (20th, all 10 mysteries), and oracle curse effects
-  (1/5/10/15, all 6 curses — the curse deepening at each tier). Each is verified against d20pfsrd, has
-  a coverage test (every option id maps to abilities at the exact level set) + a golden progression
-  test, and generic placeholder features were removed in favour of the real per-source names.
-  **Gunslinger deeds** are named per level. No source-feature list remains descriptive-only.
+  (2/8/15, all 7 orders), oracle final revelations (20th, all 10 mysteries), oracle curse effects
+  (1/5/10/15, all 6 curses — the curse deepening at each tier), and wizard arcane school powers
+  (`SCHOOL_POWERS` — two at 1st + one at 6th/8th, all 8 schools + universalist; the specialist bonus
+  spell slot is separately modelled via `CastingBlock.bonusSlot`). Domain granted powers were already
+  authored (`DomainDef.powers`). Each is verified against d20pfsrd, has a coverage test (every option
+  id maps to abilities) + a golden progression test, and generic placeholder features were removed in
+  favour of the real per-source names. **Gunslinger deeds** are named per level. No source-feature
+  list remains descriptive-only.
 - **vampire-hunter is now fully authored** — a per-level `features` progression (technique bonus
   feats + vampiric focus, stake, relentless line, etc.) and a verified four-level spontaneous caster
   table, so it no longer falls back to the level-1-only stub.

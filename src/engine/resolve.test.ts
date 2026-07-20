@@ -909,6 +909,19 @@ describe('source-dependent features appear in the progression by chosen source',
     expect(r.sheet.progression[14].features).toContain('Clouded Vision');  // 15th
     expect(r.sheet.progression[1].features).not.toContain('Clouded Vision'); // nothing new at 2nd
   });
+  it('an evocation wizard shows its school powers (Force Missile + Intense Spells at 1, Elemental Wall at 8)', () => {
+    let d = newCharacter('t-wiz', 'Ezren');
+    d = withDecision(d, 'ability-base', { str: 8, dex: 12, con: 12, int: 16, wis: 10, cha: 10 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['int']);
+    d = withDecision(d, 'alignment', 'N');
+    d = withDecision(d, 'class', 'wizard');
+    d = withDecision(d, 'class-choices', { school: ['evocation'] });
+    const r = resolve(atLevel(d, 8));
+    expect(r.sheet.progression[0].features).toContain('Force Missile');   // 1st
+    expect(r.sheet.progression[0].features).toContain('Intense Spells');  // 1st (two powers)
+    expect(r.sheet.progression[7].features).toContain('Elemental Wall');  // 8th
+  });
 });
 
 describe('multi-level spell selection', () => {
