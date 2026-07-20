@@ -12,7 +12,7 @@ export {
   BLOODLINES, bloodlineById, LANGUAGES,
 } from './deities';
 export { SPELLS, spellById, spellLevelOn } from './spells';
-export { ORACLE_REVELATIONS, BLOODRAGER_BLOODLINES, SHAMAN_SPIRITS } from './subsystems';
+export { ORACLE_REVELATIONS, BLOODRAGER_BLOODLINES, SHAMAN_SPIRITS, CAVALIER_ORDERS } from './subsystems';
 export { SORCERER_BLOODLINE_POWERS, CAVALIER_ORDER_ABILITIES, BLOODRAGER_BLOODLINE_POWERS, SHAMAN_SPIRIT_ABILITIES } from './source-features';
 export type { SourceFeature } from './source-features';
 export { CONDITIONS, conditionById } from './conditions';

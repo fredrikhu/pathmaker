@@ -268,6 +268,15 @@ describe('source-dependent features (bloodline powers, order abilities)', () => 
       expect(feats.map((f) => f.level), `shaman ${sid} levels`).toEqual([1, 8, 16, 20]);
     }
   });
+  it('every cavalier order has abilities at 2/8/15, keyed to a real order option', () => {
+    const optionIds = new Set(C.CAVALIER_ORDERS.map((o) => o.id));
+    const abilityIds = new Set(Object.keys(C.CAVALIER_ORDER_ABILITIES));
+    for (const id of optionIds) expect(abilityIds.has(id), `cavalier order "${id}" has no abilities`).toBe(true);
+    for (const id of abilityIds) expect(optionIds.has(id), `cavalier abilities for unknown order "${id}"`).toBe(true);
+    for (const [oid, feats] of Object.entries(C.CAVALIER_ORDER_ABILITIES)) {
+      expect(feats.map((f) => f.level), `cavalier ${oid} levels`).toEqual([2, 8, 15]);
+    }
+  });
 });
 
 describe('feats', () => {

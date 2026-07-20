@@ -63,6 +63,11 @@ export const CAVALIER_ORDER_ABILITIES: Record<string, SourceFeature[]> = {
     { level: 8, name: 'Strategy', desc: 'Grant nearby allies a bonus of your choosing for a round.' },
     { level: 15, name: 'Act as One', desc: 'Once per battle, allies act with you in a coordinated assault.' },
   ],
+  flame: [
+    { level: 2, name: 'Foolhardy Rush', desc: 'On a high initiative roll, move up to your speed as an immediate action to reach the fray.' },
+    { level: 8, name: 'Daunting Success', desc: 'On a confirmed critical hit, attempt to demoralize all foes near you.' },
+    { level: 15, name: 'Blaze of Glory', desc: 'Once per combat, surge with speed and a large attack bonus, ignoring difficult terrain as you charge.' },
+  ],
   lion: [
     { level: 2, name: 'For the King', desc: "Grant allies a bonus on attack and damage when you issue a challenge." },
     { level: 8, name: "Lion's Call", desc: 'Rally allies against fear with a rousing shout.' },
@@ -72,6 +77,11 @@ export const CAVALIER_ORDER_ABILITIES: Record<string, SourceFeature[]> = {
     { level: 2, name: 'Resolute', desc: 'Convert some damage to nonlethal while defending the weak.' },
     { level: 8, name: 'Stem the Tide', desc: 'Gain Stand Still as a bonus feat.' },
     { level: 15, name: 'Protect the Meek', desc: 'Move to an endangered ally and attack as an immediate action.' },
+  ],
+  star: [
+    { level: 2, name: 'Calling', desc: 'A short prayer grants you a competence bonus on your rolls for a time.' },
+    { level: 8, name: 'For the Faith', desc: 'Invoke your deity to gain an attack bonus, sharing part of it with allies of your faith.' },
+    { level: 15, name: 'Retribution', desc: 'When a foe strikes you or a nearby ally of your faith, answer with an attack of opportunity.' },
   ],
   sword: [
     { level: 2, name: 'By My Honor', desc: 'A bonus to one save while you uphold your code.' },

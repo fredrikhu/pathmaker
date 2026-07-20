@@ -871,6 +871,18 @@ describe('source-dependent features appear in the progression by chosen source',
     expect(r.sheet.progression[7].features).toContain("Healer's Touch"); // 8th
     expect(r.sheet.progression[15].features).toContain('Quick Healing'); // 16th
   });
+  it('a Flame cavalier shows its order abilities (Foolhardy Rush at 2, Daunting Success at 8)', () => {
+    let d = newCharacter('t-cav', 'Roevin');
+    d = withDecision(d, 'ability-base', { str: 15, dex: 12, con: 13, int: 10, wis: 10, cha: 14 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['str']);
+    d = withDecision(d, 'alignment', 'CN');
+    d = withDecision(d, 'class', 'cavalier');
+    d = withDecision(d, 'class-choices', { order: ['flame'] });
+    const r = resolve(atLevel(d, 8));
+    expect(r.sheet.progression[1].features).toContain('Foolhardy Rush');  // 2nd
+    expect(r.sheet.progression[7].features).toContain('Daunting Success'); // 8th
+  });
 });
 
 describe('multi-level spell selection', () => {
