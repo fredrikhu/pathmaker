@@ -895,6 +895,20 @@ describe('source-dependent features appear in the progression by chosen source',
     const noMystery = resolve(atLevel(d, 20));
     expect(noMystery.sheet.progression[19].features).not.toContain('Final Revelation');
   });
+  it('an oracle shows its chosen curse deepening at 1/5/10/15', () => {
+    let d = newCharacter('t-oracle2', 'Seer');
+    d = withDecision(d, 'ability-base', { str: 8, dex: 12, con: 12, int: 10, wis: 10, cha: 16 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['cha']);
+    d = withDecision(d, 'alignment', 'N');
+    d = withDecision(d, 'class', 'oracle');
+    d = withDecision(d, 'class-choices', { curse: ['clouded-vision'] });
+    const r = resolve(atLevel(d, 15));
+    expect(r.sheet.progression[0].features).toContain('Clouded Vision');   // 1st
+    expect(r.sheet.progression[9].features).toContain('Clouded Vision');   // 10th — blindsense tier
+    expect(r.sheet.progression[14].features).toContain('Clouded Vision');  // 15th
+    expect(r.sheet.progression[1].features).not.toContain('Clouded Vision'); // nothing new at 2nd
+  });
 });
 
 describe('multi-level spell selection', () => {

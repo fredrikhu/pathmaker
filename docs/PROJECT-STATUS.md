@@ -430,14 +430,16 @@ Remaining Part-B deferrals / fidelity notes:
   `INVESTIGATOR_TALENTS`, keyed off studied target / inspiration), and the **shaman** its own general
   hex list (`SHAMAN_HEXES` — Wisdom-keyed, with a Witch Hex option in place of reusing the raw witch
   list). Every option list is still a core-scope subset. **Oracle revelations are now interactive** — a source-dependent `oracle-revelation`
-  choice filters options by the chosen mystery (`ORACLE_REVELATIONS` per mystery). **Sorcerer
-  bloodline powers, bloodrager bloodline powers, cavalier order abilities, and shaman spirit
-  abilities now display per source** — `source-features.ts` holds the fixed per-level abilities;
-  the engine injects the chosen source's into the advancement progression (`sourceFeatures` in
-  resolve.ts). Shaman spirit abilities are the spirit ability / greater (8th) / true (16th) /
-  manifestation (20th) for all 10 spirits, verified against d20pfsrd (the generic 8/16/20 placeholder
-  features were removed in favour of the real per-spirit names). **Gunslinger deeds** are named per
-  level. No source-feature list remains descriptive-only.
+  choice filters options by the chosen mystery (`ORACLE_REVELATIONS` per mystery). **All fixed
+  per-source progressions now display per source** — `source-features.ts` holds them and the engine
+  injects the chosen source's into the advancement progression (`sourceFeatures` in resolve.ts):
+  sorcerer bloodline powers, bloodrager bloodline powers (1/4/8/12/16/20), shaman spirit abilities
+  (1/8/16/20 — spirit / greater / true / manifestation, all 10 spirits), cavalier order abilities
+  (2/8/15, all 7 orders), oracle final revelations (20th, all 10 mysteries), and oracle curse effects
+  (1/5/10/15, all 6 curses — the curse deepening at each tier). Each is verified against d20pfsrd, has
+  a coverage test (every option id maps to abilities at the exact level set) + a golden progression
+  test, and generic placeholder features were removed in favour of the real per-source names.
+  **Gunslinger deeds** are named per level. No source-feature list remains descriptive-only.
 - **vampire-hunter is now fully authored** — a per-level `features` progression (technique bonus
   feats + vampiric focus, stake, relentless line, etc.) and a verified four-level spontaneous caster
   table, so it no longer falls back to the level-1-only stub.

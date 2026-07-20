@@ -253,3 +253,44 @@ export const ORACLE_FINAL_REVELATIONS: Record<string, SourceFeature[]> = {
   waves: [{ level: 20, name: 'Final Revelation', desc: 'Apply Enlarge, Extend, Silent, or Still Spell to any cold or water spell without raising its level or casting time.' }],
   wind: [{ level: 20, name: 'Final Revelation', desc: 'Apply Enlarge, Extend, Silent, or Still Spell to any air or electricity spell without raising its level or casting time.' }],
 };
+
+/** Oracle curse effects, keyed by curse id — the drawback and its compensating benefits deepen at
+ *  1st/5th/10th/15th. Each entry is named for the curse; the row's level says which benefit it is. */
+export const ORACLE_CURSE_ABILITIES: Record<string, SourceFeature[]> = {
+  'clouded-vision': [
+    { level: 1, name: 'Clouded Vision', desc: 'You cannot see beyond 30 ft, but you gain darkvision to that range (even in magical darkness).' },
+    { level: 5, name: 'Clouded Vision', desc: 'Your limited sight and darkvision extend to 60 ft.' },
+    { level: 10, name: 'Clouded Vision', desc: 'Gain blindsense out to 30 ft.' },
+    { level: 15, name: 'Clouded Vision', desc: 'Gain blindsight out to 15 ft.' },
+  ],
+  deaf: [
+    { level: 1, name: 'Deaf', desc: 'You cannot hear (−4 initiative), but you cast all spells as though using Silent Spell, with no level increase.' },
+    { level: 5, name: 'Deaf', desc: 'A competence bonus on sight-based Perception, and your initiative penalty eases to −2.' },
+    { level: 10, name: 'Deaf', desc: 'Gain the scent ability, and no longer take an initiative penalty from deafness.' },
+    { level: 15, name: 'Deaf', desc: 'Gain tremorsense out to 30 ft.' },
+  ],
+  haunted: [
+    { level: 1, name: 'Haunted', desc: 'Spirits hinder your gear (retrieving stored items is slower, dropped items scatter), but you add mage hand and ghost sound to your spells known.' },
+    { level: 5, name: 'Haunted', desc: 'Add levitate and minor image to your spells known.' },
+    { level: 10, name: 'Haunted', desc: 'Add telekinesis to your spells known.' },
+    { level: 15, name: 'Haunted', desc: 'Add reverse gravity to your spells known.' },
+  ],
+  lame: [
+    { level: 1, name: 'Lame', desc: 'Your base speed is reduced by 10 ft, but it can never be further reduced by encumbrance.' },
+    { level: 5, name: 'Lame', desc: 'You are immune to the fatigued condition.' },
+    { level: 10, name: 'Lame', desc: 'Your speed is never reduced by armor.' },
+    { level: 15, name: 'Lame', desc: 'You are immune to the exhausted condition.' },
+  ],
+  tongues: [
+    { level: 1, name: 'Tongues', desc: 'In combat you can speak and understand only one chosen outsider/elemental language (which you also learn).' },
+    { level: 5, name: 'Tongues', desc: 'Choose an additional language you can speak in combat.' },
+    { level: 10, name: 'Tongues', desc: 'You understand any spoken language, even in combat.' },
+    { level: 15, name: 'Tongues', desc: 'You can speak and understand any language (the combat speaking restriction still applies).' },
+  ],
+  wasting: [
+    { level: 1, name: 'Wasting', desc: 'A −4 penalty on Charisma-based skill checks (except Intimidate), but a +4 bonus on saves against disease.' },
+    { level: 5, name: 'Wasting', desc: 'You are immune to the sickened condition.' },
+    { level: 10, name: 'Wasting', desc: 'You are immune to disease.' },
+    { level: 15, name: 'Wasting', desc: 'You are immune to the nauseated condition.' },
+  ],
+};

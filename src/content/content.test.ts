@@ -286,6 +286,15 @@ describe('source-dependent features (bloodline powers, order abilities)', () => 
       expect(feats.map((f) => f.level), `oracle ${mid} final revelation level`).toEqual([20]);
     }
   });
+  it('every oracle curse has effects at 1/5/10/15, keyed to a real curse option', () => {
+    const optionIds = new Set(C.ORACLE_CURSES.map((o) => o.id));
+    const curseIds = new Set(Object.keys(C.ORACLE_CURSE_ABILITIES));
+    for (const id of optionIds) expect(curseIds.has(id), `oracle curse "${id}" has no effects`).toBe(true);
+    for (const id of curseIds) expect(optionIds.has(id), `oracle curse effects for unknown curse "${id}"`).toBe(true);
+    for (const [cid, feats] of Object.entries(C.ORACLE_CURSE_ABILITIES)) {
+      expect(feats.map((f) => f.level), `oracle curse ${cid} levels`).toEqual([1, 5, 10, 15]);
+    }
+  });
 });
 
 describe('feats', () => {
