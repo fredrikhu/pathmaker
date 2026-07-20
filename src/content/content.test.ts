@@ -326,6 +326,17 @@ describe('source-dependent features (bloodline powers, order abilities)', () => 
     expect(C.effectiveSpellLevel(2, ['heighten-spell'], 5)).toBe(5);               // heighten up to 5
     expect(C.effectiveSpellLevel(4, ['heighten-spell'], 2)).toBe(4);               // heighten never lowers
     expect(C.effectiveSpellLevel(3, ['empower-spell', 'unknown-x'])).toBe(5);       // unknown ignored
+    // Heighten's delta stacks on top of flat metamagic: 3 → 5 (heighten, +2) then Maximize (+3) = 8.
+    expect(C.effectiveSpellLevel(3, ['heighten-spell', 'maximize-spell'], 5)).toBe(8);
+    expect(C.effectiveSpellLevel(4, ['heighten-spell', 'empower-spell'], 2)).toBe(6); // heighten below base adds nothing, +2 empower
+  });
+  it('dcSpellLevel follows only Heighten — slot-cost metamagic never raise the save DC', () => {
+    expect(C.dcSpellLevel(3, [])).toBe(3);
+    expect(C.dcSpellLevel(3, ['empower-spell'])).toBe(3);                       // +2 slot, DC unchanged
+    expect(C.dcSpellLevel(1, ['maximize-spell', 'quicken-spell'])).toBe(1);    // slot cost only
+    expect(C.dcSpellLevel(2, ['heighten-spell'], 5)).toBe(5);                  // heighten raises the DC
+    expect(C.dcSpellLevel(4, ['heighten-spell'], 2)).toBe(4);                  // never lowers
+    expect(C.dcSpellLevel(3, ['heighten-spell', 'empower-spell'], 6)).toBe(6); // heighten wins, empower ignored
   });
   it('the eidolon evolution pool has 20 non-decreasing entries (APG Table 2-9)', () => {
     expect(C.EIDOLON_EVOLUTION_POOL.length).toBe(20);

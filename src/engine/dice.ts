@@ -52,26 +52,61 @@ export function parseDamage(formula: string): DamageTerm[] {
 
 export interface DamageRoll {
   total: number;
-  /** Every die face rolled, in order, for showing the work. */
+  /** Every die face that counts toward the total, in order, for showing the work. Maximized dice
+   *  show their maximum face rather than a random one. */
   dice: number[];
   /** Sum of the flat modifiers. */
   modifier: number;
   formula: string;
+  /** Extra points contributed by Empower Spell — half the (normally rolled) dice, floored. Present
+   *  and non-zero only when the roll was empowered; folded into `total`. */
+  empowerBonus?: number;
+  /** True when Maximize Spell set every die to its maximum face (`dice` shows those faces). */
+  maximized?: boolean;
+}
+
+/** Metamagic that changes the numbers a damage roll produces. Empower and Maximize act on the dice
+ *  (variable, numeric effects); flat modifiers are left unchanged — the simplification the play
+ *  sheet documents. Both may apply at once, and the rules combine them: the maximized dice plus
+ *  half a normally rolled result. */
+export interface MetamagicDamageMods {
+  empower?: boolean;
+  maximize?: boolean;
 }
 
 /** Roll a damage formula. A hit always deals at least 1 point, so a total driven to 0 or below by
- *  penalties comes back as 1 — that is the rule, not a clamp for tidiness. */
-export function rollDamage(formula: string, rng: Rng = defaultRng): DamageRoll | null {
+ *  penalties comes back as 1 — that is the rule, not a clamp for tidiness.
+ *
+ *  With `meta`, Maximize sets each die to its maximum and Empower adds half the *normally rolled*
+ *  dice (so an empowered, maximized spell deals "maximum result plus half the normally rolled
+ *  result", per the feats). Each die is still drawn from `rng` exactly once regardless of the
+ *  flags, so the number of rng draws does not depend on the metamagic. */
+export function rollDamage(formula: string, rng: Rng = defaultRng, meta: MetamagicDamageMods = {}): DamageRoll | null {
   const terms = parseDamage(formula);
   if (terms.length === 0) return null;
   const dice: number[] = [];
+  let rolledSum = 0;
+  let maxSum = 0;
   let modifier = 0;
   for (const t of terms) {
-    if (t.count > 0) for (let i = 0; i < t.count; i++) dice.push(rollDie(t.sides, rng));
-    else modifier += t.flat;
+    if (t.count > 0) {
+      for (let i = 0; i < t.count; i++) {
+        const face = rollDie(t.sides, rng);
+        rolledSum += face;
+        maxSum += t.sides;
+        dice.push(meta.maximize ? t.sides : face);
+      }
+    } else {
+      modifier += t.flat;
+    }
   }
-  const raw = dice.reduce((a, b) => a + b, 0) + modifier;
-  return { total: Math.max(1, raw), dice, modifier, formula };
+  const baseDice = meta.maximize ? maxSum : rolledSum;
+  const empowerBonus = meta.empower ? Math.floor(rolledSum / 2) : 0;
+  const raw = baseDice + empowerBonus + modifier;
+  const roll: DamageRoll = { total: Math.max(1, raw), dice, modifier, formula };
+  if (meta.empower) roll.empowerBonus = empowerBonus;
+  if (meta.maximize) roll.maximized = true;
+  return roll;
 }
 
 /** Lowest natural d20 that threatens a critical, read from a weapon's crit string

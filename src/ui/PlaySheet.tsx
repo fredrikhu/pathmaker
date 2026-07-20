@@ -7,11 +7,11 @@ import {
   durationLabel, ROUNDS_PER_MINUTE, ROUNDS_PER_HOUR,
 } from '../engine/clock';
 import { consume, unconsume, spendCharges, restoreCharges, restock } from '../engine/inventory';
-import { rollAttack, rollDamage, rollSave, rollMissChance, threatRange, CONCEALMENT, type Concealment } from '../engine/dice';
+import { rollAttack, rollDamage, rollSave, rollMissChance, threatRange, CONCEALMENT, type Concealment, type MetamagicDamageMods } from '../engine/dice';
 import { applyDamage, bypassOptions, ENERGY_TYPES } from '../engine/damage';
 import { spellBuffTimer, spellDamageAt, spellAttackerTimer } from '../engine/buffs';
 import { spendAction, resetActions, COMMON_ACTIONS, type ActionCost } from '../engine/actions';
-import { CONDITIONS, conditionById, SPELLS, spellById, spellLevelOn, classById, skillById, METAMAGIC, effectiveSpellLevel, type MetamagicDef } from '../content/index';
+import { CONDITIONS, conditionById, SPELLS, spellById, spellLevelOn, classById, skillById, METAMAGIC, effectiveSpellLevel, dcSpellLevel, type MetamagicDef } from '../content/index';
 import { useCharacter } from './useCharacter';
 import { useTip } from './Tooltip';
 import { navigate } from './App';
@@ -80,13 +80,24 @@ export function PlaySheet({ id }: { id: string }) {
     }
     log({ source: `${name} attack`, detail, total: r.total, ...(outcome ? { outcome } : {}) });
   };
-  /** Roll a damage formula; falls back to showing the text when it is not a plain formula. */
-  const rollDamageFor = (source: string, formula: string) => {
-    const r = rollDamage(formula);
+  /** Roll a damage formula; falls back to showing the text when it is not a plain formula. Metamagic
+   *  that changes the numbers (Empower, Maximize) is applied to the dice and noted in the readout. */
+  const rollDamageFor = (source: string, formula: string, meta: MetamagicDamageMods = {}) => {
+    const r = rollDamage(formula, undefined, meta);
     if (!r) { log({ source, detail: `${formula} — not a rollable formula`, total: 0 }); return; }
     const dice = r.dice.join(' + ');
-    log({ source, detail: `${r.formula} → ${dice}${r.modifier ? ` ${fmtMod(r.modifier)}` : ''}`, total: r.total });
+    const tags = [
+      ...(r.maximized ? ['maximized'] : []),
+      ...(r.empowerBonus ? [`empowered +${r.empowerBonus}`] : []),
+    ];
+    const detail = `${r.formula} → ${dice}${r.modifier ? ` ${fmtMod(r.modifier)}` : ''}${tags.length ? ` · ${tags.join(', ')}` : ''}`;
+    log({ source, detail, total: r.total });
   };
+  /** Turn a set of applied metamagic ids into the damage mods the dice roller understands. */
+  const dmgModsFrom = (metaIds: readonly string[]): MetamagicDamageMods => ({
+    empower: metaIds.includes('empower-spell'),
+    maximize: metaIds.includes('maximize-spell'),
+  });
 
   // ---- Saving throws ----
   // A save is where conditional bonuses finally become usable: "+2 against fear" is prose on the
@@ -240,6 +251,14 @@ export function PlaySheet({ id }: { id: string }) {
   // Focus is school-specific, so it's listed alongside rather than folded into the number.
   const focusNote = sheet.spellFocus.map((f) => `${fmtMod(f.bonus)} ${f.school}`).join(', ');
   const dcNoteFor = (dcBase: number) => `save DC ${dcBase} + spell level${focusNote ? ` (${focusNote})` : ''}`;
+  // The concrete save DC for a spell: the class's DC base (10 + casting ability) plus the spell's
+  // effective level for DCs — which only Heighten raises — plus any Spell Focus for its school.
+  // Null for spells that force no save, so the caller shows nothing rather than a misleading number.
+  const spellSaveDcFor = (sp: (typeof SPELLS)[number], dcBase: number, dcLevel: number): number | null => {
+    if (!sp.save || /^\s*none\b/i.test(sp.save)) return null;
+    const focus = sheet.spellFocus.filter((f) => f.school === sp.school).reduce((n, f) => n + f.bonus, 0);
+    return dcBase + dcLevel + focus;
+  };
 
   // Rest restores the daily resources and lets 8 hours pass, so running effects expire on their own.
   const rest = () => applyClock((p) => restPlay(p).play);
@@ -818,6 +837,9 @@ export function PlaySheet({ id }: { id: string }) {
                 block={block} ownedMeta={ownedMeta}
                 usedAt={(l) => usedAt(cls, l)}
                 spend={(l) => setUsed(cls, l, usedAt(cls, l) + 1)}
+                rollDamageFor={rollDamageFor}
+                dmgModsFrom={dmgModsFrom}
+                saveDc={(sp, dcLevel) => spellSaveDcFor(sp, block.dcBase, dcLevel)}
               />
             )}
 
@@ -868,6 +890,11 @@ export function PlaySheet({ id }: { id: string }) {
                           // Heighten fills a slot up to its own level; other metamagic add flat levels.
                           const eff = baseLvl != null ? effectiveSpellLevel(baseLvl, applied, level) : null;
                           const overSlot = eff != null && eff > level;
+                          // The save DC follows only Heighten (which fills to this slot's level); the
+                          // damage roll follows Empower/Maximize. Both are the metamagic "payoff".
+                          const dmgMods = dmgModsFrom(applied);
+                          const dcLevel = baseLvl != null ? dcSpellLevel(baseLvl, applied, level) : null;
+                          const dc = sp && dcLevel != null ? spellSaveDcFor(sp, block.dcBase, dcLevel) : null;
                           return (
                             <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -877,8 +904,9 @@ export function PlaySheet({ id }: { id: string }) {
                                 {pool.map((s) => <option key={s.id} value={s.id}>{s.name}{ownedMeta.length && csList && spellLevelOn(s, csList) !== level ? ` (L${spellLevelOn(s, csList)})` : ''}</option>)}
                               </select>
                               {dmg && (
-                                <RollButton label={dmg.formula} title={`Roll ${dmg.formula} ${dmg.label}${dmg.note ? ` — ${dmg.note}` : ''}`}
-                                  onRoll={() => rollDamageFor(`${sp!.name} ${dmg.label}${dmg.note ? ` (${dmg.note})` : ''}`, dmg.formula)} />
+                                <RollButton label={`${dmg.formula}${dmgMods.maximize ? ' ✦' : dmgMods.empower ? ' ½+' : ''}`}
+                                  title={`Roll ${dmg.formula} ${dmg.label}${dmg.note ? ` — ${dmg.note}` : ''}${dmgMods.maximize ? ' — maximized' : ''}${dmgMods.empower ? ' — empowered (+half)' : ''}`}
+                                  onRoll={() => rollDamageFor(`${sp!.name} ${dmg.label}${dmg.note ? ` (${dmg.note})` : ''}`, dmg.formula, dmgMods)} />
                               )}
                               {!splitPool && (
                                 <button className="btn btn-ghost" style={{ fontSize: 11, flex: 'none', color: casted ? 'var(--color-accent-300)' : undefined }}
@@ -913,6 +941,11 @@ export function PlaySheet({ id }: { id: string }) {
                                   {applied.length > 0 && (
                                     <span style={{ fontSize: 10.5, color: overSlot ? 'var(--warn)' : 'var(--color-neutral-500)' }}>
                                       {overSlot ? `needs a level-${eff} slot` : `effective L${eff}`}
+                                    </span>
+                                  )}
+                                  {dc != null && (
+                                    <span style={{ fontSize: 10.5, color: 'var(--color-neutral-500)' }} title="10 + casting ability + effective spell level (Heighten only) + Spell Focus">
+                                      save DC {dc}
                                     </span>
                                   )}
                                 </div>
@@ -1174,11 +1207,14 @@ export function PlaySheet({ id }: { id: string }) {
 /** Spontaneous casters apply metamagic at cast time: pick a known spell, toggle the metamagic feats
  *  you own, and spend a slot of the raised effective level (blocked when it exceeds your max level
  *  or no such slot is free). */
-function MetamagicSpontaneousTool({ block, ownedMeta, usedAt, spend }: {
+function MetamagicSpontaneousTool({ block, ownedMeta, usedAt, spend, rollDamageFor, dmgModsFrom, saveDc }: {
   block: CastingBlock;
   ownedMeta: MetamagicDef[];
   usedAt: (level: number) => number;
   spend: (level: number) => void;
+  rollDamageFor: (source: string, formula: string, meta: MetamagicDamageMods) => void;
+  dmgModsFrom: (metaIds: readonly string[]) => MetamagicDamageMods;
+  saveDc: (sp: (typeof SPELLS)[number], dcLevel: number) => number | null;
 }) {
   const [spellId, setSpellId] = useState('');
   const [applied, setApplied] = useState<string[]>([]);
@@ -1193,11 +1229,17 @@ function MetamagicSpontaneousTool({ block, ownedMeta, usedAt, spend }: {
   const sp = spellId ? spellById.get(spellId) : undefined;
   const base = sp && list ? spellLevelOn(sp, list) : null;
   const heightenOn = applied.includes('heighten-spell');
-  const eff = base != null ? effectiveSpellLevel(base, applied, heightenOn && heightenTo !== '' ? Number(heightenTo) : undefined) : null;
+  const heightenTarget = heightenOn && heightenTo !== '' ? Number(heightenTo) : undefined;
+  const eff = base != null ? effectiveSpellLevel(base, applied, heightenTarget) : null;
   const overCap = eff != null && eff > maxLevel;
   const noSlot = eff != null && !overCap && usedAt(eff) >= (slots[eff] ?? 0);
   const canCast = eff != null && eff >= 1 && !overCap && !noSlot;
   const toggle = (mid: string) => setApplied((a) => (a.includes(mid) ? a.filter((x) => x !== mid) : [...a, mid]));
+  // The metamagic payoff for this cast: Empower/Maximize on the damage roll, and the save DC that
+  // Heighten (and only Heighten) raises.
+  const dmgMods = dmgModsFrom(applied);
+  const dmg = sp ? spellDamageAt(sp, block.casterLevel) : null;
+  const dc = sp && base != null ? saveDc(sp, dcSpellLevel(base, applied, heightenTarget)) : null;
   return (
     <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--color-divider)' }}>
       <div className="micro" style={{ marginBottom: 6 }}>Cast with metamagic</div>
@@ -1227,6 +1269,16 @@ function MetamagicSpontaneousTool({ block, ownedMeta, usedAt, spend }: {
           <span style={{ fontSize: 11.5, color: overCap || noSlot ? 'var(--warn)' : 'var(--color-neutral-400)' }}>
             → {overCap ? `L${eff} exceeds your max (L${maxLevel})` : `spends a level-${eff} slot${noSlot ? ' (none left)' : ''}`}
           </span>
+        )}
+        {dc != null && (
+          <span style={{ fontSize: 11.5, color: 'var(--color-neutral-400)' }} title="10 + casting ability + effective spell level (Heighten only) + Spell Focus">
+            save DC {dc}
+          </span>
+        )}
+        {dmg && (
+          <RollButton label={`${dmg.formula}${dmgMods.maximize ? ' ✦' : dmgMods.empower ? ' ½+' : ''}`}
+            title={`Roll ${dmg.formula} ${dmg.label}${dmg.note ? ` — ${dmg.note}` : ''}${dmgMods.maximize ? ' — maximized' : ''}${dmgMods.empower ? ' — empowered (+half)' : ''}`}
+            onRoll={() => rollDamageFor(`${sp!.name} ${dmg.label}${dmg.note ? ` (${dmg.note})` : ''}`, dmg.formula, dmgMods)} />
         )}
         <button className="btn btn-secondary" style={{ fontSize: 11.5 }} disabled={!canCast}
           onClick={() => { if (eff != null) spend(eff); }}>

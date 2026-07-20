@@ -79,6 +79,38 @@ describe('rollDamage', () => {
   it('returns null for a formula it cannot parse, so the caller shows the text instead', () => {
     expect(rollDamage('special')).toBeNull();
   });
+
+  it('maximizes the dice and leaves the modifier alone (Maximize Spell)', () => {
+    // The rng shows 3s, but a maximized 5d6+5 deals 30 on the dice regardless of the roll.
+    const r = rollDamage('5d6+5', always(3, 6), { maximize: true })!;
+    expect(r.dice).toEqual([6, 6, 6, 6, 6]);
+    expect(r.modifier).toBe(5);
+    expect(r.maximized).toBe(true);
+    expect(r.total).toBe(35);
+  });
+
+  it('adds half the rolled dice for Empower Spell, not touching the modifier', () => {
+    // 4d6 rolling 2,4,2,4 = 12; +half = +6; the flat +5 is untouched → 12 + 6 + 5 = 23.
+    const r = rollDamage('4d6+5', scripted([2, 4, 2, 4], 6), { empower: true })!;
+    expect(r.dice).toEqual([2, 4, 2, 4]);
+    expect(r.empowerBonus).toBe(6);
+    expect(r.total).toBe(23);
+  });
+
+  it('combines Maximize and Empower as "maximum plus half a normal roll"', () => {
+    // 4d6 rolling 2,4,2,4: maximized dice = 24, plus half the rolled 12 = +6 → 30.
+    const r = rollDamage('4d6', scripted([2, 4, 2, 4], 6), { empower: true, maximize: true })!;
+    expect(r.dice).toEqual([6, 6, 6, 6]);
+    expect(r.maximized).toBe(true);
+    expect(r.empowerBonus).toBe(6);
+    expect(r.total).toBe(30);
+  });
+
+  it('leaves an ordinary roll unmarked by metamagic', () => {
+    const r = rollDamage('2d6', scripted([3, 6], 6))!;
+    expect(r.empowerBonus).toBeUndefined();
+    expect(r.maximized).toBeUndefined();
+  });
 });
 
 describe('threatRange', () => {

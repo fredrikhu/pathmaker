@@ -6,24 +6,40 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 
 ## ▶ Resume here (last session end)
 
-**Current state** — branch `main`, working tree clean, **532 tests** passing (`origin/main` at
-`a3244e1`); run `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
+**Current state** — branch `main`, working tree clean, **537 tests** passing; run
+`npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
-**Latest — metamagic computed** (commit `a3244e1`). Cast-with-metamagic in the play sheet — the last
-descriptive-only feat. New `content/metamagic.ts` holds the nine Core metamagic feats with their
-slot-level adjustments (Empower +2, Maximize +3, Quicken +4, Heighten variable, …) + a pure
-`effectiveSpellLevel(base, metaIds, heightenTo?)`; `Sheet.feats` exposes the active feat set so the
-play sheet can gate the tools; `PlayState.preparedMeta` records metamagic applied to a prepared spell
-(optional — no migration). Two integrations in `PlaySheet.tsx`: **spontaneous** casters get a "Cast
-with metamagic" tool (pick a known spell, toggle owned feats, Heighten takes a target level; **Spend**
-expends a slot of the raised effective level, blocked over-cap or when no such slot is free);
-**prepared** casters get, per slot, an opened-up pool of lower-level spells (tagged with their base
-level) plus metamagic chips, with the entry showing its effective level and warning when it won't fit.
-Content + `effectiveSpellLevel` unit tests; browser-verified both modes (sorcerer 9: Acid Arrow +
-Empower spent a level-4 slot, L3 + Empower blocked as "exceeds your max"; cleric 10: Empowered Dispel
-Magic read "effective L5"). **Scope note:** this models the *slot-level* mechanic (which slot a
-metamagic spell costs); it does **not** auto-recompute damage (Empower/Maximize) or save DCs
-(Heighten) — those stay the spell's printed values, as the tracker already shows spell numbers.
+**Latest — metamagic damage/DC payoff.** The slot-cost model (below) now also computes the numbers
+metamagic changes. In `engine/dice.ts`, `rollDamage(formula, rng, meta)` takes `MetamagicDamageMods
+{ empower?, maximize? }`: **Maximize** sets every die to its max face, **Empower** adds half the
+normally rolled dice (both together = "maximum result plus half a normal roll", per the feats); flat
+modifiers are untouched — the documented simplification. `DamageRoll` gained `empowerBonus`/`maximized`
+so the roll log reads e.g. `9d6 → 6+6+6+6+6+6+6+6+6 · maximized` = 54. In `content/metamagic.ts`,
+new `dcSpellLevel(base, metaIds, heightenTo?)` returns the level used for the **save DC** — only
+Heighten raises it (Empower/Maximize/etc. raise the *slot*, never the DC). `PlaySheet.tsx` wires both:
+`rollDamageFor` takes the mods and tags the log; the damage roll button shows `✦` (maximized) / `½+`
+(empowered); every prepared spell and the spontaneous tool now show a concrete **save DC** =
+`10 + casting ability + dcSpellLevel + matching Spell Focus`, which rises when you toggle Heighten.
+Also **fixed** `effectiveSpellLevel`: Heighten's delta now stacks on top of flat metamagic (Heighten-to-5
+on a 3rd-level spell + Maximize = an 8th-level slot, was mis-counted as 6). Unit tests in
+`dice.test.ts` + `content.test.ts`; browser-verified both modes (sorcerer 9 Fireball: Maximize → 54,
+Empower → dice+half, DC held at 18; Heighten→L4 raised DC to 19 / spent a level-4 slot. wizard 9
+prepared Fireball in a level-5 slot: Heighten raised DC 18→20, Heighten+Maximize warned "needs a
+level-8 slot").
+
+**Prior — metamagic slot-cost computed** (commit `a3244e1`). `content/metamagic.ts` holds the nine
+Core metamagic feats with their slot-level adjustments + `effectiveSpellLevel`; `Sheet.feats` exposes
+the active feat set; `PlayState.preparedMeta` records metamagic applied to a prepared spell (optional —
+no migration). **Spontaneous** casters get a "Cast with metamagic" tool (pick a known spell, toggle
+owned feats, Heighten takes a target level; **Spend** expends a slot of the raised effective level,
+blocked over-cap or when no such slot is free); **prepared** casters get, per slot, an opened-up pool of
+lower-level spells (tagged with their base level) plus metamagic chips, showing effective level and
+warning when it won't fit.
+
+**Remaining metamagic simplifications (deliberate):** Empower/Maximize apply to the spell's *dice*, not
+to flat per-level modifiers (e.g. Magic Missile's +1s, Cure's +CL bonus stay as printed); non-numeric
+metamagic (Enlarge/Extend/Widen/Silent/Still/Quicken) still only change the slot, with their prose
+effect left to the player.
 
 **Every computed-feat gap the effect model can express is now closed** — including the two that needed
 special gating (Intimidating Prowess, metamagic). No descriptive-only feats remain in scope.
@@ -170,9 +186,9 @@ sheet's prepared pool — file a spell at its per-list level via `spellLevelOn`.
 divergences are corrected; a broader audit of every multi-list spell is the remaining tail.
 
 **The engine-fidelity queue is now clear** — Improved Critical, Shield Focus/Fleet, bonus domain/
-school slots, and per-list spell levels are all done. What's left in the deferral backlog is the
-deliberately out-of-scope classes/races and the descriptive-by-nature items (metamagic, spell-like
-abilities, darkvision, energy resistances).
+school slots, per-list spell levels, and the metamagic damage/DC payoff are all done. What's left in the
+deferral backlog is the deliberately out-of-scope classes/races and the descriptive-by-nature items
+(spell-like abilities surfaced-not-computed, darkvision; energy resistances are already structured).
 
 Everything below is the durable detail. When resuming, read this file, then `docs/DESIGN.md`.
 
@@ -440,10 +456,11 @@ Still open from that audit:
 - **Spellbook budget** is a soft nudge (free distribution across accessible levels), not a per-level cap.
 - **Param feats are computed**: weapon ones (Weapon Focus / Specialization + Greater forms) into the
   per-weapon attack lines, Skill Focus into the skill total, Spell Focus into a per-school DC note.
-  **Metamagic is computed as a slot-level adjustment** (`content/metamagic.ts` + the play sheet's
-  cast-with-metamagic tools): applying a metamagic feat raises the effective spell level and spends the
-  higher slot. It does *not* auto-recompute a spell's damage (Empower/Maximize) or save DC (Heighten) —
-  those stay the spell's printed values.
+  **Metamagic is computed** (`content/metamagic.ts` + the play sheet's cast-with-metamagic tools):
+  applying a feat raises the effective spell level and spends the higher slot, **and** now recomputes the
+  payoff — Empower/Maximize adjust the damage roll (`rollDamage` mods; dice only, not flat modifiers) and
+  Heighten raises the displayed save DC (`dcSpellLevel`). Non-numeric metamagic (Enlarge/Extend/Widen/…)
+  still only change the slot.
 - Energy resistances **are** structured (they subtract on the typed-damage entry). Spell-like abilities
   and senses (darkvision/low-light) are not *computed*, but they are now **surfaced on the play mat**:
   a "Senses & innate abilities" card shows racial senses as badges and innate SLAs as rows, with each

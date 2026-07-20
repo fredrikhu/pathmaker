@@ -28,9 +28,10 @@ export const METAMAGIC: MetamagicDef[] = [
 
 export const metamagicById = new Map(METAMAGIC.map((m) => [m.id, m]));
 
-/** The slot level a spell of `baseLevel` occupies after applying the given metamagic feats. Flat
- *  adjustments sum; Heighten raises the result to at least `heightenTo` (its whole point). Unknown
- *  ids are ignored. */
+/** The slot level a spell of `baseLevel` occupies after applying the given metamagic feats. All
+ *  adjustments are cumulative: Heighten raises the spell's own level by `heightenTo - baseLevel`,
+ *  and the flat feats (Empower +2, Maximize +3, …) stack on top of that — so Heighten-to-5 on a
+ *  3rd-level spell plus Maximize is a 3 + 2 + 3 = 8th-level slot. Unknown ids are ignored. */
 export function effectiveSpellLevel(baseLevel: number, metaIds: readonly string[], heightenTo?: number): number {
   let level = baseLevel;
   let heightened = false;
@@ -40,6 +41,15 @@ export function effectiveSpellLevel(baseLevel: number, metaIds: readonly string[
     if (m.heighten) heightened = true;
     else level += m.levelAdj;
   }
-  if (heightened && heightenTo != null && heightenTo > level) level = heightenTo;
+  if (heightened && heightenTo != null && heightenTo > baseLevel) level += heightenTo - baseLevel;
   return level;
+}
+
+/** The spell level that determines the save DC after metamagic. Only Heighten raises it: every
+ *  other metamagic increases the *slot* the spell occupies without making it count as a higher-level
+ *  spell for any other purpose, so Empower/Maximize/Quicken/etc. leave the save DC untouched. */
+export function dcSpellLevel(baseLevel: number, metaIds: readonly string[], heightenTo?: number): number {
+  const heightened = metaIds.some((id) => metamagicById.get(id)?.heighten);
+  if (heightened && heightenTo != null && heightenTo > baseLevel) return heightenTo;
+  return baseLevel;
 }

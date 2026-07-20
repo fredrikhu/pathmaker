@@ -12,7 +12,7 @@ export {
   BLOODLINES, bloodlineById, LANGUAGES,
 } from './deities';
 export { SPELLS, spellById, spellLevelOn } from './spells';
-export { METAMAGIC, metamagicById, effectiveSpellLevel } from './metamagic';
+export { METAMAGIC, metamagicById, effectiveSpellLevel, dcSpellLevel } from './metamagic';
 export type { MetamagicDef } from './metamagic';
 export { ORACLE_REVELATIONS, ORACLE_MYSTERIES, ORACLE_CURSES, BLOODRAGER_BLOODLINES, SHAMAN_SPIRITS, CAVALIER_ORDERS, SHIFTER_ASPECTS, WITCH_PATRONS, GRAND_DISCOVERIES, SUMMONER_EIDOLON_FORMS, EIDOLON_EVOLUTIONS, EIDOLON_EVOLUTION_POOL } from './subsystems';
 export type { EvolutionDef } from './model';
