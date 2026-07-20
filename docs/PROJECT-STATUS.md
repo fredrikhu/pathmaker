@@ -6,10 +6,21 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 
 ## ▶ Resume here (last session end)
 
-**Current state** — branch `main`, working tree clean, **513 tests** passing (`origin/main` at
-`3d0329a`); run `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
+**Current state** — branch `main`, working tree clean, **515 tests** passing (`origin/main` at
+`a709375`); run `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
-**Most recent session — play-mat UX, trait validation, and a subsystem-content pass**
+**Latest — shifter aspect abilities** (commit `a709375`). The last flavor-only selector got its
+authored ability progression: `SHIFTER_ASPECT_ABILITIES` (`source-features.ts`) gives all 10
+aspects (bear, bull, eagle/Falcon, frog, lion, monkey, snake, stag, tiger, wolf) their Minor form,
+Major form, and 8th/15th-level improvements at levels **1/4/8/15**, verified against the d20pfsrd
+shifter table. Injected in `resolve.ts` off the shifter's existing level-1 `aspect` choice (from
+`classes.ts` — no new choice needed). Coverage test (bidirectional aspect↔abilities + exact levels,
+folded into the shared valid-levels check) + a tiger golden test. **No subsystem selector is
+descriptive-only anymore.** Remaining fill-ins are different-in-kind: witch patron bonus spells,
+the summoner eidolon evolution pool, bloodline arcana/bonus spells, and a true alchemist
+grand-discovery list.
+
+**Prior session — play-mat UX, trait validation, and a subsystem-content pass**
 (commits `77bb2ab` → `3d0329a`). The subsystem-content pass closed out the "descriptive" gaps we
 found by walking the subsystem lists:
 - **Every class now has its own subsystem list — no cross-class reuse.** Authored `SLAYER_TALENTS` +
