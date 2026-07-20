@@ -6,11 +6,11 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 
 ## ▶ Resume here (last session end)
 
-**Current state** — branch `main`, working tree clean, **511 tests** passing (`origin/main` at
-`96c03a3`); run `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
+**Current state** — branch `main`, working tree clean, **513 tests** passing (`origin/main` at
+`3d0329a`); run `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
 **Most recent session — play-mat UX, trait validation, and a subsystem-content pass**
-(commits `77bb2ab` → `96c03a3`). The subsystem-content pass closed out the "descriptive" gaps we
+(commits `77bb2ab` → `3d0329a`). The subsystem-content pass closed out the "descriptive" gaps we
 found by walking the subsystem lists:
 - **Every class now has its own subsystem list — no cross-class reuse.** Authored `SLAYER_TALENTS` +
   `SLAYER_ADVANCED_TALENTS` (keyed off studied target), `INVESTIGATOR_TALENTS` (inspiration / studied
@@ -22,10 +22,12 @@ found by walking the subsystem lists:
   now covers all 7 at 2/8/15) join the sorcerer-bloodline list in `source-features.ts`, injected into the
   advancement progression by chosen source via `sourceFeatures` (resolve.ts). The two **oracle**
   source-features are authored too — `ORACLE_FINAL_REVELATIONS` (all 10 mysteries' fixed 20th-level
-  capstone) and `ORACLE_CURSE_ABILITIES` (all 6 curses deepening at 1/5/10/15) — replacing their
-  generic placeholders. No source-feature list is descriptive-only. Each has a **coverage test**
-  (every option id has abilities at the exact level set, so a new source can't silently fall back to
-  the generic feature) + a golden progression test.
+  capstone) and `ORACLE_CURSE_ABILITIES` (all 6 curses deepening at 1/5/10/15) — as are **wizard
+  arcane school powers** (`SCHOOL_POWERS` — two at 1st + one at 6th/8th, all 8 schools + universalist),
+  all replacing their generic placeholders. Domain granted powers were already authored
+  (`DomainDef.powers`). No source-feature list is descriptive-only. Each has a **coverage test** (every
+  option id maps to abilities, so a new source can't silently fall back to the generic feature) + a
+  golden progression test.
 - Also corrected stale Phase 2 notes (arcanist/vampire-hunter caster tables are verified and filled;
   vampire-hunter has a full feature progression).
 - **Play sheet space savings** (`PlaySheet.tsx`): the Running-effects add form folds behind an
