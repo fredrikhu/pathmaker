@@ -365,6 +365,20 @@ export const WITCH_HEXES: Opt[] = [
   opt('eternal-slumber', 'Eternal Slumber', 'Put a foe into a sleep from which it cannot wake normally (grand hex).'),
 ];
 
+// The shaman's own general hexes (Wisdom-keyed). They overlap the witch's by design, but the
+// shaman has distinct entries (Chant, and the Witch Hex hex that borrows one witch hex). Spirit
+// hexes are granted separately by the chosen spirit. Core-scope representative set.
+export const SHAMAN_HEXES: Opt[] = [
+  opt('chant', 'Chant', 'As a move action, extend your charm, evil eye, fortune, fury, or misfortune hex on a nearby creature by a round.'),
+  opt('charm', 'Charm', 'Improve an animal or humanoid’s attitude by one step for a few rounds.'),
+  opt('evil-eye', 'Evil Eye', 'A foe takes a −2 penalty on one of AC, attacks, saves, ability checks, or skill checks for several rounds.'),
+  opt('fortune', 'Fortune', 'A creature can reroll one d20 roll per round for a round, taking the better result.'),
+  opt('healing', 'Healing', 'Heal a creature by touch as a cure spell that scales with your level.'),
+  opt('misfortune', 'Misfortune', 'Force a creature to roll twice and take the worse result on its d20 rolls for a round.'),
+  opt('ward', 'Ward', 'A creature gains a +2 deflection bonus to AC and +2 resistance on saves until it is hit or fails a save.'),
+  opt('witch-hex', 'Witch Hex', 'Select one witch hex, using your Wisdom in place of the witch’s Intelligence.'),
+];
+
 export const SUMMONER_EIDOLON_FORMS: Opt[] = [
   opt('biped', 'Biped', 'Two legs, two arms; strong at wielding weapons and reach.'),
   opt('quadruped', 'Quadruped', 'Four legs; fast and strong, good for mounts and maulers.'),

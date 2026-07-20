@@ -7,7 +7,7 @@
 import type { LeveledFeatureDef, ClassChoiceDef } from './model';
 import {
   BARBARIAN_RAGE_POWERS, ROGUE_TALENTS, ROGUE_ADVANCED_TALENTS, PALADIN_MERCIES, PALADIN_DIVINE_BOND,
-  ALCHEMIST_DISCOVERIES, MAGUS_ARCANA, WITCH_HEXES,
+  ALCHEMIST_DISCOVERIES, MAGUS_ARCANA, WITCH_HEXES, SHAMAN_HEXES,
   ARCANIST_EXPLOITS, SHIFTER_ASPECTS,
   SLAYER_TALENTS, SLAYER_ADVANCED_TALENTS, INVESTIGATOR_TALENTS,
 } from './subsystems';
@@ -495,7 +495,7 @@ export const CLASS_PROGRESSION: Record<string, ClassProgression> = {
       f(16, 'shaman-true-spirit', 'True Spirit Ability', 'Unlock your spirit\'s ultimate ability.'),
       f(20, 'shaman-manifestation', 'Manifestation', 'Manifest as the pinnacle of your spirit.'),
     ],
-    choices: [{ id: 'shaman-hex', label: 'Hex', kind: 'list', count: 1, levels: [2, 4, 8, 10, 12, 16, 18, 20], options: WITCH_HEXES }],
+    choices: [{ id: 'shaman-hex', label: 'Hex', kind: 'list', count: 1, levels: [2, 4, 8, 10, 12, 16, 18, 20], options: SHAMAN_HEXES }],
   },
   skald: {
     damageReduction: { levels: [9, 14, 19], bypass: '—' },

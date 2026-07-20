@@ -180,6 +180,12 @@ describe('slayer & investigator use their own talent lists', () => {
     expect(opts).toContain('studied-defense');
     expect(opts).not.toContain('bleeding-attack');
   });
+  it('shaman hexes use the shaman list (its own Chant hex + the Witch Hex option)', () => {
+    const opts = choiceOptions('shaman', 'shaman-hex');
+    expect(opts).toContain('chant');    // a shaman-specific general hex
+    expect(opts).toContain('witch-hex'); // the meta-option, not a raw witch-hex reuse
+    expect(opts).not.toContain('slumber'); // a witch hex we did not put on the shaman list
+  });
 });
 
 describe('class progression coverage (Part B)', () => {
