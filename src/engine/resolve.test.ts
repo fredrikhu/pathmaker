@@ -57,6 +57,45 @@ describe('human fighter 1 (elite array + racial)', () => {
   });
 });
 
+describe('trait budget validation', () => {
+  const traitIssues = (d: CharacterDoc) =>
+    resolve(d).issues.filter((i) => i.slot === 'traits');
+
+  it('nudges to fill the 2-trait budget when none are chosen', () => {
+    const iss = traitIssues(humanFighter1());
+    expect(iss).toHaveLength(1);
+    expect(iss[0].severity).toBe('info');
+    expect(iss[0].message).toMatch(/Choose 2 more traits/);
+  });
+
+  it('nudges for the last trait when one of two is chosen', () => {
+    const d = withDecision(humanFighter1(), 'traits', ['reactionary']);
+    const iss = traitIssues(d);
+    expect(iss).toHaveLength(1);
+    expect(iss[0].message).toMatch(/Choose 1 more trait\b/);
+  });
+
+  it('is silent once the budget is met', () => {
+    const d = withDecision(humanFighter1(), 'traits', ['reactionary', 'indomitable-faith']);
+    expect(traitIssues(d)).toHaveLength(0);
+  });
+
+  it('a drawback raises the budget to 3, re-opening the nudge', () => {
+    let d = withDecision(humanFighter1(), 'traits', ['reactionary', 'indomitable-faith']);
+    d = withDecision(d, 'drawback', 'dw-meticulous');
+    const iss = traitIssues(d);
+    expect(iss).toHaveLength(1);
+    expect(iss[0].message).toMatch(/Choose 1 more trait .* up to 3/);
+  });
+
+  it('over budget stays an error, not a nudge', () => {
+    const d = withDecision(humanFighter1(), 'traits', ['reactionary', 'indomitable-faith', 'magical-lineage']);
+    const iss = traitIssues(d);
+    expect(iss).toHaveLength(1);
+    expect(iss[0].severity).toBe('error');
+  });
+});
+
 describe('would-invalidate: Focused Study orphans a placed human bonus feat', () => {
   it('flags the orphaned feat as an error once the slot is removed', () => {
     let d = humanFighter1();

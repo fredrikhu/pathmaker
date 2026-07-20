@@ -1523,6 +1523,10 @@ function buildSlotsAndIssues(
   if (dupCat) issues.push({ severity: 'error', step: 'feats', slot: 'traits', message: `Two traits share the ${dupCat} category — pick different categories` });
   const traitBudget = 2 + (dec.drawback ? 1 : 0);
   if (dec.traits.length > traitBudget) issues.push({ severity: 'error', step: 'feats', slot: 'traits', message: `${dec.traits.length} traits selected, only ${traitBudget} allowed` });
+  else if (dec.traits.length < traitBudget) {
+    const left = traitBudget - dec.traits.length;
+    issues.push({ severity: 'info', step: 'feats', slot: 'traits', message: `Choose ${left} more trait${left === 1 ? '' : 's'} — you can take up to ${traitBudget}` });
+  }
 
   // ---------- SPELLS (per accessible spell level) ----------
   if (klass?.spellcasting && klass.spellcasting.progression !== 'four') {

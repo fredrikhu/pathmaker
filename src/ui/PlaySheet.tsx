@@ -92,7 +92,6 @@ export function PlaySheet({ id }: { id: string }) {
   // A save is where conditional bonuses finally become usable: "+2 against fear" is prose on the
   // sheet, but at the moment you roll a save against fear you know whether it applies. The chips
   // below are those bonuses, and the engine adds the ones you switch on.
-  const [saveDc, setSaveDc] = useState('');
   const [saveExtras, setSaveExtras] = useState<Record<string, boolean>>({});
   const extraKey = (sv: string, i: number) => `${sv}:${i}`;
   const rollSavingThrow = (sv: 'fort' | 'ref' | 'will') => {
@@ -100,8 +99,7 @@ export function PlaySheet({ id }: { id: string }) {
     if (!st) return;
     const chosen = st.conditional.filter((_, i) => saveExtras[extraKey(sv, i)]);
     const extra = chosen.reduce((n, c) => n + c.value, 0);
-    const dc = saveDc.trim() === '' ? null : Number(saveDc);
-    const r = rollSave(st.total + extra, Number.isFinite(dc as number) ? (dc as number) : null);
+    const r = rollSave(st.total + extra, null);
     const why = chosen.length ? ` (incl. ${chosen.map((c) => c.note).join(', ')})` : '';
     log({
       source: `${st.label} save${r.dc !== undefined ? ` vs DC ${r.dc}` : ''}`,
@@ -230,6 +228,7 @@ export function PlaySheet({ id }: { id: string }) {
   const [timerAmount, setTimerAmount] = useState(1);
   const [timerUnit, setTimerUnit] = useState<'rounds' | 'minutes' | 'hours'>('minutes');
   const [timerCondition, setTimerCondition] = useState('');
+  const [addOpen, setAddOpen] = useState(false);
   const unitRounds = { rounds: 1, minutes: ROUNDS_PER_MINUTE, hours: ROUNDS_PER_HOUR };
 
   const submitTimer = () => {
@@ -388,9 +387,15 @@ export function PlaySheet({ id }: { id: string }) {
 
         {/* Running durations */}
         <div style={{ marginTop: 14 }}>
-          <div className="micro" style={{ marginBottom: 8 }}>Running effects</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+            <div className="micro">Running effects</div>
+            <span style={{ flex: 1 }} />
+            <button className="btn btn-ghost" style={{ fontSize: 11 }}
+              title={addOpen ? 'Hide the add-effect form' : 'Add a buff or timed condition'}
+              onClick={() => setAddOpen((o) => !o)}>{addOpen ? 'Close' : 'Add'}</button>
+          </div>
           {play.timers.length === 0 ? (
-            <p className="text-muted" style={{ fontSize: 11.5, margin: '0 0 10px' }}>Nothing running. Add a buff or a timed condition below — it counts down as rounds and time pass.</p>
+            <p className="text-muted" style={{ fontSize: 11.5, margin: '0 0 10px' }}>Nothing running. Use <strong>Add</strong> to start a buff or a timed condition — it counts down as rounds and time pass.</p>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
               {play.timers.map((t) => {
@@ -436,18 +441,19 @@ export function PlaySheet({ id }: { id: string }) {
               })}
             </div>
           )}
+          {addOpen && (<>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
             <input className="input" style={{ width: 160, fontSize: 12, padding: '4px 7px' }} placeholder="Effect name…"
               value={timerLabel} onChange={(e) => setTimerLabel(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') submitTimer(); }} />
             <input className="input" style={{ width: 56, fontSize: 12, padding: '4px 7px', textAlign: 'center' }} type="number" min={1}
               value={timerAmount} onChange={(e) => setTimerAmount(Math.max(1, Math.round(Number(e.target.value) || 1)))} />
-            <select className="input" style={{ fontSize: 12, padding: '4px 7px' }} value={timerUnit} onChange={(e) => setTimerUnit(e.target.value as typeof timerUnit)}>
+            <select className="input" style={{ width: 'auto', fontSize: 12, padding: '4px 7px' }} value={timerUnit} onChange={(e) => setTimerUnit(e.target.value as typeof timerUnit)}>
               <option value="rounds">rounds</option>
               <option value="minutes">minutes</option>
               <option value="hours">hours</option>
             </select>
-            <select className="input" style={{ fontSize: 12, padding: '4px 7px' }} value={timerCondition} onChange={(e) => setTimerCondition(e.target.value)}>
+            <select className="input" style={{ width: 'auto', fontSize: 12, padding: '4px 7px' }} value={timerCondition} onChange={(e) => setTimerCondition(e.target.value)}>
               <option value="">— no condition —</option>
               {CONDITIONS.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
@@ -459,14 +465,14 @@ export function PlaySheet({ id }: { id: string }) {
           {runningSpells.length > 0 && (
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginTop: 8 }}>
               <span className="text-muted" style={{ fontSize: 11.5 }}>Cast a spell with a running effect</span>
-              <select className="input" style={{ fontSize: 12, padding: '4px 7px', minWidth: 200 }} value={buffPick}
+              <select className="input" style={{ width: 'auto', fontSize: 12, padding: '4px 7px', minWidth: 200 }} value={buffPick}
                 onChange={(e) => { setBuffPick(e.target.value); setBuffParam(''); }}>
                 <option value="">— choose a spell —</option>
                 {runningSpells.map((s) => <option key={s.id} value={s.id}>{s.name} (CL {casterLevelFor(s.id)}) — {(s.buff ?? s.attacker)!.scaling}</option>)}
               </select>
               {/* A spell with a cast-time choice (resist energy) shows its options before you cast. */}
               {buffPickParam && (
-                <select className="input" style={{ fontSize: 12, padding: '4px 7px' }} value={buffParam}
+                <select className="input" style={{ width: 'auto', fontSize: 12, padding: '4px 7px' }} value={buffParam}
                   onChange={(e) => setBuffParam(e.target.value)}>
                   <option value="">{buffPickParam.label}…</option>
                   {buffPickParam.options.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
@@ -477,6 +483,7 @@ export function PlaySheet({ id }: { id: string }) {
               <span className="text-muted" style={{ fontSize: 11 }}>expending the slot is still up to you, below</span>
             </div>
           )}
+          </>)}
         </div>
       </div>
 
@@ -484,12 +491,27 @@ export function PlaySheet({ id }: { id: string }) {
         {/* HP tracker */}
         <div style={{ background: 'var(--color-surface)', borderRadius: 12, padding: 18 }}>
           <div className="micro" style={{ marginBottom: 8 }}>Hit Points</div>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-            <span className="num" style={{ fontSize: 44, fontWeight: 700, color: hpColor }}>{currentHp}</span>
-            <span className="text-muted" style={{ fontSize: 18, cursor: 'pointer' }}
-              onMouseEnter={statTip('hp:max', String(maxHp))} onMouseLeave={tip.leave} onClick={statTip('hp:max', String(maxHp))}
-              title="max HP breakdown">/ {maxHp}</span>
-            {play.tempHp > 0 && <span style={{ fontSize: 14, color: 'var(--color-accent-300)' }}>+{play.tempHp} temp</span>}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+              <span className="num" style={{ fontSize: 44, fontWeight: 700, color: hpColor }}>{currentHp}</span>
+              <span className="text-muted" style={{ fontSize: 18, cursor: 'pointer' }}
+                onMouseEnter={statTip('hp:max', String(maxHp))} onMouseLeave={tip.leave} onClick={statTip('hp:max', String(maxHp))}
+                title="max HP breakdown">/ {maxHp}</span>
+              {play.tempHp > 0 && <span style={{ fontSize: 14, color: 'var(--color-accent-300)' }}>+{play.tempHp} temp</span>}
+            </div>
+            <span style={{ flex: 1 }} />
+            <div style={{ display: 'flex', gap: 12, fontSize: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+              <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <span className="text-muted">Temp HP</span>
+                <input className="input" style={{ width: 52, padding: '3px 5px', textAlign: 'center' }} type="number" min={0} value={play.tempHp}
+                  onChange={(e) => setPlay({ tempHp: Math.max(0, Math.round(Number(e.target.value) || 0)) })} />
+              </label>
+              <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <span className="text-muted">Nonlethal</span>
+                <input className="input" style={{ width: 52, padding: '3px 5px', textAlign: 'center' }} type="number" min={0} value={play.nonlethal}
+                  onChange={(e) => setPlay({ nonlethal: Math.max(0, Math.round(Number(e.target.value) || 0)) })} />
+              </label>
+            </div>
           </div>
           {currentHp <= 0 && <div style={{ fontSize: 12, color: 'var(--err)', marginTop: 2 }}>{currentHp <= -maxHp ? 'Dead' : 'Dying / disabled'}</div>}
           <div style={{ height: 8, borderRadius: 4, background: 'var(--color-neutral-800)', overflow: 'hidden', margin: '12px 0' }}>
@@ -510,7 +532,7 @@ export function PlaySheet({ id }: { id: string }) {
               <input className="input" style={{ width: 58, padding: '3px 5px', textAlign: 'center', fontSize: 12 }} type="number" min={0}
                 placeholder="dmg" value={incomingAmount} onChange={(e) => setIncomingAmount(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') takeTypedDamage(); }} />
-              <select className="input" style={{ fontSize: 12, padding: '3px 5px' }} value={incomingKind}
+              <select className="input" style={{ width: 'auto', fontSize: 12, padding: '3px 5px' }} value={incomingKind}
                 onChange={(e) => setIncomingKind(e.target.value as DamageKind)}>
                 <option value="physical">physical</option>
                 {ENERGY_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
@@ -545,18 +567,6 @@ export function PlaySheet({ id }: { id: string }) {
               <div className="text-muted" style={{ fontSize: 11, marginTop: 7 }}>No damage reduction or resistance — typed damage applies in full.</div>
             )}
           </div>
-          <div style={{ display: 'flex', gap: 14, marginTop: 12, fontSize: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-            <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-              <span className="text-muted">Temp HP</span>
-              <input className="input" style={{ width: 52, padding: '3px 5px', textAlign: 'center' }} type="number" min={0} value={play.tempHp}
-                onChange={(e) => setPlay({ tempHp: Math.max(0, Math.round(Number(e.target.value) || 0)) })} />
-            </label>
-            <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-              <span className="text-muted">Nonlethal</span>
-              <input className="input" style={{ width: 52, padding: '3px 5px', textAlign: 'center' }} type="number" min={0} value={play.nonlethal}
-                onChange={(e) => setPlay({ nonlethal: Math.max(0, Math.round(Number(e.target.value) || 0)) })} />
-            </label>
-          </div>
         </div>
 
         {/* Quick defenses / offense (read-only from the sheet) */}
@@ -580,24 +590,12 @@ export function PlaySheet({ id }: { id: string }) {
             Speed {sheet.speed.base} ft
             {sheet.casting.map((b) => ` · ${sheet.casting.length > 1 ? `${b.className} ` : ''}caster level ${b.casterLevel}`).join('')}
           </div>
-        </div>
-      </div>
 
-      {/* Saving throws */}
-      <div style={{ background: 'var(--color-surface)', borderRadius: 12, padding: 18, marginTop: 18 }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
-          <div className="micro">Saving throws</div>
-          <span className="text-muted" style={{ fontSize: 11.5 }}>a natural 20 always saves and a natural 1 always fails, whatever the DC</span>
-          <span style={{ flex: 1 }} />
-          <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
-            <span className="text-muted">vs DC</span>
-            <input className="input" style={{ width: 54, padding: '3px 5px', textAlign: 'center' }} type="number" min={1}
-              placeholder="—" value={saveDc} onChange={(e) => setSaveDc(e.target.value)}
-              title="Optional. Set it and the log says whether the save made it." />
-          </label>
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 14 }}>
-          {(['fort', 'ref', 'will'] as const).map((sv) => {
+          {/* Saving throws, folded into this panel. */}
+          <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid rgba(233,233,237,.07)' }}>
+            <div className="micro" style={{ marginBottom: 10 }}>Saving throws</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {(['fort', 'ref', 'will'] as const).map((sv) => {
             const st = sheet.stats[`save:${sv}`];
             if (!st) return null;
             const open = statTip(`save:${sv}`, fmtMod(st.total));
@@ -636,7 +634,9 @@ export function PlaySheet({ id }: { id: string }) {
                 )}
               </div>
             );
-          })}
+              })}
+            </div>
+          </div>
         </div>
       </div>
 
