@@ -21,14 +21,14 @@ backlog below. **The blocked-on-verification list is now empty** — every item 
 untrustworthy source has been resolved. What remains is deliberately out-of-scope classes and races,
 and breadth rather than correctness.
 
-**In progress — the "just more data" breadth pass** (working the content catalogues, in order):
-**① Feats — done** (the whole CRB list, ~173 feats). **② Spells — done** (common-spell breadth,
+**Done — the "just more data" breadth pass** (worked the content catalogues in order, each verified
+and test-gated): **① Feats** (the whole CRB list, ~173 feats). **② Spells** (common-spell breadth,
 ~270 spells; per the user's scope choice this is the common spells at each level/list, not the
-exhaustive ~500). **③ Subsystem option lists — done** (rounded the flagship pick-lists out to solid
-core coverage: the CRB barbarian rage powers completed, plus fuller rogue talents, alchemist
-discoveries, magus arcana and witch hexes; these are descriptive picks with no engine numbers).
-**④ Traits & equipment** is next, verified and test-gated. Scope boundary is the Core Rulebook plus
-the named expansions already in (UC firearms, APG classes); splatbook-wide breadth stays out.
+exhaustive ~500). **③ Subsystem option lists** (rounded the flagship pick-lists out to solid core
+coverage). **④ Traits & equipment** (common core/APG traits + the full Core armor table and a fuller
+adventuring-gear list). Scope boundary was the Core Rulebook plus the named expansions already in
+(UC firearms, APG classes); splatbook-wide breadth stays out. The "just more data" category is
+complete; what remains open is the out-of-scope classes/races and the fidelity notes below.
 
 Everything below is the durable detail. When resuming, read this file, then `docs/DESIGN.md`.
 
@@ -253,7 +253,11 @@ Still open from that audit:
   Good Hope carry computed effects; Shocking Grasp, Sound Burst, Shout, Flame Blade, the inflict-wounds
   line, Call Lightning Storm and False Life carry damage/temp-HP hooks. Still not exhaustive — the
   obscure long tail and per-list level differences remain (the single-level model). **Subsystem option lists** (rage powers, talents, hexes, discoveries, arcana, mysteries,
-  revelations, etc.) are expanded core-scope sets, not exhaustive. **Traits/equipment**: core subset.
+  revelations, etc.) are expanded core-scope sets, not exhaustive. **Traits**: the common core/APG
+  traits across all categories (numeric skill/save/init ones computed; mechanic-only ones prose) plus
+  four drawbacks. **Equipment**: the full Core armor table (hide, splint/banded/half-plate, steel
+  shields, tower shield) and a fuller adventuring-gear list (light sources, climbing/disguise kits,
+  alchemical items, containers) atop the 80 weapons — costs/weights from the Core table.
   - **Feat fidelity**: numeric bonuses that are unconditional flow into the stat graph (Magical
     Aptitude +2 Spellcraft/UMD, the save/skill feats). **Simple/Martial Weapon Proficiency are wired
     into the proficiency engine** — they clear the −4 non-proficiency penalty (Martial names one
