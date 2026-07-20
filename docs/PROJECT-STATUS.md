@@ -21,6 +21,12 @@ backlog below. **The blocked-on-verification list is now empty** — every item 
 untrustworthy source has been resolved. What remains is deliberately out-of-scope classes and races,
 and breadth rather than correctness.
 
+**In progress — the "just more data" breadth pass** (working the content catalogues to full Core
+Rulebook coverage, in order): **① Feats — done** (the whole CRB list, ~173 feats; see Content
+breadth). **② Spells**, **③ subsystem option lists**, **④ traits & equipment** are next, each
+verified and test-gated. Scope boundary is the Core Rulebook plus the named expansions already in
+(UC firearms, APG classes); splatbook-wide breadth stays out.
+
 Everything below is the durable detail. When resuming, read this file, then `docs/DESIGN.md`.
 
 ## Phase 1 — Level-1 character creator: **complete**
@@ -235,10 +241,22 @@ Still open from that audit:
   feeding the equipment step and the play-sheet attack lines. **Exotic weapons are in**, along with
   the proficiency rule they exist for (see below). Not authored: the net, which deals no damage at
   all — the attack line is built around a damage string, so listing it would print a damage figure
-  the weapon does not have. **Feats**: 64 verified Core feats (combat/general/skill/spellcasting/
-  metamagic/item-creation) — not the full splatbook catalogue. **Spells**: ~130 across levels 0–9 (core-scope) — not exhaustive
+  the weapon does not have. **Feats**: the full **Core Rulebook** catalogue (~173 feats across
+  combat/general/skill/spellcasting/metamagic/item-creation) — the whole CRB list is now authored,
+  verified against d20pfsrd; splatbook feats remain out of scope. **Spells**: ~130 across levels 0–9 (core-scope) — not exhaustive
   full lists. **Subsystem option lists** (rage powers, talents, hexes, discoveries, arcana, mysteries,
   revelations, etc.) are expanded core-scope sets, not exhaustive. **Traits/equipment**: core subset.
+  - **Feat fidelity**: numeric bonuses that are unconditional flow into the stat graph (Magical
+    Aptitude +2 Spellcraft/UMD, the save/skill feats). **Simple/Martial Weapon Proficiency are wired
+    into the proficiency engine** — they clear the −4 non-proficiency penalty (Martial names one
+    weapon, Simple grants the group), so a feat can never leave a wrong penalty showing. The rest of
+    the new combat feats are situational and stay benefit-text (the project's standing line): notably
+    **Improved Critical**'s threat-range doubling (would need the keen-style engine hook), **Shield
+    Focus**'s +1 shield AC and **Fleet**'s +5 speed (both armour/shield-conditional), and
+    **Intimidating Prowess** (adds an ability *modifier*, which the flat-bonus effect model can't
+    express). Class-feature-gated prereqs the DSL can't state ("channel energy", "cast arcane
+    spells", "Nth-level fighter") live in `reqText`; fighter-gated feats approximate the level as
+    `classId: fighter`, as Weapon Specialization already does.
 - **Psychic/occult** spells not authored. **Extracts** (alchemist/investigator) are prepared from the
   full list like other prepared-list casters — slots/day shown, no creation-time selection.
 

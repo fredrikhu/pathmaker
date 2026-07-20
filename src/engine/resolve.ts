@@ -1054,6 +1054,9 @@ function proficiencyCtx(dec: Decisions, classes: ClassEntry[], featParams: { fea
     for (const id of t.weaponFamiliarity?.martial ?? []) asMartial.add(id);
   }
   for (const f of featParams) {
+    // Simple Weapon Proficiency grants the whole simple group; the others name one weapon.
+    if (f.featId === 'simple-weapon-proficiency') { groups.add('simple'); continue; }
+    if (f.featId === 'martial-weapon-proficiency' && f.param) { weapons.add(f.param); continue; }
     // Exotic Weapon Proficiency names one weapon, except for firearms — that pick grants the group.
     if (f.featId !== 'exotic-weapon-proficiency' || !f.param) continue;
     if (f.param === C.FIREARM_GROUP_ID) groups.add(C.FIREARM_GROUP_ID);

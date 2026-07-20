@@ -1636,6 +1636,22 @@ describe('weapon proficiency', () => {
     expect(primary(wrongPick)).toBe(1);
   });
 
+  it('Martial Weapon Proficiency removes the penalty for the named weapon only', () => {
+    const feats = { 'feat-1': 'martial-weapon-proficiency' };
+    const withMwp = wielder('wizard', 'longsword', 'human', feats, { 'feat-1': 'longsword' });
+    expect(line(withMwp).attackLines.some((b) => b.label === 'Not proficient')).toBe(false);
+    // Pointed at a different weapon, it does not help.
+    const wrongPick = wielder('wizard', 'longsword', 'human', feats, { 'feat-1': 'battleaxe' });
+    expect(line(wrongPick).attackLines.some((b) => b.label === 'Not proficient')).toBe(true);
+  });
+
+  it('Simple Weapon Proficiency grants the whole simple group', () => {
+    // A wizard is not proficient with the morningstar (a simple weapon off its short list).
+    expect(line(wielder('wizard', 'morningstar')).attackLines.some((b) => b.label === 'Not proficient')).toBe(true);
+    const withSwp = wielder('wizard', 'morningstar', 'human', { 'feat-1': 'simple-weapon-proficiency' });
+    expect(line(withSwp).attackLines.some((b) => b.label === 'Not proficient')).toBe(false);
+  });
+
   it('a class list naming a specific weapon grants it (monk and the kama)', () => {
     // The monk's proficiency list names kama/nunchaku/sai/siangham/shuriken directly.
     expect(line(wielder('monk', 'kama')).attackLines.some((b) => b.label === 'Not proficient')).toBe(false);
