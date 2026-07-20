@@ -914,6 +914,22 @@ describe('source-dependent features appear in the progression by chosen source',
     // Higher-level patron spells don't appear before their level.
     expect(resolve(atLevel(d, 8)).sheet.progression[7].features).not.toContain('Patron Spell (5th): Cone of Cold');
   });
+  it('an alchemist gains a grand-discovery pick at level 20, and not before', () => {
+    let d = newCharacter('t-alch', 'Damiel');
+    d = withDecision(d, 'ability-base', { str: 10, dex: 14, con: 12, int: 16, wis: 10, cha: 8 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['int']);
+    d = withDecision(d, 'alignment', 'N');
+    d = withDecision(d, 'class', 'alchemist');
+    d = withDecision(d, 'class-choices', { 'grand-discovery-L20': ['true-mutagen'] });
+    const r = resolve(atLevel(d, 20));
+    const grand = r.slots.find((s) => s.id === 'grand-discovery-L20');
+    expect(grand, 'grand-discovery slot missing at level 20').toBeTruthy();
+    expect(grand!.selected).toContain('true-mutagen');
+    expect(grand!.options.some((o) => o.id === 'awakened-intellect')).toBe(true);
+    // The capstone pick isn't offered before 20th.
+    expect(resolve(atLevel(d, 19)).slots.some((s) => s.id === 'grand-discovery-L20')).toBe(false);
+  });
   it('an oracle shows its mystery final revelation at 20, and nothing there without a mystery', () => {
     let d = newCharacter('t-oracle', 'Alahra');
     d = withDecision(d, 'ability-base', { str: 8, dex: 12, con: 12, int: 10, wis: 10, cha: 16 });

@@ -265,6 +265,17 @@ export const ALCHEMIST_DISCOVERIES: Opt[] = [
   opt('mummification', 'Mummification', 'Preserve your body, gaining DR and immunities of the undead.'),
 ];
 
+// Grand discoveries — the 20th-level capstone. At 20th an alchemist learns two normal discoveries
+// and one of these. Verified against the APG grand-discovery list (d20pfsrd + Archives of Nethys).
+export const GRAND_DISCOVERIES: Opt[] = [
+  opt('awakened-intellect', 'Awakened Intellect', 'Your Intelligence score permanently increases by 2 points.'),
+  opt('eternal-youth', 'Eternal Youth', 'You no longer take ability penalties from aging and any you have already taken are removed; you still gain aging’s mental bonuses and still die of old age.'),
+  opt('fast-healing', 'Fast Healing', 'You gain fast healing 5.'),
+  opt('philosophers-stone', 'Philosopher’s Stone', 'You learn how to create a philosopher’s stone.'),
+  opt('poison-touch', 'Poison Touch', 'You gain a poisonous touch, as the poison spell; suppress or activate it as a free action.'),
+  opt('true-mutagen', 'True Mutagen', 'Your mutagen grants a +8 natural armor bonus and a +8 alchemical bonus to Strength, Dexterity, and Constitution, but a −2 penalty to Intelligence, Wisdom, and Charisma.'),
+];
+
 export const MAGUS_ARCANA: Opt[] = [
   opt('arcane-accuracy', 'Arcane Accuracy', 'Spend arcane pool for an insight bonus to attack.'),
   opt('close-range', 'Close Range', 'Deliver ranged touch spells through spellstrike.'),

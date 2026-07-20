@@ -7,7 +7,7 @@
 import type { LeveledFeatureDef, ClassChoiceDef } from './model';
 import {
   BARBARIAN_RAGE_POWERS, ROGUE_TALENTS, ROGUE_ADVANCED_TALENTS, PALADIN_MERCIES, PALADIN_DIVINE_BOND,
-  ALCHEMIST_DISCOVERIES, MAGUS_ARCANA, WITCH_HEXES, SHAMAN_HEXES,
+  ALCHEMIST_DISCOVERIES, GRAND_DISCOVERIES, MAGUS_ARCANA, WITCH_HEXES, SHAMAN_HEXES,
   ARCANIST_EXPLOITS, SHIFTER_ASPECTS,
   SLAYER_TALENTS, SLAYER_ADVANCED_TALENTS, INVESTIGATOR_TALENTS,
 } from './subsystems';
@@ -231,9 +231,12 @@ export const CLASS_PROGRESSION: Record<string, ClassProgression> = {
       f(6, 'alch-swift-poisoning', 'Swift Poisoning', 'Apply poison to a weapon as a move action.'),
       f(14, 'alch-persistent-mutagen', 'Persistent Mutagen', 'Mutagen effects last twice as long.'),
       f(18, 'alch-instant-alchemy', 'Instant Alchemy', 'Create alchemical items and poisons almost instantly.'),
-      f(20, 'alch-grand-discovery', 'Grand Discovery', 'A capstone discovery of exceptional power.'),
+      f(20, 'alch-grand-discovery', 'Grand Discovery', 'A capstone breakthrough: learn two normal discoveries and one grand discovery of exceptional power.'),
     ],
-    choices: [{ id: 'discovery', label: 'Discovery', kind: 'list', count: 1, levels: [2, 4, 6, 8, 10, 12, 14, 16, 18], options: ALCHEMIST_DISCOVERIES }],
+    choices: [
+      { id: 'discovery', label: 'Discovery', kind: 'list', count: 1, levels: [2, 4, 6, 8, 10, 12, 14, 16, 18], options: ALCHEMIST_DISCOVERIES },
+      { id: 'grand-discovery', label: 'Grand Discovery', kind: 'list', count: 1, levels: [20], options: GRAND_DISCOVERIES },
+    ],
   },
   cavalier: {
     bonusFeats: { levels: [6, 12, 18], label: 'Cavalier bonus feat' },

@@ -288,6 +288,18 @@ describe('source-dependent features (bloodline powers, order abilities)', () => 
       expect(feats.map((f) => f.level), `witch ${pid} levels`).toEqual([2, 4, 6, 8, 10, 12, 14, 16, 18]);
     }
   });
+  it('the alchemist offers a grand-discovery pick at level 20 from the six APG grand discoveries', () => {
+    const alch = C.classById.get('alchemist');
+    const choices = [...(alch?.choices ?? []), ...(C.CLASS_PROGRESSION['alchemist']?.choices ?? [])];
+    const grand = choices.find((ch) => ch.id === 'grand-discovery');
+    expect(grand, 'alchemist has no grand-discovery choice').toBeTruthy();
+    expect(grand!.levels, 'grand discovery is a level-20 pick').toEqual([20]);
+    expect(grand!.options).toBe(C.GRAND_DISCOVERIES);
+    const ids = new Set(C.GRAND_DISCOVERIES.map((o) => o.id));
+    for (const id of ['awakened-intellect', 'eternal-youth', 'fast-healing', 'philosophers-stone', 'poison-touch', 'true-mutagen']) {
+      expect(ids.has(id), `grand discovery "${id}" missing`).toBe(true);
+    }
+  });
   it('every cavalier order has abilities at 2/8/15, keyed to a real order option', () => {
     const optionIds = new Set(C.CAVALIER_ORDERS.map((o) => o.id));
     const abilityIds = new Set(Object.keys(C.CAVALIER_ORDER_ABILITIES));
