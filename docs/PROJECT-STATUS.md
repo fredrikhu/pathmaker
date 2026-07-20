@@ -6,22 +6,37 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 
 ## ▶ Resume here (last session end)
 
-**Current state** — branch `main`, working tree clean, **523 tests** passing (`origin/main` at
-`e6a1845`); run `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
+**Current state** — branch `main`, working tree clean, **528 tests** passing (`origin/main` at
+`4327f73`); run `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
-**Latest — bloodline arcana & bonus spells** (commit `e6a1845`). Third of the different-in-kind
-fill-ins. `SORCERER_BLOODLINE_SPELLS` (`source-features.ts`) gives all 6 CRB bloodlines their arcana
-(level 1) + 9 bonus spells added to spells known at **3/5/7/9/11/13/15/17/19** (spell levels 1st–9th);
-`BLOODRAGER_BLOODLINE_SPELLS` gives all 10 ACG bloodlines 4 bonus spells at **7/10/13/16** (spell
-levels 1st–4th). **Key finding: bloodragers have no bloodline arcana** (only sorcerers do) — confirmed
-by reading the raw class page in-browser when the WebFetch summarizer kept "not finding" it. Both
-maps injected in `resolve.ts` off the existing `bloodline` choice, alongside the already-authored
-bloodline *powers* (so level 1 shows both the power and the arcana). Built with `sorcBloodline(...)` /
-`brBloodline(...)` helpers. All 94 bonus spells cross-checked (d20pfsrd per-bloodline pages + AoN
-legacy); each spell's own level matches its granting level. 2 coverage + 2 golden tests;
-browser-verified the draconic sorcerer's Advancement table. **Only one fill-in remains: the summoner
-eidolon evolution pool** — the big different-in-kind one (a point-buy sub-application with an evolution
-list + max evolution-point budget per level, not a fixed pick-list).
+**Latest — eidolon evolution pool** (commit `4327f73`). The last of the four different-in-kind fill-ins,
+and the only one that added a new engine capability rather than content. A **point-buy** subsystem: a
+new `eidolon-evolutions` `ClassChoiceKind`; the summoner spends a per-level pool on evolutions costing
+1–4 points each. `EIDOLON_EVOLUTIONS` (all 48 APG evolutions with cost, min summoner level, and
+base-form gate) + `EIDOLON_EVOLUTION_POOL` (Table 2-9) in `subsystems.ts`; `EvolutionDef` in
+`model.ts`; `pointBudget`/`pointsSpent` on the `ChoiceSlot`. In `resolve.ts`, `evolutionPool(level)`
+sizes the pool, `classChoiceOptions` (now level-aware) marks each evolution legal/illegal by level +
+chosen base form, and the class-choice slot loop special-cases the point-buy: it sums selected costs
+and raises info (points unspent) / warning (over pool, or illegal picks) issues instead of the generic
+"choose (x/count)". The Class step shows a live **spent / budget points** counter (warn-colored when
+over) and per-option `◆ N pts` badges. 3 content + 2 golden tests; browser-verified a quadruped
+Summoner 8 (counter read 7/11, correct level/form gating). **Verify-don't-guess earned its keep twice:**
+the pool table I remembered (3,4,5,6,6,7…) was wrong — two sources agreed on the real
+**3,4,5,7,8,9,10,11,13,14,15,16,17,19,20,21,22,23,25,26**; and I read the AoN evolutions page in-browser
+to pull all 48 evolutions when the WebFetch summarizer kept dropping the structured data. *Known
+simplification:* multi-take evolutions (e.g. Ability Increase several times) are offered as a single
+take, flagged in `EvolutionDef`.
+
+**All four different-in-kind subsystem fill-ins are now done** (witch patron spells, alchemist grand
+discoveries, bloodline arcana/bonus spells, eidolon evolution pool). No known descriptive or
+subsystem-data gaps remain in the class content.
+
+**Prior — bloodline arcana & bonus spells** (commit `e6a1845`). `SORCERER_BLOODLINE_SPELLS`
+(`source-features.ts`) gives all 6 CRB bloodlines their arcana (level 1) + 9 bonus spells at
+**3/5/7/9/11/13/15/17/19**; `BLOODRAGER_BLOODLINE_SPELLS` gives all 10 ACG bloodlines 4 bonus spells at
+**7/10/13/16**. **Bloodragers have no bloodline arcana** (only sorcerers do) — confirmed by reading the
+raw class page in-browser. Injected off the existing `bloodline` choice alongside the bloodline
+*powers*. All 94 bonus spells cross-checked; 2 coverage + 2 golden tests; browser-verified.
 
 **Prior — alchemist grand discoveries** (commit `fff6b94`). `GRAND_DISCOVERIES` (`subsystems.ts`) is the
 six-option 20th-level capstone (Awakened Intellect +2 Int, Eternal Youth, Fast Healing 5, Philosopher's
