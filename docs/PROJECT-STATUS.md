@@ -6,9 +6,24 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 
 ## ▶ Resume here (last session end)
 
-**Last session: the "just more data" breadth pass is COMPLETE** (branch `master`, working tree clean,
-477 tests passing; run `npx tsc --noEmit && npx vitest run && npm run build` to confirm). The content
-catalogues were worked to core-scope coverage in order, each verified and test-gated:
+**Current state** — branch `main`, working tree clean, **498 tests** passing (`origin/main` at
+`77bb2ab`); run `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
+
+**Most recent session — play-mat UX compaction + trait validation** (commit `77bb2ab`):
+- **Play sheet space savings** (`PlaySheet.tsx`): the Running-effects add form folds behind an
+  Add/Close toggle (its selects size to content instead of each stretching to its own row); the HP
+  card moved Temp HP / Nonlethal up beside the HP number; Saving throws folded into the At-a-glance
+  panel as a vertical stack, dropping the standalone panel plus the vs-DC field and the natural-20 note
+  (the `saveDc` plumbing in `rollSavingThrow` was removed with it).
+- **Builder trait validation** (`resolve.ts`): an `info` issue fires when fewer traits are selected
+  than the budget (2, or 3 with a drawback) — "Choose N more trait(s)"; five golden tests cover the
+  counts, the drawback bump, and that over-budget still errors.
+- **Just before that**, a full multi-list spell-level audit + list-membership cleanup closed the
+  spell-correctness backlog (per-list levels via `levelByList`; mass cures dropped from druid; Wail of
+  the Banshee off the base cleric list but still Death/Repose-domain-reachable; Blindness cleric-3).
+
+**Earlier — the "just more data" breadth pass is COMPLETE.** The content catalogues were worked to
+core-scope coverage in order, each verified and test-gated:
 - **① Feats** — the whole CRB list (~173 feats). Simple/Martial Weapon Proficiency were wired into
   `proficiencyCtx` so they actually clear the −4 non-proficiency penalty.
 - **② Spells** — common-spell breadth (~130 → ~270). Per the user's scope choice this is the common
