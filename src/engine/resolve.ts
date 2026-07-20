@@ -260,7 +260,8 @@ function collectEffects(dec: Decisions, doc: CharacterDoc, level: number): Effec
   for (const feat of allClassFeatures(dec, level, false)) if (feat.effects) effects.push(...feat.effects);
 
   // Feats (orphaned feats suspended — see validFeatIds)
-  for (const fid of validFeatIds(dec, level)) {
+  const featSet = new Set(validFeatIds(dec, level));
+  for (const fid of featSet) {
     const f = C.featById.get(fid);
     if (!f?.effects) continue;
     // Toughness scales: +3 HP, plus 1 per Hit Die beyond 3rd (i.e. max(3, character level)).
@@ -282,7 +283,14 @@ function collectEffects(dec: Decisions, doc: CharacterDoc, level: number): Effec
   const armor = doc.equipped.armor ? C.armorById.get(doc.equipped.armor) : null;
   const shield = doc.equipped.offHand ? C.armorById.get(doc.equipped.offHand) : null;
   if (armor) effects.push({ target: 'ac', type: 'armor', value: armor.acBonus, note: `${armor.name} (armor)` });
-  if (shield && shield.slot === 'shield') effects.push({ target: 'ac', type: 'shield', value: shield.acBonus, note: `${shield.name} (shield)` });
+  if (shield && shield.slot === 'shield') {
+    // Shield Focus increases the AC bonus granted by the shield rather than adding a separate
+    // shield bonus — so it is folded into this effect's value (a separate 'shield'-type bonus would
+    // be shadowed by the shield's own, both being highest-wins). Greater Shield Focus adds one more.
+    const shieldFocus = (featSet.has('shield-focus') ? 1 : 0) + (featSet.has('greater-shield-focus') ? 1 : 0);
+    effects.push({ target: 'ac', type: 'shield', value: shield.acBonus + shieldFocus,
+      note: `${shield.name} (shield)${shieldFocus ? ` +${shieldFocus} Shield Focus` : ''}` });
+  }
   // Magic armour/shield: the enhancement is its own bonus type, so it stacks with the item's own
   // armour or shield bonus.
   const quality = itemQuality(doc);
@@ -721,7 +729,13 @@ export function resolve(doc: CharacterDoc): Resolution {
   // Speed-boosting items (boots of striding and springing) add on top, after any armor/load
   // reduction — the reduction is computed from base land speed, not from the boosted figure.
   const speedBonus = stack(unconds('speed')).total;
-  const effectiveSpeed = reducedSpeed + speedBonus;
+  // Fleet: +5 ft per instance while in light or no armour and no more than a light load — a
+  // condition the flat-bonus effect model can't express, so it is gated here where armour and
+  // load are known. The feat may be taken more than once, so it counts instances.
+  const armorLightOrNone = !armorForSpeed || armorForSpeed.category === 'light';
+  const fleetCount = featParams.filter((f) => f.featId === 'fleet').length;
+  const fleetBonus = armorLightOrNone && !encumberingLoad ? 5 * fleetCount : 0;
+  const effectiveSpeed = reducedSpeed + speedBonus + fleetBonus;
 
   // ---- Gold ----
   // A character built above 1st level uses Character Wealth by Level, not the class's 1st-level

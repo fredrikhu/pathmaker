@@ -213,6 +213,49 @@ describe('new races', () => {
     expect(r.sheet.speed.base).toBe(30);
     expect(r.sheet.speed.reducedFrom).toBeUndefined();
   });
+
+  it('Fleet adds 5 ft in light or no armour, and is suppressed by medium armour', () => {
+    let d = newCharacter('t-fleet', 'Swift');
+    d = withDecision(d, 'ability-base', { str: 12, dex: 12, con: 12, int: 10, wis: 10, cha: 10 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'alignment', 'N');
+    d = withDecision(d, 'class', 'fighter');
+    d = withDecision(d, 'feats', { 'feat-1': 'fleet' });
+    // No armour: 30 + 5.
+    expect(resolve(d).sheet.speed.base).toBe(35);
+    // Light armour still gets it.
+    expect(resolve({ ...d, equipped: { armor: 'chain-shirt', mainHand: null, offHand: null } }).sheet.speed.base).toBe(35);
+    // Medium armour reduces to 20 and suppresses Fleet (not 25).
+    expect(resolve({ ...d, equipped: { armor: 'scale-mail', mainHand: null, offHand: null } }).sheet.speed.base).toBe(20);
+  });
+});
+
+describe('Shield Focus increases the shield bonus (only while a shield is wielded)', () => {
+  function shieldBearer(feats: Record<string, string>, offHand: string | null): CharacterDoc {
+    let d = newCharacter('t-sf', 'Warder');
+    d = withDecision(d, 'ability-base', { str: 12, dex: 10, con: 12, int: 10, wis: 10, cha: 10 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'alignment', 'LN');
+    d = withDecision(d, 'class', 'fighter');
+    d = withDecision(d, 'feats', feats);
+    return { ...atLevel(d, 8), purchases: { 'heavy-shield': 1 }, equipped: { armor: null, mainHand: null, offHand } };
+  }
+  const ac = (d: CharacterDoc) => resolve(d).sheet.stats['ac'].total;
+
+  it('adds +1 with Shield Focus and +2 with Greater, on top of the heavy shield’s +2', () => {
+    const plain = ac(shieldBearer({}, 'heavy-shield'));
+    expect(ac(shieldBearer({ 'feat-1': 'shield-focus' }, 'heavy-shield'))).toBe(plain + 1);
+    expect(ac(shieldBearer({ 'feat-1': 'shield-focus', 'feat-L3': 'greater-shield-focus' }, 'heavy-shield'))).toBe(plain + 2);
+  });
+
+  it('does nothing when no shield is equipped, and never touches touch AC', () => {
+    const noShield = shieldBearer({ 'feat-1': 'shield-focus' }, null);
+    const bareNoFeat = shieldBearer({}, null);
+    expect(ac(noShield)).toBe(ac(bareNoFeat)); // no shield → no bonus
+    // Shield Focus rides the shield bonus, which never applies to touch AC.
+    const withShield = shieldBearer({ 'feat-1': 'shield-focus' }, 'heavy-shield');
+    expect(resolve(withShield).sheet.stats['ac:touch'].total).toBe(resolve(shieldBearer({}, 'heavy-shield')).sheet.stats['ac:touch'].total);
+  });
 });
 
 describe('new Base/Hybrid classes', () => {

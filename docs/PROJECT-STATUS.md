@@ -36,11 +36,12 @@ play-sheet toggles, and **multiclass**.
 **What's left is not "just data."** The blocked-on-verification list is empty — every item held for an
 untrustworthy source has been resolved. The open backlog is deliberately out-of-scope classes and
 races (Vigilante/Omdura, Occult/Alternate/NPC/Unchained, monster/advanced races) and the fidelity
-gaps that need engine work — now being worked in priority order. **Done: Improved Critical** (the
-chosen weapon's threat range doubles on its attack line, reusing the keen hook, no stacking). Next in
-that queue: Shield Focus / Fleet (conditional feats the effect model can't yet gate on equipped
-shield / armour weight), then bonus domain / specialist-school spells per-spell, then per-list spell
-levels — see the deferral backlog below.
+gaps that need engine work — now being worked in priority order. **Done: Improved Critical** (threat
+range doubles on the attack line, reusing the keen hook, no stacking) and **Shield Focus / Greater
+Shield Focus / Fleet** (the conditional feats, gated in `resolve` where equipped shield and armour
+weight are known — Shield Focus folds into the shield's bonus, Fleet adds +5 ft in light/no armour).
+Next in that queue: bonus domain / specialist-school spells per-spell (currently a +1 count
+approximation), then per-list spell levels — see the deferral backlog below.
 
 Everything below is the durable detail. When resuming, read this file, then `docs/DESIGN.md`.
 
@@ -276,11 +277,13 @@ Still open from that audit:
     weapon, Simple grants the group), so a feat can never leave a wrong penalty showing.
     **Improved Critical is now computed** — the chosen weapon's threat range doubles on its attack
     line, reusing the keen `doubleThreatRange` hook; it correctly does *not* stack with keen (the
-    range doubles once when either is present). The rest of the new combat feats are situational and
-    stay benefit-text (the project's standing line): **Shield
-    Focus**'s +1 shield AC and **Fleet**'s +5 speed (both armour/shield-conditional), and
-    **Intimidating Prowess** (adds an ability *modifier*, which the flat-bonus effect model can't
-    express). Class-feature-gated prereqs the DSL can't state ("channel energy", "cast arcane
+    range doubles once when either is present). **Shield Focus / Greater Shield Focus and Fleet are
+    now computed too** — the conditional feats the flat-bonus effect model can't express are gated at
+    the point in `resolve` where the state is known: Shield Focus folds +1 (Greater +1 more) into the
+    equipped shield's own shield bonus (only while a shield is wielded; never reaches touch AC), and
+    Fleet adds +5 ft per instance only in light or no armour and no worse than a light load. The
+    remaining situational feat stays benefit-text: **Intimidating Prowess** (adds an ability
+    *modifier*, which the flat-bonus effect model can't express). Class-feature-gated prereqs the DSL can't state ("channel energy", "cast arcane
     spells", "Nth-level fighter") live in `reqText`; fighter-gated feats approximate the level as
     `classId: fighter`, as Weapon Specialization already does.
 - **Psychic/occult** spells not authored. **Extracts** (alchemist/investigator) are prepared from the
