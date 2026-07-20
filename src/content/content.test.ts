@@ -234,6 +234,7 @@ describe('source-dependent features (bloodline powers, order abilities)', () => 
       ['cavalier order', C.CAVALIER_ORDER_ABILITIES],
       ['bloodrager bloodline', C.BLOODRAGER_BLOODLINE_POWERS],
       ['shaman spirit', C.SHAMAN_SPIRIT_ABILITIES],
+      ['shifter aspect', C.SHIFTER_ASPECT_ABILITIES],
     ];
     for (const [label, map] of sources) {
       for (const [sid, feats] of Object.entries(map)) {
@@ -266,6 +267,15 @@ describe('source-dependent features (bloodline powers, order abilities)', () => 
     for (const id of abilityIds) expect(optionIds.has(id), `shaman abilities for unknown spirit "${id}"`).toBe(true);
     for (const [sid, feats] of Object.entries(C.SHAMAN_SPIRIT_ABILITIES)) {
       expect(feats.map((f) => f.level), `shaman ${sid} levels`).toEqual([1, 8, 16, 20]);
+    }
+  });
+  it('every shifter aspect has abilities at 1/4/8/15, keyed to a real aspect option', () => {
+    const optionIds = new Set(C.SHIFTER_ASPECTS.map((o) => o.id));
+    const abilityIds = new Set(Object.keys(C.SHIFTER_ASPECT_ABILITIES));
+    for (const id of optionIds) expect(abilityIds.has(id), `shifter aspect "${id}" has no abilities`).toBe(true);
+    for (const id of abilityIds) expect(optionIds.has(id), `shifter abilities for unknown aspect "${id}"`).toBe(true);
+    for (const [aid, feats] of Object.entries(C.SHIFTER_ASPECT_ABILITIES)) {
+      expect(feats.map((f) => f.level), `shifter ${aid} levels`).toEqual([1, 4, 8, 15]);
     }
   });
   it('every cavalier order has abilities at 2/8/15, keyed to a real order option', () => {

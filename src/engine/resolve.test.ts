@@ -883,6 +883,22 @@ describe('source-dependent features appear in the progression by chosen source',
     expect(r.sheet.progression[1].features).toContain('Foolhardy Rush');  // 2nd
     expect(r.sheet.progression[7].features).toContain('Daunting Success'); // 8th
   });
+  it('a tiger shifter shows its aspect abilities (Minor at 1, Major at 4, Greater at 8, True at 15)', () => {
+    let d = newCharacter('t-shifter', 'Feiya');
+    d = withDecision(d, 'ability-base', { str: 14, dex: 16, con: 13, int: 10, wis: 14, cha: 8 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['dex']);
+    d = withDecision(d, 'alignment', 'N');
+    d = withDecision(d, 'class', 'shifter');
+    d = withDecision(d, 'class-choices', { aspect: ['tiger'] });
+    const r = resolve(atLevel(d, 15));
+    expect(r.sheet.progression[0].features).toContain('Tiger Aspect (Minor)');  // 1st
+    expect(r.sheet.progression[3].features).toContain('Tiger Aspect (Major)');  // 4th
+    expect(r.sheet.progression[7].features).toContain('Greater Tiger Aspect');  // 8th
+    expect(r.sheet.progression[14].features).toContain('True Tiger Aspect');    // 15th
+    // The bare aspect abilities don't appear before their level.
+    expect(resolve(atLevel(d, 3)).sheet.progression[2].features).not.toContain('Tiger Aspect (Major)');
+  });
   it('an oracle shows its mystery final revelation at 20, and nothing there without a mystery', () => {
     let d = newCharacter('t-oracle', 'Alahra');
     d = withDecision(d, 'ability-base', { str: 8, dex: 12, con: 12, int: 10, wis: 10, cha: 16 });

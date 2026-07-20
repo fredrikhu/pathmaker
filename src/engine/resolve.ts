@@ -223,6 +223,7 @@ function sourceFeatures(dec: Decisions): C.LeveledFeatureDef[] {
   if (dec.classId === 'oracle') add(C.ORACLE_CURSE_ABILITIES, dec.classChoices['curse']?.[0], 'oracle-curse');
   if (dec.classId === 'wizard') add(C.SCHOOL_POWERS, dec.classChoices['school']?.[0], 'wiz-school');
   if (dec.classId === 'cavalier') add(C.CAVALIER_ORDER_ABILITIES, dec.classChoices['order']?.[0], 'cav-ord');
+  if (dec.classId === 'shifter') add(C.SHIFTER_ASPECT_ABILITIES, dec.classChoices['aspect']?.[0], 'shifter-asp');
   return out;
 }
 

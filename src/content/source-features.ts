@@ -344,3 +344,70 @@ export const SCHOOL_POWERS: Record<string, SourceFeature[]> = {
     { level: 8, name: 'Metamagic Mastery', desc: 'Apply a metamagic feat without increasing casting time a few times per day.' },
   ],
 };
+
+/** Shifter aspect abilities, keyed by the primary (major) aspect chosen at 1st level. The minor
+ *  form benefit applies constantly from 1st; the major form applies while wild shaped (from 4th);
+ *  both improve at 8th and 15th. Levels 1/4/8/15. Verified against the class table (Ultimate
+ *  Wilderness). Our 'eagle' id uses the Falcon major form. */
+export const SHIFTER_ASPECT_ABILITIES: Record<string, SourceFeature[]> = {
+  bear: [
+    { level: 1, name: 'Bear Aspect (Minor)', desc: '+2 enhancement bonus to Constitution.' },
+    { level: 4, name: 'Bear Aspect (Major)', desc: 'While wild shaped: dire bear form — two claws (1d6), bite (1d8), 40 ft speed, low-light vision, scent 30 ft.' },
+    { level: 8, name: 'Greater Bear Aspect', desc: 'Constitution bonus rises to +4; your claws gain Improved Natural Attack.' },
+    { level: 15, name: 'True Bear Aspect', desc: 'Constitution bonus rises to +6; claw critical multiplier increases by one and you gain Awesome Blow.' },
+  ],
+  bull: [
+    { level: 1, name: 'Bull Aspect (Minor)', desc: '+2 enhancement bonus to Strength.' },
+    { level: 4, name: 'Bull Aspect (Major)', desc: 'While wild shaped: Large bull form — gore (1d8) with powerful charge (+1d8), 40 ft speed, low-light vision, scent 30 ft.' },
+    { level: 8, name: 'Greater Bull Aspect', desc: 'Strength bonus rises to +4; you gain trample.' },
+    { level: 15, name: 'True Bull Aspect', desc: 'Strength bonus rises to +6; gore damage increases to 2d8 and you gain Awesome Blow.' },
+  ],
+  eagle: [
+    { level: 1, name: 'Falcon Aspect (Minor)', desc: '+4 competence bonus on Perception checks.' },
+    { level: 4, name: 'Falcon Aspect (Major)', desc: 'While wild shaped: falcon form — bite (1d4), two claws (1d3), fly 60 ft (good), low-light vision, +4 racial bonus on vision-based Perception.' },
+    { level: 8, name: 'Greater Falcon Aspect', desc: 'Perception bonus rises to +6; you gain darkvision 120 ft.' },
+    { level: 15, name: 'True Falcon Aspect', desc: 'Perception bonus rises to +8; fly speed increases to 90 ft (perfect) and you gain blindsense 60 ft.' },
+  ],
+  frog: [
+    { level: 1, name: 'Frog Aspect (Minor)', desc: '+4 competence bonus on Acrobatics checks to jump and on Swim checks.' },
+    { level: 4, name: 'Frog Aspect (Major)', desc: 'While wild shaped: Large frog form — bite (1d6) with grab, swim 30 ft, low-light vision, scent 30 ft, treat all jumps as if you had a running start.' },
+    { level: 8, name: 'Greater Frog Aspect', desc: 'Acrobatics/Swim bonus rises to +6; you gain a tongue attack with 15 ft reach.' },
+    { level: 15, name: 'True Frog Aspect', desc: 'Acrobatics/Swim bonus rises to +8; swim speed increases to 60 ft and tongue reach to 30 ft.' },
+  ],
+  lion: [
+    { level: 1, name: 'Lion Aspect (Minor)', desc: '+4 competence bonus on Intimidate checks.' },
+    { level: 4, name: 'Lion Aspect (Major)', desc: 'While wild shaped: dire lion form — 40 ft speed, low-light vision, scent 30 ft; roar once per day per two shifter levels grants allies a +1 morale bonus on attack and damage rolls.' },
+    { level: 8, name: 'Greater Lion Aspect', desc: 'Intimidate bonus rises to +6; gain a bonus teamwork feat you can grant allies as a swift action.' },
+    { level: 15, name: 'True Lion Aspect', desc: 'Intimidate bonus rises to +8; you always count as flanking and can swap places with allies.' },
+  ],
+  monkey: [
+    { level: 1, name: 'Monkey Aspect (Minor)', desc: '+4 competence bonus on Climb checks.' },
+    { level: 4, name: 'Monkey Aspect (Major)', desc: 'While wild shaped: Large ape form — two claws (1d6), bite (1d6), climb 30 ft, low-light vision, scent 30 ft, and you retain the use of your hands.' },
+    { level: 8, name: 'Greater Monkey Aspect', desc: 'Climb bonus rises to +6; climb speed increases to 50 ft and your tail can manipulate objects.' },
+    { level: 15, name: 'True Monkey Aspect', desc: 'Climb bonus rises to +8; you gain a rend attack.' },
+  ],
+  snake: [
+    { level: 1, name: 'Snake Aspect (Minor)', desc: '+2 bonus on attack rolls for attacks of opportunity and a +2 dodge bonus to AC against attacks of opportunity.' },
+    { level: 4, name: 'Snake Aspect (Major)', desc: 'While wild shaped: emperor cobra form — bite (2d6), climb 30 ft, swim 30 ft, low-light vision, scent 30 ft, and Combat Reflexes.' },
+    { level: 8, name: 'Greater Snake Aspect', desc: 'Opportunity bonuses rise to +4; gain +4 racial bonus on Acrobatics and Stealth.' },
+    { level: 15, name: 'True Snake Aspect', desc: 'Opportunity bonuses rise to +6; your opportunity bites deliver a Constitution-damaging poison.' },
+  ],
+  stag: [
+    { level: 1, name: 'Stag Aspect (Minor)', desc: '+5 ft enhancement bonus to your base speed.' },
+    { level: 4, name: 'Stag Aspect (Major)', desc: 'While wild shaped: Large stag form — gore (1d6), two hooves (1d4), 50 ft speed, low-light vision, scent 30 ft.' },
+    { level: 8, name: 'Greater Stag Aspect', desc: 'Speed bonus rises to +10 ft; gain +4 racial bonus on Acrobatics checks to jump.' },
+    { level: 15, name: 'True Stag Aspect', desc: 'Speed bonus rises to +20 ft; you gain Awesome Blow and Improved Natural Attack with your gore.' },
+  ],
+  tiger: [
+    { level: 1, name: 'Tiger Aspect (Minor)', desc: '+2 enhancement bonus to Dexterity.' },
+    { level: 4, name: 'Tiger Aspect (Major)', desc: 'While wild shaped: dire tiger form — two claws (2d4), bite (2d6) with grab, 40 ft speed, low-light vision, scent 30 ft, and pounce.' },
+    { level: 8, name: 'Greater Tiger Aspect', desc: 'Dexterity bonus rises to +4; gain +4 racial bonus on Stealth.' },
+    { level: 15, name: 'True Tiger Aspect', desc: 'Dexterity bonus rises to +6; you gain a rake attack with your rear claws.' },
+  ],
+  wolf: [
+    { level: 1, name: 'Wolf Aspect (Minor)', desc: 'Gain the scent ability with a range of 10 ft (or extend your existing scent).' },
+    { level: 4, name: 'Wolf Aspect (Major)', desc: 'While wild shaped: dire wolf form — bite (1d8) with a trip attempt, 50 ft speed, low-light vision, scent 30 ft.' },
+    { level: 8, name: 'Greater Wolf Aspect', desc: 'Scent range rises to 40 ft; gain +4 racial bonus on Survival to track by scent.' },
+    { level: 15, name: 'True Wolf Aspect', desc: 'Scent range increases further; you gain Improved Natural Attack with your bite.' },
+  ],
+};
