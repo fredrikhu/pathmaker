@@ -750,6 +750,31 @@ describe('damage reduction and energy resistance data', () => {
     }
   });
 
+  it('every variant heritage is well-formed and replaces real traits', () => {
+    const ABILITY = new Set(['str', 'dex', 'con', 'int', 'wis', 'cha']);
+    for (const r of C.RACES) {
+      if (!r.heritages) continue;
+      const traitIds = new Set(r.traits.map((t) => t.id));
+      for (const rep of r.heritageReplaces ?? []) {
+        expect(traitIds.has(rep), `${r.id} heritageReplaces "${rep}" is not a real trait`).toBe(true);
+      }
+      for (const h of r.heritages) {
+        expect(h.spellLikeAbility.name.length, `${r.id}/${h.id} SLA`).toBeGreaterThan(0);
+        for (const [k, v] of Object.entries(h.abilityMods)) {
+          expect(ABILITY.has(k), `${r.id}/${h.id} ability "${k}"`).toBe(true);
+          expect(Math.abs(v as number), `${r.id}/${h.id} ${k}`).toBe(2);
+        }
+        for (const e of h.effects ?? []) {
+          expect(e.target.startsWith('skill:'), `${r.id}/${h.id} effect target`).toBe(true);
+          const skillId = e.target.slice('skill:'.length);
+          expect(C.skillById.has(skillId), `${r.id}/${h.id}: "${skillId}" is not a real skill`).toBe(true);
+        }
+      }
+    }
+    expect(C.raceById.get('aasimar')!.heritages!.length).toBe(6);
+    expect(C.raceById.get('tiefling')!.heritages!.length).toBe(10);
+  });
+
   it('class damage reduction lists levels in range and in order', () => {
     for (const [id, prog] of Object.entries(C.CLASS_PROGRESSION)) {
       const dr = prog.damageReduction;

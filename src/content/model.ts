@@ -69,6 +69,28 @@ export interface RaceDef {
   altTraits: AltTraitDef[];
   languagesAuto: string[];
   languagesBonus: string[];
+  /** Variant heritages (aasimar, tiefling): a "pick one" that replaces the race's default ability
+   *  spread, its 1/day spell-like ability, and its skill bonuses with the heritage's own. */
+  heritages?: HeritageDef[];
+  /** The standard-trait ids a chosen heritage supersedes — the default Skilled and spell-like-ability
+   *  traits, which the heritage replaces with its own skill bonuses and SLA. */
+  heritageReplaces?: string[];
+}
+
+/** One of a race's variant heritages (Angel-Blooded aasimar, Demon-Spawn tiefling). Choosing it swaps
+ *  the race's default ability modifiers, its 1/day spell-like ability, and its two skill bonuses. */
+export interface HeritageDef {
+  id: string;
+  /** Full name including the fiend/celestial type, e.g. "Angel-Blooded (Angelkin)". */
+  name: string;
+  /** Ability modifiers that replace the race's default spread. */
+  abilityMods: Partial<Record<Ability, number>>;
+  /** The 1/day spell-like ability that replaces the race's default (aasimar daylight, tiefling
+   *  darkness). Tracked as a pool on the play mat like any other SLA. */
+  spellLikeAbility: { name: string; uses: number | 'at-will'; note?: string };
+  /** The heritage's skill bonuses (two skills at +2), replacing the race's default Skilled pair. */
+  effects?: Effect[];
+  desc: string;
 }
 
 export interface ClassFeatureDef {

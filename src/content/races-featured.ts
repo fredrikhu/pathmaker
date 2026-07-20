@@ -1,8 +1,21 @@
-import type { RaceDef } from './model';
+import type { Ability } from '../engine/types';
+import type { HeritageDef, RaceDef } from './model';
 
 // Featured races (Advanced Race Guide). Stat blocks verified against d20pfsrd. Skill/save/stat
 // bonuses fold in as effects; darkvision, resistances, and spell-like abilities are descriptive
-// traits (the engine doesn't compute SLAs). Standard heritage only — variant heritages omitted.
+// traits (the engine doesn't compute SLAs). Aasimar and tiefling carry their full variant-heritage
+// tables (ARG / Blood of Angels / Blood of Fiends), each swapping the ability spread, the 1/day SLA
+// and the two skill bonuses — verified against d20pfsrd.
+
+/** Build a variant-heritage entry. `skills` are the two skill ids the heritage grants +2 to, in
+ *  place of the race's default Skilled pair; `sla` is the 1/day spell-like ability that replaces the
+ *  race's default. */
+function heritage(id: string, name: string, mods: Partial<Record<Ability, number>>, skills: [string, string], sla: string, desc: string): HeritageDef {
+  return {
+    id, name, abilityMods: mods, spellLikeAbility: { name: sla, uses: 1 }, desc,
+    effects: skills.map((s) => ({ target: `skill:${s}`, type: 'racial' as const, value: 2, note: `${name} heritage` })),
+  };
+}
 
 export const FEATURED_RACES: RaceDef[] = [
   {
@@ -17,6 +30,15 @@ export const FEATURED_RACES: RaceDef[] = [
       { id: 'aasimar-sla', name: 'Spell-Like Ability', desc: 'Use daylight once per day (caster level equals class level).', spellLikeAbilities: [{ name: 'Daylight', uses: 1, note: 'CL = character level' }] },
     ],
     altTraits: [],
+    heritageReplaces: ['aasimar-skilled', 'aasimar-sla'],
+    heritages: [
+      heritage('idyllkin', 'Agathion-Blooded (Idyllkin)', { con: 2, cha: 2 }, ['handle-animal', 'survival'], "Summon Nature's Ally II", 'Bestial and calm, idyllkin often mediate between lawful and chaotic agents of good.'),
+      heritage('angelkin', 'Angel-Blooded (Angelkin)', { str: 2, cha: 2 }, ['heal', 'know-planes'], 'Alter Self', 'Mortal paragons of beauty who serve as exemplars of good and light.'),
+      heritage('lawbringer', 'Archon-Blooded (Lawbringer)', { con: 2, wis: 2 }, ['intimidate', 'sense-motive'], 'Continual Flame', 'Champions of justice who dole out punishment to the wicked.'),
+      heritage('musetouched', 'Azata-Blooded (Musetouched)', { dex: 2, cha: 2 }, ['diplomacy', 'perform-oratory'], 'Glitterdust', 'Free spirits who travel the world to liberate the less fortunate.'),
+      heritage('plumekith', 'Garuda-Blooded (Plumekith)', { dex: 2, wis: 2 }, ['acrobatics', 'fly'], 'See Invisibility', 'Avian-featured aasimars who never shirk a commitment once made.'),
+      heritage('emberkin', 'Peri-Blooded (Emberkin)', { int: 2, cha: 2 }, ['know-planes', 'spellcraft'], 'Pyrotechnics', 'Masters of fire magic, torn between the pull of good and evil.'),
+    ],
     languagesAuto: ['common', 'celestial'],
     languagesBonus: ['draconic', 'dwarven', 'elven', 'gnome', 'halfling', 'sylvan'],
   },
@@ -223,6 +245,19 @@ export const FEATURED_RACES: RaceDef[] = [
       { id: 'tiefling-sorcery', name: 'Fiendish Sorcery', desc: 'Abyssal or Infernal bloodline sorcerers treat Charisma as 2 higher.' },
     ],
     altTraits: [],
+    heritageReplaces: ['tiefling-skilled', 'tiefling-sla'],
+    heritages: [
+      heritage('faultspawn', 'Asura-Spawn (Faultspawn)', { dex: 2, wis: 2, int: -2 }, ['appraise', 'know-local'], 'Hideous Laughter', 'Swift and wise scions of the exotic asuras, favoring tradition over cunning.'),
+      heritage('grimspawn', 'Daemon-Spawn (Grimspawn)', { dex: 2, int: 2, wis: -2 }, ['disable-device', 'sleight-of-hand'], 'Death Knell', 'Shrewd, swift bringers of devastation whose plans hide exploitable flaws.'),
+      heritage('foulspawn', 'Demodand-Spawn (Foulspawn)', { con: 2, wis: 2, int: -2 }, ['intimidate', 'know-religion'], "Bear's Endurance", 'Burly, bizarrely cunning spawn who favor brawn over planning.'),
+      heritage('pitborn', 'Demon-Spawn (Pitborn)', { str: 2, cha: 2, int: -2 }, ['disable-device', 'perception'], 'Shatter', 'Savage and monstrous, they know the chaotic fury of their Abyssal ancestors.'),
+      heritage('hellspawn', 'Devil-Spawn (Hellspawn)', { con: 2, wis: 2, cha: -2 }, ['diplomacy', 'sense-motive'], 'Pyrotechnics', "Stalwart and conniving, they know the discipline and might of Hell's legions."),
+      heritage('spitespawn', 'Div-Spawn (Spitespawn)', { dex: 2, cha: 2, int: -2 }, ['diplomacy', 'linguistics'], 'Misdirection', 'Precise and exotic as a desert wind, after their div ancestors.'),
+      heritage('shackleborn', 'Kyton-Spawn (Shackleborn)', { con: 2, cha: 2, wis: -2 }, ['escape-artist', 'intimidate'], 'Web', 'Black-hearted spawn of shadow and pain who know their forebears’ sadistic vices.'),
+      heritage('hungerseed', 'Oni-Spawn (Hungerseed)', { str: 2, wis: 2, cha: -2 }, ['disguise', 'intimidate'], 'Alter Self', 'Masters of trickery and cruelty in the ways of their ancestral oni.'),
+      heritage('motherless', 'Qlippoth-Spawn (Motherless)', { str: 2, wis: 2, int: -2 }, ['escape-artist', 'survival'], 'Blur', 'Rare, warped scions of the eldritch qlippoths, tenacious and insidious.'),
+      heritage('beastbrood', 'Rakshasa-Spawn (Beastbrood)', { dex: 2, cha: 2, wis: -2 }, ['disguise', 'sense-motive'], 'Detect Thoughts', 'Deft, charming, bestial tieflings with a rakshasa’s subtlety and guile.'),
+    ],
     languagesAuto: ['common'],
     languagesBonus: ['abyssal', 'draconic', 'dwarven', 'elven', 'gnome', 'goblin', 'halfling', 'infernal', 'orc'],
   },

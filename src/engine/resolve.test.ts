@@ -2881,3 +2881,64 @@ describe('racial natural attacks', () => {
     expect(resolve(d).sheet.attacks.filter((a) => a.slot === 'natural')).toHaveLength(0);
   });
 });
+
+describe('variant heritages', () => {
+  function heritageChar(raceId: string, heritageId?: string): CharacterDoc {
+    let d = newCharacter('t-her-' + raceId + (heritageId ?? ''));
+    d = withDecision(d, 'ability-base', { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 });
+    d = withDecision(d, 'race', raceId);
+    d = withDecision(d, 'class', 'fighter');
+    if (heritageId) d = withDecision(d, 'heritage', heritageId);
+    return d;
+  }
+  const ab = (d: CharacterDoc, a: string) => resolve(d).sheet.stats[`ability:${a}`].total;
+  const slas = (d: CharacterDoc) => resolve(d).sheet.spellLikeAbilities.map((s) => s.name);
+  // These skills have no ranks and a 0 ability mod except where noted, so a +2 line is the racial
+  // (Skilled) or heritage bonus — its presence/absence is what we are asserting.
+  const skillRacial = (d: CharacterDoc, skill: string) =>
+    resolve(d).sheet.stats[`skill:${skill}`].lines.some((l) => l.value === 2);
+
+  it('a default aasimar keeps +2 Wis/+2 Cha, Daylight, and the Diplomacy/Perception skills', () => {
+    const d = heritageChar('aasimar');
+    expect(ab(d, 'wis')).toBe(12);
+    expect(ab(d, 'cha')).toBe(12);
+    expect(ab(d, 'str')).toBe(10);
+    expect(slas(d)).toContain('Daylight');
+    expect(skillRacial(d, 'diplomacy')).toBe(true);
+    expect(skillRacial(d, 'perception')).toBe(true);
+  });
+
+  it('Angelkin swaps to +2 Str/+2 Cha, Alter Self, and Heal/Knowledge (planes)', () => {
+    const d = heritageChar('aasimar', 'angelkin');
+    expect(ab(d, 'str')).toBe(12);
+    expect(ab(d, 'cha')).toBe(12);
+    expect(ab(d, 'wis')).toBe(10); // default +2 Wis is gone
+    expect(slas(d)).toContain('Alter Self');
+    expect(slas(d)).not.toContain('Daylight'); // default SLA replaced
+    expect(skillRacial(d, 'heal')).toBe(true);
+    expect(skillRacial(d, 'know-planes')).toBe(true);
+    // The default Diplomacy/Perception Skilled bonus is gone.
+    expect(skillRacial(d, 'diplomacy')).toBe(false);
+    // The ability breakdown attributes the bonus to the heritage.
+    expect(resolve(d).sheet.stats['ability:str'].lines.some((l) => /Angelkin/.test(l.label))).toBe(true);
+  });
+
+  it('a tiefling Pitborn takes +2 Str/+2 Cha/−2 Int, Shatter, and drops the default Bluff/Stealth', () => {
+    const d = heritageChar('tiefling', 'pitborn');
+    expect(ab(d, 'str')).toBe(12);
+    expect(ab(d, 'cha')).toBe(12);
+    expect(ab(d, 'int')).toBe(8);
+    // Default tiefling would be +2 Dex/+2 Int/−2 Cha — all replaced.
+    expect(ab(d, 'dex')).toBe(10);
+    expect(slas(d)).toContain('Shatter');
+    expect(slas(d)).not.toContain('Darkness');
+    expect(skillRacial(d, 'perception')).toBe(true);
+    expect(skillRacial(d, 'bluff')).toBe(false);
+  });
+
+  it('offers a heritage choice slot for aasimar and none for a race without heritages', () => {
+    const her = resolve(heritageChar('aasimar')).slots.find((s) => s.id === 'heritage');
+    expect(her?.options.map((o) => o.id)).toContain('musetouched');
+    expect(resolve(heritageChar('human')).slots.find((s) => s.id === 'heritage')).toBeUndefined();
+  });
+});

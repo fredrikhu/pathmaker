@@ -12,15 +12,21 @@ export function RaceStep({ ch }: { ch: CharCtl }) {
   const view = raceById.get(viewId)!;
   const altSlot = resolution.slots.find((s) => s.id === 'alt-traits');
   const chosenAlts = (doc.decisions['alt-traits'] as string[]) ?? [];
+  const heritageSlot = resolution.slots.find((s) => s.id === 'heritage');
+  const chosenHeritage = (doc.decisions['heritage'] as string | null) ?? null;
 
   const selectRace = (id: string) => {
-    // Changing race: reset now-invalid alt-traits and floating bonus so they don't linger as noise.
+    // Changing race: reset now-invalid alt-traits, floating bonus and heritage so they don't linger.
     if (id !== selectedRace) {
       setDecision('race', id);
       setDecision('alt-traits', []);
       setDecision('floating-bonus', []);
+      setDecision('heritage', null);
     }
   };
+
+  // Single-choice: picking the selected heritage again clears it, reverting to the default race.
+  const selectHeritage = (id: string) => setDecision('heritage', chosenHeritage === id ? null : id);
 
   const toggleAlt = (altId: string) => {
     const next = chosenAlts.includes(altId) ? chosenAlts.filter((a) => a !== altId) : [...chosenAlts, altId];
@@ -88,6 +94,38 @@ export function RaceStep({ ch }: { ch: CharCtl }) {
               })}
             </div>
             {view.id !== selectedRace && <p className="text-muted" style={{ fontSize: 11.5, marginTop: 10 }}>Select this race to choose its alternate traits.</p>}
+          </>
+        )}
+
+        {view.heritages && view.heritages.length > 0 && (
+          <>
+            <h6 style={{ margin: '22px 0 8px', color: 'var(--color-neutral-500)' }}>Variant heritage</h6>
+            <p className="text-muted" style={{ fontSize: 11.5, margin: '0 0 8px' }}>
+              Pick one to replace the default ability spread ({view.sub}), the 1/day spell-like ability, and the two skill bonuses. Leave it unpicked for the standard {view.name}.
+            </p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(330px, 1fr))', gap: 8, alignItems: 'start' }}>
+              {view.heritages.map((h) => {
+                const opt = heritageSlot?.options.find((o) => o.id === h.id);
+                const selected = chosenHeritage === h.id;
+                const disabled = view.id !== selectedRace;
+                return (
+                  <div key={h.id} style={{ padding: '11px 13px', borderRadius: 8, background: 'var(--color-surface)', opacity: disabled ? 0.55 : 1, boxShadow: `inset 0 0 0 1px ${selected ? 'var(--color-accent)' : 'transparent'}` }}>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: 13.5, fontWeight: 500, flex: 1 }}>{h.name}</span>
+                      <button className="btn btn-ghost" style={{ fontSize: 11.5 }} disabled={disabled} onClick={() => selectHeritage(h.id)}>
+                        {selected ? '✓ Chosen' : 'Choose'}
+                      </button>
+                    </div>
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 5 }}>
+                      <span className="tag tag-neutral" style={{ fontSize: 10 }}>{String(opt?.meta?.abilities ?? '')}</span>
+                      <span className="tag tag-neutral" style={{ fontSize: 10 }}>SLA: {h.spellLikeAbility.name}</span>
+                    </div>
+                    <div style={{ fontSize: 12.5, color: 'var(--color-neutral-400)', marginTop: 5, lineHeight: 1.5 }}>{h.desc}</div>
+                  </div>
+                );
+              })}
+            </div>
+            {view.id !== selectedRace && <p className="text-muted" style={{ fontSize: 11.5, marginTop: 10 }}>Select this race to choose a heritage.</p>}
           </>
         )}
       </div>

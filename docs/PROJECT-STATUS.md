@@ -6,10 +6,28 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 
 ## ▶ Resume here (last session end)
 
-**Current state** — branch `main`, working tree clean, **548 tests** passing; run
+**Current state** — branch `main`, working tree clean, **553 tests** passing; run
 `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
-**Latest — racial natural attacks (first of the "descriptive-by-nature" bucket).** The four playable
+**Latest — variant heritages (Aasimar + Tiefling).** Both races now carry their full ARG heritage
+tables — a race-level "pick one" that swaps the default ability spread, the 1/day spell-like ability,
+and the two skill bonuses. New `HeritageDef` on `RaceDef.heritages`, plus `RaceDef.heritageReplaces`
+(the default Skilled + SLA trait ids a heritage supersedes). Decision key `heritage`. In `resolve.ts`:
+`chosenHeritage()` helper; `finalAbilities` uses the heritage spread over the race default;
+`activeRacialTraits` suppresses the replaced traits; `collectEffects` adds the heritage skill bonuses;
+`gatherInnate` swaps in the heritage SLA (`sla:heritage:<slug>`); the ability breakdown attributes the
+bonus to the heritage; a `heritage` choice slot appears in the race step. Content authored + verified
+against raw d20pfsrd: **6 Aasimar** (Idyllkin/Angelkin/Lawbringer/Musetouched/Plumekith/Emberkin) and
+**10 Tiefling** (Faultspawn/Grimspawn/Foulspawn/Pitborn/Hellspawn/Spitespawn/Shackleborn/Hungerseed/
+Motherless/Beastbrood) — each with its exact ability mods, alt skills, and alt SLA. Race builder step
+renders a heritage picker (ability-spread + SLA badges, single-select, clear-to-default). 16 tests
+(golden: Angelkin swap, default fallback, Pitborn, slot presence; content: well-formed + counts).
+Browser-verified an Angelkin aasimar (play sheet SLA → Alter Self; picker shows "+2 STR, +2 CHA") and
+switching to Musetouched live-bumped Initiative +0 → +1. **Scope note:** Perform maps to Perform
+(oratory) since the app splits Perform; the heritages' custom flavor traits (physical features) stay
+descriptive — the mechanical spread + SLA + skills are what's computed.
+
+**Prior — racial natural attacks (first of the "descriptive-by-nature" bucket).** The four playable
 races with natural attacks now get computed attack lines instead of prose: **Lizardfolk** (bite 1d3 +
 two claws 1d4), **Tengu** (bite 1d3), **Changeling** (two claws 1d4), **Kitsune** (bite 1d4, true form
 only). New `NaturalAttackDef` on `RacialTraitDef.naturalAttacks` (so an alt-trait that replaces the
@@ -203,11 +221,13 @@ sheet's prepared pool — file a spell at its per-list level via `spellLevelOn`.
 divergences are corrected; a broader audit of every multi-list spell is the remaining tail.
 
 **The engine-fidelity queue is now clear** — Improved Critical, Shield Focus/Fleet, bonus domain/
-school slots, per-list spell levels, the metamagic damage/DC payoff, and racial natural attacks are all
-done. What's left in the deferral backlog is the deliberately out-of-scope classes/races and the
-descriptive-by-nature items (spell-like abilities surfaced-not-computed, darkvision; energy resistances
-and racial natural attacks are already structured). Eidolon attack evolutions and full monster-race
-statblocks stay descriptive until there's a companion/monster sheet to hang them on.
+school slots, per-list spell levels, the metamagic damage/DC payoff, racial natural attacks, and the
+Aasimar/Tiefling variant heritages are all done. What's left in the deferral backlog is the
+deliberately out-of-scope classes/races and the remaining descriptive-by-nature items (spell-like
+abilities surfaced-not-computed, darkvision, racial favored-class alternative bonuses, fly/swim/climb
+speed effects; energy resistances, racial natural attacks, and variant heritages are now structured).
+Eidolon attack evolutions and full monster-race statblocks stay descriptive until there's a
+companion/monster sheet to hang them on.
 
 Everything below is the durable detail. When resuming, read this file, then `docs/DESIGN.md`.
 

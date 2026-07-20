@@ -47,6 +47,7 @@ function displayName(id: string): string {
 interface Decisions {
   raceId: string | null;
   altTraits: string[];
+  heritage: string | null;
   abilityBase: Record<Ability, number>;
   floatingBonus: Ability[]; // human/half-elf/half-orc +2 targets
   alignment: Alignment | null;
@@ -76,6 +77,7 @@ function readDecisions(doc: CharacterDoc): Decisions {
   return {
     raceId: get<string | null>('race', null),
     altTraits: get<string[]>('alt-traits', []),
+    heritage: get<string | null>('heritage', null),
     abilityBase: base,
     floatingBonus: get<Ability[]>('floating-bonus', []),
     alignment: get<Alignment | null>('alignment', null),
@@ -156,6 +158,13 @@ function gatherInnate(dec: Decisions): { senses: string[]; spellLikeAbilities: S
       spellLikeAbilities.push({ id: `sla:${t.id}:${slug}`, name: sla.name, uses: sla.uses, ...(sla.note ? { note: sla.note } : {}), source });
     }
   }
+  // A variant heritage's SLA replaces the race's default (whose trait was suppressed above).
+  const heritage = chosenHeritage(dec);
+  if (heritage) {
+    const sla = heritage.spellLikeAbility;
+    const slug = sla.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    spellLikeAbilities.push({ id: `sla:heritage:${slug}`, name: sla.name, uses: sla.uses, ...(sla.note ? { note: sla.note } : {}), source });
+  }
   return { senses, spellLikeAbilities };
 }
 
@@ -164,8 +173,17 @@ function activeRacialTraits(dec: Decisions): { standard: C.RacialTraitDef[]; alt
   if (!race) return { standard: [], alternates: [] };
   const chosenAlts = race.altTraits.filter((a) => dec.altTraits.includes(a.id));
   const replaced = new Set<string>(chosenAlts.flatMap((a) => a.replaces));
+  // A chosen variant heritage supersedes the race's default Skilled + spell-like-ability traits.
+  if (chosenHeritage(dec)) for (const id of race.heritageReplaces ?? []) replaced.add(id);
   const standard = race.traits.filter((t) => !replaced.has(t.id));
   return { standard, alternates: chosenAlts };
+}
+
+/** The variant heritage chosen for the current race, if any (aasimar/tiefling). */
+function chosenHeritage(dec: Decisions): C.HeritageDef | undefined {
+  const race = dec.raceId ? C.raceById.get(dec.raceId) : undefined;
+  if (!race || !dec.heritage) return undefined;
+  return race.heritages?.find((h) => h.id === dec.heritage);
 }
 
 /** How many floating +2 bonuses the race/trait config currently grants (Dual Talent → 2). */
@@ -186,8 +204,12 @@ function appliedFloating(dec: Decisions): Ability[] {
 function finalAbilities(dec: Decisions, uptoLevel = Infinity): Record<Ability, number> {
   const race = dec.raceId ? C.raceById.get(dec.raceId) : undefined;
   const out = { ...dec.abilityBase };
+  const heritage = chosenHeritage(dec);
   if (race) {
-    if (race.abilityMods === 'choice') {
+    if (heritage) {
+      // A variant heritage replaces the race's default ability spread entirely.
+      for (const ab of ABILITIES) out[ab] += heritage.abilityMods[ab] ?? 0;
+    } else if (race.abilityMods === 'choice') {
       for (const ab of appliedFloating(dec)) out[ab] += 2;
     } else {
       for (const ab of ABILITIES) out[ab] += race.abilityMods[ab] ?? 0;
@@ -281,6 +303,9 @@ function collectEffects(dec: Decisions, doc: CharacterDoc, level: number): Effec
   const effects: Effect[] = [];
   const { standard, alternates } = activeRacialTraits(dec);
   for (const t of [...standard, ...alternates]) if (t.effects) effects.push(...t.effects);
+  // A variant heritage's skill bonuses replace the default Skilled trait (suppressed above).
+  const heritage = chosenHeritage(dec);
+  if (heritage?.effects) effects.push(...heritage.effects);
 
   // Class features gained so far (e.g. druid Nature Sense's +2 to Nature/Survival).
   for (const feat of allClassFeatures(dec, level, false)) if (feat.effects) effects.push(...feat.effects);
@@ -541,12 +566,16 @@ export function resolve(doc: CharacterDoc): Resolution {
   for (const ab of ABILITIES) {
     const incCount = Object.entries(dec.abilityIncreases)
       .filter(([l, a]) => a === ab && Number(l) <= level).length;
+    const heritage = chosenHeritage(dec);
     stats[`ability:${ab}`] = makeStat(`ability:${ab}`, ab.toUpperCase(), [
       { type: 'base', value: dec.abilityBase[ab], note: 'Base' },
-      ...(race && race.abilityMods !== 'choice' && race.abilityMods[ab]
+      ...(heritage && heritage.abilityMods[ab]
+        ? [{ type: 'racial' as const, value: heritage.abilityMods[ab]!, note: `${heritage.name} heritage` }]
+        : []),
+      ...(!heritage && race && race.abilityMods !== 'choice' && race.abilityMods[ab]
         ? [{ type: 'racial' as const, value: race.abilityMods[ab]!, note: `${race.name} racial` }]
         : []),
-      ...(race && race.abilityMods === 'choice' && appliedFloating(dec).includes(ab)
+      ...(!heritage && race && race.abilityMods === 'choice' && appliedFloating(dec).includes(ab)
         ? [{ type: 'racial' as const, value: 2, note: `${race.name} +2` }]
         : []),
       ...(incCount > 0
@@ -1488,6 +1517,20 @@ function buildSlotsAndIssues(
       };
     });
     slots.push({ id: 'alt-traits', step: 'race', label: 'Alternate racial traits', count: race.altTraits.length, multi: true, selected: [...chosenAlts], options: altOptions });
+
+    // Variant heritage (aasimar/tiefling): a single-choice that swaps the ability spread, SLA and skills.
+    if (race.heritages && race.heritages.length) {
+      const fmtMods = (m: C.HeritageDef['abilityMods']) =>
+        Object.entries(m).map(([ab, v]) => `${v >= 0 ? '+' : '−'}${Math.abs(v)} ${ab.toUpperCase()}`).join(', ');
+      slots.push({
+        id: 'heritage', step: 'race', label: `${race.name} heritage`, count: 1, multi: false,
+        selected: dec.heritage ? [dec.heritage] : [],
+        options: race.heritages.map((h) => ({
+          id: h.id, name: h.name, desc: h.desc, legal: true,
+          meta: { abilities: fmtMods(h.abilityMods), 'spell-like': h.spellLikeAbility.name },
+        })),
+      });
+    }
 
     // Floating ability bonus slot
     if (race.abilityMods === 'choice') {
