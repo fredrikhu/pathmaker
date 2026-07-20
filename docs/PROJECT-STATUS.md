@@ -391,9 +391,10 @@ Still open from that audit:
     now computed too** — the conditional feats the flat-bonus effect model can't express are gated at
     the point in `resolve` where the state is known: Shield Focus folds +1 (Greater +1 more) into the
     equipped shield's own shield bonus (only while a shield is wielded; never reaches touch AC), and
-    Fleet adds +5 ft per instance only in light or no armour and no worse than a light load. The
-    remaining situational feat stays benefit-text: **Intimidating Prowess** (adds an ability
-    *modifier*, which the flat-bonus effect model can't express). Class-feature-gated prereqs the DSL can't state ("channel energy", "cast arcane
+    Fleet adds +5 ft per instance only in light or no armour and no worse than a light load.
+    **Intimidating Prowess is now computed too** — it adds the Strength modifier to Intimidate on top
+    of Charisma, gated in the skill loop where mods are known (the ability-*modifier*-as-bonus case the
+    flat-bonus effect model can't express). Class-feature-gated prereqs the DSL can't state ("channel energy", "cast arcane
     spells", "Nth-level fighter") live in `reqText`; fighter-gated feats approximate the level as
     `classId: fighter`, as Weapon Specialization already does.
 - **Psychic/occult** spells not authored. **Extracts** (alchemist/investigator) are prepared from the

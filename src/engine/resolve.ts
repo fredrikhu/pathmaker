@@ -730,6 +730,10 @@ export function resolve(doc: CharacterDoc): Resolution {
     if (isClass && ranks > 0) contribs.push({ type: 'base', value: 3, note: 'Class skill' });
     if (sk.acp && acp.total < 0) contribs.push({ type: 'penalty', value: acp.total, note: `Armor check penalty (${acp.sources.join(', ')})` });
     if (sk.id === 'stealth' && size === 'small') contribs.push({ type: 'size', value: 4, note: 'Size (Small)' });
+    // Intimidating Prowess adds the Strength modifier to Intimidate on top of Charisma — an ability
+    // *modifier* the flat-bonus effect model can't express, so it is gated here where mods are known.
+    if (sk.id === 'intimidate' && featIds.includes('intimidating-prowess') && mods.str !== 0)
+      contribs.push({ type: 'untyped', value: mods.str, note: 'Intimidating Prowess (Str)' });
     // `skill:all` is the across-the-board bonus (Prayer), mirroring how `save:all` already works.
     contribs.push(...unconds(`skill:${sk.id}`), ...unconds('skill:all'));
     stats[`skill:${sk.id}`] = makeStat(`skill:${sk.id}`, sk.name, contribs, [...conds(`skill:${sk.id}`), ...conds('skill:all')]);

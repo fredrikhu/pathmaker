@@ -267,6 +267,21 @@ describe('new races', () => {
     // Medium armour reduces to 20 and suppresses Fleet (not 25).
     expect(resolve({ ...d, equipped: { armor: 'scale-mail', mainHand: null, offHand: null } }).sheet.speed.base).toBe(20);
   });
+
+  it('Intimidating Prowess adds the Strength modifier to Intimidate on top of Charisma', () => {
+    let d = newCharacter('t-ip', 'Grimjaw');
+    d = withDecision(d, 'ability-base', { str: 16, dex: 12, con: 12, int: 10, wis: 10, cha: 10 }); // Str +3, Cha +0
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'alignment', 'N');
+    d = withDecision(d, 'class', 'fighter');
+    const without = resolve(d).sheet.stats['skill:intimidate'].total;
+    d = withDecision(d, 'feats', { 'feat-1': 'intimidating-prowess' });
+    const withFeat = resolve(d);
+    expect(withFeat.sheet.stats['skill:intimidate'].total).toBe(without + 3); // + Str modifier
+    expect(withFeat.sheet.stats['skill:intimidate'].lines.some((b) => /Intimidating Prowess/.test(b.label))).toBe(true);
+    // Only Intimidate is affected — a Cha skill like Diplomacy is untouched.
+    expect(withFeat.sheet.stats['skill:diplomacy'].total).toBe(resolve({ ...d, decisions: { ...d.decisions, feats: {} } }).sheet.stats['skill:diplomacy'].total);
+  });
 });
 
 describe('Shield Focus increases the shield bonus (only while a shield is wielded)', () => {
