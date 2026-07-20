@@ -6,10 +6,20 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 
 ## ▶ Resume here (last session end)
 
-**Current state** — branch `main`, working tree clean, **529 tests** passing (`origin/main` at
-`e9c4e3a`); run `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
+**Current state** — branch `main`, working tree clean, **530 tests** passing (`origin/main` at
+`aab12a8`); run `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
-**Latest — eidolon evolution pool** (commits `4327f73`, `e9c4e3a`). The last of the four different-in-kind fill-ins,
+**Latest — Intimidating Prowess computed** (commit `aab12a8`). The last computed-feat gap: it adds the
+Strength modifier to Intimidate on top of Charisma — an ability-*modifier*-as-bonus the flat-effect
+model can't express, so it's gated in the skill loop (`resolve.ts`) where `mods` are known, the same
+approach as Fleet/Shield Focus. One `untyped` contribution of `mods.str` on `skill:intimidate`,
+stacking with the Cha modifier, shown as "Intimidating Prowess (Str)" in the breakdown. Golden test
+(+Str to Intimidate, breakdown line present, Diplomacy untouched); browser-verified a Str 16 Fighter 1
+at Intimidate +7. **Every situational/computed feat the effect model can reasonably express is now
+handled** — the only descriptive-only feats left are metamagic (they'd need slot-cost/DC machinery, a
+larger separate piece).
+
+**Prior — eidolon evolution pool** (commits `4327f73`, `e9c4e3a`). The last of the four different-in-kind fill-ins,
 and the only one that added a new engine capability rather than content. A **point-buy** subsystem: a
 new `eidolon-evolutions` `ClassChoiceKind`; the summoner spends a per-level pool on evolutions costing
 1–4 points each. `EIDOLON_EVOLUTIONS` (all 48 APG evolutions with cost, min summoner level, and
