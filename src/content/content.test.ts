@@ -731,6 +731,25 @@ describe('damage reduction and energy resistance data', () => {
     }
   });
 
+  it('every racial natural attack is well-formed, and the four expected races carry one', () => {
+    const withNatural = new Set<string>();
+    for (const r of C.RACES) {
+      for (const t of [...r.traits, ...r.altTraits]) {
+        for (const na of t.naturalAttacks ?? []) {
+          withNatural.add(r.id);
+          expect(na.count, `${r.id}/${t.id}`).toBeGreaterThanOrEqual(1);
+          expect(na.damage, `${r.id}/${t.id} damage`).toMatch(/^\d+d\d+$/);
+          expect(na.name.length, `${r.id}/${t.id} name`).toBeGreaterThan(0);
+          expect(na.dmgType.length, `${r.id}/${t.id} dmgType`).toBeGreaterThan(0);
+          expect(typeof na.primary, `${r.id}/${t.id} primary`).toBe('boolean');
+        }
+      }
+    }
+    for (const id of ['lizardfolk', 'tengu', 'changeling', 'kitsune']) {
+      expect(withNatural.has(id), `${id} should have a natural attack`).toBe(true);
+    }
+  });
+
   it('class damage reduction lists levels in range and in order', () => {
     for (const [id, prog] of Object.entries(C.CLASS_PROGRESSION)) {
       const dr = prog.damageReduction;

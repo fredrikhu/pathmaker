@@ -44,8 +44,8 @@ export const EXOTIC_RACES: RaceDef[] = [
     traits: [
       { id: 'lizardfolk-armor', name: 'Natural Armor', desc: '+1 natural armor bonus from tough scaly skin.', effects: [{ target: 'ac', type: 'natural-armor', value: 1, note: 'Natural Armor (Lizardfolk)' }] },
       { id: 'lizardfolk-swim', name: 'Swim', desc: 'A 30-ft swim speed and a +8 racial bonus on Swim checks.', effects: [{ target: 'skill:swim', type: 'racial', value: 8, note: 'Swim (Lizardfolk)' }] },
-      { id: 'lizardfolk-bite', name: 'Bite', desc: 'A natural bite attack dealing 1d3 damage — a primary attack, or secondary while wielding manufactured weapons.' },
-      { id: 'lizardfolk-claws', name: 'Claws', desc: 'Two claw attacks dealing 1d4 damage each, both primary natural attacks.' },
+      { id: 'lizardfolk-bite', name: 'Bite', desc: 'A natural bite attack dealing 1d3 damage — a primary attack, or secondary while wielding manufactured weapons.', naturalAttacks: [{ name: 'Bite', count: 1, damage: '1d3', dmgType: 'B/P/S', primary: true }] },
+      { id: 'lizardfolk-claws', name: 'Claws', desc: 'Two claw attacks dealing 1d4 damage each, both primary natural attacks.', naturalAttacks: [{ name: 'Claw', count: 2, damage: '1d4', dmgType: 'S', primary: true }] },
       { id: 'lizardfolk-xenophobic', name: 'Xenophobic', desc: 'Lizardfolk begin play knowing only their own racial language.' },
     ],
     altTraits: [],

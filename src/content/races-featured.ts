@@ -203,7 +203,7 @@ export const FEATURED_RACES: RaceDef[] = [
       { id: 'tengu-low-light', name: 'Low-Light Vision', desc: 'See twice as far as humans in dim light.', senses: ['Low-light vision'] },
       { id: 'tengu-senses', name: 'Sneaky', desc: '+2 racial bonus on Perception and Stealth checks.', effects: [{ target: 'skill:perception', type: 'racial', value: 2, note: 'Sneaky (Tengu)' }, { target: 'skill:stealth', type: 'racial', value: 2, note: 'Sneaky (Tengu)' }] },
       { id: 'tengu-linguist', name: 'Gifted Linguist', desc: '+4 racial bonus on Linguistics; learn 2 languages each time you gain a rank in it.', effects: [{ target: 'skill:linguistics', type: 'racial', value: 4, note: 'Gifted Linguist' }] },
-      { id: 'tengu-bite', name: 'Natural Weapon', desc: 'A bite attack dealing 1d3 damage.' },
+      { id: 'tengu-bite', name: 'Natural Weapon', desc: 'A bite attack dealing 1d3 damage.', naturalAttacks: [{ name: 'Bite', count: 1, damage: '1d3', dmgType: 'B/P/S', primary: true }] },
       { id: 'tengu-swords', name: 'Swordtrained', desc: 'Proficient with all sword-like weapons (longsword, rapier, scimitar, falchion, and more).' },
     ],
     altTraits: [],

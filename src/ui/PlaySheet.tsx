@@ -702,6 +702,12 @@ export function PlaySheet({ id }: { id: string }) {
               disabled={!sheet.combatOptions.canTwoWeapon}
               title={sheet.combatOptions.canTwoWeapon ? 'Apply two-weapon penalties to both hands' : 'Requires a weapon in each hand'}
               onClick={() => setPlay({ twoWeapon: !play.twoWeapon })} />
+            {/* Only meaningful when you have natural attacks: toggling it makes them all secondary. */}
+            {sheet.attacks.some((a) => a.slot === 'natural') && (
+              <OptionToggle label="+ weapon" on={!!play.naturalWithWeapon} disabled={false}
+                title="Also attacking with a manufactured weapon this round — makes every natural attack secondary (−5 to hit, ½ Str)"
+                onClick={() => setPlay({ naturalWithWeapon: !play.naturalWithWeapon })} />
+            )}
             {/* Target's concealment, applied to every attack roll below until you change it back. */}
             <label style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11 }}
               title="Concealment gives a hit a chance to miss anyway — rolled after each attack.">
@@ -730,7 +736,7 @@ export function PlaySheet({ id }: { id: string }) {
                   <span style={{ width: 150, fontSize: 13.5, fontWeight: 500 }}>
                     {atk.qualityLabel && <span style={{ color: 'var(--color-accent-300)' }}>{atk.qualityLabel} </span>}
                     {atk.name}
-                    {atk.slot !== 'main' && <span className="text-muted" style={{ fontSize: 10.5, marginLeft: 5 }}>{atk.slot === 'off' ? 'off-hand' : 'carried'}</span>}
+                    {atk.slot !== 'main' && <span className="text-muted" style={{ fontSize: 10.5, marginLeft: 5 }}>{atk.slot === 'off' ? 'off-hand' : atk.slot === 'natural' ? 'natural' : 'carried'}</span>}
                   </span>
                   <span className="num" style={{ fontSize: 16, fontWeight: 600, color: 'var(--color-accent-300)', minWidth: 84 }}>{label}</span>
                   <span className="num" style={{ fontSize: 13 }}>{atk.damage}</span>

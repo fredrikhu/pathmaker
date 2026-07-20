@@ -2815,3 +2815,69 @@ describe('worn magic items', () => {
     expect(r.sheet.worn.map((w) => w.active)).toEqual([true, false]);
   });
 });
+
+describe('racial natural attacks', () => {
+  function naturalRacial(raceId: string): CharacterDoc {
+    let d = newCharacter('t-nat-' + raceId);
+    d = withDecision(d, 'ability-base', { str: 14, dex: 12, con: 12, int: 10, wis: 10, cha: 10 });
+    d = withDecision(d, 'race', raceId);
+    d = withDecision(d, 'class', 'fighter');
+    return d;
+  }
+  const nat = (d: CharacterDoc) => resolve(d).sheet.attacks.filter((a) => a.slot === 'natural');
+  const strMod = (d: CharacterDoc) => Math.floor((resolve(d).sheet.stats['ability:str'].total - 10) / 2);
+  const meleeTotal = (d: CharacterDoc) => resolve(d).sheet.stats['attack:melee'].total;
+  const strLine = (a: { damageLines: { label: string; value: number }[] }) =>
+    a.damageLines.find((l) => l.label.startsWith('Str modifier'))!.value;
+
+  it('gives a lizardfolk a bite and a two-claw line, both primary at the full melee bonus', () => {
+    const d = naturalRacial('lizardfolk');
+    const lines = nat(d);
+    expect(lines.map((l) => l.id).sort()).toEqual(['natural-bite', 'natural-claw']);
+    const bite = lines.find((l) => l.id === 'natural-bite')!;
+    const claw = lines.find((l) => l.id === 'natural-claw')!;
+    expect(claw.name).toBe('Claw (×2)');
+    // Three natural attacks total, so none is "sole": full (1x) Str, no penalty.
+    expect(bite.bonuses).toEqual([meleeTotal(d)]);
+    expect(claw.bonuses).toEqual([meleeTotal(d)]);
+    expect(strLine(bite)).toBe(strMod(d));
+    expect(bite.damage).toBe(`1d3+${strMod(d)}`);
+    expect(claw.damage).toBe(`1d4+${strMod(d)}`);
+    expect(bite.dmgType).toBe('B/P/S');
+    expect(claw.dmgType).toBe('S');
+  });
+
+  it("adds 1.5x Str to a tengu's lone bite", () => {
+    const d = naturalRacial('tengu');
+    const lines = nat(d);
+    expect(lines).toHaveLength(1);
+    const bite = lines[0];
+    expect(bite.bonuses).toEqual([meleeTotal(d)]);
+    expect(strLine(bite)).toBe(Math.floor(strMod(d) * 1.5));
+    expect(bite.damage).toBe(`1d3+${Math.floor(strMod(d) * 1.5)}`);
+  });
+
+  it('keeps two changeling claws at 1x Str (not sole)', () => {
+    const d = naturalRacial('changeling');
+    const claw = nat(d).find((l) => l.id === 'natural-claw')!;
+    expect(claw.name).toBe('Claw (×2)');
+    expect(strLine(claw)).toBe(strMod(d));
+  });
+
+  it('makes every natural attack secondary when also attacking with a weapon', () => {
+    let d = naturalRacial('lizardfolk');
+    d = { ...d, play: { ...emptyPlayState(), naturalWithWeapon: true } };
+    const bite = nat(d).find((l) => l.id === 'natural-bite')!;
+    // −5 to hit, ½ Str to damage.
+    expect(bite.bonuses).toEqual([meleeTotal(naturalRacial('lizardfolk')) - 5]);
+    expect(strLine(bite)).toBe(Math.floor(strMod(d) * 0.5));
+  });
+
+  it('gives a non-natural race no natural-attack lines', () => {
+    let d = newCharacter('t-nat-human');
+    d = withDecision(d, 'ability-base', { str: 14, dex: 12, con: 12, int: 10, wis: 10, cha: 10 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'class', 'fighter');
+    expect(resolve(d).sheet.attacks.filter((a) => a.slot === 'natural')).toHaveLength(0);
+  });
+});

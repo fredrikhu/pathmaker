@@ -192,6 +192,9 @@ export interface PlayState {
   powerAttack: boolean;
   /** Fighting with both weapons this full attack: applies two-weapon penalties to both hands. */
   twoWeapon: boolean;
+  /** Also attacking with a manufactured weapon this round: makes every natural attack secondary
+   *  (−5 to hit, ½ Str to damage), per the natural-attack rules. Optional — absent means "no". */
+  naturalWithWeapon?: boolean;
   /** Actions spent so far this turn; reset at the start of each combat round. An absent key means
    *  that action is still available. Free actions and the 5-foot step are not budgeted — the rules
    *  cap them loosely enough that tracking them would be noise. */
@@ -385,8 +388,8 @@ export interface AttackLine {
   id: string;
   name: string;
   kind: 'melee' | 'ranged';
-  /** Where the weapon sits: main hand, off hand, or otherwise carried. */
-  slot: 'main' | 'off' | 'carried';
+  /** Where the weapon sits: main hand, off hand, otherwise carried, or a natural attack (no hand). */
+  slot: 'main' | 'off' | 'carried' | 'natural';
   /** Present on the second line a throwable melee weapon produces. The melee and thrown modes of
    *  one weapon share an `id`, so anything keying attack lines must include this. */
   mode?: 'thrown';

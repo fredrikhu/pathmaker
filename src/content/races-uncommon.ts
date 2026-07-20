@@ -13,7 +13,7 @@ export const UNCOMMON_RACES: RaceDef[] = [
     traits: [
       { id: 'changeling-darkvision', name: 'Darkvision', desc: 'See in the dark up to 60 feet.', senses: ['Darkvision 60 ft'] },
       { id: 'changeling-armor', name: 'Natural Armor', desc: '+1 natural armor bonus.', effects: [{ target: 'ac', type: 'natural-armor', value: 1, note: 'Natural Armor (Changeling)' }] },
-      { id: 'changeling-claws', name: 'Claws', desc: 'Two claw attacks dealing 1d4 damage each.' },
+      { id: 'changeling-claws', name: 'Claws', desc: 'Two claw attacks dealing 1d4 damage each.', naturalAttacks: [{ name: 'Claw', count: 2, damage: '1d4', dmgType: 'S', primary: true }] },
       { id: 'changeling-heritage', name: 'Hag Heritage', desc: 'One trait inherited from your hag mother (a bonus to melee damage, a save, a skill, or similar depending on the hag type).' },
     ],
     altTraits: [],
@@ -72,7 +72,7 @@ export const UNCOMMON_RACES: RaceDef[] = [
     traits: [
       { id: 'kitsune-low-light', name: 'Low-Light Vision', desc: 'See twice as far as humans in dim light.', senses: ['Low-light vision'] },
       { id: 'kitsune-change', name: 'Change Shape', desc: 'Assume a fixed human form as a standard action (+10 on Disguise to appear human).' },
-      { id: 'kitsune-bite', name: 'Natural Weapon', desc: 'A bite attack dealing 1d4 damage (true form only).' },
+      { id: 'kitsune-bite', name: 'Natural Weapon', desc: 'A bite attack dealing 1d4 damage (true form only).', naturalAttacks: [{ name: 'Bite', count: 1, damage: '1d4', dmgType: 'B/P/S', primary: true, note: 'Available in your true (kitsune) form only — not while shapechanged into human form.' }] },
       { id: 'kitsune-agile', name: 'Agile', desc: '+2 racial bonus on Acrobatics checks.', effects: [{ target: 'skill:acrobatics', type: 'racial', value: 2, note: 'Agile (Kitsune)' }] },
       { id: 'kitsune-magic', name: 'Kitsune Magic', desc: '+1 to the DC of enchantment spells you cast; dancing lights 3/day with Cha 11+.' },
     ],

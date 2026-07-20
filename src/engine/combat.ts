@@ -47,3 +47,54 @@ export function offHandAttackBonuses(total: number, hasImproved: boolean, hasGre
   if (hasGreater) out.push(total - 10);
   return out;
 }
+
+// Natural attacks (bite, claw, gore…). Their damage die is authored for a Medium creature; a Small
+// creature steps once down the standard damage chain. The Strength multiplier and the secondary
+// penalty follow the universal natural-attack rules. Verified against d20pfsrd's "Natural Attacks"
+// (Universal Monster Rules) and the ARG racial-trait entries.
+
+/** The standard damage-die chain, high to low, used to size natural attacks down for Small races. */
+const DAMAGE_STEP_DOWN: Record<string, string> = {
+  '2d6': '1d8', '1d10': '1d8', '1d8': '1d6', '1d6': '1d4', '1d4': '1d3', '1d3': '1d2', '1d2': '1',
+};
+
+/** A natural attack's damage die at the creature's size. Only Small and Medium playable races exist,
+ *  so Medium is authored as-is and Small steps one down the chain (1d4 → 1d3, 1d3 → 1d2). */
+export function naturalAttackDamageDie(mediumDie: string, size: 'small' | 'medium'): string {
+  return size === 'small' ? (DAMAGE_STEP_DOWN[mediumDie] ?? mediumDie) : mediumDie;
+}
+
+export interface NaturalAttackContext {
+  /** This attack is a primary natural attack (full bonus, full Str) rather than a secondary one. */
+  primary: boolean;
+  /** True when this is the creature's *only* natural attack — a lone bite adds 1½× Str. */
+  sole: boolean;
+  /** The creature is also attacking with a manufactured weapon this round, which turns every
+   *  natural attack secondary regardless of its usual status. */
+  withWeapon: boolean;
+  /** Multiattack lessens the secondary penalty from −5 to −2. */
+  hasMultiattack: boolean;
+}
+
+/** The Strength-modifier multiplier applied to a natural attack's damage. Secondary attacks (and any
+ *  natural attack made alongside a manufactured weapon) get ½×; a creature's sole natural attack gets
+ *  1½×; an ordinary primary attack gets 1×. */
+export function naturalStrMultiplier(ctx: NaturalAttackContext): number {
+  if (ctx.withWeapon || !ctx.primary) return 0.5;
+  return ctx.sole ? 1.5 : 1;
+}
+
+/** The attack-roll penalty a natural attack takes: none for a primary attack made on its own, −5 for
+ *  a secondary one (or any natural attack made alongside a weapon), softened to −2 by Multiattack. */
+export function naturalAttackPenalty(ctx: NaturalAttackContext): number {
+  const secondary = ctx.withWeapon || !ctx.primary;
+  if (!secondary) return 0;
+  return ctx.hasMultiattack ? -2 : -5;
+}
+
+/** How Power Attack's damage bonus scales for a natural attack: 1½× for the sole primary attack,
+ *  ½× for a secondary one (or alongside a weapon), 1× for an ordinary primary attack. */
+export function naturalPowerAttackScale(ctx: NaturalAttackContext): PowerAttackScale {
+  if (ctx.withWeapon || !ctx.primary) return 'half';
+  return ctx.sole ? 'oneAndHalf' : 'normal';
+}

@@ -24,6 +24,28 @@ export interface RacialTraitDef {
   /** Innate spell-like abilities. `uses` is per-day, or 'at-will'; a per-day count is tracked as a
    *  pool on the mat so a player can tick each casting off (reset by Rest). */
   spellLikeAbilities?: { name: string; uses: number | 'at-will'; note?: string }[];
+  /** Natural attacks this trait grants (lizardfolk claws, tengu bite). Computed into full attack
+   *  lines on the play sheet — the alt-trait that replaces the trait takes the attack with it. */
+  naturalAttacks?: NaturalAttackDef[];
+}
+
+/** A natural attack (bite, claw, gore, slam, …). Its damage die is authored for a Medium creature
+ *  and stepped for size; the engine turns it into an attack line with the right Strength multiplier
+ *  (1½× when it is the creature's only natural attack, 1× primary, ½× secondary or alongside a
+ *  manufactured weapon) and the −5 secondary penalty. */
+export interface NaturalAttackDef {
+  /** Display name of the attack form, e.g. "Bite", "Claw". */
+  name: string;
+  /** How many of this attack the creature makes (2 for two claws). */
+  count: number;
+  /** Damage die at Medium size, e.g. "1d3". */
+  damage: string;
+  /** Damage type string for display, e.g. "B/P/S" (bite) or "S" (claw). */
+  dmgType: string;
+  /** Primary natural attacks use full attack bonus + full Str; secondary take −5 and ½ Str. */
+  primary: boolean;
+  /** A rules caveat not folded into the numbers (kitsune's bite is "true form only"). */
+  note?: string;
 }
 
 export interface AltTraitDef extends RacialTraitDef {

@@ -16,7 +16,7 @@ import {
   saveBase, fixedHpPerLevel, generalFeatLevels, abilityIncreaseLevels,
   casterLevel, spellSlotsPerDay, spellsKnownPerLevel, startingWealth, sumBab, sumSave, spellsPreparedPerLevel, type SpellTable,
 } from './progression';
-import { powerAttackAmounts, twoWeaponPenalties, offHandAttackBonuses, type PowerAttackScale } from './combat';
+import { powerAttackAmounts, twoWeaponPenalties, offHandAttackBonuses, naturalAttackDamageDie, naturalStrMultiplier, naturalAttackPenalty, naturalPowerAttackScale, type PowerAttackScale, type NaturalAttackContext } from './combat';
 
 const POINT_BUY_COST: Record<number, number> = {
   7: -4, 8: -2, 9: -1, 10: 0, 11: 1, 12: 2, 13: 3, 14: 5, 15: 7, 16: 10, 17: 13, 18: 17,
@@ -916,8 +916,11 @@ export function resolve(doc: CharacterDoc): Resolution {
     ...(spellsKnown && spellsKnown.length ? { spellsKnown } : {}),
     progression,
     pools: classes.flatMap((c) => classPools(c.klass, c.levels, mods)),
-    attacks: weaponAttacks(doc, stats, bab, mods.str, weaponFeatBonuses(featParams), itemQuality(doc), new Set(featIds),
-      proficiencyCtx(dec, classes, featParams)),
+    attacks: [
+      ...weaponAttacks(doc, stats, bab, mods.str, weaponFeatBonuses(featParams), itemQuality(doc), new Set(featIds),
+        proficiencyCtx(dec, classes, featParams)),
+      ...naturalAttacks(dec, stats, bab, mods.str, new Set(featIds), doc.play),
+    ],
     combatOptions: {
       canPowerAttack: featIds.includes('power-attack'),
       canTwoWeapon: Boolean(doc.equipped.mainHand && doc.equipped.offHand),
@@ -1321,6 +1324,69 @@ function weaponAttacks(doc: CharacterDoc, stats: Record<string, Stat>, bab: numb
   add(doc.equipped.mainHand, 'main');
   add(doc.equipped.offHand, 'off');
   for (const pid of Object.keys(doc.purchases)) add(pid, 'carried');
+  return lines;
+}
+
+/** Attack lines for a character's racial natural attacks (lizardfolk claws, tengu bite). Each is a
+ *  single melee attack at the full melee bonus (no BAB iteratives). Two claws share one line — you
+ *  roll it twice. Primary/secondary status, the 1½× sole-attack multiplier, the −5 secondary penalty,
+ *  and the "also using a weapon" downgrade are computed here; Power Attack folds in like it does for
+ *  a wielded weapon. */
+function naturalAttacks(dec: Decisions, stats: Record<string, Stat>, bab: number, strMod: number, featIds: Set<string>, play: PlayState | undefined): AttackLine[] {
+  const melee = stats['attack:melee'];
+  if (!melee) return [];
+  const race = dec.raceId ? C.raceById.get(dec.raceId) : undefined;
+  if (!race) return [];
+  const { standard, alternates } = activeRacialTraits(dec);
+  const defs = [...standard, ...alternates].flatMap((t) => t.naturalAttacks ?? []);
+  if (defs.length === 0) return [];
+  const totalAttacks = defs.reduce((n, d) => n + d.count, 0);
+  const withWeapon = play?.naturalWithWeapon ?? false;
+  const hasMultiattack = featIds.has('multiattack');
+  const usingPowerAttack = (play?.powerAttack ?? false) && featIds.has('power-attack');
+  const dmgStat = stats['damage:weapon'];
+  const lines: AttackLine[] = [];
+  for (const d of defs) {
+    const ctx: NaturalAttackContext = { primary: d.primary, sole: totalAttacks === 1, withWeapon, hasMultiattack };
+    const die = naturalAttackDamageDie(d.damage, race.size);
+    const strMult = naturalStrMultiplier(ctx);
+    const strDamage = Math.floor(strMod * strMult);
+    const penalty = naturalAttackPenalty(ctx);
+    const pa = usingPowerAttack ? powerAttackAmounts(bab, naturalPowerAttackScale(ctx)) : null;
+    const attackTotal = melee.total + penalty + (pa?.penalty ?? 0);
+    const dmgMod = strDamage + (pa?.damage ?? 0) + (dmgStat?.total ?? 0);
+    const secondary = withWeapon || !d.primary;
+    const multNote = strMult === 1.5 ? ' (1½×)' : strMult === 0.5 ? ' (½×)' : '';
+    const paScaleNote = pa ? (naturalPowerAttackScale(ctx) === 'oneAndHalf' ? ' (1½×)' : naturalPowerAttackScale(ctx) === 'half' ? ' (½×)' : '') : '';
+    const notes: string[] = [];
+    notes.push(secondary
+      ? `Secondary natural attack: −${hasMultiattack ? 2 : 5} to hit and ½× Str to damage.${withWeapon ? ' (You are also attacking with a manufactured weapon this round.)' : ''}`
+      : ctx.sole
+        ? 'Primary natural attack — your only one, so it adds 1½× Str to damage.'
+        : 'Primary natural attack: full attack bonus and full Str to damage.');
+    if (!withWeapon && d.primary) notes.push('If you also attack with a manufactured weapon this round, every natural attack becomes secondary (−5 to hit, ½× Str). Toggle it above.');
+    if (hasMultiattack && secondary) notes.push('Multiattack: the secondary penalty is −2 rather than −5.');
+    if (d.note) notes.push(d.note);
+    const damage = dmgMod !== 0 ? `${die}${fmtSigned(dmgMod)}` : die;
+    lines.push({
+      id: `natural-${d.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
+      name: d.count > 1 ? `${d.name} (×${d.count})` : d.name,
+      kind: 'melee', slot: 'natural', bonuses: [attackTotal],
+      attackLines: [
+        ...melee.lines,
+        ...(penalty ? [{ label: withWeapon ? 'Secondary (with weapon)' : 'Secondary natural attack', value: penalty }] : []),
+        ...(pa ? [{ label: 'Power Attack', value: pa.penalty }] : []),
+      ],
+      damage,
+      damageLines: [
+        { label: `Str modifier${multNote}`, value: strDamage },
+        ...(pa ? [{ label: `Power Attack${paScaleNote}`, value: pa.damage }] : []),
+        ...(dmgStat?.lines ?? []),
+      ],
+      crit: '×2', dmgType: d.dmgType,
+      notes,
+    });
+  }
   return lines;
 }
 

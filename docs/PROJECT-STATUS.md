@@ -6,10 +6,27 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 
 ## ▶ Resume here (last session end)
 
-**Current state** — branch `main`, working tree clean, **537 tests** passing; run
+**Current state** — branch `main`, working tree clean, **548 tests** passing; run
 `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
-**Latest — metamagic damage/DC payoff.** The slot-cost model (below) now also computes the numbers
+**Latest — racial natural attacks (first of the "descriptive-by-nature" bucket).** The four playable
+races with natural attacks now get computed attack lines instead of prose: **Lizardfolk** (bite 1d3 +
+two claws 1d4), **Tengu** (bite 1d3), **Changeling** (two claws 1d4), **Kitsune** (bite 1d4, true form
+only). New `NaturalAttackDef` on `RacialTraitDef.naturalAttacks` (so an alt-trait that replaces the
+trait takes the attack with it); `AttackLine.slot` gains `'natural'`; `PlayState.naturalWithWeapon`
+declares "also swinging a weapon this round". Engine helpers in `combat.ts` — `naturalAttackDamageDie`
+(size-steps the die for Small), `naturalStrMultiplier` (1½× a *sole* natural attack, 1× primary, ½×
+secondary/with-weapon), `naturalAttackPenalty` (−5, or −2 with Multiattack), `naturalPowerAttackScale`
+— feed a `naturalAttacks()` builder in `resolve.ts` that appends lines to `sheet.attacks` (full melee
+bonus, no iteratives; Power Attack folds in). Play sheet renders them with a `natural` tag and a
+`+ weapon` toggle (shown only for characters that have natural attacks) that flips them all to
+secondary. 11 tests (5 combat unit, 5 resolve golden, 1 content); verified against raw d20pfsrd
+(lizardfolk bite is 1d3 = "two size categories lower"); browser-verified a Lizardfolk 3 (bite +6 1d3+3,
+claws ×2 1d4+3; `+ weapon` → +1 / ½ Str) and a Tengu 3 (sole bite +5 1d3+3, 1½× Str). **Scope:** this is
+the character's *own* racial natural attacks — the eidolon's attack evolutions and full monster-race
+statblocks (a companion/monster sheet) remain descriptive.
+
+**Prior — metamagic damage/DC payoff.** The slot-cost model (below) now also computes the numbers
 metamagic changes. In `engine/dice.ts`, `rollDamage(formula, rng, meta)` takes `MetamagicDamageMods
 { empower?, maximize? }`: **Maximize** sets every die to its max face, **Empower** adds half the
 normally rolled dice (both together = "maximum result plus half a normal roll", per the feats); flat
@@ -186,9 +203,11 @@ sheet's prepared pool — file a spell at its per-list level via `spellLevelOn`.
 divergences are corrected; a broader audit of every multi-list spell is the remaining tail.
 
 **The engine-fidelity queue is now clear** — Improved Critical, Shield Focus/Fleet, bonus domain/
-school slots, per-list spell levels, and the metamagic damage/DC payoff are all done. What's left in the
-deferral backlog is the deliberately out-of-scope classes/races and the descriptive-by-nature items
-(spell-like abilities surfaced-not-computed, darkvision; energy resistances are already structured).
+school slots, per-list spell levels, the metamagic damage/DC payoff, and racial natural attacks are all
+done. What's left in the deferral backlog is the deliberately out-of-scope classes/races and the
+descriptive-by-nature items (spell-like abilities surfaced-not-computed, darkvision; energy resistances
+and racial natural attacks are already structured). Eidolon attack evolutions and full monster-race
+statblocks stay descriptive until there's a companion/monster sheet to hang them on.
 
 Everything below is the durable detail. When resuming, read this file, then `docs/DESIGN.md`.
 
@@ -381,8 +400,8 @@ Still open from that audit:
   2 (flexible +2 Str/+2 Con) + 2 (natural armour) + 1 (swim) + 1 (bite) + 2 (claws) = **8 RP**,
   matching the entry's own title — a +5 natural armour could not fit an 8-RP race at all.
   - Authored in `races-exotic.ts` with +1 natural armour, 30-ft swim speed and the +8 racial Swim
-    bonus as real effects; bite/claws are descriptive (natural attacks aren't modelled — the same
-    reason the amulet of mighty fists is absent).
+    bonus as real effects. Its bite (1d3) and two claws (1d4) are now **computed natural attacks**
+    (see the resume-here) — the amulet of mighty fists that would enhance them is still absent.
   - **Xenophobic** is modelled literally: `languagesAuto: ['draconic']` with **no Common**.
 
 ### Classes not in scope / deferred
