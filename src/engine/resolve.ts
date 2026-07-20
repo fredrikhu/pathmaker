@@ -1509,13 +1509,15 @@ function buildSlotsAndIssues(
   // ---------- SPELLS (per accessible spell level) ----------
   if (klass?.spellcasting && klass.spellcasting.progression !== 'four') {
     const sc = klass.spellcasting;
-    const listSpells = C.SPELLS.filter((s) => s.lists.includes(sc.list as C.SpellDef['lists'][number]));
-    const spellsAt = (lvl: number) => listSpells.filter((s) => s.level === lvl);
+    const listSpells = C.SPELLS.filter((s) => s.lists.includes(sc.list as C.SpellList));
+    // Filter by the spell's level *on this class's list*, not its flat level — a spell that is bard 2
+    // but wizard 3 must appear at the right level for each caster.
+    const spellsAt = (lvl: number) => listSpells.filter((s) => C.spellLevelOn(s, sc.list) === lvl);
     const opposed = new Set((dec.classChoices['opposition'] ?? []).map((o) => C.schoolById.get(o)?.name ?? o));
     const optFor = (s: C.SpellDef): SlotOption => ({
       id: s.id, name: s.name, desc: s.summary, tags: [s.school],
       legal: true, caution: opposed.has(s.school) ? 'opposed — double slot' : undefined,
-      meta: { level: s.level, school: s.school },
+      meta: { level: C.spellLevelOn(s, sc.list), school: s.school },
     });
     const M = ctx.maxSpellLevel;
 

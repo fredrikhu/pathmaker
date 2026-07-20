@@ -48,8 +48,17 @@ domains (`DOMAIN_SPELLS`) and **now nearly complete** — the missing-domain-spe
 spells (the alignment lines, the elemental high-level line, the creation/hand/word lines, sunbeam/
 sunburst, and the domain utility spells), taking the catalogue to **~377 spells** and dropping the
 `null` levels from ~148 to ~22 (only genuinely obscure or level-ambiguous entries remain: the aligned
-dispels, the shadow line, a few rune spells). Next in the queue: per-list spell levels — see the
-deferral backlog below.
+dispels, the shadow line, a few rune spells). **Per-list spell levels are now modelled** — `SpellDef.
+levelByList` overrides the flat level where a spell differs by list (Hold Person is cleric/bard 2 but
+sorc-wiz 3; Dispel Magic is druid 4; Fear/Hold Monster/Mislead/Break Enchantment/Suggestion/Hideous
+Laughter are a level lower on the bard list). Both consumers — the builder's spell step and the play
+sheet's prepared pool — file a spell at its per-list level via `spellLevelOn`. The nine clearest
+divergences are corrected; a broader audit of every multi-list spell is the remaining tail.
+
+**The engine-fidelity queue is now clear** — Improved Critical, Shield Focus/Fleet, bonus domain/
+school slots, and per-list spell levels are all done. What's left in the deferral backlog is the
+deliberately out-of-scope classes/races and the descriptive-by-nature items (metamagic, spell-like
+abilities, darkvision, energy resistances).
 
 Everything below is the durable detail. When resuming, read this file, then `docs/DESIGN.md`.
 
@@ -300,8 +309,10 @@ Still open from that audit:
   full list like other prepared-list casters — slots/day shown, no creation-time selection.
 
 ### Modeling simplifications (fidelity notes)
-- **Single `level` per spell** — a spell whose level differs by list (e.g. many bard spells) is stored
-  at one level; bard is tagged only where its level matches. A per-list level map would fix it.
+- **Per-list spell levels** — the per-list level map (`SpellDef.levelByList`, read via `spellLevelOn`)
+  now handles spells whose level differs by list; the nine clearest divergences are corrected. The
+  remaining tail is a full audit of every multi-list spell (and adding lists a spell was omitted from
+  because its level didn't match the flat one).
 - **Spellbook budget** is a soft nudge (free distribution across accessible levels), not a per-level cap.
 - **Param feats are computed**: weapon ones (Weapon Focus / Specialization + Greater forms) into the
   per-weapon attack lines, Skill Focus into the skill total, Spell Focus into a per-school DC note.

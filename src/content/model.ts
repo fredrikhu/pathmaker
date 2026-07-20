@@ -297,12 +297,18 @@ export interface SpellDamageDef {
   note?(casterLevel: number): string;
 }
 
+export type SpellList = 'arcane' | 'bard' | 'divine' | 'druid';
+
 export interface SpellDef {
   id: string;
   name: string;
-  level: number; // on this list
+  /** The spell's level on most of its lists; the default when `levelByList` has no entry. */
+  level: number;
   school: string;
-  lists: ('arcane' | 'bard' | 'divine' | 'druid')[];
+  lists: SpellList[];
+  /** Per-list level overrides for spells whose level differs by list (e.g. Hold Person is bard 2
+   *  but sorcerer/wizard 3). A list absent here uses the flat `level`. */
+  levelByList?: Partial<Record<SpellList, number>>;
   summary: string;
   cast: string;
   comp: string;

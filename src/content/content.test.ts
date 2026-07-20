@@ -357,6 +357,20 @@ describe('spells', () => {
       for (const l of s.lists) expect(SPELL_LISTS.has(l), `spell ${s.id}: unknown list "${l}"`).toBe(true);
     }
   });
+  it('per-list level overrides name a list the spell is actually on, at a sane level', () => {
+    let overrides = 0;
+    for (const s of C.SPELLS) {
+      if (!s.levelByList) continue;
+      for (const [list, lvl] of Object.entries(s.levelByList)) {
+        overrides++;
+        expect(s.lists.includes(list as never), `spell ${s.id}: levelByList names "${list}" but it isn't on that list`).toBe(true);
+        expect(lvl! >= 0 && lvl! <= 9, `spell ${s.id}: levelByList[${list}] = ${lvl} out of 0..9`).toBe(true);
+        // An override that equals the flat level is pointless — catch copy-paste noise.
+        expect(lvl, `spell ${s.id}: levelByList[${list}] equals the flat level`).not.toBe(s.level);
+      }
+    }
+    expect(overrides).toBeGreaterThan(0);
+  });
 });
 
 describe('weapon proficiency data', () => {

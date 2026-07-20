@@ -11,7 +11,7 @@ export {
   DEITIES, deityById, DOMAINS, domainById, BLESSINGS, blessingById, SCHOOLS, schoolById,
   BLOODLINES, bloodlineById, LANGUAGES,
 } from './deities';
-export { SPELLS, spellById } from './spells';
+export { SPELLS, spellById, spellLevelOn } from './spells';
 export { ORACLE_REVELATIONS } from './subsystems';
 export { SORCERER_BLOODLINE_POWERS, CAVALIER_ORDER_ABILITIES } from './source-features';
 export type { SourceFeature } from './source-features';

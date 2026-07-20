@@ -11,7 +11,7 @@ import { rollAttack, rollDamage, rollSave, rollMissChance, threatRange, CONCEALM
 import { applyDamage, bypassOptions, ENERGY_TYPES } from '../engine/damage';
 import { spellBuffTimer, spellDamageAt, spellAttackerTimer } from '../engine/buffs';
 import { spendAction, resetActions, COMMON_ACTIONS, type ActionCost } from '../engine/actions';
-import { CONDITIONS, conditionById, SPELLS, spellById, classById, skillById } from '../content/index';
+import { CONDITIONS, conditionById, SPELLS, spellById, spellLevelOn, classById, skillById } from '../content/index';
 import { useCharacter } from './useCharacter';
 import { useTip } from './Tooltip';
 import { navigate } from './App';
@@ -176,7 +176,7 @@ export function PlaySheet({ id }: { id: string }) {
     if (!csc) return [];
     const pool = csc.kind === 'prepared-book'
       ? (spellbook[level] ?? []).map((id) => spellById.get(id)!).filter(Boolean)
-      : SPELLS.filter((s) => s.lists.includes(csc.list as never) && s.level === level);
+      : SPELLS.filter((s) => s.lists.includes(csc.list as never) && spellLevelOn(s, csc.list) === level);
     return pool.slice().sort((a, b) => a.name.localeCompare(b.name));
   };
 

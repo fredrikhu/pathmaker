@@ -989,6 +989,35 @@ describe('domain / specialist bonus spell slot', () => {
   });
 });
 
+describe('per-list spell levels', () => {
+  it('spellLevelOn returns the per-list override, else the flat level', () => {
+    const at = (id: string, list: string) => C.spellLevelOn(C.spellById.get(id)!, list);
+    expect(at('hold-monster', 'bard')).toBe(4);   // bard 4
+    expect(at('hold-monster', 'arcane')).toBe(5); // sorc/wiz 5 (the flat level)
+    expect(at('hold-person', 'divine')).toBe(2);  // cleric 2 (flat)
+    expect(at('hold-person', 'arcane')).toBe(3);  // sorc/wiz 3
+    expect(at('dispel-magic', 'druid')).toBe(4);  // druid 4
+    expect(at('dispel-magic', 'arcane')).toBe(3); // sorc/wiz 3 (flat)
+  });
+
+  // The builder's spell step files a spell at the caster's list level (spontaneous & prepared-book;
+  // prepared-list casters like the cleric know the whole list and get no build-time pick).
+  it('the spell step offers a divergent spell at the caster’s own list level', () => {
+    const slotLevelOf = (cls: string, ability: 'int' | 'cha', spellId: string) => {
+      let d = newCharacter('t-pll-' + cls, 'Lyra');
+      d = withDecision(d, 'ability-base', { str: 10, dex: 12, con: 12, int: 16, wis: 12, cha: 16 });
+      d = withDecision(d, 'race', 'human');
+      d = withDecision(d, 'floating-bonus', [ability]);
+      d = withDecision(d, 'class', cls);
+      const slot = resolve(atLevel(d, 15)).slots.find((s) => s.step === 'spells' && (s.options ?? []).some((o) => o.id === spellId));
+      return slot?.options?.find((o) => o.id === spellId)?.meta?.level;
+    };
+    expect(slotLevelOf('bard', 'cha', 'hold-monster')).toBe(4);
+    expect(slotLevelOf('wizard', 'int', 'hold-monster')).toBe(5);
+    expect(slotLevelOf('wizard', 'int', 'hold-person')).toBe(3);
+  });
+});
+
 describe('multiple resource pools per class', () => {
   it('paladin has lay-on-hands and smite-evil pools', () => {
     let d = newCharacter('t-pal-pools', 'Seelah');
