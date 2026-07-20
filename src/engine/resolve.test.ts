@@ -1000,6 +1000,25 @@ describe('per-list spell levels', () => {
     expect(at('dispel-magic', 'arcane')).toBe(3); // sorc/wiz 3 (flat)
   });
 
+  it('the multi-list audit: druid gets the cure/utility lines a level or two later', () => {
+    const at = (id: string, list: string) => C.spellLevelOn(C.spellById.get(id)!, list);
+    // The druid cure line trails the cleric line by one.
+    expect([at('cure-moderate-wounds', 'divine'), at('cure-moderate-wounds', 'druid')]).toEqual([2, 3]);
+    expect([at('cure-serious-wounds', 'divine'), at('cure-serious-wounds', 'druid')]).toEqual([3, 4]);
+    expect([at('cure-critical-wounds', 'divine'), at('cure-critical-wounds', 'druid')]).toEqual([4, 5]);
+    // Druid gets these later than the arcane/cleric list.
+    expect([at('wall-of-fire', 'arcane'), at('wall-of-fire', 'druid')]).toEqual([4, 5]);
+    expect([at('stoneskin', 'arcane'), at('stoneskin', 'druid')]).toEqual([4, 5]);
+    expect([at('true-seeing', 'divine'), at('true-seeing', 'druid')]).toEqual([5, 7]);
+    expect([at('heal', 'divine'), at('heal', 'druid')]).toEqual([6, 7]);
+    expect([at('regenerate', 'divine'), at('regenerate', 'druid')]).toEqual([7, 9]);
+    // A few cleric offsets from the arcane flat level.
+    expect([at('banishment', 'arcane'), at('banishment', 'divine')]).toEqual([7, 6]);
+    expect([at('antimagic-field', 'arcane'), at('antimagic-field', 'divine')]).toEqual([6, 8]);
+    expect([at('locate-object', 'arcane'), at('locate-object', 'divine')]).toEqual([2, 3]);
+    expect([at('bestow-curse', 'divine'), at('bestow-curse', 'arcane')]).toEqual([3, 4]);
+  });
+
   // The builder's spell step files a spell at the caster's list level (spontaneous & prepared-book;
   // prepared-list casters like the cleric know the whole list and get no build-time pick).
   it('the spell step offers a divergent spell at the caster’s own list level', () => {

@@ -307,10 +307,15 @@ Still open from that audit:
   full list like other prepared-list casters — slots/day shown, no creation-time selection.
 
 ### Modeling simplifications (fidelity notes)
-- **Per-list spell levels** — the per-list level map (`SpellDef.levelByList`, read via `spellLevelOn`)
-  now handles spells whose level differs by list; the nine clearest divergences are corrected. The
-  remaining tail is a full audit of every multi-list spell (and adding lists a spell was omitted from
-  because its level didn't match the flat one).
+- **Per-list spell levels — audited in full.** The per-list level map (`SpellDef.levelByList`, read via
+  `spellLevelOn`) handles every spell whose level differs by list. All 172 multi-list spells were
+  audited against the Core per-list levels: ~30 divergences corrected via `levelByList` (the bard
+  list usually a level lower; the druid cure/utility lines a level or two above the cleric/arcane
+  levels — cure moderate/serious/critical, wall of fire, stoneskin, true seeing, heal, regenerate,
+  word of recall, the mass cures; plus cleric offsets like banishment 6, antimagic field 8,
+  repulsion 7, locate object 3, bestow curse arcane 4). Golden tests pin a representative set. The
+  only residual is a few generous list *memberships* (e.g. mass cure light on druid) — a separate,
+  smaller membership question, not a level one.
 - **Spellbook budget** is a soft nudge (free distribution across accessible levels), not a per-level cap.
 - **Param feats are computed**: weapon ones (Weapon Focus / Specialization + Greater forms) into the
   per-weapon attack lines, Skill Focus into the skill total, Spell Focus into a per-school DC note.
