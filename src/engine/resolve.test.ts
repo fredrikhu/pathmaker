@@ -1018,6 +1018,31 @@ describe('per-list spell levels', () => {
   });
 });
 
+describe('bard spell-list completeness', () => {
+  const bardLevelOf = (spellId: string) => {
+    let d = newCharacter('t-bard', 'Melody');
+    d = withDecision(d, 'ability-base', { str: 10, dex: 14, con: 12, int: 10, wis: 10, cha: 18 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['cha']);
+    d = withDecision(d, 'class', 'bard');
+    const slot = resolve(atLevel(d, 16)).slots.find((s) => s.step === 'spells' && (s.options ?? []).some((o) => o.id === spellId));
+    return slot?.options?.find((o) => o.id === spellId)?.meta?.level;
+  };
+
+  it('bards now get the spells they were missing, at the correct bard level', () => {
+    expect(bardLevelOf('identify')).toBe(1);
+    expect(bardLevelOf('heroism')).toBe(2);   // bard 2, not the sorc/wiz 3
+    expect(bardLevelOf('tongues')).toBe(2);
+    expect(bardLevelOf('rage')).toBe(2);
+    expect(bardLevelOf('confusion')).toBe(3);
+    expect(bardLevelOf('see-invisibility')).toBe(3); // corrected from the flat 2
+    expect(bardLevelOf('speak-with-animals')).toBe(3);
+    expect(bardLevelOf('legend-lore')).toBe(4);
+    expect(bardLevelOf('greater-heroism')).toBe(5);
+    expect(bardLevelOf('shadow-walk')).toBe(5);
+  });
+});
+
 describe('senses & innate spell-like abilities', () => {
   const sheetFor = (race: string) => {
     let d = newCharacter('t-innate-' + race, 'Zim');
