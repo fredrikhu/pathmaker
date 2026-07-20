@@ -6,19 +6,29 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 
 ## ▶ Resume here (last session end)
 
-**Current state** — branch `main`, working tree clean, **515 tests** passing (`origin/main` at
-`a709375`); run `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
+**Current state** — branch `main`, working tree clean, **517 tests** passing (`origin/main` at
+`ed4446c`); run `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
-**Latest — shifter aspect abilities** (commit `a709375`). The last flavor-only selector got its
+**Latest — witch patron bonus spells** (commit `ed4446c`). Closed the first of the different-in-kind
+fill-ins: `WITCH_PATRON_SPELLS` (`source-features.ts`) gives all 10 patrons (agility, animals,
+deception, elements, endurance, healing, plague, shadow, strength, winter) their bonus spell added to
+the witch's list at levels **2/4/6/8/10/12/14/16/18** (spell levels 1st–9th). Built with a compact
+`patron(...)` helper; injected in `resolve.ts` off the witch's existing level-1 `patron` choice.
+Verified against the APG patron table by cross-checking **two** sources (d20pfsrd + Archives of
+Nethys), which agreed exactly — including off-Core picks (elements→vortex, endurance→miracle,
+winter→polar midnight); these are descriptive spell references, so they need no catalogue entry.
+Coverage test (bidirectional patron↔spells + exact levels, folded into the shared valid-levels
+check) + a Winter golden test; browser-verified in the Advancement table. Remaining fill-ins are
+different-in-kind: the summoner eidolon evolution pool, bloodline arcana/bonus spells, and a true
+alchemist grand-discovery list.
+
+**Prior — shifter aspect abilities** (commit `a709375`). The last flavor-only selector got its
 authored ability progression: `SHIFTER_ASPECT_ABILITIES` (`source-features.ts`) gives all 10
 aspects (bear, bull, eagle/Falcon, frog, lion, monkey, snake, stag, tiger, wolf) their Minor form,
 Major form, and 8th/15th-level improvements at levels **1/4/8/15**, verified against the d20pfsrd
 shifter table. Injected in `resolve.ts` off the shifter's existing level-1 `aspect` choice (from
-`classes.ts` — no new choice needed). Coverage test (bidirectional aspect↔abilities + exact levels,
-folded into the shared valid-levels check) + a tiger golden test. **No subsystem selector is
-descriptive-only anymore.** Remaining fill-ins are different-in-kind: witch patron bonus spells,
-the summoner eidolon evolution pool, bloodline arcana/bonus spells, and a true alchemist
-grand-discovery list.
+`classes.ts` — no new choice needed). Coverage test + a tiger golden test. **No subsystem selector
+is descriptive-only anymore** — every remaining gap is spell-list or pool data, not flavor text.
 
 **Prior session — play-mat UX, trait validation, and a subsystem-content pass**
 (commits `77bb2ab` → `3d0329a`). The subsystem-content pass closed out the "descriptive" gaps we
