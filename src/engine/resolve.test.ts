@@ -899,6 +899,21 @@ describe('source-dependent features appear in the progression by chosen source',
     // The bare aspect abilities don't appear before their level.
     expect(resolve(atLevel(d, 3)).sheet.progression[2].features).not.toContain('Tiger Aspect (Major)');
   });
+  it('a witch shows its patron bonus spells (1st at level 2, 5th at level 10, 9th at level 18)', () => {
+    let d = newCharacter('t-witch', 'Feiya');
+    d = withDecision(d, 'ability-base', { str: 8, dex: 12, con: 12, int: 16, wis: 10, cha: 10 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['int']);
+    d = withDecision(d, 'alignment', 'N');
+    d = withDecision(d, 'class', 'witch');
+    d = withDecision(d, 'class-choices', { patron: ['winter'] });
+    const r = resolve(atLevel(d, 18));
+    expect(r.sheet.progression[1].features).toContain('Patron Spell (1st): Unshakable Chill');  // level 2
+    expect(r.sheet.progression[9].features).toContain('Patron Spell (5th): Cone of Cold');       // level 10
+    expect(r.sheet.progression[17].features).toContain('Patron Spell (9th): Polar Midnight');    // level 18
+    // Higher-level patron spells don't appear before their level.
+    expect(resolve(atLevel(d, 8)).sheet.progression[7].features).not.toContain('Patron Spell (5th): Cone of Cold');
+  });
   it('an oracle shows its mystery final revelation at 20, and nothing there without a mystery', () => {
     let d = newCharacter('t-oracle', 'Alahra');
     d = withDecision(d, 'ability-base', { str: 8, dex: 12, con: 12, int: 10, wis: 10, cha: 16 });

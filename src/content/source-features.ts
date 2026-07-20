@@ -411,3 +411,30 @@ export const SHIFTER_ASPECT_ABILITIES: Record<string, SourceFeature[]> = {
     { level: 15, name: 'True Wolf Aspect', desc: 'Scent range increases further; you gain Improved Natural Attack with your bite.' },
   ],
 };
+
+/** Witch patron bonus spells, keyed by patron id. A patron adds one spell to the witch's
+ *  spell list at 2nd level and every two levels thereafter (levels 2/4/6/8/10/12/14/16/18),
+ *  of spell level 1st through 9th respectively. Verified against the APG witch patron table
+ *  (cross-checked d20pfsrd + Archives of Nethys). Some entries are off-Core spells (e.g.
+ *  vortex, polar midnight) — they name the granted spell descriptively; they need not exist
+ *  in the spell catalogue. */
+const ORD9 = ['1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th', '9th'];
+const patron = (...spells: string[]): SourceFeature[] =>
+  spells.map((s, i) => ({
+    level: 2 + i * 2,
+    name: `Patron Spell (${ORD9[i]}): ${s}`,
+    desc: `Your patron adds ${s} to your witch spell list.`,
+  }));
+
+export const WITCH_PATRON_SPELLS: Record<string, SourceFeature[]> = {
+  agility: patron('Jump', "Cat's Grace", 'Haste', 'Freedom of Movement', 'Polymorph', "Mass Cat's Grace", 'Ethereal Jaunt', 'Animal Shapes', 'Shapechange'),
+  animals: patron('Charm Animal', 'Speak with Animals', 'Dominate Animal', "Summon Nature's Ally IV", 'Animal Growth', 'Antilife Shell', 'Beast Shape IV', 'Animal Shapes', "Summon Nature's Ally IX"),
+  deception: patron('Ventriloquism', 'Invisibility', 'Blink', 'Confusion', 'Passwall', 'Programmed Image', 'Mass Invisibility', 'Scintillating Pattern', 'Time Stop'),
+  elements: patron('Shocking Grasp', 'Flaming Sphere', 'Fireball', 'Wall of Ice', 'Flame Strike', 'Freezing Sphere', 'Vortex', 'Fire Storm', 'Meteor Swarm'),
+  endurance: patron('Endure Elements', "Bear's Endurance", 'Protection from Energy', 'Spell Immunity', 'Spell Resistance', "Mass Bear's Endurance", 'Greater Restoration', 'Iron Body', 'Miracle'),
+  healing: patron('Remove Fear', 'Lesser Restoration', 'Remove Disease', 'Restoration', 'Cleanse', 'Pillar of Life', 'Greater Restoration', 'Mass Cure Critical Wounds', 'True Resurrection'),
+  plague: patron('Detect Undead', 'Command Undead', 'Contagion', 'Animate Dead', 'Giant Vermin', 'Create Undead', 'Control Undead', 'Create Greater Undead', 'Energy Drain'),
+  shadow: patron('Silent Image', 'Darkness', 'Deeper Darkness', 'Shadow Conjuration', 'Shadow Evocation', 'Shadow Walk', 'Greater Shadow Conjuration', 'Greater Shadow Evocation', 'Shades'),
+  strength: patron('Divine Favor', "Bull's Strength", 'Greater Magic Weapon', 'Divine Power', 'Righteous Might', "Mass Bull's Strength", 'Giant Form I', 'Giant Form II', 'Shapechange'),
+  winter: patron('Unshakable Chill', 'Resist Energy', 'Ice Storm', 'Wall of Ice', 'Cone of Cold', 'Freezing Sphere', 'Control Weather', 'Polar Ray', 'Polar Midnight'),
+};

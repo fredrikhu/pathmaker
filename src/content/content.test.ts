@@ -235,6 +235,7 @@ describe('source-dependent features (bloodline powers, order abilities)', () => 
       ['bloodrager bloodline', C.BLOODRAGER_BLOODLINE_POWERS],
       ['shaman spirit', C.SHAMAN_SPIRIT_ABILITIES],
       ['shifter aspect', C.SHIFTER_ASPECT_ABILITIES],
+      ['witch patron', C.WITCH_PATRON_SPELLS],
     ];
     for (const [label, map] of sources) {
       for (const [sid, feats] of Object.entries(map)) {
@@ -276,6 +277,15 @@ describe('source-dependent features (bloodline powers, order abilities)', () => 
     for (const id of abilityIds) expect(optionIds.has(id), `shifter abilities for unknown aspect "${id}"`).toBe(true);
     for (const [aid, feats] of Object.entries(C.SHIFTER_ASPECT_ABILITIES)) {
       expect(feats.map((f) => f.level), `shifter ${aid} levels`).toEqual([1, 4, 8, 15]);
+    }
+  });
+  it('every witch patron adds a bonus spell at 2/4/6/8/10/12/14/16/18, keyed to a real patron option', () => {
+    const optionIds = new Set(C.WITCH_PATRONS.map((o) => o.id));
+    const spellIds = new Set(Object.keys(C.WITCH_PATRON_SPELLS));
+    for (const id of optionIds) expect(spellIds.has(id), `witch patron "${id}" has no bonus spells`).toBe(true);
+    for (const id of spellIds) expect(optionIds.has(id), `witch bonus spells for unknown patron "${id}"`).toBe(true);
+    for (const [pid, feats] of Object.entries(C.WITCH_PATRON_SPELLS)) {
+      expect(feats.map((f) => f.level), `witch ${pid} levels`).toEqual([2, 4, 6, 8, 10, 12, 14, 16, 18]);
     }
   });
   it('every cavalier order has abilities at 2/8/15, keyed to a real order option', () => {
