@@ -486,14 +486,11 @@ export const CLASS_PROGRESSION: Record<string, ClassProgression> = {
   },
   shaman: {
     features: [
-      f(1, 'shaman-spirit-feature', 'Spirit', 'A spirit grants spells, a hex, and abilities at 1st, 8th, 16th, 20th.'),
+      f(1, 'shaman-spirit-feature', 'Spirit', 'Your chosen spirit grants spirit magic, hexes, and its spirit abilities at 1st, 8th (greater), 16th (true), and 20th (manifestation).'),
       f(1, 'shaman-spirit-animal', 'Spirit Animal', 'A familiar-like companion that stores your spells.'),
       f(1, 'shaman-orisons', 'Orisons', 'Cast 0-level divine spells at will.'),
       f(4, 'shaman-wandering-spirit', 'Wandering Spirit', 'Bond with a temporary second spirit each day.'),
       f(6, 'shaman-wandering-hex', 'Wandering Hex', 'Borrow a hex from either spirit each day.'),
-      f(8, 'shaman-greater-spirit', 'Greater Spirit Ability', 'Unlock a stronger ability from your spirit.'),
-      f(16, 'shaman-true-spirit', 'True Spirit Ability', 'Unlock your spirit\'s ultimate ability.'),
-      f(20, 'shaman-manifestation', 'Manifestation', 'Manifest as the pinnacle of your spirit.'),
     ],
     choices: [{ id: 'shaman-hex', label: 'Hex', kind: 'list', count: 1, levels: [2, 4, 8, 10, 12, 16, 18, 20], options: SHAMAN_HEXES }],
   },

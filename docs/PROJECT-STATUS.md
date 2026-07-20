@@ -422,10 +422,13 @@ Remaining Part-B deferrals / fidelity notes:
   hex list (`SHAMAN_HEXES` — Wisdom-keyed, with a Witch Hex option in place of reusing the raw witch
   list). Every option list is still a core-scope subset. **Oracle revelations are now interactive** — a source-dependent `oracle-revelation`
   choice filters options by the chosen mystery (`ORACLE_REVELATIONS` per mystery). **Sorcerer
-  bloodline powers, bloodrager bloodline powers, and cavalier order abilities now display per
-  source** — `source-features.ts` holds the fixed per-level abilities; the engine injects the chosen
-  source's into the advancement progression (`sourceFeatures` in resolve.ts). **Gunslinger deeds**
-  are named per level. No source-feature list remains descriptive-only.
+  bloodline powers, bloodrager bloodline powers, cavalier order abilities, and shaman spirit
+  abilities now display per source** — `source-features.ts` holds the fixed per-level abilities;
+  the engine injects the chosen source's into the advancement progression (`sourceFeatures` in
+  resolve.ts). Shaman spirit abilities are the spirit ability / greater (8th) / true (16th) /
+  manifestation (20th) for all 10 spirits, verified against d20pfsrd (the generic 8/16/20 placeholder
+  features were removed in favour of the real per-spirit names). **Gunslinger deeds** are named per
+  level. No source-feature list remains descriptive-only.
 - **vampire-hunter is now fully authored** — a per-level `features` progression (technique bonus
   feats + vampiric focus, stake, relentless line, etc.) and a verified four-level spontaneous caster
   table, so it no longer falls back to the level-1-only stub.

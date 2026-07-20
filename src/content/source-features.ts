@@ -163,3 +163,68 @@ export const BLOODRAGER_BLOODLINE_POWERS: Record<string, SourceFeature[]> = {
     { level: 20, name: 'One Foot in the Grave', desc: 'Gain the deathless immunities of the undead while bloodraging.' },
   ],
 };
+
+/** Shaman spirit abilities, keyed by spirit id — the fixed spirit ability (1st), greater (8th),
+ *  true (16th), and manifestation (20th). Spirit hexes and spirit magic are handled separately. */
+export const SHAMAN_SPIRIT_ABILITIES: Record<string, SourceFeature[]> = {
+  battle: [
+    { level: 1, name: 'Battle Spirit', desc: 'You and allies within 30 ft gain a morale bonus on attack and weapon damage rolls.' },
+    { level: 8, name: "Enemies' Bane", desc: 'As a swift action, imbue a wielded weapon with the bane special ability for a few rounds.' },
+    { level: 16, name: 'Paragon of Battle', desc: 'Become a juggernaut of war for a time, growing larger and deadlier as you fell foes.' },
+    { level: 20, name: 'Manifestation', desc: 'You embody war — moving through full attacks, ignoring DR on crits, and clinging to life past mortal wounds.' },
+  ],
+  bones: [
+    { level: 1, name: 'Touch of the Grave', desc: 'A melee touch deals negative energy damage to the living or heals undead.' },
+    { level: 8, name: 'Shard Soul', desc: 'Gain damage reduction and burst jagged bone shards at foes around you.' },
+    { level: 16, name: 'Shedding Form', desc: 'Become incorporeal, your attacks striking as though ghost touch.' },
+    { level: 20, name: 'Manifestation', desc: 'You become a spirit of death — stabilizing automatically, animating the dead at will, and speaking words that kill.' },
+  ],
+  flame: [
+    { level: 1, name: 'Touch of Flames', desc: 'A melee touch deals fire damage that scales with your level, later setting weapons alight.' },
+    { level: 8, name: 'Fiery Soul', desc: 'Gain fire resistance and exhale a cone of flame a few times per day.' },
+    { level: 16, name: 'Elemental Form', desc: 'Assume the form of a Huge fire elemental for a time.' },
+    { level: 20, name: 'Manifestation', desc: 'You embody fire — nearly immune to it, and shaping your fire spells with free metamagic.' },
+  ],
+  heavens: [
+    { level: 1, name: 'Stardust', desc: 'Wreathe a foe in stardust, penalizing its attacks and Perception and foiling concealment.' },
+    { level: 8, name: 'Void Adaptation', desc: 'Gain greater darkvision, see in supernatural darkness, and no longer need to breathe.' },
+    { level: 16, name: 'Phantasmagoric Display', desc: 'Cast prismatic wall and prismatic spray, each once per day.' },
+    { level: 20, name: 'Manifestation', desc: 'You become a spirit of the heavens — fearless, hard to fell, and reborn as a star child if slain.' },
+  ],
+  life: [
+    { level: 1, name: 'Channel', desc: 'Channel positive energy as a cleric of your shaman level.' },
+    { level: 8, name: "Healer's Touch", desc: 'Bonuses to your healing, and stabilize several dying creatures at a touch.' },
+    { level: 16, name: 'Quick Healing', desc: 'Channel energy or cast a cure spell as a swift action.' },
+    { level: 20, name: 'Manifestation', desc: 'You become a font of life — immune to bleed, death effects, and negative energy.' },
+  ],
+  lore: [
+    { level: 1, name: 'Monstrous Insight', desc: 'Identify a creature and gain a bonus on attacks and AC against it.' },
+    { level: 8, name: 'Automatic Writing', desc: 'Once per day, meditate to produce an augury, divination, or commune.' },
+    { level: 16, name: 'Perfect Knowledge', desc: 'Gain permanent tongues and large competence bonuses on Knowledge, Linguistics, and Spellcraft.' },
+    { level: 20, name: 'Manifestation', desc: 'You become a spirit of lore — never failing a Knowledge check and casting wish once per day.' },
+  ],
+  nature: [
+    { level: 1, name: 'Storm Burst', desc: 'Batter a foe with a burst of wind and rain, dealing nonlethal damage and hampering its attacks.' },
+    { level: 8, name: 'Spirit of Nature', desc: 'When brought low you stabilize and gain fast healing for a few rounds.' },
+    { level: 16, name: 'Companion Animal', desc: 'Your spirit animal becomes a full animal companion using your shaman level.' },
+    { level: 20, name: 'Manifestation', desc: 'You become one with nature — cocooning to reshape your very body and creature type.' },
+  ],
+  stone: [
+    { level: 1, name: 'Touch of Acid', desc: 'A melee touch deals acid damage that scales with your level, later making weapons corrosive.' },
+    { level: 8, name: 'Body of Earth', desc: 'Gain damage reduction and burst stone shards at nearby foes.' },
+    { level: 16, name: 'Elemental Form', desc: 'Assume the form of a Huge earth elemental for a time.' },
+    { level: 20, name: 'Manifestation', desc: 'You embody earth and acid — resistant to acid and shaping earth spells with free metamagic.' },
+  ],
+  waves: [
+    { level: 1, name: 'Wave Strike', desc: 'A melee touch deals nonlethal damage and shoves the target back.' },
+    { level: 8, name: 'Fluid Mastery', desc: 'Gain a swim speed and water breathing, and loose a cone of freezing water.' },
+    { level: 16, name: 'Elemental Form', desc: 'Assume the form of a Huge water elemental for a time.' },
+    { level: 20, name: 'Manifestation', desc: 'You embody water — resistant to cold and shaping cold or water spells with free metamagic.' },
+  ],
+  wind: [
+    { level: 1, name: 'Shocking Touch', desc: 'A melee touch deals electricity damage that scales with your level.' },
+    { level: 8, name: 'Spark Soul', desc: 'Gain electricity resistance and loose a line of sparks a few times per day.' },
+    { level: 16, name: 'Elemental Form', desc: 'Assume the form of a Huge air (lightning) elemental for a time.' },
+    { level: 20, name: 'Manifestation', desc: 'You embody air and lightning — resistant to electricity and shaping air spells with free metamagic.' },
+  ],
+};

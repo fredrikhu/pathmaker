@@ -858,6 +858,19 @@ describe('source-dependent features appear in the progression by chosen source',
     expect(r.sheet.progression[7].features).toContain('Breath Weapon'); // level 8 — bloodrager, not the sorcerer's level-9 breath
     expect(r.sheet.progression[11].features).toContain('Dragon Wings'); // level 12
   });
+  it('a life shaman shows its spirit abilities (Channel at 1, Healer’s Touch at 8, Quick Healing at 16)', () => {
+    let d = newCharacter('t-shaman', 'Wu');
+    d = withDecision(d, 'ability-base', { str: 8, dex: 12, con: 12, int: 10, wis: 16, cha: 10 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['wis']);
+    d = withDecision(d, 'alignment', 'N');
+    d = withDecision(d, 'class', 'shaman');
+    d = withDecision(d, 'class-choices', { spirit: ['life'] });
+    const r = resolve(atLevel(d, 16));
+    expect(r.sheet.progression[0].features).toContain('Channel');        // 1st
+    expect(r.sheet.progression[7].features).toContain("Healer's Touch"); // 8th
+    expect(r.sheet.progression[15].features).toContain('Quick Healing'); // 16th
+  });
 });
 
 describe('multi-level spell selection', () => {
