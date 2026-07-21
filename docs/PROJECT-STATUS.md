@@ -15,8 +15,8 @@ counterpart and a theme switch. **Theme mechanism:** the rendered theme is `data
 (`system|light|dark` in `localStorage['pathmaker:theme']`) and resolves `system` from
 `prefers-color-scheme` in JS (with a matchMedia listener to follow the OS live), so the CSS has no
 media branch. A tiny inline script in `index.html` applies the same resolution before first paint (no
-flash). `ThemeToggle.tsx` (a segmented Light/Dark/System control, `useSyncExternalStore`) sits in the
-Roster header; `main.tsx` calls `initTheme()`. **Candlelight palette:** tanned-leather ground `#2c2216`,
+flash). `ThemeToggle.tsx` (a segmented Light/Dark/System control, `useSyncExternalStore`) sits in every
+screen header (Roster, Builder, Play, Sheet — all `.no-print`); `main.tsx` calls `initTheme()`. **Candlelight palette:** tanned-leather ground `#2c2216`,
 warm parchment ink `#e7d7b4`, ember accent `#cf5f47`, brighter gilt. The light theme *inverted* the tonal
 ramps (100 deepest); the dark block returns them to **conventional order** (100 palest → 900 deepest) so
 low-step-as-text / high-step-as-fill reads on a dark ground. The filled button uses its own

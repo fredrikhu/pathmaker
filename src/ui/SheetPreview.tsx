@@ -5,6 +5,7 @@ import { ABILITIES, abilityMod, fmtMod, speedLabel, type Ability } from '../engi
 import { anyItemById, featById, spellById } from '../content/index';
 import { navigate } from './App';
 import { StatValue } from './StatValue';
+import { ThemeToggle } from './ThemeToggle';
 
 export function SheetPreview({ id }: { id: string }) {
   const doc = loadCharacter(id);
@@ -30,6 +31,7 @@ export function SheetPreview({ id }: { id: string }) {
         <button onClick={() => navigate({ name: 'builder', id })} className="btn btn-ghost" style={{ fontSize: 12 }}>← Back to builder</button>
         <button onClick={() => navigate({ name: 'play', id })} className="btn btn-primary" style={{ fontSize: 12 }}>▶ Play</button>
         <span style={{ flex: 1 }} />
+        <ThemeToggle />
         <div style={{ display: 'inline-flex', border: '1px solid var(--color-divider)', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
           {(['screen', 'print'] as const).map((m) => (
             <button key={m} onClick={() => setMode(m)} style={{ padding: '7px 14px', fontSize: 12.5, cursor: 'pointer', background: 'transparent', border: 'none', borderLeft: '1px solid var(--color-divider)', color: mode === m ? 'var(--color-accent)' : 'var(--color-text)', boxShadow: mode === m ? 'inset 0 0 0 1px var(--color-accent)' : 'none', fontFamily: 'inherit', textTransform: 'capitalize' }}>{m}</button>

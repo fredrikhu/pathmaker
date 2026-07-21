@@ -15,6 +15,7 @@ import { CONDITIONS, conditionById, SPELLS, spellById, spellLevelOn, classById, 
 import { useCharacter } from './useCharacter';
 import { useTip } from './Tooltip';
 import { navigate } from './App';
+import { ThemeToggle } from './ThemeToggle';
 
 const SPELL_LEVEL = (l: number) => (l === 0 ? '0' : String(l));
 const attackLabel = (bonuses: number[]) => bonuses.map(fmtMod).join('/');
@@ -367,6 +368,7 @@ export function PlaySheet({ id }: { id: string }) {
           <div className="text-muted" style={{ fontSize: 13 }}>{sheet.summaryLine}</div>
         </div>
         <span style={{ flex: 1 }} />
+        <ThemeToggle />
         <button className="btn btn-secondary" style={{ fontSize: 12 }} onClick={() => navigate({ name: 'builder', id })}>Edit build</button>
         <button className="btn btn-secondary" style={{ fontSize: 12 }} onClick={() => navigate({ name: 'sheet', id })}>Sheet</button>
         <button className="btn btn-primary" style={{ fontSize: 12 }} onClick={rest} title="Restore daily resources and let 8 hours pass">🌙 Rest</button>
