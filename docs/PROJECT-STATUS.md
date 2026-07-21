@@ -9,7 +9,28 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 **Current state** — branch `main`, working tree clean, **567 tests** passing; run
 `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
-**Latest — Parchment skin, "lean-in" pass (richer components + medium grain).** Building on the skin
+**Latest — Candlelight dark variant + Light/Dark/System switch.** Parchment now has a full dark
+counterpart and a theme switch. **Theme mechanism:** the rendered theme is `data-theme` on `<html>`
+(`:root[data-theme="dark"]` in nocturne.css/app.css); a controller `src/ui/theme.ts` holds the preference
+(`system|light|dark` in `localStorage['pathmaker:theme']`) and resolves `system` from
+`prefers-color-scheme` in JS (with a matchMedia listener to follow the OS live), so the CSS has no
+media branch. A tiny inline script in `index.html` applies the same resolution before first paint (no
+flash). `ThemeToggle.tsx` (a segmented Light/Dark/System control, `useSyncExternalStore`) sits in the
+Roster header; `main.tsx` calls `initTheme()`. **Candlelight palette:** tanned-leather ground `#2c2216`,
+warm parchment ink `#e7d7b4`, ember accent `#cf5f47`, brighter gilt. The light theme *inverted* the tonal
+ramps (100 deepest); the dark block returns them to **conventional order** (100 palest → 900 deepest) so
+low-step-as-text / high-step-as-fill reads on a dark ground. The filled button uses its own
+`--btn-fill/-2/-text/-edge` tokens per theme (deep ember on dark). **Texture fixes (both themes):** dropped
+the coarse mottle layer (its non-integer `baseFrequency × 700` tile + mismatched filter region read as
+*tiled* with a seam) and pinned the fiber's filter region with an integer `baseFrequency × 320 = 192` for
+seamless `stitchTiles`; added a warm top **bloom** to the body ground; the dark theme uses a **subtler
+grain** (gentle feComponentTransfer curve) so `overlay` doesn't muddy the leather. **Verified** all switch
+paths (light/dark/system × OS light/dark, reload persistence, no-flash head script) and hand-checked dark
+contrast (the browser scanner can't resolve `color-mix()`/`oklch()` — it false-flags `.text-muted`/warn/err;
+hand-computed text-muted-on-panel = 4.29, ember button = 4.85, panel border = 2.01). Only genuinely-dim text
+is the muted "Requires" line on *disabled* feat cards (intentional de-emphasis). 567 tests + tsc + build green.
+
+**Prior — Parchment skin, "lean-in" pass (richer components + medium grain).** Building on the skin
 below: the grain preset moved **subtle → medium** (`--tex-fiber` feComponentTransfer slope 0.7→1.15).
 `.btn-primary` is now a **filled oxblood letterpress** button (gradient fill, pale text, hard bottom edge
 in the deepest oxblood, uppercase Cinzel) and `.btn-secondary` a bordered vellum button — both pure CSS,

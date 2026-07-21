@@ -6,6 +6,7 @@ import {
   saveCharacter, uid, type RosterEntry,
 } from '../storage/store';
 import { navigate } from './App';
+import { ThemeToggle } from './ThemeToggle';
 
 function summarize(id: string): { summary: string; issues: number } {
   const doc = loadCharacter(id);
@@ -62,6 +63,7 @@ export function Roster() {
         <span style={{ fontSize: 11, letterSpacing: '.16em', textTransform: 'uppercase', color: 'var(--color-accent)' }}>Pathmaker</span>
         <span className="text-muted" style={{ fontSize: 13 }}>Pathfinder 1e character forge</span>
         <span style={{ flex: 1 }} />
+        <ThemeToggle />
         <button className="btn btn-secondary" onClick={() => fileInput.current?.click()}>Import JSON</button>
         <button className="btn btn-primary" onClick={create}>+ New character</button>
         <input ref={fileInput} type="file" accept="application/json,.json" hidden onChange={(e) => onImport(e.target.files?.[0])} />

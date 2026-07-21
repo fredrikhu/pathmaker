@@ -4,6 +4,16 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Pathmaker</title>
+    <!-- Resolve the saved theme before first paint to avoid a flash. Mirrors ui/theme.ts. -->
+    <script>
+      (function () {
+        try {
+          var p = localStorage.getItem('pathmaker:theme');
+          var dark = p === 'dark' || ((p !== 'light') && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -21,6 +21,10 @@
   --color-accent-2: #9a7826;/* gilt — the second accent */
   --color-divider: color-mix(in srgb, #3a2c1a 20%, transparent); /* warm ink hairline */
 
+  /* Filled-button surface — its own tokens (not ramp steps) so the letterpress
+     button survives the ramp inversion between the light and dark themes. */
+  --btn-fill: #8a2f24; --btn-fill-2: #5f2319; --btn-text: #f6e3df; --btn-edge: #3f160f;
+
   /* Tonal ramps — warm sepia neutrals and the two accents. NOTE the order is
      inverted from a conventional ramp: 100 = deepest, 900 = palest. The app
      was built on Nocturne (a dark theme) where the low steps (100–400) are used
@@ -71,11 +75,14 @@
   --font-body: "IM Fell English", Georgia, "Times New Roman", serif;
   --font-label: "MedievalSharp", "Cinzel", Georgia, serif;
 
-  /* Procedural paper grain (SVG feTurbulence) — "medium" preset: a fine
-     fibrous grain blended 'overlay' plus a coarse low-frequency mottle
-     blended 'soft-light'. No image assets; baked into surface backgrounds. */
-  --tex-fiber: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='320'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.6' numOctaves='4' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncR type='linear' slope='1.15' intercept='-0.075'/%3E%3CfeFuncG type='linear' slope='1.15' intercept='-0.075'/%3E%3CfeFuncB type='linear' slope='1.15' intercept='-0.075'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E");
-  --tex-mottle: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='700' height='700'%3E%3Cfilter id='m'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.012 0.017' numOctaves='3' seed='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncR type='linear' slope='0.55' intercept='0.22'/%3E%3CfeFuncG type='linear' slope='0.55' intercept='0.22'/%3E%3CfeFuncB type='linear' slope='0.55' intercept='0.22'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23m)'/%3E%3C/svg%3E");
+  /* Procedural paper grain (SVG feTurbulence) — a fine fibrous grain baked into
+     surface backgrounds via background-blend-mode. Tiled SEAMLESSLY: the filter
+     region is pinned to the tile (x/y/width/height) and baseFrequency×tile is an
+     integer (0.6 × 320 = 192), the two conditions stitchTiles needs to avoid a
+     visible seam. "medium" contrast here for the light theme; the dark theme
+     overrides it to a subtler curve. No image assets, no coarse mottle layer
+     (its large low-frequency tile was what read as "tiled"). */
+  --tex-fiber: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='320'%3E%3Cfilter id='f' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.6' numOctaves='4' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncR type='linear' slope='1.15' intercept='-0.075'/%3E%3CfeFuncG type='linear' slope='1.15' intercept='-0.075'/%3E%3CfeFuncB type='linear' slope='1.15' intercept='-0.075'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E");
 
   --space-1: 2.8px;
   --space-2: 5.6px;
@@ -94,16 +101,83 @@
   --shadow-lg: 0 0 0 1px color-mix(in srgb, #3a2c1a 26%, transparent), 0 16px 40px rgba(60,40,15,0.28);
 }
 
+/* ══ Candlelight — the dark variant. Tanned-leather ground, warm parchment ink,
+   ember accent, brighter gilt. Applied via [data-theme="dark"] on the root; the
+   theme controller (ui/theme.ts) sets that attribute, resolving the "System"
+   preference from prefers-color-scheme in JS. Only the token VALUES change —
+   every component class is shared with the light theme. The three tonal ramps
+   return to CONVENTIONAL order (100 palest … 900 deepest), the opposite of the
+   light theme's inversion, because on a dark ground the app's low ramp steps must
+   read as light foreground text and the high steps as dark fills. The grain
+   data-URIs, fonts, spacing and radii are inherited unchanged. ═══════════════ */
+:root[data-theme="dark"] {
+    --color-bg: #2c2216;      /* tanned leather ground — warm, a touch lighter */
+    --color-surface: #392c1c; /* raised panel — lighter than the ground */
+    --color-text: #e7d7b4;    /* warm parchment ink */
+
+    /* a subtler grain than the light theme's — on a dark ground the medium
+       curve's overlay speckle muddies the leather; the gentle curve keeps it
+       reading as grain, not noise. (seamless: 0.6 × 320 = 192) */
+    --tex-fiber: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='320'%3E%3Cfilter id='f' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.6' numOctaves='4' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncR type='linear' slope='0.62' intercept='0.19'/%3E%3CfeFuncG type='linear' slope='0.62' intercept='0.19'/%3E%3CfeFuncB type='linear' slope='0.62' intercept='0.19'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E");
+    --color-accent: #cf5f47;  /* ember — the interactive accent */
+    --color-accent-2: #d3a94e;/* candlelit gilt */
+    --color-divider: color-mix(in srgb, #e7d7b4 18%, transparent);
+
+    --color-neutral-100: #f5efe0;
+    --color-neutral-200: #e9dec4;
+    --color-neutral-300: #d8c9a4;
+    --color-neutral-400: #c0ad82;
+    --color-neutral-500: #a3906a;
+    --color-neutral-600: #7c6b48;
+    --color-neutral-700: #5e4f33;
+    --color-neutral-800: #3a2f1f;
+    --color-neutral-900: #241b12;
+
+    --color-accent-100: #fbe0d8;
+    --color-accent-200: #f6c3b6;
+    --color-accent-300: #ec9f8c;
+    --color-accent-400: #de7a63;
+    --color-accent-500: #cf5f47;
+    --color-accent-600: #b0432f;
+    --color-accent-700: #8a3323;
+    --color-accent-800: #5f231a;
+    --color-accent-900: #3c150f;
+
+    --color-accent-2-100: #f7edcf;
+    --color-accent-2-200: #ecd9a1;
+    --color-accent-2-300: #dfc478;
+    --color-accent-2-400: #cdad57;
+    --color-accent-2-500: #b0913c;
+    --color-accent-2-600: #8f7430;
+    --color-accent-2-700: #6e5926;
+    --color-accent-2-800: #4a3d1a;
+    --color-accent-2-900: #2f2810;
+
+    --color-section: #3a1a12;
+    --color-section-glow: #5a2a1e;
+    --color-section-ghost: #7a4436;
+
+    /* filled-button surface for the ember accent on dark — deep enough that the
+       pale text keeps its contrast on the fill */
+    --btn-fill: #b0432f; --btn-fill-2: #83301f; --btn-text: #fce9e3; --btn-edge: #521810;
+
+    /* elevation — a light hairline edge plus ambient darkness, for a dark ground */
+    --shadow-sm: 0 0 0 1px color-mix(in srgb, #e7d7b4 14%, transparent);
+    --shadow-md: 0 0 0 1px color-mix(in srgb, #e7d7b4 18%, transparent), 0 6px 18px rgba(0,0,0,0.5);
+    --shadow-lg: 0 0 0 1px color-mix(in srgb, #e7d7b4 24%, transparent), 0 16px 40px rgba(0,0,0,0.6);
+}
+
 body {
   color: var(--color-text);
   font-family: var(--font-body);
-  /* paper ground: grain (overlay) + mottle (soft-light) baked over the base
-     colour; fixed so the texture stays put as content scrolls. */
+  /* paper ground: a seamless fixed grain plus a soft warm bloom from the top,
+     so the field reads as lit rather than a flat fill. */
   background-color: var(--color-bg);
-  background-image: var(--tex-fiber), var(--tex-mottle);
-  background-size: 320px 320px, 700px 700px;
-  background-blend-mode: overlay, soft-light;
-  background-attachment: fixed;
+  background-image: var(--tex-fiber),
+    radial-gradient(135% 95% at 50% -20%, color-mix(in srgb, var(--color-surface) 55%, transparent), transparent 55%);
+  background-size: 320px 320px, cover;
+  background-blend-mode: overlay, normal;
+  background-attachment: fixed, fixed;
 }
 h1, h2, h3, h4 { font-family: var(--font-heading); font-weight: var(--font-heading-weight); }
 
@@ -169,14 +243,14 @@ figcaption {
    pale ink text, a hard bottom edge in the deepest oxblood so it reads as
    pressed into the page. Uppercase Cinzel with tracking, like a chapter head. */
 .btn-primary {
-  color: var(--color-accent-900);
-  background-image: linear-gradient(180deg, var(--color-accent), var(--color-accent-200));
-  border-color: var(--color-accent-100);
+  color: var(--btn-text);
+  background-image: linear-gradient(180deg, var(--btn-fill), var(--btn-fill-2));
+  border-color: var(--btn-edge);
   text-transform: uppercase; letter-spacing: 0.06em;
-  box-shadow: 0 2px 0 var(--color-accent-100), 0 6px 14px -7px rgba(50,30,10,0.5);
+  box-shadow: 0 2px 0 var(--btn-edge), 0 6px 14px -7px rgba(50,30,10,0.5);
 }
 .btn-primary:hover { filter: brightness(1.07); }
-.btn-primary:active { transform: translateY(1px); box-shadow: 0 1px 0 var(--color-accent-100); }
+.btn-primary:active { transform: translateY(1px); box-shadow: 0 1px 0 var(--btn-edge); }
 .btn-primary:disabled { filter: none; }
 /* Secondary — a bordered vellum button: ink text inside a warm rule. */
 .btn-secondary {

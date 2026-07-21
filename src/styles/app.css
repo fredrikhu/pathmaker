@@ -16,6 +16,16 @@
   --ink-hairline: oklch(0.88 0.005 277);
 }
 
+/* Candlelight (dark): the warning/error pair returns to light-on-dark — a pale
+   amber foreground on a dark amber fill, and a bright red for errors. The print
+   palette above stays fixed (the sheet always prints as dark ink on white). */
+:root[data-theme="dark"] {
+  --warn: oklch(0.78 0.11 80);
+  --warn-fg: oklch(0.86 0.09 82);
+  --warn-bg: color-mix(in srgb, oklch(0.72 0.13 80) 22%, transparent);
+  --err: oklch(0.72 0.16 27);
+}
+
 /* Themed scrollbars (Nocturne). Firefox/modern-Chromium use the standard scrollbar-color/
    -width; older WebKit uses the ::-webkit-scrollbar pseudo-elements. scrollbar-width is NOT
    inherited, so it's set on every element to thin all scroll regions, not just the document.
