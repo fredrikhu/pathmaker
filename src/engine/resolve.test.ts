@@ -2942,3 +2942,40 @@ describe('variant heritages', () => {
     expect(resolve(heritageChar('human')).slots.find((s) => s.id === 'heritage')).toBeUndefined();
   });
 });
+
+describe('movement modes', () => {
+  function moverChar(raceId: string): CharacterDoc {
+    let d = newCharacter('t-move-' + raceId);
+    d = withDecision(d, 'ability-base', { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 });
+    d = withDecision(d, 'race', raceId);
+    d = withDecision(d, 'class', 'fighter');
+    return d;
+  }
+  const swimBonus = (d: CharacterDoc) =>
+    resolve(d).sheet.stats['skill:swim'].lines.filter((l) => l.value === 8).length;
+
+  it('grants +8 Swim to a race with a swim speed (computed once, not per-trait)', () => {
+    expect(swimBonus(moverChar('undine'))).toBe(1);   // was missing before — now computed
+    expect(swimBonus(moverChar('lizardfolk'))).toBe(1); // trait effect removed, still exactly +8
+  });
+
+  it('grants +8 Climb to a race with a climb speed', () => {
+    const climb = resolve(moverChar('grippli')).sheet.stats['skill:climb'].lines.filter((l) => l.value === 8).length;
+    expect(climb).toBe(1);
+  });
+
+  it('gives no swim/climb bonus to a race without those speeds', () => {
+    expect(swimBonus(moverChar('human'))).toBe(0);
+  });
+
+  it('slows every movement mode under heavy armour, not just the land speed', () => {
+    const d = { ...moverChar('strix'), equipped: { armor: 'full-plate', mainHand: null, offHand: null } };
+    const s = resolve(d).sheet.speed;
+    expect(s.base).toBe(20);   // land 30 → 20
+    expect(s.fly).toBe(40);    // fly 60 → 40
+  });
+
+  it('leaves movement modes at full value when unencumbered', () => {
+    expect(resolve(moverChar('strix')).sheet.speed.fly).toBe(60);
+  });
+});

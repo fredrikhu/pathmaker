@@ -307,6 +307,12 @@ function collectEffects(dec: Decisions, doc: CharacterDoc, level: number): Effec
   const heritage = chosenHeritage(dec);
   if (heritage?.effects) effects.push(...heritage.effects);
 
+  // A swim or climb speed grants a +8 racial bonus on that skill (universal rule) — computed here so
+  // every race with the movement mode gets it, rather than each trait having to remember to author it.
+  const race = dec.raceId ? C.raceById.get(dec.raceId) : undefined;
+  if (race?.speeds?.swim) effects.push({ target: 'skill:swim', type: 'racial', value: 8, note: 'Swim speed' });
+  if (race?.speeds?.climb) effects.push({ target: 'skill:climb', type: 'racial', value: 8, note: 'Climb speed' });
+
   // Class features gained so far (e.g. druid Nature Sense's +2 to Nature/Survival).
   for (const feat of allClassFeatures(dec, level, false)) if (feat.effects) effects.push(...feat.effects);
 
@@ -795,6 +801,12 @@ export function resolve(doc: CharacterDoc): Resolution {
   const fleetCount = featParams.filter((f) => f.featId === 'fleet').length;
   const fleetBonus = armorLightOrNone && !encumberingLoad ? 5 * fleetCount : 0;
   const effectiveSpeed = reducedSpeed + speedBonus + fleetBonus;
+  // Medium/heavy armour or load slows every movement mode, not just the land speed, by the same
+  // one-third step (fly 60 → 40, swim 30 → 20). Display only, like the land figure.
+  const reduceMode = (v: number) => (speedReduced ? v - Math.floor(v / 3 / 5) * 5 : v);
+  const otherSpeeds: Record<string, number> = race?.speeds
+    ? Object.fromEntries(Object.entries(race.speeds).map(([k, v]) => [k, reduceMode(v)]))
+    : {};
 
   // ---- Gold ----
   // A character built above 1st level uses Character Wealth by Level, not the class's 1st-level
@@ -936,7 +948,7 @@ export function resolve(doc: CharacterDoc): Resolution {
     skillRanksTotal, skillRanksSpent,
     gold,
     load: { current: load, light: carry.light, medium: carry.medium, heavy: carry.heavy, label: loadLabel },
-    speed: { base: effectiveSpeed, ...(speedReduced ? { reducedFrom: baseSpeed + speedBonus } : {}), ...(race?.speeds ?? {}) },
+    speed: { base: effectiveSpeed, ...(speedReduced ? { reducedFrom: baseSpeed + speedBonus } : {}), ...otherSpeeds },
     spellFocus,
     casting,
     ...(primaryCasting && primaryCasting.casterLevel > 0

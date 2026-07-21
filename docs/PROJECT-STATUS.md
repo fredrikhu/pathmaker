@@ -6,10 +6,26 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 
 ## ▶ Resume here (last session end)
 
-**Current state** — branch `main`, working tree clean, **553 tests** passing; run
+**Current state** — branch `main`, working tree clean, **558 tests** passing; run
 `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
-**Latest — variant heritages (Aasimar + Tiefling).** Both races now carry their full ARG heritage
+**Latest — movement modes computed (closes the computable part of the descriptive bucket).** A swim or
+climb speed now grants its **+8 racial bonus on Swim/Climb** automatically, derived from `race.speeds`
+in `collectEffects` — this *fixed real gaps*: undine, gillman, grippli, merfolk, and vanara all had the
+speed but never authored the bonus (only lizardfolk did, whose now-redundant trait effect was removed
+so it stays +8 rather than doubling). And **medium/heavy armour or load now slows every movement mode**,
+not just the land speed (`reduceMode` applies the same one-third step: fly 60 → 40, swim 30 → 20). 5
+golden tests; browser-verified an Undine (Swim **+7** = −1 Str + 8 racial) and the Strix fly-reduction.
+
+**Remaining "descriptive-by-nature" items stay descriptive by design** (not gaps — poor fits for
+computation): **racial favored-class alternative bonuses** are mostly fractional accumulators (+1/6 of a
+discovery), spellbook/known-list additions, or narrowly situational — the two universal options (+1 HP /
++1 skill rank) are already the FCB choice, and the alternates are surfaced in prose; **spell-like
+abilities** are already pool-tracked (uses/day, reset on Rest) and their effects are utility spells
+(daylight, alter self) with no stat to compute; **fly maneuverability** yields +0 for the only playable
+flyer (strix, average). These are documented rather than half-modelled.
+
+**Prior — variant heritages (Aasimar + Tiefling).** Both races now carry their full ARG heritage
 tables — a race-level "pick one" that swaps the default ability spread, the 1/day spell-like ability,
 and the two skill bonuses. New `HeritageDef` on `RaceDef.heritages`, plus `RaceDef.heritageReplaces`
 (the default Skilled + SLA trait ids a heritage supersedes). Decision key `heritage`. In `resolve.ts`:
@@ -220,14 +236,15 @@ Laughter are a level lower on the bard list). Both consumers — the builder's s
 sheet's prepared pool — file a spell at its per-list level via `spellLevelOn`. The nine clearest
 divergences are corrected; a broader audit of every multi-list spell is the remaining tail.
 
-**The engine-fidelity queue is now clear** — Improved Critical, Shield Focus/Fleet, bonus domain/
-school slots, per-list spell levels, the metamagic damage/DC payoff, racial natural attacks, and the
-Aasimar/Tiefling variant heritages are all done. What's left in the deferral backlog is the
-deliberately out-of-scope classes/races and the remaining descriptive-by-nature items (spell-like
-abilities surfaced-not-computed, darkvision, racial favored-class alternative bonuses, fly/swim/climb
-speed effects; energy resistances, racial natural attacks, and variant heritages are now structured).
-Eidolon attack evolutions and full monster-race statblocks stay descriptive until there's a
-companion/monster sheet to hang them on.
+**The engine-fidelity queue is clear and the descriptive-by-nature bucket's *computable* work is done** —
+Improved Critical, Shield Focus/Fleet, bonus domain/school slots, per-list spell levels, the metamagic
+damage/DC payoff, racial natural attacks, the Aasimar/Tiefling variant heritages, and the swim/climb +8 /
+armour-slows-all-modes movement rules are all in. What deliberately stays descriptive (poor fits for
+computation, documented in the resume-here): racial favored-class alternative bonuses, spell-like-ability
+*effects* (already pool-tracked), fly maneuverability, darkvision, and the heritages' flavor traits.
+What's left as opt-in scope is the deliberately out-of-scope classes/races (Vigilante, Omdura, Occult/
+Alternate/NPC/Unchained; Kasatha, monster-tier races) and the content long tail (spells, splatbook feats).
+Eidolon attack evolutions and full monster-race statblocks await a companion/monster sheet.
 
 Everything below is the durable detail. When resuming, read this file, then `docs/DESIGN.md`.
 
