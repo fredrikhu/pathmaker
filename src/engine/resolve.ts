@@ -295,6 +295,17 @@ function allGrantedFeats(dec: Decisions, level: number, params: Record<string, s
   return classBreakdown(dec, level).flatMap((c) => grantedFeatsFor(c.klass, c.levels, params));
 }
 
+/** Every subsystem pick (talent, rage power, hex…) the character has actually reached. Selections
+ *  are keyed by slot; a `-L<n>` suffix carries the level a recurring pick belongs to, so picks stored
+ *  for levels above the current target stay suspended rather than counting. Bare keys are level-1. */
+function activeClassChoiceIds(dec: Decisions, level: number): Set<string> {
+  const levelOf = (key: string): number => { const m = key.match(/-L(\d+)$/); return m ? Number(m[1]) : 1; };
+  const out = new Set<string>();
+  for (const [key, ids] of Object.entries(dec.classChoices))
+    if (levelOf(key) <= level) for (const id of ids) out.add(id);
+  return out;
+}
+
 /** Fixed feats a class confers automatically up through `level`, resolved to display names.
  *  Feats that take a parameter (warpriest's Weapon Focus) carry their option list and current
  *  pick so the Feats step can offer a selector. */
@@ -976,6 +987,13 @@ export function resolve(doc: CharacterDoc): Resolution {
     classes.map((c) => `${c.klass.name} ${c.levels}`).join(' / '),
   ].filter(Boolean).join(' ');
 
+  // Weapon Finesse can arrive three ways: the feat, a rogue's Finesse Rogue talent (standard finesse),
+  // or a swashbuckler's Swashbuckler Finesse class feature (light + one-handed piercing).
+  const finesseGrant: FinesseGrant = {
+    standard: featIds.includes('weapon-finesse') || activeClassChoiceIds(dec, level).has('finesse-rogue'),
+    swashbuckler: allClassFeatures(dec, level, false).some((f) => f.id === 'swb-finesse'),
+  };
+
   const sheet: Sheet = {
     level,
     stats, skillIds, classSkillIds, acpSkillIds,
@@ -993,7 +1011,7 @@ export function resolve(doc: CharacterDoc): Resolution {
     progression,
     pools: classes.flatMap((c) => classPools(c.klass, c.levels, mods)),
     attacks: [
-      ...weaponAttacks(doc, stats, bab, mods.str, mods.dex, size, weaponFeatBonuses(featParams), itemQuality(doc), new Set(featIds),
+      ...weaponAttacks(doc, stats, bab, mods.str, mods.dex, size, finesseGrant, weaponFeatBonuses(featParams), itemQuality(doc), new Set(featIds),
         proficiencyCtx(dec, classes, featParams)),
       ...naturalAttacks(dec, stats, bab, mods.str, new Set(featIds), doc.play),
     ],
@@ -1250,13 +1268,20 @@ function isProficientWith(w: C.WeaponDef, p: ProficiencyCtx): boolean {
   return p.groups.has(group);
 }
 
-/** Weapon Finesse covers any light melee weapon plus three non-light exceptions the feat names. */
+/** How a character came by Weapon Finesse. Standard finesse (the feat, or a rogue's Finesse Rogue
+ *  talent) covers light weapons plus the rapier, whip, and spiked chain the feat names. Swashbuckler
+ *  Finesse instead covers light weapons and every one-handed piercing weapon. A character with both
+ *  is finessable with the union of the two. */
+interface FinesseGrant { standard: boolean; swashbuckler: boolean; }
 const FINESSABLE_NON_LIGHT = new Set(['rapier', 'whip', 'spiked-chain']);
-function isFinessable(w: C.WeaponDef): boolean {
-  return w.hands === 'light' || FINESSABLE_NON_LIGHT.has(w.id);
+function isFinessable(w: C.WeaponDef, grant: FinesseGrant): boolean {
+  if (w.hands === 'light') return grant.standard || grant.swashbuckler;
+  if (grant.standard && FINESSABLE_NON_LIGHT.has(w.id)) return true;
+  if (grant.swashbuckler && w.hands === 'one' && w.dmgType.includes('P')) return true;
+  return false;
 }
 
-function weaponAttacks(doc: CharacterDoc, stats: Record<string, Stat>, bab: number, strMod: number, dexMod: number, size: 'small' | 'medium', featBonuses: Map<string, WeaponFeatBonus>, quality: Record<string, ItemQuality>, featIds: Set<string>, prof: ProficiencyCtx): AttackLine[] {
+function weaponAttacks(doc: CharacterDoc, stats: Record<string, Stat>, bab: number, strMod: number, dexMod: number, size: 'small' | 'medium', finesse: FinesseGrant, featBonuses: Map<string, WeaponFeatBonus>, quality: Record<string, ItemQuality>, featIds: Set<string>, prof: ProficiencyCtx): AttackLine[] {
   const melee = stats['attack:melee'];
   const ranged = stats['attack:ranged'];
   if (!melee || !ranged) return [];
@@ -1265,7 +1290,6 @@ function weaponAttacks(doc: CharacterDoc, stats: Record<string, Stat>, bab: numb
   // Declared combat options. Power Attack needs the feat; two-weapon penalties apply to anyone
   // wielding two weapons, with the feat only reducing them.
   const usingPowerAttack = (doc.play?.powerAttack ?? false) && featIds.has('power-attack');
-  const hasFinesse = featIds.has('weapon-finesse');
   const offHandWeapon = doc.equipped.offHand ? C.weaponById.get(doc.equipped.offHand) : null;
   // Gated on actually holding two weapons: the flag can outlive the off-hand weapon (unequip it
   // while the toggle is on) and a stale flag must not penalise a single-weapon attack.
@@ -1295,10 +1319,10 @@ function weaponAttacks(doc: CharacterDoc, stats: Record<string, Stat>, bab: numb
     const pa = usingPowerAttack && kind === 'melee' ? powerAttackAmounts(bab, paScale) : null;
     const twfPenalty = usingTwoWeapon && slot === 'main' ? twp.primary : usingTwoWeapon && slot === 'off' ? twp.off : 0;
     const proficient = isProficientWith(w, prof);
-    // Weapon Finesse swaps Dexterity in for Strength on the attack roll (not damage) with a light
-    // melee weapon, rapier, whip, or spiked chain. It is the wielder's option, so it is applied only
-    // when Dex is the better modifier — never a penalty. Thrown lines already roll off Dex.
-    const finesseAdj = hasFinesse && kind === 'melee' && !thrown && isFinessable(w) && dexMod > strMod
+    // Weapon Finesse swaps Dexterity in for Strength on the attack roll (not damage) with a finessable
+    // weapon. It is the wielder's option, so it is applied only when Dex is the better modifier — never
+    // a penalty. Thrown lines already roll off Dex.
+    const finesseAdj = kind === 'melee' && !thrown && isFinessable(w, finesse) && dexMod > strMod
       ? dexMod - strMod : 0;
     const optionLines: BreakdownLine[] = [
       ...(proficient ? [] : [{ label: 'Not proficient', value: NON_PROFICIENT_PENALTY }]),

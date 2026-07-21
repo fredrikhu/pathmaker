@@ -1794,6 +1794,70 @@ describe('size, Weapon Finesse, and Strength-penalty damage', () => {
   });
 });
 
+describe('Weapon Finesse from class grants', () => {
+  const attack = (d: CharacterDoc, id: string) => resolve(d).sheet.attacks.find((a) => a.id === id)!;
+  const FINESSE_LINE = { label: 'Weapon Finesse (Dex for Str)', value: 2 };
+
+  // Elf rogue: Str 12 (+1), Dex 14 → 16 (+3). Finesse benefit on a light/finessable weapon = +2.
+  function rogue(level: number, talents: Record<string, string[]> = {}): CharacterDoc {
+    let d = newCharacter('t-rogue-fin', 'Sly');
+    d = withDecision(d, 'ability-base', { str: 12, dex: 14, con: 12, int: 12, wis: 10, cha: 10 });
+    d = withDecision(d, 'race', 'elf'); // +2 Dex → 16; Str unaffected at 12
+    d = withDecision(d, 'alignment', 'N');
+    d = withDecision(d, 'class', 'rogue');
+    if (Object.keys(talents).length) d = withDecision(d, 'class-choices', talents);
+    return { ...atLevel(d, level), purchases: { rapier: 1, longsword: 1 },
+      equipped: { armor: null, mainHand: 'rapier', offHand: null } };
+  }
+
+  it('Finesse Rogue talent grants standard Weapon Finesse', () => {
+    const d = rogue(2, { 'rogue-talent-L2': ['finesse-rogue'] }); // rogue BAB +1
+    expect(attack(d, 'rapier').bonuses).toEqual([4]); // BAB 1 + Str 1 + finesse 2
+    expect(attack(d, 'rapier').attackLines).toContainEqual(FINESSE_LINE);
+    expect(attack(d, 'longsword').bonuses).toEqual([2]); // slashing, not finessable
+  });
+
+  it('a rogue without the talent does not get finesse', () => {
+    const d = rogue(2); // no talents selected
+    expect(attack(d, 'rapier').bonuses).toEqual([2]); // BAB 1 + Str 1, no finesse
+    expect(attack(d, 'rapier').attackLines).not.toContainEqual(FINESSE_LINE);
+  });
+
+  it('does not leak a talent picked at a higher, suspended level', () => {
+    // The pick lives at rogue level 4, but the character is only level 2 → not yet gained.
+    const d = rogue(2, { 'rogue-talent-L4': ['finesse-rogue'] });
+    expect(attack(d, 'rapier').attackLines).not.toContainEqual(FINESSE_LINE);
+  });
+
+  // Human swashbuckler: Str 12 (+1), Dex 14 → 16 (+3). Full BAB → +1 at level 1.
+  function swashbuckler(): CharacterDoc {
+    let d = newCharacter('t-swb', 'Zorro');
+    d = withDecision(d, 'ability-base', { str: 12, dex: 14, con: 12, int: 10, wis: 10, cha: 14 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['dex']); // Dex 16 (+3)
+    d = withDecision(d, 'alignment', 'N');
+    d = withDecision(d, 'class', 'swashbuckler');
+    return { ...d, purchases: { rapier: 1, shortspear: 1, dagger: 1, longsword: 1, whip: 1 },
+      equipped: { armor: null, mainHand: 'rapier', offHand: null } };
+  }
+
+  it('Swashbuckler Finesse covers light and one-handed piercing weapons', () => {
+    const d = swashbuckler();
+    expect(attack(d, 'rapier').bonuses).toEqual([4]);     // one-handed piercing: BAB 1 + Str 1 + finesse 2
+    expect(attack(d, 'shortspear').bonuses).toEqual([4]); // one-handed piercing (not a named exception)
+    expect(attack(d, 'dagger').bonuses).toEqual([4]);     // light
+    expect(attack(d, 'rapier').attackLines).toContainEqual(FINESSE_LINE);
+  });
+
+  it('Swashbuckler Finesse excludes one-handed slashing weapons — even the whip', () => {
+    const d = swashbuckler();
+    expect(attack(d, 'longsword').bonuses).toEqual([2]); // one-handed slashing
+    expect(attack(d, 'longsword').attackLines).not.toContainEqual(FINESSE_LINE);
+    // The whip is a *standard* finesse exception, but Swashbuckler Finesse (piercing only) skips it.
+    expect(attack(d, 'whip').attackLines).not.toContainEqual(FINESSE_LINE);
+  });
+});
+
 describe('Skill Focus folds into the named skill', () => {
   function rogue(params: Record<string, string>, ranks: Record<string, number> = {}): CharacterDoc {
     let d = newCharacter('t-skillfocus', 'Sly');
