@@ -91,9 +91,9 @@ export function Roster() {
             {entries.map((e) => {
               const { summary, issues } = summarize(e.id);
               return (
-                <div key={e.id} style={{ background: 'var(--color-surface)', borderRadius: 12, padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div key={e.id} className="mat-panel" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                    <div style={{ width: 56, height: 56, borderRadius: 10, background: 'var(--color-neutral-900)', display: 'grid', placeItems: 'center', fontSize: 22, fontWeight: 600, color: 'var(--color-neutral-500)', flex: 'none' }}>
+                    <div style={{ width: 56, height: 56, borderRadius: 10, background: 'color-mix(in srgb, var(--color-accent) 12%, transparent)', border: '1px solid color-mix(in srgb, var(--color-accent) 25%, transparent)', display: 'grid', placeItems: 'center', fontSize: 24, fontWeight: 700, fontFamily: 'var(--font-heading)', color: 'var(--color-accent)', flex: 'none' }}>
                       {e.name.trim().charAt(0).toUpperCase() || '?'}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
