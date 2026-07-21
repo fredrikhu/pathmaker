@@ -1,8 +1,16 @@
 import type { Sheet } from '../../engine/types';
-import { fmtMod, speedLabel, speedExtra } from '../../engine/types';
+import { fmtMod, abilityMod, speedLabel, speedExtra } from '../../engine/types';
 import { useTip } from '../Tooltip';
 
-const CELLS: { key: string; label: string; mode: 'plain' | 'mod'; term?: string }[] = [
+// 'ability' cells carry the ability SCORE in stat.total; the strip shows the
+// derived modifier (what most feats/traits key on) with the score alongside.
+const CELLS: { key: string; label: string; mode: 'plain' | 'mod' | 'ability'; term?: string }[] = [
+  { key: 'ability:str', label: 'Str', mode: 'ability' },
+  { key: 'ability:dex', label: 'Dex', mode: 'ability' },
+  { key: 'ability:con', label: 'Con', mode: 'ability' },
+  { key: 'ability:int', label: 'Int', mode: 'ability' },
+  { key: 'ability:wis', label: 'Wis', mode: 'ability' },
+  { key: 'ability:cha', label: 'Cha', mode: 'ability' },
   { key: 'hp:max', label: 'HP', mode: 'plain', term: 'hp' },
   { key: 'ac', label: 'AC', mode: 'plain', term: 'ac' },
   { key: 'ac:touch', label: 'Touch', mode: 'plain', term: 'touch' },
@@ -21,13 +29,18 @@ export function StatStrip({ sheet }: { sheet: Sheet }) {
       {CELLS.map((c) => {
         const stat = sheet.stats[c.key];
         if (!stat) return null;
-        const shown = c.mode === 'mod' ? fmtMod(stat.total) : String(stat.total);
-        const open = tip.card({ kicker: 'Breakdown', title: `${stat.label} ${shown}`, lines: stat.lines, annotations: stat.annotations, related: c.term ? [c.term] : undefined });
+        const isAbility = c.mode === 'ability';
+        const shown = isAbility ? fmtMod(abilityMod(stat.total)) : c.mode === 'mod' ? fmtMod(stat.total) : String(stat.total);
+        const title = isAbility ? `${stat.label} ${stat.total} (${shown})` : `${stat.label} ${shown}`;
+        const open = tip.card({ kicker: 'Breakdown', title, lines: stat.lines, annotations: stat.annotations, related: c.term ? [c.term] : undefined });
         return (
           <div key={c.key} onMouseEnter={open} onMouseLeave={tip.leave} onClick={open}
             style={{ padding: '8px 15px 9px', cursor: 'pointer', borderRight: '1px solid var(--color-divider)', flex: 'none' }}>
             <div className="micro">{c.label}</div>
-            <div className="num" style={{ fontSize: 17, fontWeight: 600 }}>{shown}</div>
+            <div className="num" style={{ fontSize: 17, fontWeight: 600 }}>
+              {shown}
+              {isAbility && <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--color-neutral-500)', marginLeft: 4 }}>{stat.total}</span>}
+            </div>
           </div>
         );
       })}
