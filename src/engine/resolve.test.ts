@@ -3018,3 +3018,44 @@ describe('movement modes', () => {
     expect(resolve(moverChar('strix')).sheet.speed.fly).toBe(60);
   });
 });
+
+describe('favored-class alternative bonus', () => {
+  function favoredChar(raceId: string, classId: string, level: number, fcb: 'hp' | 'skill' | 'alt'): CharacterDoc {
+    let d = newCharacter('t-fcb-' + raceId + classId);
+    d = withDecision(d, 'ability-base', { str: 12, dex: 12, con: 12, int: 12, wis: 12, cha: 12 });
+    d = withDecision(d, 'race', raceId);
+    d = withDecision(d, 'class', classId);
+    d = withDecision(d, 'favored-class', classId);
+    d = withDecision(d, 'fcb', fcb);
+    return atLevel(d, level);
+  }
+
+  it('accumulates a +1/6 human-rogue alternative and reports the completed whole', () => {
+    const alt = resolve(favoredChar('human', 'rogue', 6, 'alt')).sheet.favoredClassAlt!;
+    expect(alt.className).toBe('Rogue');
+    expect(alt.desc).toMatch(/rogue talent/);
+    expect(alt.count).toBe(6);       // 6 favored levels, all taking the alternative
+    expect(alt.fraction).toBe(6);
+    expect(alt.whole).toBe(1);       // 6 × 1/6 = one whole rogue talent
+  });
+
+  it('counts a whole (unfractioned) dwarf-fighter alternative per selection', () => {
+    const alt = resolve(favoredChar('dwarf', 'fighter', 3, 'alt')).sheet.favoredClassAlt!;
+    expect(alt.count).toBe(3);
+    expect(alt.fraction).toBeUndefined();
+    expect(alt.whole).toBe(3);
+  });
+
+  it('gives no HP or skill rank for a level spent on the alternative', () => {
+    const withHp = resolve(favoredChar('human', 'rogue', 6, 'hp')).sheet.stats['hp:max'].total;
+    const withAlt = resolve(favoredChar('human', 'rogue', 6, 'alt')).sheet.stats['hp:max'].total;
+    expect(withHp - withAlt).toBe(6); // the 6 favored-class HP the alternative gave up
+    expect(resolve(favoredChar('human', 'rogue', 6, 'alt')).sheet.favoredClassAlt!.count).toBe(6);
+  });
+
+  it('reports no alternative when none is taken, or the race has none for that class', () => {
+    expect(resolve(favoredChar('human', 'rogue', 6, 'hp')).sheet.favoredClassAlt).toBeUndefined();
+    // Tiefling has no favored-class-bonus table, so 'alt' resolves to nothing.
+    expect(resolve(favoredChar('tiefling', 'fighter', 3, 'alt')).sheet.favoredClassAlt).toBeUndefined();
+  });
+});

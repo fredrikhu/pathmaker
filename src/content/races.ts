@@ -1,7 +1,105 @@
-import type { RaceDef } from './model';
+import type { FavoredClassBonusDef, RaceDef } from './model';
 import { FEATURED_RACES } from './races-featured';
 import { UNCOMMON_RACES } from './races-uncommon';
 import { EXOTIC_RACES } from './races-exotic';
+
+// Alternative favored-class bonuses for the seven core races across the eleven Core Rulebook classes
+// (ARG Favored Class Options). Verified against d20pfsrd. A fraction denominator marks a "+1/N" bonus
+// the tracker accumulates; whole/each-time bonuses and content bonuses ("one extra spell known") omit
+// it. These are surfaced and counted, not folded into stats.
+const FCB_ALT: Record<string, Record<string, FavoredClassBonusDef>> = {
+  dwarf: {
+    barbarian: { desc: '+1 rage round per day' },
+    bard: { desc: '−1% arcane spell failure in medium armor (Medium Armor Proficiency at 10%)' },
+    cleric: { desc: '+1/2 use per day of a 1st-level domain power', fraction: 2 },
+    druid: { desc: '+1/2 use per day of a 1st-level domain power', fraction: 2 },
+    fighter: { desc: '+1 CMD vs bull rush and trip' },
+    monk: { desc: 'Reduce by 1 the hardness of clay/stone/metal struck by your unarmed strike' },
+    paladin: { desc: '+1 on concentration checks for paladin spells' },
+    ranger: { desc: '+1/2 on wild empathy checks underground', fraction: 2 },
+    rogue: { desc: '+1/2 on Disable Device and trap sense vs stone traps', fraction: 2 },
+    sorcerer: { desc: '+1/2 acid and earth spell/SLA damage', fraction: 2 },
+    wizard: { desc: 'Craft a chosen item-creation feat 200 gp/day faster (50 gp adventuring)' },
+  },
+  elf: {
+    barbarian: { desc: '+1 base speed (effective only at multiples of 5)' },
+    bard: { desc: '+1 CMD vs disarm and sunder' },
+    cleric: { desc: '+1/2 use per day of a 1st-level domain power', fraction: 2 },
+    druid: { desc: '+1/3 natural armor while wild-shaped', fraction: 3 },
+    fighter: { desc: '+1 CMD vs disarm and sunder' },
+    monk: { desc: '+1 base speed (effective only at multiples of 5)' },
+    paladin: { desc: '+1/2 hit point of lay on hands', fraction: 2 },
+    ranger: { desc: '+1/2 on crit confirmation with a chosen elven weapon (max +4)', fraction: 2 },
+    rogue: { desc: '+1 daily casting from the minor/major magic rogue talent' },
+    sorcerer: { desc: '+1/2 use per day of a 1st-level bloodline power', fraction: 2 },
+    wizard: { desc: '+1/2 use per day of a 1st-level arcane school power', fraction: 2 },
+  },
+  gnome: {
+    barbarian: { desc: '+1/2 to trap sense', fraction: 2 },
+    bard: { desc: '+1 bardic performance round per day' },
+    cleric: { desc: '+1/2 channel energy healing vs animals, fey, and plants', fraction: 2 },
+    druid: { desc: 'Energy resistance 1 vs acid/cold/electricity/fire, +1 each time (max 10 per type)' },
+    fighter: { desc: '+1 CMD vs dirty trick and steal' },
+    monk: { desc: '+1 to the Acrobatics bonus from spending ki (5th level+)' },
+    paladin: { desc: '+1/2 hit point of lay on hands', fraction: 2 },
+    ranger: { desc: '+1/2 DR/magic for your animal companion (max 10)', fraction: 2 },
+    rogue: { desc: '+1/2 on Disable Device and Use Magic Device vs magical writings', fraction: 2 },
+    sorcerer: { desc: '+1/2 use per day of a 1st-level bloodline power', fraction: 2 },
+    wizard: { desc: '+1/2 use per day of a 1st-level arcane school power', fraction: 2 },
+  },
+  'half-elf': {
+    barbarian: { desc: '+1/4 to trap sense Reflex saves and dodge AC vs traps', fraction: 4 },
+    bard: { desc: '+1 bardic performance round per day' },
+    cleric: { desc: '+1/3 channel energy damage or healing', fraction: 3 },
+    druid: { desc: '+1/2 use per day of a 1st-level cleric domain power', fraction: 2 },
+    fighter: { desc: '+1 CMD vs disarm and overrun' },
+    monk: { desc: '+1/2 on Escape Artist and on Acrobatics to cross narrow surfaces', fraction: 2 },
+    paladin: { desc: '+1 ft to all aura sizes (effective only at multiples of 5)' },
+    ranger: { desc: '+1 skill rank for your animal companion' },
+    rogue: { desc: '+1/2 on Bluff to feint and Diplomacy to gather information', fraction: 2 },
+    sorcerer: { desc: '+1/2 use per day of a 1st-level bloodline power', fraction: 2 },
+    wizard: { desc: '+1/3 caster level for enchantment spell duration', fraction: 3 },
+  },
+  'half-orc': {
+    barbarian: { desc: '+1 rage round per day' },
+    bard: { desc: '+1 bardic performance round per day' },
+    cleric: { desc: '+1/2 use per day of a 1st-level domain power', fraction: 2 },
+    druid: { desc: '+1/3 natural armor while wild-shaped', fraction: 3 },
+    fighter: { desc: '+2 on rolls to stabilize when dying' },
+    monk: { desc: '+1 CMD vs grapple, and +1/2 stunning attempts per day' },
+    paladin: { desc: '+1/3 on crit confirmation with smite evil (max +5)', fraction: 3 },
+    ranger: { desc: '+1 hit point for your animal companion' },
+    rogue: { desc: '+1/3 on crit confirmation with sneak attack (max +5)', fraction: 3 },
+    sorcerer: { desc: '+1/2 fire damage to fire spells', fraction: 2 },
+    wizard: { desc: '+1 on concentration checks from taking damage' },
+  },
+  halfling: {
+    barbarian: { desc: '+1/2 to trap sense (or +1/3 to the surprise accuracy rage power)', fraction: 2 },
+    bard: { desc: '+1/2 on Bluff (secret messages), Diplomacy (gather info), Disguise (child)', fraction: 2 },
+    cleric: { desc: '+1/2 use per day of a 1st-level domain power', fraction: 2 },
+    druid: { desc: "+1/4 luck bonus on your animal companion's saves", fraction: 4 },
+    fighter: { desc: '+1 CMD vs trip and grapple' },
+    monk: { desc: '+1 CMD vs grapple, and +1/2 stunning attempts per day' },
+    paladin: { desc: '+1/2 hit point of lay on hands', fraction: 2 },
+    ranger: { desc: '+1/4 dodge AC vs your favored enemies', fraction: 4 },
+    rogue: { desc: '+1/2 on crit confirmation with sling/dagger/halfling weapons (max +4)', fraction: 2 },
+    sorcerer: { desc: '+1/2 use per day of a 1st-level bloodline power', fraction: 2 },
+    wizard: { desc: "+1/2 effective level for your familiar's natural armor, Int, and abilities", fraction: 2 },
+  },
+  human: {
+    barbarian: { desc: '+1/2 to trap sense (or +1/3 to the superstition rage power)', fraction: 2 },
+    bard: { desc: 'One extra bard spell known (at least one level below your max)' },
+    cleric: { desc: '+1 on caster level checks vs outsider spell resistance' },
+    druid: { desc: '+1/2 on Diplomacy and Intimidate to change attitude', fraction: 2 },
+    fighter: { desc: '+1 CMD vs two chosen combat maneuvers' },
+    monk: { desc: '+1/4 point to your ki pool', fraction: 4 },
+    paladin: { desc: '+1 energy resistance to one type (max +10)' },
+    ranger: { desc: '+1 hit point or +1 skill rank for your animal companion' },
+    rogue: { desc: '+1/6 of a new rogue talent', fraction: 6 },
+    sorcerer: { desc: 'One extra sorcerer spell known (at least one level below your max)' },
+    wizard: { desc: 'One extra spell in your spellbook (at least one level below your max)' },
+  },
+};
 
 const CORE_RACES: RaceDef[] = [
   {
@@ -17,6 +115,7 @@ const CORE_RACES: RaceDef[] = [
       { id: 'human-focused-study', name: 'Focused Study', replaces: ['human-bonus-feat'], desc: 'All humans are skillful, but some, rather than being generalists, tend toward intense specialization. They gain Skill Focus at 1st, 8th, and 16th level instead of the bonus feat.' },
       { id: 'human-heart-of-fields', name: 'Heart of the Fields', replaces: ['human-skilled'], desc: 'Humans born in rural areas gain half their character level on one Craft or Profession skill, and once per day may ignore an effect that would make them fatigued or exhausted.' },
     ],
+    favoredClassBonuses: FCB_ALT.human,
     languagesAuto: ['common'],
     languagesBonus: ['dwarven', 'elven', 'gnome', 'goblin', 'halfling', 'orc', 'draconic', 'giant', 'sylvan'],
   },
@@ -39,6 +138,7 @@ const CORE_RACES: RaceDef[] = [
       { id: 'dwarf-craftsman', name: 'Craftsman', replaces: ['dwarf-greed'], desc: '+2 racial bonus on all Craft or Profession checks to create objects from metal or stone.', effects: [{ target: 'skill:craft-weapons', type: 'racial', value: 2, note: 'Craftsman (Dwarf)', condition: 'metal or stone objects' }] },
       { id: 'dwarf-deep-warrior', name: 'Deep Warrior', replaces: ['dwarf-defensive-training'], desc: '+2 dodge bonus to AC against aberrations and +2 on combat maneuver checks to grapple them.' },
     ],
+    favoredClassBonuses: FCB_ALT.dwarf,
     languagesAuto: ['common', 'dwarven'],
     languagesBonus: ['giant', 'gnome', 'goblin', 'orc', 'terran', 'undercommon'],
   },
@@ -57,6 +157,7 @@ const CORE_RACES: RaceDef[] = [
       { id: 'elf-fleet-footed', name: 'Fleet-Footed', replaces: ['elf-keen-senses', 'elf-weapon-familiarity'], desc: 'Receive Run as a bonus feat and a +2 racial bonus on initiative checks.', effects: [{ target: 'init', type: 'racial', value: 2, note: 'Fleet-Footed (Elf)' }] },
       { id: 'elf-dreamspeaker', name: 'Dreamspeaker', replaces: ['elf-immunities'], desc: '+1 to the DC of spells of the divination school and sleep effects cast by the elf.' },
     ],
+    favoredClassBonuses: FCB_ALT.elf,
     languagesAuto: ['common', 'elven'],
     languagesBonus: ['celestial', 'draconic', 'gnoll', 'gnome', 'goblin', 'orc', 'sylvan'],
   },
@@ -83,6 +184,7 @@ const CORE_RACES: RaceDef[] = [
     altTraits: [
       { id: 'gnome-magical-linguist', name: 'Magical Linguist', replaces: ['gnome-magic', 'gnome-obsessive'], desc: '+1 DC on language-dependent spells; bonus languages; spell-like abilities: arcane mark, comprehend languages, message, read magic 1/day.' },
     ],
+    favoredClassBonuses: FCB_ALT.gnome,
     languagesAuto: ['common', 'gnome', 'sylvan'],
     languagesBonus: ['draconic', 'dwarven', 'elven', 'giant', 'goblin', 'orc'],
   },
@@ -101,6 +203,7 @@ const CORE_RACES: RaceDef[] = [
     altTraits: [
       { id: 'halfelf-ancestral-arms', name: 'Ancestral Arms', replaces: ['halfelf-adaptability'], desc: 'Gain Exotic Weapon Proficiency or Martial Weapon Proficiency with one weapon as a bonus feat instead of Skill Focus.' },
     ],
+    favoredClassBonuses: FCB_ALT['half-elf'],
     languagesAuto: ['common', 'elven'],
     languagesBonus: ['dwarven', 'gnome', 'goblin', 'halfling', 'orc', 'draconic', 'sylvan', 'celestial'],
   },
@@ -119,6 +222,7 @@ const CORE_RACES: RaceDef[] = [
       { id: 'halforc-sacred-tattoo', name: 'Sacred Tattoo', replaces: ['halforc-ferocity'], desc: '+1 luck bonus on all saving throws.', effects: [{ target: 'save:all', type: 'luck', value: 1, note: 'Sacred Tattoo' }] },
       { id: 'halforc-shamans-apprentice', name: "Shaman's Apprentice", replaces: ['halforc-intimidating'], desc: 'Gain Endurance as a bonus feat.' },
     ],
+    favoredClassBonuses: FCB_ALT['half-orc'],
     languagesAuto: ['common', 'orc'],
     languagesBonus: ['abyssal', 'draconic', 'giant', 'gnoll', 'goblin'],
   },
@@ -137,6 +241,7 @@ const CORE_RACES: RaceDef[] = [
       { id: 'halfling-fleet-of-foot', name: 'Fleet of Foot', replaces: ['halfling-sure-footed', 'halfling-weapon-familiarity'], desc: 'Base speed 30 feet instead of 20 feet.' },
       { id: 'halfling-low-blow', name: 'Low Blow', replaces: ['halfling-keen-senses'], desc: '+1 bonus on critical confirmation rolls against opponents larger than themselves.' },
     ],
+    favoredClassBonuses: FCB_ALT.halfling,
     languagesAuto: ['common', 'halfling'],
     languagesBonus: ['dwarven', 'elven', 'gnome', 'goblin'],
   },

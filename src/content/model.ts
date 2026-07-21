@@ -75,6 +75,21 @@ export interface RaceDef {
   /** The standard-trait ids a chosen heritage supersedes — the default Skilled and spell-like-ability
    *  traits, which the heritage replaces with its own skill bonuses and SLA. */
   heritageReplaces?: string[];
+  /** Alternative favored-class bonuses this race offers, keyed by class id. When the character's
+   *  favored class matches, each level can take this instead of the usual +1 HP / +1 skill rank. */
+  favoredClassBonuses?: Record<string, FavoredClassBonusDef>;
+}
+
+/** A race's alternative favored-class bonus for one class (ARG Favored Class Options). Most are
+ *  surfaced and tracked rather than folded into a stat: many are fractional accumulators or content
+ *  ("one extra spell known") that the sheet counts up rather than computes. */
+export interface FavoredClassBonusDef {
+  /** What one selection grants, in a short line. */
+  desc: string;
+  /** Denominator when the bonus is a fraction ("+1/2" → 2, "+1/6" → 6). Taking it `fraction` times
+   *  yields one whole benefit; the tracker shows the completed wholes. Omitted for whole/each-time
+   *  bonuses and for content ones ("one extra spell known"). */
+  fraction?: number;
 }
 
 /** One of a race's variant heritages (Angel-Blooded aasimar, Demon-Spawn tiefling). Choosing it swaps

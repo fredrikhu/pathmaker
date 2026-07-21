@@ -3,7 +3,9 @@ import type { CharCtl } from '../../Builder';
 import type { Ability } from '../../../engine/types';
 import { ABILITIES, fmtMod } from '../../../engine/types';
 import { fixedHpPerLevel } from '../../../engine/progression';
-import { CLASSES, classById } from '../../../content/index';
+import { CLASSES, classById, raceById } from '../../../content/index';
+
+type FcbChoice = 'hp' | 'skill' | 'alt';
 
 const ABILITY_INCREASE_LEVELS = new Set([4, 8, 12, 16, 20]);
 
@@ -37,9 +39,12 @@ export function AdvancementStep({ ch }: { ch: CharCtl }) {
 
   // Per-level favored-class bonus (only when your favored class is this class).
   const favored = !!doc.decisions['favored-class'] && doc.decisions['favored-class'] === doc.decisions['class'];
-  const overallFcb = (doc.decisions['fcb'] as 'hp' | 'skill' | null) ?? null;
-  const fcbByLevel = (doc.decisions['fcb-by-level'] as Record<number, 'hp' | 'skill'>) ?? {};
-  const setFcb = (level: number, val: 'hp' | 'skill') => setDecision('fcb-by-level', { ...fcbByLevel, [level]: val });
+  const overallFcb = (doc.decisions['fcb'] as FcbChoice | null) ?? null;
+  const fcbByLevel = (doc.decisions['fcb-by-level'] as Record<number, FcbChoice>) ?? {};
+  const setFcb = (level: number, val: FcbChoice) => setDecision('fcb-by-level', { ...fcbByLevel, [level]: val });
+  // The race's alternative favored-class bonus for the favored class, if it has one.
+  const raceForFcb = doc.decisions['race'] ? raceById.get(doc.decisions['race'] as string) : undefined;
+  const fcbAlt = favored ? raceForFcb?.favoredClassBonuses?.[doc.decisions['class'] as string] : undefined;
 
   // The hit die belongs to the class taken at that level, not to the primary class.
   const dieAt = (level: number) => {
@@ -184,10 +189,11 @@ export function AdvancementStep({ ch }: { ch: CharCtl }) {
                       {row.classId !== doc.decisions['favored-class'] ? <span className="text-muted">—</span> : (
                         <select className="input" style={{ padding: '3px 5px', fontSize: 12 }}
                           value={fcbByLevel[row.level] ?? overallFcb ?? ''}
-                          onChange={(e) => setFcb(row.level, e.target.value as 'hp' | 'skill')}>
+                          onChange={(e) => setFcb(row.level, e.target.value as FcbChoice)}>
                           <option value="" disabled>choose…</option>
                           <option value="hp">+1 HP</option>
                           <option value="skill">+1 skill</option>
+                          {fcbAlt && <option value="alt">Racial alt</option>}
                         </select>
                       )}
                     </td>
@@ -210,6 +216,20 @@ export function AdvancementStep({ ch }: { ch: CharCtl }) {
           </tbody>
         </table>
       </div>
+      {fcbAlt && (
+        <div style={{ marginTop: 12, fontSize: 12, color: 'var(--color-neutral-400)', maxWidth: '80ch' }}>
+          <span style={{ fontWeight: 500, color: 'var(--color-neutral-300)' }}>Racial favored-class alternative:</span>{' '}
+          {fcbAlt.desc}. {fcbAlt.fraction ? `Takes ${fcbAlt.fraction} selections for one whole benefit.` : ''}
+          {sheet.favoredClassAlt && (
+            <span style={{ color: 'var(--color-accent-300)' }}>
+              {' '}Taken ×{sheet.favoredClassAlt.count}
+              {sheet.favoredClassAlt.fraction
+                ? ` — ${sheet.favoredClassAlt.whole} complete (${sheet.favoredClassAlt.count % sheet.favoredClassAlt.fraction}/${sheet.favoredClassAlt.fraction} toward the next).`
+                : `.`}
+            </span>
+          )}
+        </div>
+      )}
     </div>
   );
 }

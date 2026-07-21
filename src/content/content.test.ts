@@ -750,6 +750,24 @@ describe('damage reduction and energy resistance data', () => {
     }
   });
 
+  it('every core race has a favored-class-bonus table for the 11 CRB classes, well-formed', () => {
+    const CRB = ['barbarian', 'bard', 'cleric', 'druid', 'fighter', 'monk', 'paladin', 'ranger', 'rogue', 'sorcerer', 'wizard'];
+    const CORE = ['human', 'dwarf', 'elf', 'gnome', 'half-elf', 'half-orc', 'halfling'];
+    for (const id of CORE) {
+      const race = C.raceById.get(id)!;
+      const fcb = race.favoredClassBonuses;
+      expect(fcb, `${id} has no FCB table`).toBeTruthy();
+      for (const cls of CRB) {
+        const opt = fcb![cls];
+        expect(opt, `${id} missing FCB for ${cls}`).toBeTruthy();
+        expect(opt.desc.length, `${id}/${cls} desc`).toBeGreaterThan(0);
+        if (opt.fraction !== undefined) expect([2, 3, 4, 6]).toContain(opt.fraction);
+      }
+      // Every keyed class id is real.
+      for (const cls of Object.keys(fcb!)) expect(C.classById.has(cls), `${id}: FCB key "${cls}" is not a class`).toBe(true);
+    }
+  });
+
   it('every variant heritage is well-formed and replaces real traits', () => {
     const ABILITY = new Set(['str', 'dex', 'con', 'int', 'wis', 'cha']);
     for (const r of C.RACES) {

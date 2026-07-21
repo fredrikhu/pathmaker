@@ -44,6 +44,9 @@ function displayName(id: string): string {
   );
 }
 
+/** A favored-class reward at one level: +1 HP, +1 skill rank, or the race's alternative bonus. */
+type FcbChoice = 'hp' | 'skill' | 'alt';
+
 interface Decisions {
   raceId: string | null;
   altTraits: string[];
@@ -57,8 +60,8 @@ interface Decisions {
    *  which case that level falls back to `classId` — so single-class documents store nothing. */
   classLevels: (string | null)[];
   favoredClass: string | null;
-  fcbChoice: 'hp' | 'skill' | null; // overall default for levels without a per-level pick
-  fcbByLevel: Record<number, 'hp' | 'skill'>;
+  fcbChoice: FcbChoice | null; // overall default for levels without a per-level pick
+  fcbByLevel: Record<number, FcbChoice>;
   classChoices: Record<string, string[]>; // slotSuffix -> selected ids
   feats: Record<string, string | null>; // slotKey -> featId
   traits: string[];
@@ -85,8 +88,8 @@ function readDecisions(doc: CharacterDoc): Decisions {
     classId: get<string | null>('class', null),
     classLevels: get<(string | null)[]>('class-levels', []),
     favoredClass: get<string | null>('favored-class', null),
-    fcbChoice: get<'hp' | 'skill' | null>('fcb', null),
-    fcbByLevel: get<Record<number, 'hp' | 'skill'>>('fcb-by-level', {}),
+    fcbChoice: get<FcbChoice | null>('fcb', null),
+    fcbByLevel: get<Record<number, FcbChoice>>('fcb-by-level', {}),
     classChoices: get<Record<string, string[]>>('class-choices', {}),
     feats: get<Record<string, string | null>>('feats', {}),
     traits: get<string[]>('traits', []),
@@ -613,14 +616,30 @@ export function resolve(doc: CharacterDoc): Resolution {
   // levels put the +1 into HP vs skill ranks.
   // The bonus is earned only on levels taken in the favored class, so a fighter/wizard with
   // fighter favored gets nothing for the wizard level.
-  const fcbAt = (l: number): 'hp' | 'skill' | null => dec.fcbByLevel[l] ?? dec.fcbChoice;
+  const fcbAt = (l: number): FcbChoice | null => dec.fcbByLevel[l] ?? dec.fcbChoice;
+  // The race's alternative favored-class bonus for the favored class, if it has one.
+  const fcbAltDef = dec.favoredClass && race?.favoredClassBonuses?.[dec.favoredClass];
   let fcbHpCount = 0;
   let fcbSkillCount = 0;
+  let fcbAltCount = 0;
   for (let l = 1; l <= level; l++) {
     if (!dec.favoredClass || classAt(l)?.id !== dec.favoredClass) continue;
     const c = fcbAt(l);
-    if (c === 'hp') fcbHpCount++; else if (c === 'skill') fcbSkillCount++;
+    if (c === 'hp') fcbHpCount++;
+    else if (c === 'skill') fcbSkillCount++;
+    else if (c === 'alt' && fcbAltDef) fcbAltCount++;
   }
+  // The alternative is surfaced and counted, not folded into a stat: many are fractional accumulators
+  // or content bonuses. `whole` is how many complete benefits the picks add up to.
+  const favoredClassAlt = fcbAltDef && fcbAltCount > 0
+    ? {
+        className: (dec.favoredClass ? C.classById.get(dec.favoredClass)?.name : '') ?? '',
+        desc: fcbAltDef.desc,
+        count: fcbAltCount,
+        ...(fcbAltDef.fraction ? { fraction: fcbAltDef.fraction } : {}),
+        whole: fcbAltDef.fraction ? Math.floor(fcbAltCount / fcbAltDef.fraction) : fcbAltCount,
+      }
+    : undefined;
   const hpContribs: Contribution[] = [];
   const firstClass = classAt(1);
   if (firstClass) {
@@ -961,6 +980,7 @@ export function resolve(doc: CharacterDoc): Resolution {
     level,
     stats, skillIds, classSkillIds, acpSkillIds,
     skillRanksTotal, skillRanksSpent,
+    ...(favoredClassAlt ? { favoredClassAlt } : {}),
     gold,
     load: { current: load, light: carry.light, medium: carry.medium, heavy: carry.heavy, label: loadLabel },
     speed: { base: effectiveSpeed, ...(speedReduced ? { reducedFrom: baseSpeed + speedBonus } : {}), ...otherSpeeds },

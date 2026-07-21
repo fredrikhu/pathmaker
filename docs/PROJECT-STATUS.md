@@ -6,10 +6,26 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 
 ## ▶ Resume here (last session end)
 
-**Current state** — branch `main`, working tree clean, **562 tests** passing; run
+**Current state** — branch `main`, working tree clean, **567 tests** passing; run
 `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
-**Latest — spell-like abilities computed.** Each racial/heritage SLA on the play mat now carries its
+**Latest — favored-class alternative bonuses (selectable + tracked).** The per-level favored-class
+reward, previously just +1 HP / +1 skill rank, now offers each core race's **alternative** as a third
+option. `FavoredClassBonusDef { desc, fraction? }` on `RaceDef.favoredClassBonuses` (keyed by class id);
+authored for all **7 core races × 11 CRB classes** (77 entries, verified against raw d20pfsrd — the
+`FCB_ALT` table in `races.ts`). The `fcb` decision value gained `'alt'`; `resolve.ts` counts the
+alternative picks on favored-class levels (excluded from the HP/skill counts, so taking it gives up that
+level's HP/skill) and exposes `Sheet.favoredClassAlt { className, desc, count, fraction?, whole }` — the
+tracker does the fractional math (`whole` = count ÷ fraction, floored, for +1/N bonuses). The Advancement
+step adds a "Racial alt" option to the per-level FCB select (only when the race×favored-class has one) and
+a readout: e.g. "+1/6 of a new rogue talent … Taken ×6 — 1 complete (0/6 toward the next)". 5 tests
+(golden: +1/6 accumulation, whole-per-pick, HP given up, none-taken/no-table; content: all 7×11 well-formed).
+Browser-verified a human rogue 6 (×6 → 1 complete talent). **Scope:** these are *tracked*, not folded into
+stats — most FCB alternatives are fractional accumulators, content ("one extra spell known"), or narrowly
+situational, so the sheet counts them and shows the accrued whole rather than computing each into a stat.
+Non-core races have no table yet (pure data to extend).
+
+**Prior — spell-like abilities computed.** Each racial/heritage SLA on the play mat now carries its
 **caster level** (= the creature's HD / character level) and, when the named spell allows a save, its
 **save DC** (10 + spell level + Charisma, the ability racial SLAs use), and links to the catalog spell.
 `SpellLikeAbility` gained `casterLevel`, `spellId?`, `saveDc?`; a `slaExtras()` helper in `resolve.ts`
@@ -249,18 +265,17 @@ Laughter are a level lower on the bard list). Both consumers — the builder's s
 sheet's prepared pool — file a spell at its per-list level via `spellLevelOn`. The nine clearest
 divergences are corrected; a broader audit of every multi-list spell is the remaining tail.
 
-**The engine-fidelity queue is clear and the descriptive-by-nature bucket's *computable* work is done** —
+**The engine-fidelity queue is clear and the descriptive-by-nature bucket is essentially done** —
 Improved Critical, Shield Focus/Fleet, bonus domain/school slots, per-list spell levels, the metamagic
 damage/DC payoff, racial natural attacks, the Aasimar/Tiefling variant heritages, the swim/climb +8 /
-armour-slows-all-modes movement rules, and spell-like-ability caster level + save DC are all in. What
-deliberately stays descriptive (poor fits for computation): **racial favored-class alternative bonuses**
-(mostly fractional accumulators, spellbook/known-list additions, or narrowly situational — the two
-universal options are already the FCB choice), spell-like-ability *effects* (the named utility spell,
-nothing further to compute — the numbers are now derived), fly maneuverability (+0 for the only playable
-flyer), darkvision, and the heritages' flavor traits. What's left as opt-in scope is the deliberately
-out-of-scope classes/races (Vigilante, Omdura, Occult/Alternate/NPC/Unchained; Kasatha, monster-tier
-races) and the content long tail (spells, splatbook feats). Eidolon attack evolutions and full
-monster-race statblocks await a companion/monster sheet.
+armour-slows-all-modes movement rules, spell-like-ability caster level + save DC, and the core-race
+favored-class alternative bonuses (selectable + tracked) are all in. What deliberately stays descriptive:
+spell-like-ability *effects* (the named utility spell — the numbers are derived), FCB alternatives for
+*non-core* races (pure data to extend when wanted) and the fold-into-stats step for the clean FCB ones,
+fly maneuverability (+0 for the only playable flyer), darkvision, and the heritages' flavor traits.
+What's left as opt-in scope is the deliberately out-of-scope classes/races (Vigilante, Omdura, Occult/
+Alternate/NPC/Unchained; Kasatha, monster-tier races) and the content long tail (spells, splatbook feats).
+Eidolon attack evolutions and full monster-race statblocks await a companion/monster sheet.
 
 Everything below is the durable detail. When resuming, read this file, then `docs/DESIGN.md`.
 

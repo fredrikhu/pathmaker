@@ -421,6 +421,10 @@ export interface Sheet {
   acpSkillIds: string[];
   skillRanksTotal: number;
   skillRanksSpent: number;
+  /** The race's alternative favored-class bonus, when the character has taken it at least once.
+   *  Surfaced and counted (not folded into a stat); `whole` is the completed benefits (`count`
+   *  divided by `fraction`, floored, for +1/N bonuses). */
+  favoredClassAlt?: { className: string; desc: string; count: number; fraction?: number; whole: number };
   gold: number;
   load: { current: number; light: number; medium: number; heavy: number; label: string };
   /** Effective land speed plus any special movement modes (feet). `reducedFrom` is the
