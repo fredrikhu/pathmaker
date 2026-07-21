@@ -1130,6 +1130,11 @@ describe('conditions (play state) fold into the resolved sheet', () => {
     expect(r.sheet.stats['save:fort'].total).toBe(2); // 4 − 2
     expect(r.sheet.stats['save:will'].total).toBe(-1); // 1 − 2
   });
+  it('shaken (and sickened) also apply −2 to skill checks', () => {
+    const base = resolve({ ...humanFighter1(), play: play([]) }).sheet.stats['skill:perception'].total;
+    expect(resolve({ ...humanFighter1(), play: play(['shaken']) }).sheet.stats['skill:perception'].total).toBe(base - 2);
+    expect(resolve({ ...humanFighter1(), play: play(['sickened']) }).sheet.stats['skill:perception'].total).toBe(base - 2);
+  });
   it('fatigued drops Str and Dex, flowing to attack and AC', () => {
     const d = { ...humanFighter1(), play: play(['fatigued']) };
     const r = resolve(d);
@@ -1723,6 +1728,69 @@ describe('weapon feats fold into the per-weapon attack lines', () => {
   it('an unset parameter grants nothing', () => {
     const d = fighter(1, { 'feat-1': 'weapon-focus' }, {});
     expect(line(d, 'longsword').bonuses).toEqual([4]);
+  });
+});
+
+describe('size, Weapon Finesse, and Strength-penalty damage', () => {
+  const attack = (d: CharacterDoc, id: string) => resolve(d).sheet.attacks.find((a) => a.id === id)!;
+
+  // Halfling (Small, +2 Dex, −2 Str): base Str 12 → 10 (+0), base Dex 14 → 16 (+3).
+  function halfling(feats: Record<string, string> = {}): CharacterDoc {
+    let d = newCharacter('t-small', 'Pip');
+    d = withDecision(d, 'ability-base', { str: 12, dex: 14, con: 12, int: 12, wis: 12, cha: 10 });
+    d = withDecision(d, 'race', 'halfling');
+    d = withDecision(d, 'alignment', 'N');
+    d = withDecision(d, 'class', 'fighter');
+    if (Object.keys(feats).length) d = withDecision(d, 'feats', feats);
+    return { ...d, purchases: { rapier: 1, longsword: 1, greatsword: 1 },
+      equipped: { armor: null, mainHand: 'rapier', offHand: null } };
+  }
+
+  it("sizes a Small character's weapon damage die down", () => {
+    const d = halfling(); // Str 0, so no damage modifier — just the die
+    expect(attack(d, 'rapier').damage).toBe('1d4');      // 1d6 → 1d4
+    expect(attack(d, 'longsword').damage).toBe('1d6');   // 1d8 → 1d6
+    expect(attack(d, 'greatsword').damage).toBe('1d8');  // 2d6 → 1d8
+  });
+
+  it('Weapon Finesse swaps Dex for Str on a finessable melee weapon only', () => {
+    const d = halfling({ 'feat-1': 'weapon-finesse' });
+    // Rapier is finessable: BAB 1 + size 1 + Dex 3 (finesse) = 5, vs Str-based 2 without it.
+    expect(attack(d, 'rapier').bonuses).toEqual([5]);
+    expect(attack(d, 'rapier').attackLines).toContainEqual({ label: 'Weapon Finesse (Dex for Str)', value: 3 });
+    // Longsword is one-handed and not an exception, so it keeps Str: BAB 1 + Str 0 + size 1 = 2.
+    expect(attack(d, 'longsword').bonuses).toEqual([2]);
+    expect(attack(d, 'longsword').attackLines).not.toContainEqual({ label: 'Weapon Finesse (Dex for Str)', value: 3 });
+  });
+
+  it('without the feat, a rapier still uses Strength', () => {
+    expect(attack(halfling(), 'rapier').bonuses).toEqual([2]); // BAB 1 + Str 0 + size 1
+  });
+
+  it('gives a Small biped ¾ carrying capacity', () => {
+    const load = resolve(halfling()).sheet.load; // Str 10
+    expect(load.light).toBe(24);  // floor(33 × ¾)
+    expect(load.medium).toBe(49); // floor(66 × ¾)
+    expect(load.heavy).toBe(75);  // floor(100 × ¾)
+  });
+
+  // Medium fighter with Str 8 (−1): the +2 floating bonus goes to Dex, leaving Str low.
+  function lowStrFighter(): CharacterDoc {
+    let d = newCharacter('t-lowstr', 'Weakling');
+    d = withDecision(d, 'ability-base', { str: 8, dex: 12, con: 12, int: 10, wis: 10, cha: 8 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['dex']);
+    d = withDecision(d, 'alignment', 'N');
+    d = withDecision(d, 'class', 'fighter');
+    return { ...d, purchases: { greatsword: 1, longsword: 1 },
+      equipped: { armor: null, mainHand: 'greatsword', offHand: null } };
+  }
+
+  it('applies a Strength penalty in full — never multiplied by the two-handed 1½×', () => {
+    const d = lowStrFighter(); // Str 8 → −1
+    expect(attack(d, 'greatsword').damage).toBe('2d6−1'); // not −2
+    expect(attack(d, 'longsword').damage).toBe('1d8−1');
+    expect(attack(d, 'greatsword').damageLines).toContainEqual({ label: 'Str modifier', value: -1 });
   });
 });
 

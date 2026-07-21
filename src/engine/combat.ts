@@ -26,6 +26,17 @@ export function powerAttackAmounts(bab: number, scale: PowerAttackScale = 'norma
   return { penalty: -steps, damage };
 }
 
+/** Strength's contribution to a melee or thrown weapon's damage, scaled by how the weapon is held:
+ *  ½× off-hand, 1½× two-handed (and the sole primary natural attack), 1× otherwise. Only a Strength
+ *  *bonus* is scaled — the rules multiply the bonus, never a penalty — so a −1 Strength stays −1 on a
+ *  greatsword rather than becoming −2. Verified against d20pfsrd's melee damage rules. */
+export function strengthDamage(strMod: number, scale: PowerAttackScale = 'normal'): number {
+  if (strMod <= 0) return strMod;
+  return scale === 'oneAndHalf' ? Math.floor(strMod * 1.5)
+    : scale === 'half' ? Math.floor(strMod * 0.5)
+      : strMod;
+}
+
 export interface TwoWeaponPenalties {
   primary: number;
   off: number;
@@ -48,20 +59,29 @@ export function offHandAttackBonuses(total: number, hasImproved: boolean, hasGre
   return out;
 }
 
-// Natural attacks (bite, claw, gore…). Their damage die is authored for a Medium creature; a Small
-// creature steps once down the standard damage chain. The Strength multiplier and the secondary
-// penalty follow the universal natural-attack rules. Verified against d20pfsrd's "Natural Attacks"
-// (Universal Monster Rules) and the ARG racial-trait entries.
+// Damage-die sizing. A weapon or natural attack's damage die is authored for a Medium creature; a
+// Small creature's steps once down the weapon damage table. Only Small and Medium playable races
+// exist, so Medium is authored as-is and Small steps one down. Verified against d20pfsrd's "Table:
+// Tiny and Large Weapon Damage" and the "Natural Attacks" (Universal Monster Rules) entry.
 
-/** The standard damage-die chain, high to low, used to size natural attacks down for Small races. */
+/** Medium → Small damage-die table (the Small column of the weapon damage table). Not a linear
+ *  ladder: 2d4 → 1d6 and 2d6 → 1d8 collapse to single dice, so entries are looked up directly. */
 const DAMAGE_STEP_DOWN: Record<string, string> = {
-  '2d6': '1d8', '1d10': '1d8', '1d8': '1d6', '1d6': '1d4', '1d4': '1d3', '1d3': '1d2', '1d2': '1',
+  '2d6': '1d8', '2d4': '1d6', '1d12': '1d10', '1d10': '1d8', '1d8': '1d6',
+  '1d6': '1d4', '1d4': '1d3', '1d3': '1d2', '1d2': '1',
 };
 
-/** A natural attack's damage die at the creature's size. Only Small and Medium playable races exist,
- *  so Medium is authored as-is and Small steps one down the chain (1d4 → 1d3, 1d3 → 1d2). */
+/** A natural attack's damage die at the creature's size (1d4 → 1d3, 1d3 → 1d2 for Small). */
 export function naturalAttackDamageDie(mediumDie: string, size: 'small' | 'medium'): string {
   return size === 'small' ? (DAMAGE_STEP_DOWN[mediumDie] ?? mediumDie) : mediumDie;
+}
+
+/** A manufactured weapon's damage dice at the wielder's size. Weapons are sized to their owner, so a
+ *  Small creature's weapon steps once down the weapon damage table (2d6 → 1d8, 2d4 → 1d6, 1d8 → 1d6).
+ *  Double weapons ("1d6/1d6") size each end independently. Medium weapons are authored as-is. */
+export function weaponDamageForSize(mediumDmg: string, size: 'small' | 'medium'): string {
+  if (size !== 'small') return mediumDmg;
+  return mediumDmg.split('/').map((die) => DAMAGE_STEP_DOWN[die] ?? die).join('/');
 }
 
 export interface NaturalAttackContext {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { powerAttackAmounts, twoWeaponPenalties, offHandAttackBonuses, naturalAttackDamageDie, naturalStrMultiplier, naturalAttackPenalty, naturalPowerAttackScale, type NaturalAttackContext } from './combat';
+import { powerAttackAmounts, strengthDamage, weaponDamageForSize, twoWeaponPenalties, offHandAttackBonuses, naturalAttackDamageDie, naturalStrMultiplier, naturalAttackPenalty, naturalPowerAttackScale, type NaturalAttackContext } from './combat';
 
 describe('Power Attack', () => {
   it('starts at -1/+2 and worsens at BAB 4 and every 4 after', () => {
@@ -22,6 +22,45 @@ describe('Power Attack', () => {
   it('halves the damage in the off hand, at the same penalty', () => {
     expect(powerAttackAmounts(1, 'half')).toEqual({ penalty: -1, damage: 1 });
     expect(powerAttackAmounts(8, 'half')).toEqual({ penalty: -3, damage: 3 });
+  });
+});
+
+describe('Strength damage scaling', () => {
+  it('scales a Strength bonus: 1.5x two-handed, 0.5x off-hand, 1x otherwise', () => {
+    expect(strengthDamage(4)).toBe(4);
+    expect(strengthDamage(4, 'oneAndHalf')).toBe(6);
+    expect(strengthDamage(4, 'half')).toBe(2);
+    expect(strengthDamage(3, 'oneAndHalf')).toBe(4); // floor(4.5)
+    expect(strengthDamage(3, 'half')).toBe(1);       // floor(1.5)
+  });
+
+  it('applies a Strength penalty in full at any scale — never multiplied', () => {
+    expect(strengthDamage(-1)).toBe(-1);
+    expect(strengthDamage(-1, 'oneAndHalf')).toBe(-1); // not -2 on a greatsword
+    expect(strengthDamage(-1, 'half')).toBe(-1);
+    expect(strengthDamage(-3, 'oneAndHalf')).toBe(-3);
+    expect(strengthDamage(-3, 'half')).toBe(-3);
+    expect(strengthDamage(0, 'oneAndHalf')).toBe(0);
+  });
+});
+
+describe('weapon damage by size', () => {
+  it('leaves Medium weapons untouched', () => {
+    expect(weaponDamageForSize('1d6', 'medium')).toBe('1d6');
+    expect(weaponDamageForSize('2d6', 'medium')).toBe('2d6');
+  });
+
+  it('steps a Small creature\'s weapon down the weapon damage table', () => {
+    expect(weaponDamageForSize('1d6', 'small')).toBe('1d4'); // rapier
+    expect(weaponDamageForSize('1d8', 'small')).toBe('1d6');
+    expect(weaponDamageForSize('1d12', 'small')).toBe('1d10'); // greataxe
+    expect(weaponDamageForSize('2d6', 'small')).toBe('1d8');   // greatsword
+    expect(weaponDamageForSize('2d4', 'small')).toBe('1d6');   // spiked chain
+  });
+
+  it('sizes each end of a double weapon independently', () => {
+    expect(weaponDamageForSize('1d6/1d6', 'small')).toBe('1d4/1d4'); // quarterstaff
+    expect(weaponDamageForSize('1d8/1d6', 'small')).toBe('1d6/1d4'); // dwarven urgrosh
   });
 });
 

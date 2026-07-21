@@ -16,7 +16,7 @@ import {
   saveBase, fixedHpPerLevel, generalFeatLevels, abilityIncreaseLevels,
   casterLevel, spellSlotsPerDay, spellsKnownPerLevel, startingWealth, sumBab, sumSave, spellsPreparedPerLevel, type SpellTable,
 } from './progression';
-import { powerAttackAmounts, twoWeaponPenalties, offHandAttackBonuses, naturalAttackDamageDie, naturalStrMultiplier, naturalAttackPenalty, naturalPowerAttackScale, type PowerAttackScale, type NaturalAttackContext } from './combat';
+import { powerAttackAmounts, strengthDamage, weaponDamageForSize, twoWeaponPenalties, offHandAttackBonuses, naturalAttackDamageDie, naturalStrMultiplier, naturalAttackPenalty, naturalPowerAttackScale, type PowerAttackScale, type NaturalAttackContext } from './combat';
 
 const POINT_BUY_COST: Record<number, number> = {
   7: -4, 8: -2, 9: -1, 10: 0, 11: 1, 12: 2, 13: 3, 14: 5, 15: 7, 16: 10, 17: 13, 18: 17,
@@ -812,7 +812,7 @@ export function resolve(doc: CharacterDoc): Resolution {
   // ---- Inventory & encumbrance ----
   // Load comes from what is still carried, so consuming items in play lightens the character.
   const strScore = abilities.str;
-  const carry = carryingCapacity(strScore);
+  const carry = carryingCapacity(strScore, size);
   const inventory = buildInventory(doc);
   const load = Math.round(inventory.reduce((n, it) => n + it.weight, 0) * 100) / 100;
   const loadLabel = load <= carry.light ? 'Light' : load <= carry.medium ? 'Medium' : load <= carry.heavy ? 'Heavy' : 'Overloaded';
@@ -993,7 +993,7 @@ export function resolve(doc: CharacterDoc): Resolution {
     progression,
     pools: classes.flatMap((c) => classPools(c.klass, c.levels, mods)),
     attacks: [
-      ...weaponAttacks(doc, stats, bab, mods.str, weaponFeatBonuses(featParams), itemQuality(doc), new Set(featIds),
+      ...weaponAttacks(doc, stats, bab, mods.str, mods.dex, size, weaponFeatBonuses(featParams), itemQuality(doc), new Set(featIds),
         proficiencyCtx(dec, classes, featParams)),
       ...naturalAttacks(dec, stats, bab, mods.str, new Set(featIds), doc.play),
     ],
@@ -1250,7 +1250,13 @@ function isProficientWith(w: C.WeaponDef, p: ProficiencyCtx): boolean {
   return p.groups.has(group);
 }
 
-function weaponAttacks(doc: CharacterDoc, stats: Record<string, Stat>, bab: number, strMod: number, featBonuses: Map<string, WeaponFeatBonus>, quality: Record<string, ItemQuality>, featIds: Set<string>, prof: ProficiencyCtx): AttackLine[] {
+/** Weapon Finesse covers any light melee weapon plus three non-light exceptions the feat names. */
+const FINESSABLE_NON_LIGHT = new Set(['rapier', 'whip', 'spiked-chain']);
+function isFinessable(w: C.WeaponDef): boolean {
+  return w.hands === 'light' || FINESSABLE_NON_LIGHT.has(w.id);
+}
+
+function weaponAttacks(doc: CharacterDoc, stats: Record<string, Stat>, bab: number, strMod: number, dexMod: number, size: 'small' | 'medium', featBonuses: Map<string, WeaponFeatBonus>, quality: Record<string, ItemQuality>, featIds: Set<string>, prof: ProficiencyCtx): AttackLine[] {
   const melee = stats['attack:melee'];
   const ranged = stats['attack:ranged'];
   if (!melee || !ranged) return [];
@@ -1259,6 +1265,7 @@ function weaponAttacks(doc: CharacterDoc, stats: Record<string, Stat>, bab: numb
   // Declared combat options. Power Attack needs the feat; two-weapon penalties apply to anyone
   // wielding two weapons, with the feat only reducing them.
   const usingPowerAttack = (doc.play?.powerAttack ?? false) && featIds.has('power-attack');
+  const hasFinesse = featIds.has('weapon-finesse');
   const offHandWeapon = doc.equipped.offHand ? C.weaponById.get(doc.equipped.offHand) : null;
   // Gated on actually holding two weapons: the flag can outlive the off-hand weapon (unequip it
   // while the toggle is on) and a stale flag must not penalise a single-weapon attack.
@@ -1288,13 +1295,19 @@ function weaponAttacks(doc: CharacterDoc, stats: Record<string, Stat>, bab: numb
     const pa = usingPowerAttack && kind === 'melee' ? powerAttackAmounts(bab, paScale) : null;
     const twfPenalty = usingTwoWeapon && slot === 'main' ? twp.primary : usingTwoWeapon && slot === 'off' ? twp.off : 0;
     const proficient = isProficientWith(w, prof);
+    // Weapon Finesse swaps Dexterity in for Strength on the attack roll (not damage) with a light
+    // melee weapon, rapier, whip, or spiked chain. It is the wielder's option, so it is applied only
+    // when Dex is the better modifier — never a penalty. Thrown lines already roll off Dex.
+    const finesseAdj = hasFinesse && kind === 'melee' && !thrown && isFinessable(w) && dexMod > strMod
+      ? dexMod - strMod : 0;
     const optionLines: BreakdownLine[] = [
       ...(proficient ? [] : [{ label: 'Not proficient', value: NON_PROFICIENT_PENALTY }]),
+      ...(finesseAdj ? [{ label: 'Weapon Finesse (Dex for Str)', value: finesseAdj }] : []),
       ...(pa ? [{ label: 'Power Attack', value: pa.penalty }] : []),
       ...(twfPenalty ? [{ label: slot === 'off' ? 'Two-weapon (off hand)' : 'Two-weapon (primary)', value: twfPenalty }] : []),
       ...(bow?.attack ? [{ label: `Bow rated +${rating}, above your Str`, value: bow.attack }] : []),
     ];
-    const attackTotal = base.total + (fb?.attack ?? 0) + qb.attack + (pa?.penalty ?? 0) + twfPenalty
+    const attackTotal = base.total + (fb?.attack ?? 0) + qb.attack + finesseAdj + (pa?.penalty ?? 0) + twfPenalty
       + (proficient ? 0 : NON_PROFICIENT_PENALTY) + (bow?.attack ?? 0);
     // The off hand gets one attack (plus Improved/Greater), not the BAB iteratives.
     const bonuses = usingTwoWeapon && slot === 'off'
@@ -1308,7 +1321,7 @@ function weaponAttacks(doc: CharacterDoc, stats: Record<string, Stat>, bab: numb
     if (thrown) {
       // A thrown weapon adds Strength to damage, but never the 1½× two-handed multiplier: that
       // rule is about a weapon "you are wielding two-handed", and a thrown one has left your hands.
-      strDamage = slot === 'off' ? Math.floor(strMod * 0.5) : strMod;
+      strDamage = slot === 'off' ? strengthDamage(strMod, 'half') : strMod;
       notes.push('Thrown: rolls off Dex, adds Str to damage (no 1½× — the weapon has left your hands).');
       if (w.range) notes.push(`Maximum range ${w.range * THROWN_MAX_INCREMENTS} ft (${THROWN_MAX_INCREMENTS} range increments), at −2 per increment past the first.`);
     } else if (kind === 'ranged') {
@@ -1326,12 +1339,12 @@ function weaponAttacks(doc: CharacterDoc, stats: Record<string, Stat>, bab: numb
         notes.push('Ranged: no Str to damage (composite bows and slings excepted).');
       }
     } else if (slot === 'off') {
-      strDamage = Math.floor(strMod * 0.5);
+      strDamage = strengthDamage(strMod, 'half');
       notes.push(usingTwoWeapon
         ? 'Off-hand: ½× Str to damage; two-weapon penalties are folded in below.'
         : 'Off-hand: ½× Str to damage. Switch on two-weapon fighting to apply its penalties.');
     } else if (w.hands === 'two') {
-      strDamage = Math.floor(strMod * 1.5);
+      strDamage = strengthDamage(strMod, 'oneAndHalf');
       notes.push('Two-handed: 1½× Str to damage.');
     } else {
       strDamage = strMod;
@@ -1352,16 +1365,18 @@ function weaponAttacks(doc: CharacterDoc, stats: Record<string, Stat>, bab: numb
     if (kind === 'melee' && w.range) notes.push(`Can be thrown (${w.range} ft) — its thrown attack is listed separately.`);
     // Unconditional property damage rides on the damage string; conditional ones become notes.
     const extraDice = props.map((p) => p.damageDice).filter(Boolean) as string[];
-    const baseDamage = dmgMod !== 0 ? `${w.dmg}${fmtSigned(dmgMod)}` : w.dmg;
+    // Weapons are sized to their wielder, so a Small character's weapon rolls the Small damage die.
+    const weaponDie = weaponDamageForSize(w.dmg, size);
+    const baseDamage = dmgMod !== 0 ? `${weaponDie}${fmtSigned(dmgMod)}` : weaponDie;
     const damage = extraDice.length ? `${baseDamage} + ${extraDice.join(' + ')}` : baseDamage;
     for (const p of props) {
       if (p.condition) notes.push(`${p.name}: ${p.desc}`);
       else if (!p.damageDice && !p.extraAttack && !p.doublesThreat) notes.push(`${p.name}: ${p.desc}`);
       if (p.restriction) notes.push(`${p.name} applies to ${p.restriction}.`);
     }
-    const scaleNote = slot === 'off' ? ' (½×)'
-      : thrown ? ''
-      : w.hands === 'two' ? ' (1½×)'
+    // A Strength penalty is never scaled, so the ½×/1½× note only shows when a bonus is being scaled.
+    const scaleNote = strMod > 0 && slot === 'off' ? ' (½×)'
+      : strMod > 0 && !thrown && w.hands === 'two' ? ' (1½×)'
       : bow && strMod > rating ? ` (capped at the bow's +${rating})` : '';
     // Most ranged weapons add no Strength at all, so the row is omitted rather than shown as +0 —
     // but slings and composite bows do, and for them it has to be visible.
@@ -1426,13 +1441,13 @@ function naturalAttacks(dec: Decisions, stats: Record<string, Stat>, bab: number
     const ctx: NaturalAttackContext = { primary: d.primary, sole: totalAttacks === 1, withWeapon, hasMultiattack };
     const die = naturalAttackDamageDie(d.damage, race.size);
     const strMult = naturalStrMultiplier(ctx);
-    const strDamage = Math.floor(strMod * strMult);
+    const strDamage = strengthDamage(strMod, strMult === 1.5 ? 'oneAndHalf' : strMult === 0.5 ? 'half' : 'normal');
     const penalty = naturalAttackPenalty(ctx);
     const pa = usingPowerAttack ? powerAttackAmounts(bab, naturalPowerAttackScale(ctx)) : null;
     const attackTotal = melee.total + penalty + (pa?.penalty ?? 0);
     const dmgMod = strDamage + (pa?.damage ?? 0) + (dmgStat?.total ?? 0);
     const secondary = withWeapon || !d.primary;
-    const multNote = strMult === 1.5 ? ' (1½×)' : strMult === 0.5 ? ' (½×)' : '';
+    const multNote = strMod <= 0 ? '' : strMult === 1.5 ? ' (1½×)' : strMult === 0.5 ? ' (½×)' : '';
     const paScaleNote = pa ? (naturalPowerAttackScale(ctx) === 'oneAndHalf' ? ' (1½×)' : naturalPowerAttackScale(ctx) === 'half' ? ' (½×)' : '') : '';
     const notes: string[] = [];
     notes.push(secondary
@@ -1466,7 +1481,7 @@ function naturalAttacks(dec: Decisions, stats: Record<string, Stat>, bab: number
   return lines;
 }
 
-function carryingCapacity(str: number): { light: number; medium: number; heavy: number } {
+function carryingCapacity(str: number, size: 'small' | 'medium'): { light: number; medium: number; heavy: number } {
   // Core carrying-capacity table (heavy load column), medium/light = /2, /3 rounded.
   const table: Record<number, number> = {
     1: 10, 2: 20, 3: 30, 4: 40, 5: 50, 6: 60, 7: 70, 8: 80, 9: 90, 10: 100,
@@ -1474,7 +1489,11 @@ function carryingCapacity(str: number): { light: number; medium: number; heavy: 
     21: 460, 22: 520, 23: 600, 24: 700, 25: 800,
   };
   const heavy = table[Math.max(1, Math.min(25, str))] ?? 100;
-  return { light: Math.floor(heavy / 3), medium: Math.floor((heavy * 2) / 3), heavy };
+  const caps = { light: Math.floor(heavy / 3), medium: Math.floor((heavy * 2) / 3), heavy };
+  // A Small biped carries ¾ of a Medium creature's amounts, applied per column and rounded down.
+  if (size === 'small')
+    return { light: Math.floor((caps.light * 3) / 4), medium: Math.floor((caps.medium * 3) / 4), heavy: Math.floor((caps.heavy * 3) / 4) };
+  return caps;
 }
 
 function deriveSteps(klass?: C.ClassDef): string[] {
