@@ -146,7 +146,22 @@ function labelBase(label: string): string {
 
 /** Special senses and innate spell-like abilities from the character's active racial traits,
  *  collected for the play mat's reminder card. SLA ids are stable so daily uses can be tracked. */
-function gatherInnate(dec: Decisions): { senses: string[]; spellLikeAbilities: SpellLikeAbility[] } {
+/** Caster level, catalog link, and save DC for a spell-like ability. A racial SLA is cast at the
+ *  creature's HD (character level); its save DC, when the named spell allows a save, is 10 + the
+ *  spell's level + Charisma (the ability racial SLAs use). Spells not in the catalog get only the
+ *  caster level. Apostrophes are stripped so "Bear's Endurance" finds `bears-endurance`. */
+function slaExtras(name: string, level: number, chaMod: number): Pick<SpellLikeAbility, 'casterLevel' | 'spellId' | 'saveDc'> {
+  const slug = name.toLowerCase().replace(/['’]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+  const spell = C.spellById.get(slug);
+  const out: Pick<SpellLikeAbility, 'casterLevel' | 'spellId' | 'saveDc'> = { casterLevel: Math.max(1, level) };
+  if (spell) {
+    out.spellId = spell.id;
+    if (spell.save && !/^\s*none\b/i.test(spell.save)) out.saveDc = 10 + spell.level + chaMod;
+  }
+  return out;
+}
+
+function gatherInnate(dec: Decisions, level: number, chaMod: number): { senses: string[]; spellLikeAbilities: SpellLikeAbility[] } {
   const { standard, alternates } = activeRacialTraits(dec);
   const source = (dec.raceId ? C.raceById.get(dec.raceId)?.name : '') ?? '';
   const senses: string[] = [];
@@ -155,7 +170,7 @@ function gatherInnate(dec: Decisions): { senses: string[]; spellLikeAbilities: S
     for (const s of t.senses ?? []) if (!senses.includes(s)) senses.push(s);
     for (const sla of t.spellLikeAbilities ?? []) {
       const slug = sla.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-      spellLikeAbilities.push({ id: `sla:${t.id}:${slug}`, name: sla.name, uses: sla.uses, ...(sla.note ? { note: sla.note } : {}), source });
+      spellLikeAbilities.push({ id: `sla:${t.id}:${slug}`, name: sla.name, uses: sla.uses, ...(sla.note ? { note: sla.note } : {}), source, ...slaExtras(sla.name, level, chaMod) });
     }
   }
   // A variant heritage's SLA replaces the race's default (whose trait was suppressed above).
@@ -163,7 +178,7 @@ function gatherInnate(dec: Decisions): { senses: string[]; spellLikeAbilities: S
   if (heritage) {
     const sla = heritage.spellLikeAbility;
     const slug = sla.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-    spellLikeAbilities.push({ id: `sla:heritage:${slug}`, name: sla.name, uses: sla.uses, ...(sla.note ? { note: sla.note } : {}), source });
+    spellLikeAbilities.push({ id: `sla:heritage:${slug}`, name: sla.name, uses: sla.uses, ...(sla.note ? { note: sla.note } : {}), source, ...slaExtras(sla.name, level, chaMod) });
   }
   return { senses, spellLikeAbilities };
 }
@@ -972,7 +987,7 @@ export function resolve(doc: CharacterDoc): Resolution {
     inventory,
     worn: wornItemsWithStatus(doc).map(({ item, active }) =>
       ({ id: item.id, name: item.name, slot: item.slot, cost: item.cost, desc: item.desc, active })),
-    ...gatherInnate(dec),
+    ...gatherInnate(dec, level, mods.cha),
     summaryLine,
   };
   return { sheet, slots, issues, steps };

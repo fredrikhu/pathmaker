@@ -473,6 +473,13 @@ export interface SpellLikeAbility {
   note?: string;
   /** Where it comes from, for the mat ("Gnome", "Tiefling"). */
   source: string;
+  /** Caster level for the SLA — a racial spell-like ability uses the creature's HD (character level). */
+  casterLevel: number;
+  /** The catalog spell id when the SLA names a spell we have, so the mat can show its details. */
+  spellId?: string;
+  /** Save DC (10 + spell level + Charisma) when the named spell allows a save; absent for spells that
+   *  force no save (daylight, alter self…) or that aren't in the catalog. */
+  saveDc?: number;
 }
 
 export interface Resolution {

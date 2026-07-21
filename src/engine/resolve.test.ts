@@ -1352,6 +1352,45 @@ describe('senses & innate spell-like abilities', () => {
     expect(new Set(s.spellLikeAbilities.map((a) => a.id)).size).toBe(4);
   });
 
+  it('links a spell-like ability to its catalog spell and gives it a caster level', () => {
+    const dark = sheetFor('tiefling').spellLikeAbilities.find((a) => a.name === 'Darkness')!;
+    expect(dark.casterLevel).toBe(1);      // = character level (HD)
+    expect(dark.spellId).toBe('darkness'); // linked to the catalog spell
+    expect(dark.saveDc).toBeUndefined();   // darkness forces no save
+  });
+
+  it('scales the SLA caster level with character level', () => {
+    let d = newCharacter('t-sla-cl');
+    d = withDecision(d, 'ability-base', { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 14 });
+    d = withDecision(d, 'race', 'tiefling');
+    d = withDecision(d, 'class', 'fighter');
+    const dark = resolve(atLevel(d, 6)).sheet.spellLikeAbilities.find((a) => a.name === 'Darkness')!;
+    expect(dark.casterLevel).toBe(6);
+  });
+
+  it('computes the save DC (10 + spell level + Cha) for a save-bearing SLA', () => {
+    let d = newCharacter('t-sla-dc');
+    d = withDecision(d, 'ability-base', { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 14 });
+    d = withDecision(d, 'race', 'aasimar');
+    d = withDecision(d, 'heritage', 'musetouched'); // +2 Cha (→16, +3) and a Glitterdust SLA
+    d = withDecision(d, 'class', 'fighter');
+    const g = resolve(d).sheet.spellLikeAbilities.find((a) => a.name === 'Glitterdust')!;
+    expect(g.spellId).toBe('glitterdust'); // level 2, Will negates
+    expect(g.saveDc).toBe(10 + 2 + 3);     // = 15
+  });
+
+  it('leaves an SLA whose spell we lack unlinked but still caster-levelled', () => {
+    let d = newCharacter('t-sla-nolink');
+    d = withDecision(d, 'ability-base', { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 14 });
+    d = withDecision(d, 'race', 'aasimar');
+    d = withDecision(d, 'heritage', 'lawbringer'); // Continual Flame — not in our catalog
+    d = withDecision(d, 'class', 'fighter');
+    const cf = resolve(d).sheet.spellLikeAbilities.find((a) => a.name === 'Continual Flame')!;
+    expect(cf.spellId).toBeUndefined();
+    expect(cf.saveDc).toBeUndefined();
+    expect(cf.casterLevel).toBe(1);
+  });
+
   it('a tiefling has darkvision and the darkness SLA; a human has neither', () => {
     const tf = sheetFor('tiefling');
     expect(tf.senses).toContain('Darkvision 60 ft');

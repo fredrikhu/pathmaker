@@ -1170,9 +1170,18 @@ export function PlaySheet({ id }: { id: string }) {
                 const atWill = sla.uses === 'at-will';
                 const max = atWill ? 0 : (sla.uses as number);
                 const used = usedPoolAt(sla.id);
+                // When the SLA names a spell we have, its name opens the spell's card and we show the
+                // computed caster level and (for spells with a save) the DC.
+                const sp = sla.spellId ? spellById.get(sla.spellId) : undefined;
+                const open = sp ? tip.card({
+                  kicker: 'Spell-like ability', title: sp.name,
+                  body: `${sp.summary} · ${sp.range} · ${sp.dur}${sp.save && !/^none$/i.test(sp.save) ? ` · ${sp.save}` : ''}`,
+                  annotations: [sp.desc],
+                }) : undefined;
                 return (
                   <div key={sla.id} style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                    <span style={{ minWidth: 150, fontSize: 13, fontWeight: 500 }}>{sla.name}</span>
+                    <span className={sp ? 'term' : undefined} style={{ minWidth: 150, fontSize: 13, fontWeight: 500, cursor: sp ? 'pointer' : undefined }}
+                      {...(open ? { onMouseEnter: open, onMouseLeave: tip.leave, onClick: open } : {})}>{sla.name}</span>
                     {atWill ? (
                       <span className="text-muted" style={{ fontSize: 12 }}>at will</span>
                     ) : (
@@ -1189,6 +1198,7 @@ export function PlaySheet({ id }: { id: string }) {
                         <span className="num text-muted" style={{ fontSize: 12 }}>{max - used}/{max} per day</span>
                       </>
                     )}
+                    <span className="num text-muted" style={{ fontSize: 11.5 }}>CL {sla.casterLevel}{sla.saveDc !== undefined ? ` · save DC ${sla.saveDc}` : ''}</span>
                     <span className="text-muted" style={{ fontSize: 11.5 }}>
                       {sla.source}{sla.note ? ` · ${sla.note}` : ''}
                     </span>

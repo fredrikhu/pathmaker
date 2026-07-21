@@ -6,10 +6,23 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 
 ## ▶ Resume here (last session end)
 
-**Current state** — branch `main`, working tree clean, **558 tests** passing; run
+**Current state** — branch `main`, working tree clean, **562 tests** passing; run
 `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
-**Latest — movement modes computed (closes the computable part of the descriptive bucket).** A swim or
+**Latest — spell-like abilities computed.** Each racial/heritage SLA on the play mat now carries its
+**caster level** (= the creature's HD / character level) and, when the named spell allows a save, its
+**save DC** (10 + spell level + Charisma, the ability racial SLAs use), and links to the catalog spell.
+`SpellLikeAbility` gained `casterLevel`, `spellId?`, `saveDc?`; a `slaExtras()` helper in `resolve.ts`
+slugifies the SLA name (stripping apostrophes so "Bear's Endurance" finds `bears-endurance`), looks it
+up in `spellById`, and fills those fields — `gatherInnate(dec, level, chaMod)` now takes the level and
+Cha. The play mat shows "CL N · save DC X" and makes the name open the spell's card when we have it;
+SLAs whose spell isn't in the catalog (continual flame, misdirection) stay caster-levelled but unlinked.
+4 golden tests (link + CL, CL scales with level, DC = 10 + level + Cha, graceful no-catalog case);
+browser-verified a Musetouched aasimar 5 (Glitterdust → **CL 5 · save DC 15**). This closes the
+"spell-like abilities (not computed)" bucket item — their *effects* are still the named spell's (utility
+spells with nothing further to compute), but the numbers a player needs at the table are now derived.
+
+**Prior — movement modes computed.** A swim or
 climb speed now grants its **+8 racial bonus on Swim/Climb** automatically, derived from `race.speeds`
 in `collectEffects` — this *fixed real gaps*: undine, gillman, grippli, merfolk, and vanara all had the
 speed but never authored the bonus (only lizardfolk did, whose now-redundant trait effect was removed
@@ -238,13 +251,16 @@ divergences are corrected; a broader audit of every multi-list spell is the rema
 
 **The engine-fidelity queue is clear and the descriptive-by-nature bucket's *computable* work is done** —
 Improved Critical, Shield Focus/Fleet, bonus domain/school slots, per-list spell levels, the metamagic
-damage/DC payoff, racial natural attacks, the Aasimar/Tiefling variant heritages, and the swim/climb +8 /
-armour-slows-all-modes movement rules are all in. What deliberately stays descriptive (poor fits for
-computation, documented in the resume-here): racial favored-class alternative bonuses, spell-like-ability
-*effects* (already pool-tracked), fly maneuverability, darkvision, and the heritages' flavor traits.
-What's left as opt-in scope is the deliberately out-of-scope classes/races (Vigilante, Omdura, Occult/
-Alternate/NPC/Unchained; Kasatha, monster-tier races) and the content long tail (spells, splatbook feats).
-Eidolon attack evolutions and full monster-race statblocks await a companion/monster sheet.
+damage/DC payoff, racial natural attacks, the Aasimar/Tiefling variant heritages, the swim/climb +8 /
+armour-slows-all-modes movement rules, and spell-like-ability caster level + save DC are all in. What
+deliberately stays descriptive (poor fits for computation): **racial favored-class alternative bonuses**
+(mostly fractional accumulators, spellbook/known-list additions, or narrowly situational — the two
+universal options are already the FCB choice), spell-like-ability *effects* (the named utility spell,
+nothing further to compute — the numbers are now derived), fly maneuverability (+0 for the only playable
+flyer), darkvision, and the heritages' flavor traits. What's left as opt-in scope is the deliberately
+out-of-scope classes/races (Vigilante, Omdura, Occult/Alternate/NPC/Unchained; Kasatha, monster-tier
+races) and the content long tail (spells, splatbook feats). Eidolon attack evolutions and full
+monster-race statblocks await a companion/monster sheet.
 
 Everything below is the durable detail. When resuming, read this file, then `docs/DESIGN.md`.
 
