@@ -1,66 +1,81 @@
-/* Nocturne — design-system tokens and component classes. This file is the source of truth for the system's look; retune it here and see readme.md. */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+/* Nocturne — design-system tokens and component classes. This file is the source of truth for the system's look; retune it here and see readme.md.
+   The skin is "Parchment": an aged-book palette (daylight vellum), three self-hosted
+   OFL faces (Cinzel / IM Fell English / MedievalSharp), and a procedural SVG-turbulence
+   paper grain. Component classes below are unchanged — only the token values are retuned. */
+
+/* Self-hosted faces (SIL Open Font License) — no external requests. */
+@font-face { font-family: "Cinzel"; font-weight: 400; font-display: swap; src: url("./fonts/cinzel-400.woff2") format("woff2"); }
+@font-face { font-family: "Cinzel"; font-weight: 700; font-display: swap; src: url("./fonts/cinzel-700.woff2") format("woff2"); }
+@font-face { font-family: "IM Fell English"; font-style: normal; font-weight: 400; font-display: swap; src: url("./fonts/imfellenglish-400.woff2") format("woff2"); }
+@font-face { font-family: "IM Fell English"; font-style: italic; font-weight: 400; font-display: swap; src: url("./fonts/imfellenglish-400-italic.woff2") format("woff2"); }
+@font-face { font-family: "MedievalSharp"; font-weight: 400; font-display: swap; src: url("./fonts/medievalsharp-400.woff2") format("woff2"); }
 
 :root {
-  --color-bg: #161826;
-  --color-surface: #232532;
-  --color-text: #e9e9ed;
-  --color-accent: #9184d9; /* review round 7 (Barron): the accent moves to
-     the product's blurple — OKLCH hue 289.2, the hue of the app's own Pro
-     accent (#9a8fe0, --om-accent-pro) — at the same lightness the steel
-     accent held (L 0.660, so the documented ratios survive) and chroma
-     in the product blurple's own range (its token sits at C 0.118; the
-     accent takes 0.125, from the old steel's 0.030):
-     the accent now reads as an accent rather than another neutral. */
-  --color-accent-2: #a7a1db; /* the machine-derived stand-in follows: same
-     hue, same L 0.734, chroma at the same 2:3 proportion it held */
-  --color-divider: color-mix(in srgb, #e9e9ed 16%, transparent);
+  /* Parchment — daylight vellum. The ground is aged paper, the ink a dark
+     sepia-brown, the interactive accent an oxblood (medieval rubrication),
+     with gilt as the second accent. */
+  --color-bg: #ece0c8;      /* aged paper ground */
+  --color-surface: #f4ecd8; /* raised vellum — cards, inputs, dialogs */
+  --color-text: #3a2c1a;    /* sepia ink */
+  --color-accent: #8a2f24;  /* oxblood — buttons, links, focus, checked state */
+  --color-accent-2: #9a7826;/* gilt — the second accent */
+  --color-divider: color-mix(in srgb, #3a2c1a 20%, transparent); /* warm ink hairline */
 
-  /* Tonal ramps — generated in OKLCH on one shared lightness scale, so the
-     same step of any role matches the others in visual value. */
-  --color-neutral-100: #f3f5fe;
-  --color-neutral-200: #e4e7f5;
-  --color-neutral-300: #cfd3e5;
-  --color-neutral-400: #b2b6ca;
-  --color-neutral-500: #9397ab;
-  --color-neutral-600: #75798c;
-  --color-neutral-700: #595d6c;
-  --color-neutral-800: #3f424d;
-  --color-neutral-900: #292b31;
+  /* Tonal ramps — warm sepia neutrals and the two accents. NOTE the order is
+     inverted from a conventional ramp: 100 = deepest, 900 = palest. The app
+     was built on Nocturne (a dark theme) where the low steps (100–400) are used
+     as *foreground text on the ground* and the high steps (800–900) as *fill
+     backgrounds*. Flipping the ground from dark to light means inverting each
+     ramp's lightness so those same usages stay legible: low steps read as dark
+     ink on paper, high steps as pale fills carrying dark text. The mid (500) is
+     nudged darker than a pure inversion so muted helper text holds contrast. */
+  --color-neutral-100: #2b2415;
+  --color-neutral-200: #453a25;
+  --color-neutral-300: #5e4f33;
+  --color-neutral-400: #7c6b48;
+  --color-neutral-500: #87764f;
+  --color-neutral-600: #c0ad82;
+  --color-neutral-700: #d8c9a4;
+  --color-neutral-800: #e9dec4;
+  --color-neutral-900: #f5efe0;
 
-  --color-accent-100: #f5f4ff;
-  --color-accent-200: #e7e5fe;
-  --color-accent-300: #d2cefd;
-  --color-accent-400: #b5abfc;
-  --color-accent-500: #968ae0;
-  --color-accent-600: #796cbf;
-  --color-accent-700: #5d5294;
-  --color-accent-800: #423a6a;
-  --color-accent-900: #2b2741;
+  --color-accent-100: #3f160f;
+  --color-accent-200: #5f2319;
+  --color-accent-300: #7d2e22;
+  --color-accent-400: #9a3a2c;
+  --color-accent-500: #b5503f;
+  --color-accent-600: #d07e70;
+  --color-accent-700: #e3a89d;
+  --color-accent-800: #f0ccc5;
+  --color-accent-900: #f6e3df;
 
-  --color-accent-2-100: #f5f4ff;
-  --color-accent-2-200: #e7e5fe;
-  --color-accent-2-300: #d2cefd;
-  --color-accent-2-400: #b5afe8;
-  --color-accent-2-500: #9690c9;
-  --color-accent-2-600: #7972a9;
-  --color-accent-2-700: #5c5783;
-  --color-accent-2-800: #423e5d;
-  --color-accent-2-900: #2b293a;
+  --color-accent-2-100: #332810;
+  --color-accent-2-200: #50401b;
+  --color-accent-2-300: #6e5926;
+  --color-accent-2-400: #8f7430;
+  --color-accent-2-500: #b0913c;
+  --color-accent-2-600: #cdad57;
+  --color-accent-2-700: #e0c67e;
+  --color-accent-2-800: #eeddab;
+  --color-accent-2-900: #f7edcf;
 
-  /* Deck section-divider ground — review round 3: saturation as presence.
-     Dividers take a saturated deep indigo (hue 277, the neutral ramp's own
-     family; C 0.094 — written when the accent held C 0.030, before the
-     round-7 blurple raised it past the ground's) with a lighter bloom and
-     a ghost tint of the same hue, while the slide grounds stay
-     desaturated. Deck-scale fills only — not interface colors. */
-  --color-section: #262a60;
-  --color-section-glow: #353b80;
-  --color-section-ghost: #4c5397;
+  /* Deck section grounds — deep leather/oxblood for saturated fills. */
+  --color-section: #4a2018;
+  --color-section-glow: #6b3226;
+  --color-section-ghost: #8a4436;
 
-  --font-heading: "Inter", system-ui, sans-serif;
-  --font-heading-weight: 500;
-  --font-body: "Inter", system-ui, sans-serif;
+  /* Faces: Cinzel titling, IM Fell English body, MedievalSharp for the
+     small uppercase labels (--font-label). */
+  --font-heading: "Cinzel", Georgia, "Times New Roman", serif;
+  --font-heading-weight: 700;
+  --font-body: "IM Fell English", Georgia, "Times New Roman", serif;
+  --font-label: "MedievalSharp", "Cinzel", Georgia, serif;
+
+  /* Procedural paper grain (SVG feTurbulence) — "medium" preset: a fine
+     fibrous grain blended 'overlay' plus a coarse low-frequency mottle
+     blended 'soft-light'. No image assets; baked into surface backgrounds. */
+  --tex-fiber: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='320'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.6' numOctaves='4' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncR type='linear' slope='1.15' intercept='-0.075'/%3E%3CfeFuncG type='linear' slope='1.15' intercept='-0.075'/%3E%3CfeFuncB type='linear' slope='1.15' intercept='-0.075'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E");
+  --tex-mottle: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='700' height='700'%3E%3Cfilter id='m'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.012 0.017' numOctaves='3' seed='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncR type='linear' slope='0.55' intercept='0.22'/%3E%3CfeFuncG type='linear' slope='0.55' intercept='0.22'/%3E%3CfeFuncB type='linear' slope='0.55' intercept='0.22'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23m)'/%3E%3C/svg%3E");
 
   --space-1: 2.8px;
   --space-2: 5.6px;
@@ -73,17 +88,22 @@
   --radius-md: 8px;
   --radius-lg: 14px;
 
-  /* Elevation — derived from the ground: soft ink-tinted shadows on a
-     light theme, a hairline edge + ambient darkness on a dark one. */
-  --shadow-sm: 0 0 0 1px #3f424d;
-  --shadow-md: 0 0 0 1px #595d6c, 0 6px 18px rgba(0,0,0,0.55);
-  --shadow-lg: 0 0 0 1px #9397ab, 0 16px 40px rgba(0,0,0,0.65);
+  /* Elevation — soft ink-tinted shadows for a light paper ground. */
+  --shadow-sm: 0 0 0 1px color-mix(in srgb, #3a2c1a 16%, transparent);
+  --shadow-md: 0 0 0 1px color-mix(in srgb, #3a2c1a 20%, transparent), 0 6px 18px rgba(60,40,15,0.18);
+  --shadow-lg: 0 0 0 1px color-mix(in srgb, #3a2c1a 26%, transparent), 0 16px 40px rgba(60,40,15,0.28);
 }
 
 body {
-  background: var(--color-bg);
   color: var(--color-text);
   font-family: var(--font-body);
+  /* paper ground: grain (overlay) + mottle (soft-light) baked over the base
+     colour; fixed so the texture stays put as content scrolls. */
+  background-color: var(--color-bg);
+  background-image: var(--tex-fiber), var(--tex-mottle);
+  background-size: 320px 320px, 700px 700px;
+  background-blend-mode: overlay, soft-light;
+  background-attachment: fixed;
 }
 h1, h2, h3, h4 { font-family: var(--font-heading); font-weight: var(--font-heading-weight); }
 
@@ -107,7 +127,7 @@ h3 { font-size: 25px; }
 h4 { font-size: 20px; }
 h5 { font-size: 16px; }
 h6 { font-size: 13px; }
-h6 { letter-spacing: 0.08em; text-transform: uppercase; }
+h6 { letter-spacing: 0.08em; text-transform: uppercase; font-family: var(--font-label); font-weight: 400; }
 p { margin: 0 0 var(--space-3); }
 a { color: var(--color-accent); text-underline-offset: 3px; }
 img { display: block; max-width: 100%; }
@@ -145,12 +165,26 @@ figcaption {
 }
 .btn svg { display: block; }
 .btn:disabled { opacity: 0.45; cursor: not-allowed; }
-.btn-primary { color: var(--color-accent); border-color: var(--color-accent); }
-.btn-primary:hover { background: color-mix(in srgb, var(--color-accent) 12%, transparent); }
-.btn-primary:active { background: color-mix(in srgb, var(--color-accent) 22%, transparent); }
-.btn-secondary { border-color: var(--color-divider); }
-.btn-secondary:hover { background: color-mix(in srgb, var(--color-text) 7%, transparent); }
-.btn-secondary:active { background: color-mix(in srgb, var(--color-text) 14%, transparent); }
+/* Primary — a filled oxblood "letterpress" button: solid rubrication fill,
+   pale ink text, a hard bottom edge in the deepest oxblood so it reads as
+   pressed into the page. Uppercase Cinzel with tracking, like a chapter head. */
+.btn-primary {
+  color: var(--color-accent-900);
+  background-image: linear-gradient(180deg, var(--color-accent), var(--color-accent-200));
+  border-color: var(--color-accent-100);
+  text-transform: uppercase; letter-spacing: 0.06em;
+  box-shadow: 0 2px 0 var(--color-accent-100), 0 6px 14px -7px rgba(50,30,10,0.5);
+}
+.btn-primary:hover { filter: brightness(1.07); }
+.btn-primary:active { transform: translateY(1px); box-shadow: 0 1px 0 var(--color-accent-100); }
+.btn-primary:disabled { filter: none; }
+/* Secondary — a bordered vellum button: ink text inside a warm rule. */
+.btn-secondary {
+  border-color: var(--color-neutral-400);
+  text-transform: uppercase; letter-spacing: 0.05em;
+}
+.btn-secondary:hover { background: color-mix(in srgb, var(--color-accent) 8%, transparent); border-color: var(--color-accent); }
+.btn-secondary:active { background: color-mix(in srgb, var(--color-accent) 14%, transparent); }
 .btn-ghost { color: var(--color-accent); padding-inline: var(--space-1); }
 .btn-ghost:hover { background: color-mix(in srgb, var(--color-accent) 10%, transparent); }
 .btn-ghost:active { background: color-mix(in srgb, var(--color-accent) 18%, transparent); }
@@ -201,9 +235,13 @@ textarea.input { min-height: 90px; resize: vertical; }
 /* — cards — */
 .card {
   display: flex; flex-direction: column; gap: var(--space-2);
-  padding: var(--space-3); border-radius: var(--radius-md); background: var(--color-surface);
+  padding: var(--space-3); border-radius: var(--radius-md);
+  background-color: var(--color-surface);
+  background-image: var(--tex-fiber);
+  background-size: 320px 320px;
+  background-blend-mode: overlay;
 }
-.card-kicker { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-accent); }
+.card-kicker { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-accent); font-family: var(--font-label); }
 .card-title {
   font-family: var(--font-heading); font-weight: var(--font-heading-weight);
   font-size: 17px; line-height: 1.2;
@@ -216,6 +254,54 @@ textarea.input { min-height: 90px; resize: vertical; }
 .elev-sm { box-shadow: var(--shadow-sm); }
 .elev-md { box-shadow: var(--shadow-md); }
 .elev-lg { box-shadow: var(--shadow-lg); }
+
+/* — picks — the selectable option card (races, alt traits, class choices,
+   feats, spells, heritages). Always bordered so it reads as a card even at
+   rest; the chosen state fills with a wash of oxblood and a marginal rule,
+   like an entry ticked in a ledger. `is-warn` marks a would-orphan choice,
+   `is-disabled` a not-yet-selectable one. Carries the paper grain like other
+   surfaces. Layout (padding, flex) stays with the element. */
+.pick {
+  position: relative;
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface);
+  background-image: var(--tex-fiber);
+  background-size: 320px 320px;
+  background-blend-mode: overlay;
+  transition: border-color 0.12s ease, background-color 0.12s ease, box-shadow 0.12s ease;
+}
+.pick.is-clickable { cursor: pointer; }
+.pick.is-clickable:hover { border-color: color-mix(in srgb, var(--color-accent) 45%, var(--color-divider)); }
+.pick.is-sel {
+  border-color: var(--color-accent);
+  background-color: color-mix(in srgb, var(--color-accent) 10%, var(--color-surface));
+  box-shadow: inset 3px 0 0 var(--color-accent);
+}
+.pick.is-warn.is-sel { border-color: var(--warn); box-shadow: inset 3px 0 0 var(--warn); }
+.pick.is-disabled { opacity: 0.55; }
+/* An empty slot awaiting a pick — a dashed oxblood-tinted outline as a cue. */
+.pick.is-empty { border-style: dashed; border-color: color-mix(in srgb, var(--color-accent) 35%, var(--color-divider)); }
+
+/* — mat panels — the framed sections of the play mat (hit points, at a glance,
+   attacks, spells…). On a light ground a bare surface tint is nearly invisible,
+   so each panel gets a warm rule and a soft drop shadow to read as a card laid
+   on the page, plus the shared paper grain. */
+.mat-panel {
+  border: 1px solid color-mix(in srgb, var(--color-text) 26%, transparent);
+  border-radius: 12px;
+  padding: 18px;
+  background-color: var(--color-surface);
+  background-image: var(--tex-fiber);
+  background-size: 320px 320px;
+  background-blend-mode: overlay;
+  /* a gilt inner hairline echoes the framed pages of the mockup, and the drop
+     shadow lifts the panel clearly off the paper ground. */
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-accent-2) 22%, transparent),
+              0 2px 3px rgba(60,40,15,0.06), 0 12px 26px -12px rgba(60,40,15,0.45);
+}
+/* Already-chosen but not the one being previewed — a solid tinted rule, no fill. */
+.pick.is-marked { border-color: color-mix(in srgb, var(--color-accent) 45%, var(--color-divider)); }
 
 /* — tags — */
 .tag {
@@ -277,12 +363,15 @@ textarea.input { min-height: 90px; resize: vertical; }
 .dialog-backdrop {
   position: fixed; inset: 0; display: grid; place-items: center;
   padding: var(--space-4);
-  background: color-mix(in srgb, var(--color-neutral-900) 50%, transparent);
+  background: color-mix(in srgb, #241a0f 55%, transparent); /* dark scrim — independent of the ramp so it dims regardless of theme lightness */
 }
 .dialog {
   width: min(440px, 100%); display: flex; flex-direction: column; gap: var(--space-3);
   padding: var(--space-4); border-radius: var(--radius-lg);
-  background: var(--color-surface); box-shadow: var(--shadow-lg);
+  background-color: var(--color-surface); box-shadow: var(--shadow-lg);
+  background-image: var(--tex-fiber);
+  background-size: 320px 320px;
+  background-blend-mode: overlay;
 }
 .dialog-title {
   font-family: var(--font-heading); font-weight: var(--font-heading-weight);

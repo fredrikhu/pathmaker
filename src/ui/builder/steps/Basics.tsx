@@ -164,7 +164,7 @@ export function BasicsStep({ ch }: { ch: CharCtl }) {
           const rv = racialFor(ab);
           const isExcessFloat = isFloatRace && rv === 0 && floating.includes(ab); // selected but over the cap
           return (
-            <div key={ab} style={{ display: 'grid', gridTemplateColumns: '150px 130px 60px 110px 60px 50px', gap: 8, alignItems: 'center', padding: '7px 4px', borderBottom: '1px solid rgba(233,233,237,.06)' }}>
+            <div key={ab} style={{ display: 'grid', gridTemplateColumns: '150px 130px 60px 110px 60px 50px', gap: 8, alignItems: 'center', padding: '7px 4px', borderBottom: '1px solid var(--color-divider)' }}>
               <span style={{ fontSize: 14 }}>{AB_NAME[ab]} <span className="text-muted" style={{ fontSize: 11 }}>{ab.toUpperCase()}</span></span>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
                 <button className="stepper" style={{ width: 26, height: 26 }} onClick={() => setBase(ab, -1)}>−</button>
@@ -179,10 +179,10 @@ export function BasicsStep({ ch }: { ch: CharCtl }) {
                       title={isExcessFloat ? 'Extra pick — not applied. Click to remove.' : undefined}
                       style={rv ? { background: 'var(--color-accent-800)', color: 'var(--color-accent-100)', padding: '3px 9px', borderRadius: 6, fontSize: 11, cursor: 'pointer', border: 'none', fontFamily: 'inherit' }
                         : isExcessFloat ? { background: 'var(--warn-bg)', color: 'var(--warn-fg)', padding: '3px 9px', borderRadius: 6, fontSize: 11, cursor: 'pointer', border: 'none', fontFamily: 'inherit' }
-                        : { color: 'var(--color-neutral-700)', background: 'transparent', border: '1px dashed var(--color-neutral-700)', padding: '3px 9px', borderRadius: 6, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>
+                        : { color: 'var(--color-neutral-500)', background: 'transparent', border: '1px dashed var(--color-neutral-500)', padding: '3px 9px', borderRadius: 6, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>
                       {rv ? `+2 ${race.name}` : isExcessFloat ? '⚠ +2 remove' : 'set +2'}
                     </button>
-                  ) : <span className="num" style={{ fontSize: 13, color: rv ? 'var(--color-text)' : 'var(--color-neutral-600)' }}>{rv ? fmtMod(rv) : '—'}</span>}
+                  ) : <span className="num" style={{ fontSize: 13, color: rv ? 'var(--color-text)' : 'var(--color-neutral-500)' }}>{rv ? fmtMod(rv) : '—'}</span>}
               </span>
               <span className="num" style={{ fontSize: 16, fontWeight: 600 }}>{finalScore(ab)}</span>
               <span className="num" style={{ fontSize: 14, color: 'var(--color-accent-300)' }}>{fmtMod(abilityMod(finalScore(ab)))}</span>

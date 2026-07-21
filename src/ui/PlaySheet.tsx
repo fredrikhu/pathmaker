@@ -373,7 +373,7 @@ export function PlaySheet({ id }: { id: string }) {
       </div>
 
       {/* Encounter & time */}
-      <div style={{ background: 'var(--color-surface)', borderRadius: 12, padding: 18, marginBottom: 18 }}>
+      <div className="mat-panel" style={{ marginBottom: 18 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
           <div className="micro">Encounter</div>
           {inEncounter ? (
@@ -398,7 +398,7 @@ export function PlaySheet({ id }: { id: string }) {
 
         {/* This turn's action economy — only meaningful in combat. Resets each round. */}
         {inEncounter && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 12, paddingTop: 12, borderTop: '1px solid rgba(233,233,237,.07)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--color-divider)' }}>
             <span className="text-muted" style={{ fontSize: 11.5 }}>This turn</span>
             {(['standard', 'move', 'swift'] as const).map((a) => {
               const used = play.actionsUsed[a] === true;
@@ -409,7 +409,7 @@ export function PlaySheet({ id }: { id: string }) {
                     fontSize: 11, padding: '3px 10px', borderRadius: 999, cursor: 'pointer', fontFamily: 'inherit',
                     textTransform: 'capitalize',
                     border: `1px solid ${used ? 'var(--color-divider)' : 'var(--color-accent-300)'}`,
-                    background: used ? 'transparent' : 'rgba(145,132,217,.14)',
+                    background: used ? 'transparent' : 'color-mix(in srgb, var(--color-accent) 14%, transparent)',
                     color: used ? 'var(--color-neutral-500)' : 'var(--color-text)',
                     textDecoration: used ? 'line-through' : 'none',
                   }}>
@@ -532,7 +532,7 @@ export function PlaySheet({ id }: { id: string }) {
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 18 }}>
         {/* HP tracker */}
-        <div style={{ background: 'var(--color-surface)', borderRadius: 12, padding: 18 }}>
+        <div className="mat-panel">
           <div className="micro" style={{ marginBottom: 8 }}>Hit Points</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
@@ -570,7 +570,7 @@ export function PlaySheet({ id }: { id: string }) {
 
           {/* Typed damage. The quick −5/−1 buttons stay for the common case; this is the entry that
               knows what hit you, so damage reduction and energy resistance can apply themselves. */}
-          <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid rgba(233,233,237,.07)' }}>
+          <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--color-divider)' }}>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
               <input className="input" style={{ width: 58, padding: '3px 5px', textAlign: 'center', fontSize: 12 }} type="number" min={0}
                 placeholder="dmg" value={incomingAmount} onChange={(e) => setIncomingAmount(e.target.value)}
@@ -591,7 +591,7 @@ export function PlaySheet({ id }: { id: string }) {
                     style={{
                       fontSize: 10.5, padding: '2px 7px', borderRadius: 999, cursor: 'pointer', fontFamily: 'inherit',
                       border: `1px solid ${on ? 'var(--color-accent)' : 'var(--color-divider)'}`,
-                      background: on ? 'rgba(145,132,217,.14)' : 'transparent',
+                      background: on ? 'color-mix(in srgb, var(--color-accent) 14%, transparent)' : 'transparent',
                       color: on ? 'var(--color-text)' : 'var(--color-neutral-500)',
                     }}>
                     {on ? '✓ ' : ''}{b}
@@ -613,7 +613,7 @@ export function PlaySheet({ id }: { id: string }) {
         </div>
 
         {/* Quick defenses / offense (read-only from the sheet) */}
-        <div style={{ background: 'var(--color-surface)', borderRadius: 12, padding: 18 }}>
+        <div className="mat-panel">
           <div className="micro" style={{ marginBottom: 10 }}>At a glance</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px 8px' }}>
             {([['AC', 'ac', false], ['Touch', 'ac:touch', false], ['FF', 'ac:ff', false], ['BAB', 'bab', true], ['Init', 'init', true], ['CMD', 'cmd', false]] as const).map(([label, key, mod]) => {
@@ -635,7 +635,7 @@ export function PlaySheet({ id }: { id: string }) {
           </div>
 
           {/* Saving throws, folded into this panel. */}
-          <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid rgba(233,233,237,.07)' }}>
+          <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--color-divider)' }}>
             <div className="micro" style={{ marginBottom: 10 }}>Saving throws</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {(['fort', 'ref', 'will'] as const).map((sv) => {
@@ -666,7 +666,7 @@ export function PlaySheet({ id }: { id: string }) {
                           style={{
                             fontSize: 10.5, padding: '2px 7px', borderRadius: 999, cursor: 'pointer', fontFamily: 'inherit',
                             border: `1px solid ${on ? 'var(--color-accent)' : 'var(--color-divider)'}`,
-                            background: on ? 'rgba(145,132,217,.14)' : 'transparent',
+                            background: on ? 'color-mix(in srgb, var(--color-accent) 14%, transparent)' : 'transparent',
                             color: on ? 'var(--color-text)' : 'var(--color-neutral-500)',
                           }}>
                           {on ? '✓ ' : ''}{fmtMod(c.value)} {c.condition}
@@ -685,7 +685,7 @@ export function PlaySheet({ id }: { id: string }) {
 
       {/* Attacks (per equipped/carried weapon) */}
       {sheet.attacks.length > 0 && (
-        <div style={{ background: 'var(--color-surface)', borderRadius: 12, padding: 18, marginTop: 18 }}>
+        <div className="mat-panel" style={{ marginTop: 18 }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
             <div className="micro">Attacks</div>
             <span className="text-muted" style={{ fontSize: 11.5 }}>iteratives from BAB · weapon feats, enhancement and any declared option folded in · hover for the breakdown</span>
@@ -732,7 +732,7 @@ export function PlaySheet({ id }: { id: string }) {
               });
               return (
                 <div key={`${atk.slot}:${atk.id}:${atk.mode ?? 'normal'}`} onMouseEnter={open} onMouseLeave={tip.leave} onClick={open}
-                  style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', cursor: 'pointer', padding: '4px 0', borderBottom: '1px solid rgba(233,233,237,.05)' }}>
+                  style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', cursor: 'pointer', padding: '4px 0', borderBottom: '1px solid var(--color-divider)' }}>
                   <span style={{ width: 150, fontSize: 13.5, fontWeight: 500 }}>
                     {atk.qualityLabel && <span style={{ color: 'var(--color-accent-300)' }}>{atk.qualityLabel} </span>}
                     {atk.name}
@@ -759,7 +759,7 @@ export function PlaySheet({ id }: { id: string }) {
 
       {/* Roll log */}
       {rolls.length > 0 && (
-        <div style={{ background: 'var(--color-surface)', borderRadius: 12, padding: 18, marginTop: 18 }}>
+        <div className="mat-panel" style={{ marginTop: 18 }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 10, flexWrap: 'wrap' }}>
             <div className="micro">Rolls</div>
             <span className="text-muted" style={{ fontSize: 11.5 }}>most recent first · this session only, not saved with the character</span>
@@ -793,7 +793,7 @@ export function PlaySheet({ id }: { id: string }) {
           ? `${block.className} — ${isPrepared ? 'prepared spells' : 'spell slots / day'}`
           : (isPrepared ? 'Prepared spells' : 'Spell slots / day');
         return (
-          <div key={cls} style={{ background: 'var(--color-surface)', borderRadius: 12, padding: 18, marginTop: 18 }}>
+          <div key={cls} className="mat-panel" style={{ marginTop: 18 }}>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
               <div className="micro">{title}</div>
               <span className="text-muted" style={{ fontSize: 11.5 }}>
@@ -1010,7 +1010,7 @@ export function PlaySheet({ id }: { id: string }) {
 
       {/* Resource pools */}
       {pools.length > 0 && (
-        <div style={{ background: 'var(--color-surface)', borderRadius: 12, padding: 18, marginTop: 18 }}>
+        <div className="mat-panel" style={{ marginTop: 18 }}>
           <div className="micro" style={{ marginBottom: 12 }}>Resources</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {pools.map((pool) => {
@@ -1047,7 +1047,7 @@ export function PlaySheet({ id }: { id: string }) {
 
       {/* Inventory (phase 5) */}
       {sheet.inventory.length > 0 && (
-        <div style={{ background: 'var(--color-surface)', borderRadius: 12, padding: 18, marginTop: 18 }}>
+        <div className="mat-panel" style={{ marginTop: 18 }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
             <div className="micro">Inventory</div>
             <span className="text-muted" style={{ fontSize: 11.5 }}>
@@ -1105,7 +1105,7 @@ export function PlaySheet({ id }: { id: string }) {
       )}
 
       {/* Conditions */}
-      <div style={{ background: 'var(--color-surface)', borderRadius: 12, padding: 18, marginTop: 18 }}>
+      <div className="mat-panel" style={{ marginTop: 18 }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
           <div className="micro">Conditions</div>
           {conditions.length > 0 && <span className="text-muted" style={{ fontSize: 11.5 }}>active penalties are folded into the stats above</span>}
@@ -1135,7 +1135,7 @@ export function PlaySheet({ id }: { id: string }) {
 
       {/* Skills (trained) */}
       {trainedSkills.length > 0 && (
-        <div style={{ background: 'var(--color-surface)', borderRadius: 12, padding: 18, marginTop: 18 }}>
+        <div className="mat-panel" style={{ marginTop: 18 }}>
           <div className="micro" style={{ marginBottom: 10 }}>Skills</div>
           <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
             {trainedSkills.map((sid) => {
@@ -1155,7 +1155,7 @@ export function PlaySheet({ id }: { id: string }) {
       {/* Senses & innate abilities — a reminder for the things that are easy to forget you have:
           racial senses (badges) and innate spell-like abilities (daily uses tracked like a pool). */}
       {(sheet.senses.length > 0 || sheet.spellLikeAbilities.length > 0) && (
-        <div style={{ background: 'var(--color-surface)', borderRadius: 12, padding: 18, marginTop: 18 }}>
+        <div className="mat-panel" style={{ marginTop: 18 }}>
           <div className="micro" style={{ marginBottom: 12 }}>Senses &amp; innate abilities</div>
           {sheet.senses.length > 0 && (
             <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', marginBottom: sheet.spellLikeAbilities.length > 0 ? 14 : 0 }}>

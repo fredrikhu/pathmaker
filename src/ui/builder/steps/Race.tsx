@@ -44,7 +44,8 @@ export function RaceStep({ ch }: { ch: CharCtl }) {
               onDoubleClick={() => selectRace(r.id)}
               onKeyDown={(e) => { if (e.key === 'Enter') { setViewId(r.id); selectRace(r.id); } else if (e.key === ' ') { e.preventDefault(); setViewId(r.id); } }}
               title="Click to preview · double-click or Enter to select"
-              style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 8, background: 'var(--color-surface)', cursor: 'pointer', boxShadow: `inset 0 0 0 1px ${viewId === r.id ? 'var(--color-accent)' : 'transparent'}` }}>
+              className={`pick is-clickable${viewId === r.id ? ' is-sel' : ''}`}
+              style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px' }}>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 13.5, fontWeight: 500 }}>{r.name}</div>
                 <div className="text-muted" style={{ fontSize: 11 }}>{r.sub}</div>
@@ -109,7 +110,7 @@ export function RaceStep({ ch }: { ch: CharCtl }) {
                 const selected = chosenHeritage === h.id;
                 const disabled = view.id !== selectedRace;
                 return (
-                  <div key={h.id} style={{ padding: '11px 13px', borderRadius: 8, background: 'var(--color-surface)', opacity: disabled ? 0.55 : 1, boxShadow: `inset 0 0 0 1px ${selected ? 'var(--color-accent)' : 'transparent'}` }}>
+                  <div key={h.id} className={`pick${selected ? ' is-sel' : ''}${disabled ? ' is-disabled' : ''}`} style={{ padding: '11px 13px' }}>
                     <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
                       <span style={{ fontSize: 13.5, fontWeight: 500, flex: 1 }}>{h.name}</span>
                       <button className="btn btn-ghost" style={{ fontSize: 11.5 }} disabled={disabled} onClick={() => selectHeritage(h.id)}>

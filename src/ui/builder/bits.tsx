@@ -30,11 +30,9 @@ export function OptionCard({ option, selected, onToggle, replacesLabel }: {
   replacesLabel?: string;
 }) {
   const consequence = !!option.wouldInvalidate?.length;
-  const ring = selected
-    ? (consequence ? 'var(--warn)' : 'var(--color-accent)')
-    : 'transparent';
+  const cls = `pick${selected ? ' is-sel' : ''}${consequence ? ' is-warn' : ''}${option.legal ? '' : ' is-disabled'}`;
   return (
-    <div style={{ padding: '11px 13px', borderRadius: 8, background: 'var(--color-surface)', opacity: option.legal ? 1 : 0.55, boxShadow: `inset 0 0 0 1px ${ring}` }}>
+    <div className={cls} style={{ padding: '11px 13px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
         <span style={{ fontSize: 13.5, fontWeight: 500 }}>{option.name}</span>
         {replacesLabel && <span className="tag tag-neutral" style={{ fontSize: 10 }}>replaces {replacesLabel}</span>}

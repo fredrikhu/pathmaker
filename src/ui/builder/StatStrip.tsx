@@ -25,7 +25,7 @@ export function StatStrip({ sheet }: { sheet: Sheet }) {
         const open = tip.card({ kicker: 'Breakdown', title: `${stat.label} ${shown}`, lines: stat.lines, annotations: stat.annotations, related: c.term ? [c.term] : undefined });
         return (
           <div key={c.key} onMouseEnter={open} onMouseLeave={tip.leave} onClick={open}
-            style={{ padding: '8px 15px 9px', cursor: 'pointer', borderRight: '1px solid rgba(233,233,237,.06)', flex: 'none' }}>
+            style={{ padding: '8px 15px 9px', cursor: 'pointer', borderRight: '1px solid var(--color-divider)', flex: 'none' }}>
             <div className="micro">{c.label}</div>
             <div className="num" style={{ fontSize: 17, fontWeight: 600 }}>{shown}</div>
           </div>
@@ -42,7 +42,7 @@ export function StatStrip({ sheet }: { sheet: Sheet }) {
         });
         return (
           <div onMouseEnter={open} onMouseLeave={tip.leave} onClick={open}
-            style={{ padding: '8px 15px 9px', cursor: 'pointer', borderRight: '1px solid rgba(233,233,237,.06)', flex: 'none' }}>
+            style={{ padding: '8px 15px 9px', cursor: 'pointer', borderRight: '1px solid var(--color-divider)', flex: 'none' }}>
             <div className="micro">Speed</div>
             <div className="num" style={{ fontSize: 17, fontWeight: 600, color: s.reducedFrom ? 'var(--warn-fg)' : undefined }}>
               {s.base}

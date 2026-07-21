@@ -1,11 +1,13 @@
 /* Pathmaker additions on top of Nocturne (round-2 handoff README §"New tokens"). */
 
 :root {
-  /* Warning surface pair — every would-invalidate tag, orphaned slot ring, opposition marker. */
-  --warn: oklch(0.75 0.1 80);
-  --warn-fg: oklch(0.82 0.09 80);
-  --warn-bg: color-mix(in srgb, oklch(0.75 0.1 80) 16%, transparent);
-  --err: oklch(0.7 0.11 25);
+  /* Warning surface pair — every would-invalidate tag, orphaned slot ring, opposition marker.
+     Tuned for the light paper ground: a dark amber foreground on a pale amber fill, and a
+     deep red for errors that reads as text/fill on parchment. */
+  --warn: oklch(0.58 0.13 72);
+  --warn-fg: oklch(0.42 0.11 66);
+  --warn-bg: color-mix(in srgb, oklch(0.72 0.13 80) 24%, transparent);
+  --err: oklch(0.52 0.19 27);
   --info: var(--color-neutral-500);
 
   /* Print palette (sheet route only). */
@@ -20,18 +22,18 @@
    The transparent border + padding-box clip slims the webkit thumb and insets it. */
 * {
   scrollbar-width: thin;
-  scrollbar-color: var(--color-neutral-700) transparent;
+  scrollbar-color: var(--color-neutral-500) transparent;
 }
 ::-webkit-scrollbar { width: 12px; height: 12px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: var(--color-neutral-700);
+  background: var(--color-neutral-500);
   border-radius: 8px;
   border: 3px solid transparent;
   background-clip: padding-box;
 }
-::-webkit-scrollbar-thumb:hover { background: var(--color-neutral-600); }
-::-webkit-scrollbar-thumb:active { background: var(--color-neutral-500); }
+::-webkit-scrollbar-thumb:hover { background: var(--color-neutral-400); }
+::-webkit-scrollbar-thumb:active { background: var(--color-neutral-300); }
 ::-webkit-scrollbar-corner { background: transparent; }
 
 @keyframes tipIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
@@ -87,7 +89,8 @@ button.inspect {
 .stepper:disabled { opacity: 0.45; cursor: not-allowed; }
 
 .micro {
-  font-size: 9.5px;
+  font-family: var(--font-label);
+  font-size: 10.5px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--color-neutral-500);

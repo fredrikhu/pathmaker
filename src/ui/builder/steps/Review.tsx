@@ -74,7 +74,7 @@ function StatColumn({ title, ids, sheet }: { title: string; ids: string[]; sheet
         if (!stat) return null;
         const mode = id.startsWith('save') || id === 'bab' || id.startsWith('attack') || id === 'cmb' ? 'mod' : 'plain';
         return (
-          <div key={id} style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 2px', fontSize: 13, borderBottom: '1px solid rgba(233,233,237,.05)' }}>
+          <div key={id} style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 2px', fontSize: 13, borderBottom: '1px solid var(--color-divider)' }}>
             <span style={{ color: 'var(--color-neutral-400)' }}>{stat.label}</span>
             <strong><StatValue stat={stat} mode={mode as 'mod' | 'plain'} /></strong>
           </div>

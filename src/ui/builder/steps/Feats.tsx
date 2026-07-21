@@ -102,10 +102,11 @@ export function FeatsStep({ ch }: { ch: CharCtl }) {
               const isTarget = targetSlot === s.id;
               return (
                 <div key={s.id} onClick={() => setTargetSlot(isTarget ? null : s.id)}
-                  style={{ padding: '10px 12px', borderRadius: 8, background: 'var(--color-surface)', cursor: 'pointer', boxShadow: `inset 0 0 0 1px ${fid ? 'var(--color-divider)' : isTarget ? 'var(--color-accent)' : 'var(--color-accent-800)'}` }}>
+                  className={`pick is-clickable${fid ? '' : isTarget ? ' is-sel' : ' is-empty'}`}
+                  style={{ padding: '10px 12px' }}>
                   <div className="micro" style={{ marginBottom: 3 }}>{s.label}</div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontSize: 13, fontWeight: 500, color: fid ? 'var(--color-text)' : 'var(--color-neutral-600)' }}>
+                    <span style={{ fontSize: 13, fontWeight: 500, color: fid ? 'var(--color-text)' : 'var(--color-neutral-500)' }}>
                       {fid ? featById.get(fid)?.name : (isTarget ? 'Selecting…' : 'Empty')}
                       {fid && featParams[s.id] ? <span className="text-muted" style={{ fontWeight: 400 }}> ({paramName(fid, featParams[s.id])})</span> : null}
                     </span>
@@ -135,7 +136,7 @@ export function FeatsStep({ ch }: { ch: CharCtl }) {
             {resolution.sheet.grantedFeats.map((g) => {
               const f = featById.get(g.featId);
               return (
-                <div key={`${g.featId}-${g.level}`} style={{ padding: '9px 12px', borderRadius: 8, background: 'var(--color-surface)', boxShadow: 'inset 0 0 0 1px var(--color-divider)' }}>
+                <div key={`${g.featId}-${g.level}`} className="pick" style={{ padding: '9px 12px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                     <span style={{ fontSize: 13, fontWeight: 500 }}>{g.name}{g.param?.value ? ` (${paramName(g.featId, g.param.value)})` : ''}</span>
                     <span className="tag tag-neutral" style={{ fontSize: 10 }}>bonus · level {g.level}</span>
@@ -170,7 +171,7 @@ export function FeatsStep({ ch }: { ch: CharCtl }) {
           const f = featById.get(o.id)!;
           const selectedKey = Object.entries(feats).find(([, v]) => v === o.id)?.[0];
           return (
-            <div key={o.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '10px 14px', borderRadius: 8, background: 'var(--color-surface)', opacity: o.legal ? 1 : 0.55, boxShadow: `inset 0 0 0 1px ${selectedKey ? 'var(--color-accent)' : 'transparent'}` }}>
+            <div key={o.id} className={`pick${selectedKey ? ' is-sel' : ''}${o.legal ? '' : ' is-disabled'}`} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '10px 14px' }}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 9, flexWrap: 'wrap' }}>
                   <span style={{ fontSize: 13.5, fontWeight: 500 }}>{f.name}</span>
@@ -194,7 +195,7 @@ export function FeatsStep({ ch }: { ch: CharCtl }) {
           const selected = t.id === drawback || traits.includes(t.id);
           const isDrawback = t.category === 'drawback';
           return (
-            <div key={t.id} style={{ padding: '10px 12px', borderRadius: 8, background: 'var(--color-surface)', boxShadow: `inset 0 0 0 1px ${selected ? 'var(--color-accent)' : 'transparent'}` }}>
+            <div key={t.id} className={`pick${selected ? ' is-sel' : ''}`} style={{ padding: '10px 12px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ fontSize: 13, fontWeight: 500 }}>{t.name}</span>
                 <span className="tag tag-neutral" style={{ fontSize: 10 }}>{t.category}</span>

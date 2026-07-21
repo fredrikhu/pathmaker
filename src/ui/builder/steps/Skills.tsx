@@ -51,7 +51,7 @@ export function SkillsStep({ ch }: { ch: CharCtl }) {
         const r = ranks[sk.id] ?? 0;
         const trainedUnusable = sk.trainedOnly && r === 0;
         return (
-          <div key={sk.id} style={{ display: 'grid', gridTemplateColumns: '260px 56px 140px 70px 70px 1fr', gap: 8, alignItems: 'center', padding: '6px 4px', borderBottom: '1px solid rgba(233,233,237,.06)' }}>
+          <div key={sk.id} style={{ display: 'grid', gridTemplateColumns: '260px 56px 140px 70px 70px 1fr', gap: 8, alignItems: 'center', padding: '6px 4px', borderBottom: '1px solid var(--color-divider)' }}>
             <span style={{ fontSize: 13.5 }}>{sk.name} {classSet.has(sk.id) && <span style={{ color: 'var(--color-accent)', fontSize: 10 }}>●</span>} {acpSet.has(sk.id) && <span style={{ color: 'var(--color-neutral-500)', fontSize: 10 }}>▲</span>}</span>
             <span className="text-muted" style={{ fontSize: 12 }}>{(sk.ability as Ability).toUpperCase()}</span>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>

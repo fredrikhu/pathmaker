@@ -193,7 +193,7 @@ export function EquipmentStep({ ch }: { ch: CharCtl }) {
 
       <div style={{ display: 'flex', gap: 10, marginBottom: 18, flexWrap: 'wrap' }}>
         {([['Armor', equipped.armor], ['Main hand', equipped.mainHand], ['Off hand', equipped.offHand]] as const).map(([k, v]) => (
-          <div key={k} style={{ padding: '9px 14px', borderRadius: 8, background: 'var(--color-surface)', minWidth: 170, boxShadow: 'inset 0 0 0 1px var(--color-divider)' }}>
+          <div key={k} className="pick" style={{ padding: '9px 14px', minWidth: 170 }}>
             <div className="micro">{k}</div>
             <div style={{ fontSize: 13, fontWeight: 500, marginTop: 2 }}>{slotLabel(v)}</div>
           </div>
@@ -207,7 +207,7 @@ export function EquipmentStep({ ch }: { ch: CharCtl }) {
             <div key={g.label} style={{ marginBottom: 16 }}>
               <div style={{ fontSize: 11, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--color-accent)', marginBottom: 6 }}>{g.label}</div>
               {g.items.map((it) => (
-                <div key={it.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '7px 4px', borderBottom: '1px solid rgba(233,233,237,.06)' }}>
+                <div key={it.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '7px 4px', borderBottom: '1px solid var(--color-divider)' }}>
                   <span style={{ flex: 1, fontSize: 13 }}>{it.name} <span className="text-muted" style={{ fontSize: 11 }}>{it.note}</span></span>
                   <span className="num" style={{ fontSize: 12, color: 'var(--color-neutral-400)', width: 64, textAlign: 'right' }}>{it.cost} gp</span>
                   <span className="text-muted" style={{ fontSize: 11, width: 44, textAlign: 'right' }}>{it.weight} lb</span>

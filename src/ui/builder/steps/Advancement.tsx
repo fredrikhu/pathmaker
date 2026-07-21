@@ -134,7 +134,7 @@ export function AdvancementStep({ ch }: { ch: CharCtl }) {
             {sheet.progression.map((row) => {
               const gains = [...row.features, ...row.featSlots.map((f) => `▸ ${f}`)];
               return (
-                <tr key={row.level} style={{ borderTop: '1px solid rgba(233,233,237,.07)' }}>
+                <tr key={row.level} style={{ borderTop: '1px solid var(--color-divider)' }}>
                   <td style={{ ...cell, fontWeight: 600 }} className="num">{row.level}</td>
                   <td style={cell}>
                     {/* Pick the class taken at this level. Level 1 stays tied to the Class step,

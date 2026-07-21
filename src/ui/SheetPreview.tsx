@@ -107,7 +107,7 @@ function Block({ title, rows, sheet }: { title: string; rows: [string, string, '
         const stat = sheet.stats[statId];
         if (!stat) return null;
         return (
-          <div key={statId} style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 2px', fontSize: 13, borderBottom: '1px solid rgba(233,233,237,.05)' }}>
+          <div key={statId} style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 2px', fontSize: 13, borderBottom: '1px solid var(--color-divider)' }}>
             <span style={{ color: 'var(--color-neutral-400)' }}>{label}</span>
             <strong><StatValue stat={stat} mode={mode} label={label} /></strong>
           </div>
@@ -145,7 +145,7 @@ function PrintSheet({ doc, onExit }: { doc: ReturnType<typeof loadCharacter> & o
       </div>
       <div className="print-page" style={{
         width: 794, minHeight: 1123, margin: '0 auto', background: 'var(--paper)', color: 'var(--ink)',
-        padding: '15mm', boxShadow: '0 4px 24px rgba(0,0,0,.4)', fontFamily: 'Inter, sans-serif',
+        padding: '15mm', boxShadow: '0 4px 24px rgba(0,0,0,.4)', fontFamily: 'var(--font-body)',
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', borderBottom: `2px solid var(--ink)`, paddingBottom: 8 }}>
           <div style={{ fontSize: 26, fontWeight: 700 }}>{doc.name}</div>

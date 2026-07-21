@@ -9,7 +9,47 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 **Current state** — branch `main`, working tree clean, **567 tests** passing; run
 `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
-**Latest — favored-class alternative bonuses (selectable + tracked).** The per-level favored-class
+**Latest — Parchment skin, "lean-in" pass (richer components + medium grain).** Building on the skin
+below: the grain preset moved **subtle → medium** (`--tex-fiber` feComponentTransfer slope 0.7→1.15).
+`.btn-primary` is now a **filled oxblood letterpress** button (gradient fill, pale text, hard bottom edge
+in the deepest oxblood, uppercase Cinzel) and `.btn-secondary` a bordered vellum button — both pure CSS,
+so all 65 button sites upgraded at once. New **`.pick`** card class (in nocturne.css) gives every
+selectable option an always-on border + paper grain, with a rich chosen state (oxblood border + wash +
+3px inset rule); variants `.is-clickable`, `.is-warn`, `.is-empty` (dashed cue for empty feat slots),
+`.is-marked` (chosen-but-not-previewed), `.is-disabled`. Converted the ~13 inline "invisible-ring" cards
+to it across `bits.tsx` (OptionCard), Race (list rows + heritages), Class (list rows + EvolutionStepperRow),
+Feats (slots/options/traits/granted), Spells (slot counts + list), Equipment. Fixed two placeholder texts
+that used now-light dark-index neutrals (`neutral-600/700` → `500`: Feats "Empty", Basics float button).
+**Play mat:** its ~11 section panels were a bare `surface` tint indistinguishable from the ground on a
+light theme — replaced the repeated inline `surface/radius/padding` with a **`.mat-panel`** class (warm
+26%-ink rule + gilt inner hairline + drop shadow + grain) so each reads as a framed card laid on the page.
+**Verified:** 567 tests + tsc + build green; browser contrast-swept Race/Class/Feats/Skills/Spells/Basics
+— zero real low-contrast text (filled-button text measured 6.75 against its own gradient; the scanner's
+1.06 "hits" on buttons are a known blind spot — it can't read `background-image` fills). Still no theme
+toggle / page-turn / dark variant (unchanged scope).
+
+**Prior — Parchment skin (visual reskin, replaces Nocturne; skin-only).** The whole app moved from
+the dark "Nocturne" look to an aged-book **Parchment** identity — retuned tokens + fonts + procedural
+texture, no layout/JSX/interaction changes. In `src/styles/nocturne.css`: base tokens are now daylight
+vellum (bg `#ece0c8`, ink `#3a2c1a`, **oxblood** accent `#8a2f24`, gilt second accent); three
+self-hosted OFL faces via `@font-face` (Cinzel headings, IM Fell English body, MedievalSharp labels →
+`--font-label`, files in `src/styles/fonts/`, Vite-bundled — the Inter CDN `@import` is gone); a
+**procedural SVG-feTurbulence** paper grain ("subtle" preset) baked into `body`, `.card`, `.dialog`
+backgrounds via `background-blend-mode`. **Key move:** the three tonal ramps are **inverted** (100 =
+deepest … 900 = palest) because the app was built on a dark theme that uses low ramp steps as
+*foreground text* and high steps as *fills* — inverting flips every foreground/fill pairing together so
+the light theme stays legible without touching ~70 component sites. Fixed alongside: dialog-backdrop
+scrim kept dark (ramp-independent), scrollbar thumb + `.micro` re-pointed for the inverted ramp,
+warn/err semantic colours darkened for paper, ~16 hardcoded UI colours routed through tokens
+(near-white hairlines → `--color-divider`, blurple fills → accent tint), SheetPreview's dead `Inter`
+ref → `--font-body`. **Verified:** 567 tests + tsc + build green; browser contrast-swept Basics/Race/
+Class/Skills/Advancement/PlaySheet/SheetPreview/Roster — **zero elements below 3.0** (e.g. point-buy
+readout 1.55→7.03 after inversion); warn tag 12.8, err 15.8. Two OFL/CC-BY credit line added (footer
+copy pending). **Not done (by the skin-only scope decision):** no theme toggle (parchment is the only
+look, Nocturne replaced), no page-turn transitions, no dark "candlelight" variant — all easy follow-ups.
+Screenshots wedge in the preview pane, so verification was DOM/contrast-measurement based.
+
+**Prior — favored-class alternative bonuses (selectable + tracked).** The per-level favored-class
 reward, previously just +1 HP / +1 skill rank, now offers each core race's **alternative** as a third
 option. `FavoredClassBonusDef { desc, fraction? }` on `RaceDef.favoredClassBonuses` (keyed by class id);
 authored for all **7 core races × 11 CRB classes** (77 entries, verified against raw d20pfsrd — the

@@ -63,7 +63,7 @@ export function SpellsStep({ ch }: { ch: CharCtl }) {
             const n = pickedAt(L).length;
             const full = s.auto || n >= s.count;
             return (
-              <div key={s.id} style={{ padding: '8px 12px', borderRadius: 8, background: 'var(--color-surface)', minWidth: 120, boxShadow: full ? 'none' : 'inset 0 0 0 1px var(--color-accent-800)' }}>
+              <div key={s.id} className={`pick${full ? '' : ' is-empty'}`} style={{ padding: '8px 12px', minWidth: 120 }}>
                 <div className="micro">{L === 0 ? <TermSpan id="cantrip">Cantrips</TermSpan> : `Level ${L}`}</div>
                 <div style={{ fontSize: 13, fontWeight: 500, marginTop: 2 }}>
                   {s.auto ? <>all <span className="text-muted" style={{ fontSize: 11, fontWeight: 400 }}>· in book</span></> : `${n} / ${s.count}`}
@@ -98,7 +98,8 @@ export function SpellsStep({ ch }: { ch: CharCtl }) {
             const full = isFull(sp.level);
             return (
               <div key={sp.id} onClick={() => setViewId(sp.id)}
-                style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 8, background: 'var(--color-surface)', cursor: 'pointer', boxShadow: `inset 0 0 0 1px ${viewId === sp.id ? 'var(--color-accent)' : isPicked ? 'var(--color-accent-800)' : 'transparent'}` }}>
+                className={`pick is-clickable${viewId === sp.id ? ' is-sel' : isPicked ? ' is-marked' : ''}`}
+                style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px' }}>
                 <span className="num" style={{ width: 16, fontSize: 13, color: 'var(--color-neutral-500)', flex: 'none' }}>{sp.level}</span>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

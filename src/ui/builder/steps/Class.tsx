@@ -53,7 +53,8 @@ export function ClassStep({ ch }: { ch: CharCtl }) {
               onDoubleClick={() => setDecision('class', c.id)}
               onKeyDown={(e) => { if (e.key === 'Enter') { setViewId(c.id); setDecision('class', c.id); } else if (e.key === ' ') { e.preventDefault(); setViewId(c.id); } }}
               title="Click to preview · double-click or Enter to select"
-              style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 8, background: 'var(--color-surface)', cursor: 'pointer', boxShadow: `inset 0 0 0 1px ${viewId === c.id ? 'var(--color-accent)' : 'transparent'}` }}>
+              className={`pick is-clickable${viewId === c.id ? ' is-sel' : ''}`}
+              style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px' }}>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 13.5, fontWeight: 500 }}>{c.name}</div>
                 <div className="text-muted" style={{ fontSize: 11 }}>{c.sub}</div>
@@ -189,7 +190,7 @@ function EvolutionStepperRow({ option, count, onAdd, onRemove }: {
   option: SlotOption; count: number; onAdd: () => void; onRemove: () => void;
 }) {
   return (
-    <div style={{ padding: '11px 13px', borderRadius: 8, background: 'var(--color-surface)', opacity: option.legal ? 1 : 0.55, boxShadow: `inset 0 0 0 1px ${count > 0 ? 'var(--color-accent)' : 'transparent'}` }}>
+    <div className={`pick${count > 0 ? ' is-sel' : ''}${option.legal ? '' : ' is-disabled'}`} style={{ padding: '11px 13px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
         <span style={{ fontSize: 13.5, fontWeight: 500 }}>{option.name}</span>
         <span className="tag tag-neutral" style={{ fontSize: 10 }}>repeatable</span>
