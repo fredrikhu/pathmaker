@@ -118,6 +118,10 @@ export function AdvancementStep({ ch }: { ch: CharCtl }) {
           <button className="btn btn-secondary" style={{ fontSize: 12 }} title={`Roll 1d${klass.hitDie} for levels 2–${sheet.level}`}
             onClick={rollAll}>🎲 Roll levels 2–{sheet.level}</button>
         )}
+        {Object.keys(hpRolls).length > 0 && (
+          <button className="btn btn-ghost" style={{ fontSize: 12 }} title="Clear every HP override back to the class average"
+            onClick={() => setDecision('hp-rolls', {})}>↺ Reset HP</button>
+        )}
       </div>
 
       {/* One row per casting class — the two progressions are never merged into one. */}

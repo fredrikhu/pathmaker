@@ -35,6 +35,9 @@ export function SkillsStep({ ch }: { ch: CharCtl }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 14, flexWrap: 'wrap' }}>
         <h3 style={{ fontSize: 21, margin: 0 }}>Skills</h3>
         <span style={{ fontSize: 12, color: left > 0 ? 'var(--warn)' : left < 0 ? 'var(--err)' : 'var(--color-accent-300)' }}><strong>{left}</strong> of {sheet.skillRanksTotal} ranks left</span>
+        {Object.values(ranks).some((n) => n > 0) && (
+          <button className="btn btn-ghost" style={{ fontSize: 11.5 }} title="Remove every skill rank" onClick={() => setDecision('skill-ranks', {})}>↺ Clear ranks</button>
+        )}
         <input className="input" style={{ width: 180 }} placeholder="Search skills…" value={query} onChange={(e) => setQuery(e.target.value)} />
         <label className="radio" style={{ fontSize: 12.5 }}>
           <input type="checkbox" checked={classOnly} onChange={(e) => setClassOnly(e.target.checked)} />

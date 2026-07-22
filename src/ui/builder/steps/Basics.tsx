@@ -150,6 +150,10 @@ export function BasicsStep({ ch }: { ch: CharCtl }) {
                 <div style={{ width: `${Math.round((spent / poolTotal) * 100)}%`, height: '100%', background: poolLeft < 0 ? 'var(--err)' : 'var(--color-accent)' }} />
               </div>
               <span onMouseEnter={tip.term('pointbuy')} onMouseLeave={tip.leave} onClick={tip.term('pointbuy')} className="term" style={{ fontSize: 12, color: poolLeft < 0 ? 'var(--err)' : 'var(--color-accent-300)' }}>{poolLeft} of {poolTotal} points left</span>
+              {ABILITIES.some((ab) => base[ab] !== 10) && (
+                <button className="btn btn-ghost" style={{ fontSize: 11.5 }} title="Set every score back to 10"
+                  onClick={() => setDecision('ability-base', { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 })}>↺ Reset</button>
+              )}
             </div>
           )}
           {method === 'roll' && <span className="text-muted" style={{ fontSize: 12 }}>Enter your rolled scores with the steppers (4d6 drop lowest, range 3–18).</span>}

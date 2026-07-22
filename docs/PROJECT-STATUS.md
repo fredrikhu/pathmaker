@@ -16,7 +16,9 @@ memoised on the doc; a planning view, not a lock), and each **class feature is a
 its rules text (name→desc map built from each class's `features1`+`features`). #1 (larger text): base 16px +
 `font-size-adjust: 0.52` on the body so IM Fell English's small x-height reads ~18% larger everywhere,
 Cinzel/MedievalSharp opting out. Both browser-verified (fighter-3: 20 rows, greyed future, Weapon Training
-tooltip; no overflow). Remaining friend feedback: #4 reset buttons, #2 archetypes (own project).
+tooltip; no overflow). #4 reset buttons: added conditional "↺" resets — Basics scores→10, Skills clear
+ranks, Advancement reset HP overrides, Feats clear all — each shown only when there's something to reset
+(browser-verified all four). Remaining friend feedback: #2 archetypes (its own project — content+engine).
 
 **Prior — Per-level feat prerequisites (Swedish-friend feedback #5).** Feat prerequisites are now judged
 at the character level the feat is *gained*, not the final level. Before, options and the already-selected

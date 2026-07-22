@@ -178,6 +178,9 @@ export function FeatsStep({ ch }: { ch: CharCtl }) {
           ))}
         </div>
         <button onClick={() => setShowIllegal(!showIllegal)} style={{ padding: '5px 13px', borderRadius: 999, fontSize: 12, cursor: 'pointer', border: '1px solid var(--color-divider)', background: 'transparent', color: showIllegal ? 'var(--color-neutral-400)' : 'var(--color-accent-300)', fontFamily: 'inherit' }}>{showIllegal ? 'Illegal shown dimmed' : 'Illegal hidden — show'}</button>
+        {Object.values(feats).some(Boolean) && (
+          <button className="btn btn-ghost" style={{ fontSize: 12 }} title="Empty every feat slot you filled" onClick={() => setDecision('feats', {})}>↺ Clear feats</button>
+        )}
       </div>
 
       {browseLevel > 1 && (
