@@ -9,7 +9,16 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 **Current state** — branch `main`, working tree clean, **567 tests** passing; run
 `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
-**Latest — Per-level feat prerequisites (Swedish-friend feedback #5).** Feat prerequisites are now judged
+**Latest — Advancement preview + feature tooltips (friend feedback #3); larger text (#1).** The
+Advancement table now shows the **full 1–20 progression**: rows above your current level render greyed and
+read-only under a "Preview — what later levels bring" divider (a level-20 `resolve({...doc, level:20})`
+memoised on the doc; a planning view, not a lock), and each **class feature is a hover/click tooltip** with
+its rules text (name→desc map built from each class's `features1`+`features`). #1 (larger text): base 16px +
+`font-size-adjust: 0.52` on the body so IM Fell English's small x-height reads ~18% larger everywhere,
+Cinzel/MedievalSharp opting out. Both browser-verified (fighter-3: 20 rows, greyed future, Weapon Training
+tooltip; no overflow). Remaining friend feedback: #4 reset buttons, #2 archetypes (own project).
+
+**Prior — Per-level feat prerequisites (Swedish-friend feedback #5).** Feat prerequisites are now judged
 at the character level the feat is *gained*, not the final level. Before, options and the already-selected
 checks used one `predCtx` at the target level, so a feat in your 3rd-level slot that needs BAB +4 counted as
 legal if you'd reach +4 later — RAW requires prereqs met when the feat is taken. New `predCtxAt(dec, L)` in

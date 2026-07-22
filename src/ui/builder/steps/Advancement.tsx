@@ -1,9 +1,11 @@
-import type { CSSProperties } from 'react';
+import { Fragment, useMemo, type CSSProperties } from 'react';
 import type { CharCtl } from '../../Builder';
 import type { Ability } from '../../../engine/types';
 import { ABILITIES, fmtMod } from '../../../engine/types';
 import { fixedHpPerLevel } from '../../../engine/progression';
+import { resolve } from '../../../engine/resolve';
 import { CLASSES, classById, raceById } from '../../../content/index';
+import { useTip } from '../../Tooltip';
 
 type FcbChoice = 'hp' | 'skill' | 'alt';
 
@@ -12,6 +14,25 @@ const ABILITY_INCREASE_LEVELS = new Set([4, 8, 12, 16, 20]);
 export function AdvancementStep({ ch }: { ch: CharCtl }) {
   const { doc, setDecision, resolution } = ch;
   const sheet = resolution.sheet;
+  const tip = useTip();
+
+  // Preview the whole 1–20 progression so you can see what later levels bring before committing.
+  // Rows above the current target level are read-only (raise your level to edit them). Resolving at
+  // 20 assumes future levels continue in the class you'd otherwise take — a planning view, not a lock.
+  const previewProg = useMemo(
+    () => (doc.level >= 20 ? sheet.progression : resolve({ ...doc, level: 20 }).sheet.progression),
+    [doc, sheet.progression],
+  );
+  // Class-feature descriptions (per class) for the hover tooltips in the Features column.
+  const featureDesc = useMemo(() => {
+    const byClass = new Map<string, Map<string, string>>();
+    for (const c of CLASSES) {
+      const m = new Map<string, string>();
+      for (const f of [...c.features1, ...(c.features ?? [])]) if (!m.has(f.name)) m.set(f.name, f.desc);
+      byClass.set(c.id, m);
+    }
+    return byClass;
+  }, []);
   const klass = doc.decisions['class'] ? classById.get(doc.decisions['class'] as string) : undefined;
   const hpRolls = (doc.decisions['hp-rolls'] as Record<number, number>) ?? {};
   const increases = (doc.decisions['ability-increases'] as Record<number, Ability>) ?? {};
@@ -131,15 +152,43 @@ export function AdvancementStep({ ch }: { ch: CharCtl }) {
             </tr>
           </thead>
           <tbody>
-            {sheet.progression.map((row) => {
-              const gains = [...row.features, ...row.featSlots.map((f) => `▸ ${f}`)];
+            {previewProg.map((row) => {
+              const isFuture = row.level > doc.level;
+              const descs = row.classId ? featureDesc.get(row.classId) : undefined;
+              const featureCell = (row.features.length || row.featSlots.length) ? (
+                <span>
+                  {row.features.map((name, i) => {
+                    const d = descs?.get(name);
+                    const open = d ? tip.card({ kicker: 'Class feature', title: name, body: d }) : undefined;
+                    return (
+                      <span key={`f${i}`}>
+                        {i > 0 ? ' · ' : ''}
+                        {open
+                          ? <span className="term" onMouseEnter={open} onMouseLeave={tip.leave} onClick={open}>{name}</span>
+                          : name}
+                      </span>
+                    );
+                  })}
+                  {row.featSlots.map((f, i) => (
+                    <span key={`s${i}`} className="text-muted">{(row.features.length || i > 0) ? ' · ' : ''}▸ {f}</span>
+                  ))}
+                </span>
+              ) : <span className="text-muted">—</span>;
               return (
-                <tr key={row.level} style={{ borderTop: '1px solid var(--color-divider)' }}>
+                <Fragment key={row.level}>
+                  {isFuture && row.level === doc.level + 1 && (
+                    <tr>
+                      <td colSpan={favored ? 10 : 9} style={{ padding: '10px 10px 4px' }}>
+                        <span className="micro" style={{ color: 'var(--color-accent)' }}>Preview — what later levels bring. Raise your level to edit these.</span>
+                      </td>
+                    </tr>
+                  )}
+                <tr style={{ borderTop: '1px solid var(--color-divider)', opacity: isFuture ? 0.6 : 1 }}>
                   <td style={{ ...cell, fontWeight: 600 }} className="num">{row.level}</td>
                   <td style={cell}>
                     {/* Pick the class taken at this level. Level 1 stays tied to the Class step,
                         so there is only ever one place to set the character's first class. */}
-                    {row.level === 1 ? (
+                    {isFuture || row.level === 1 ? (
                       <span className="text-muted">{row.className}</span>
                     ) : (
                       <select className="input" style={{ fontSize: 11.5, padding: '2px 4px', width: '100%' }}
@@ -154,11 +203,15 @@ export function AdvancementStep({ ch }: { ch: CharCtl }) {
                   <td style={cell} className="num">{fmtMod(row.fort)}</td>
                   <td style={cell} className="num">{fmtMod(row.ref)}</td>
                   <td style={cell} className="num">{fmtMod(row.will)}</td>
-                  <td style={{ ...cell, color: 'var(--color-neutral-300)' }}>
-                    {gains.length ? gains.join(' · ') : <span className="text-muted">—</span>}
+                  <td style={{ ...cell, color: 'var(--color-neutral-300)', whiteSpace: 'normal', minWidth: 220 }}>
+                    {featureCell}
                   </td>
                   <td style={cell}>
-                    {(() => {
+                    {isFuture ? (
+                      <span className="text-muted num" title="Average for this class — editable once you reach this level">
+                        {row.level === 1 ? dieAt(row.level) : fixedHpPerLevel(dieAt(row.level))}
+                      </span>
+                    ) : (() => {
                       // 1st level defaults to the max die (RAW); later levels to the class average.
                       // The die is that of the class taken at *this* level, not the primary class.
                       const die = dieAt(row.level);
@@ -186,7 +239,7 @@ export function AdvancementStep({ ch }: { ch: CharCtl }) {
                   {favored && (
                     <td style={cell}>
                       {/* The bonus is earned only on levels taken in the favored class. */}
-                      {row.classId !== doc.decisions['favored-class'] ? <span className="text-muted">—</span> : (
+                      {isFuture || row.classId !== doc.decisions['favored-class'] ? <span className="text-muted">—</span> : (
                         <select className="input" style={{ padding: '3px 5px', fontSize: 12 }}
                           value={fcbByLevel[row.level] ?? overallFcb ?? ''}
                           onChange={(e) => setFcb(row.level, e.target.value as FcbChoice)}>
@@ -199,18 +252,21 @@ export function AdvancementStep({ ch }: { ch: CharCtl }) {
                     </td>
                   )}
                   <td style={cell}>
-                    {ABILITY_INCREASE_LEVELS.has(row.level) ? (
+                    {!ABILITY_INCREASE_LEVELS.has(row.level) ? (
+                      <span className="text-muted">—</span>
+                    ) : isFuture ? (
+                      <span className="num" style={{ color: 'var(--color-accent-300)' }} title="Ability score increase — choose when you reach this level">+1</span>
+                    ) : (
                       <select className="input" style={{ padding: '3px 5px', fontSize: 12 }}
                         value={increases[row.level] ?? ''}
                         onChange={(e) => setIncrease(row.level, e.target.value as Ability)}>
                         <option value="" disabled>choose…</option>
                         {ABILITIES.map((a) => <option key={a} value={a}>{a.toUpperCase()}</option>)}
                       </select>
-                    ) : (
-                      <span className="text-muted">—</span>
                     )}
                   </td>
                 </tr>
+                </Fragment>
               );
             })}
           </tbody>
