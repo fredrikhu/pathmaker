@@ -1981,6 +1981,30 @@ describe('class and race feat grants', () => {
     d = withDecision(d, 'alt-traits', ['elf-fleet-footed']);
     expect(resolve(d).sheet.feats).toContain('run');
   });
+
+  it('the necromancy school grants Power over Undead as a feat choice', () => {
+    let d = base('t-necro', 'human', 'wizard');
+    d = withDecision(d, 'class-choices', { school: ['necromancy'] });
+    const g = resolve(d).sheet.grantedFeats.find((x) => x.name === 'Power over Undead');
+    expect(g).toBeDefined();
+    expect(g!.choice?.options.map((o) => o.id)).toEqual(['command-undead', 'turn-undead']);
+    // Unresolved choice contributes no feat (its prerequisites are bypassed once chosen).
+    expect(resolve(d).sheet.feats).not.toContain('command-undead');
+    expect(resolve(d).sheet.feats).not.toContain('turn-undead');
+    // Picking one grants exactly that feat.
+    const chosen = withDecision(d, 'feat-params', { 'granted-source:wiz-school-necromancy-1': 'turn-undead' });
+    expect(resolve(chosen).sheet.feats).toContain('turn-undead');
+    expect(resolve(chosen).sheet.feats).not.toContain('command-undead');
+  });
+
+  it("the shield order's Stem the Tide grants Stand Still at level 8", () => {
+    let d = base('t-cav', 'human', 'cavalier');
+    d = withDecision(d, 'class-choices', { order: ['shield'] });
+    expect(resolve(d).sheet.feats).not.toContain('stand-still'); // level 1: not yet gained
+    d = atLevel(d, 8);
+    expect(resolve(d).sheet.feats).toContain('stand-still'); // bonus feat, Combat Reflexes prereq bypassed
+    expect(resolve(d).sheet.grantedFeats.some((g) => g.featId === 'stand-still' && g.note === 'from Stem the Tide')).toBe(true);
+  });
 });
 
 describe('Skill Focus folds into the named skill', () => {

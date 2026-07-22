@@ -64,6 +64,7 @@ interface Decisions {
   fcbByLevel: Record<number, FcbChoice>;
   classChoices: Record<string, string[]>; // slotSuffix -> selected ids
   feats: Record<string, string | null>; // slotKey -> featId
+  featParams: Record<string, string>; // param key -> chosen value (weapon/skill/school, or a feat choice)
   traits: string[];
   drawback: string | null;
   skillRanks: Record<string, number>;
@@ -92,6 +93,7 @@ function readDecisions(doc: CharacterDoc): Decisions {
     fcbByLevel: get<Record<number, FcbChoice>>('fcb-by-level', {}),
     classChoices: get<Record<string, string[]>>('class-choices', {}),
     feats: get<Record<string, string | null>>('feats', {}),
+    featParams: get<Record<string, string>>('feat-params', {}),
     traits: get<string[]>('traits', []),
     drawback: get<string | null>('drawback', null),
     skillRanks: get<Record<string, number>>('skill-ranks', {}),
@@ -254,7 +256,11 @@ function sourceFeatures(dec: Decisions): C.LeveledFeatureDef[] {
   const out: C.LeveledFeatureDef[] = [];
   const add = (map: Record<string, C.SourceFeature[]>, sourceId: string | undefined, prefix: string) => {
     const list = sourceId ? map[sourceId] : undefined;
-    if (list) for (const p of list) out.push({ level: p.level, id: `${prefix}-${sourceId}-${p.level}`, name: p.name, desc: p.desc });
+    if (list) for (const p of list) out.push({
+      level: p.level, id: `${prefix}-${sourceId}-${p.level}`, name: p.name, desc: p.desc,
+      ...(p.grantsFeat ? { grantsFeat: p.grantsFeat } : {}),
+      ...(p.grantsFeatChoice ? { grantsFeatChoice: p.grantsFeatChoice } : {}),
+    });
   };
   if (dec.classId === 'sorcerer') add(C.SORCERER_BLOODLINE_POWERS, dec.classChoices['bloodline']?.[0], 'sorc-bl');
   if (dec.classId === 'sorcerer') add(C.SORCERER_BLOODLINE_SPELLS, dec.classChoices['bloodline']?.[0], 'sorc-bl-sp');
@@ -280,8 +286,10 @@ function validFeatIds(dec: Decisions, level: number): string[] {
     .filter(([k, v]) => v && keys.has(k))
     .map(([, v]) => v as string);
   // Class-granted fixed feats count toward the feat set for prerequisites (e.g. monk's Improved
-  // Unarmed Strike enabling Stunning Fist, warpriest's Weapon Focus).
-  return [...chosen, ...allGrantedFeats(dec, level).map((g) => g.featId)];
+  // Unarmed Strike enabling Stunning Fist, warpriest's Weapon Focus). An unresolved feat *choice*
+  // (Power over Undead before you pick) has an empty featId and contributes nothing yet — so the
+  // params must be passed through for the choice to resolve to its chosen feat.
+  return [...chosen, ...allGrantedFeats(dec, level, dec.featParams).map((g) => g.featId).filter(Boolean)];
 }
 
 // Multiclass fan-outs: each class contributes at *its own* level, and the results concatenate.
@@ -296,7 +304,36 @@ function allGrantedFeats(dec: Decisions, level: number, params: Record<string, s
     ...classBreakdown(dec, level).flatMap((c) => grantedFeatsFor(c.klass, c.levels, params)),
     ...talentGrantedFeats(dec, level, params),
     ...raceGrantedFeats(dec, params),
+    ...sourceGrantedFeats(dec, level, params),
   ];
+}
+
+/** Decision key (under `feat-params`) for a source-feature-granted feat's parameter or choice. */
+function sourceGrantParamKey(featureId: string): string { return `granted-source:${featureId}`; }
+
+/** Feats handed out by source features — a bloodline/order/mystery/school ability that grants a feat
+ *  (the shield order's Stem the Tide → Stand Still) or a choice of feats (the necromancy school's
+ *  Power over Undead → Command Undead or Turn Undead). These ride the class-feature list, so they are
+ *  already gated to the levels the character has reached. Prerequisites are bypassed, as bonus feats. */
+function sourceGrantedFeats(dec: Decisions, level: number, params: Record<string, string> = {}): GrantedFeat[] {
+  const out: GrantedFeat[] = [];
+  for (const f of allClassFeatures(dec, level)) {
+    const key = sourceGrantParamKey(f.id);
+    if (f.grantsFeatChoice?.length) {
+      const chosen = f.grantsFeatChoice.includes(params[key]) ? params[key] : null;
+      out.push({
+        level: f.level, featId: chosen ?? '', name: f.name, note: 'bonus feat',
+        choice: { key, value: chosen, options: f.grantsFeatChoice.map((id) => ({ id, name: C.featById.get(id)?.name ?? id })) },
+      });
+    } else if (f.grantsFeat) {
+      const def = C.featById.get(f.grantsFeat);
+      out.push({
+        level: f.level, featId: f.grantsFeat, name: def?.name ?? f.grantsFeat, note: `from ${f.name}`,
+        ...(def?.param ? { param: { key, label: def.param.label, options: def.param.options, value: normalizeParam(f.grantsFeat, params[key]) } } : {}),
+      });
+    }
+  }
+  return out;
 }
 
 /** Decision key (under `feat-params`) for a race-trait-granted feat's parameter. */
@@ -1118,6 +1155,9 @@ function activeFeatParams(doc: CharacterDoc, dec: Decisions, level: number): { f
   // Race-trait-granted feats (half-elf Adaptability → Skill Focus) carry their parameter too.
   for (const g of raceGrantedFeats(dec))
     out.push({ featId: g.featId, param: g.param ? normalizeParam(g.featId, params[g.param.key]) : null });
+  // Source-feature grants (single or a resolved choice) contribute their feat and any parameter.
+  for (const g of sourceGrantedFeats(dec, level, params))
+    if (g.featId) out.push({ featId: g.featId, param: g.param ? normalizeParam(g.featId, params[g.param.key]) : null });
   return out;
 }
 

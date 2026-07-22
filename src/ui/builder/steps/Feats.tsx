@@ -138,7 +138,7 @@ export function FeatsStep({ ch }: { ch: CharCtl }) {
               return (
                 <div key={`${g.featId}-${g.level}`} className="pick" style={{ padding: '9px 12px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: 13, fontWeight: 500 }}>{g.name}{g.param?.value ? ` (${paramName(g.featId, g.param.value)})` : ''}</span>
+                    <span style={{ fontSize: 13, fontWeight: 500 }}>{g.name}{g.param?.value ? ` (${paramName(g.featId, g.param.value)})` : ''}{g.choice?.value ? ` (${featById.get(g.choice.value)?.name})` : ''}</span>
                     <span className="tag tag-neutral" style={{ fontSize: 10 }}>bonus · level {g.level}</span>
                   </div>
                   {g.param && (
@@ -146,6 +146,12 @@ export function FeatsStep({ ch }: { ch: CharCtl }) {
                       <ParamPicker pKey={g.param.key} label={g.param.label} options={g.param.options} value={g.param.value} />
                       {g.note && <span className="text-muted" style={{ fontSize: 11 }}>{g.note}</span>}
                       {!g.param.value && <span style={{ fontSize: 11, color: 'var(--warn-fg)' }}>pick one</span>}
+                    </div>
+                  )}
+                  {g.choice && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 5, flexWrap: 'wrap' }}>
+                      <ParamPicker pKey={g.choice.key} label="feat" options={g.choice.options} value={g.choice.value} />
+                      {!g.choice.value && <span style={{ fontSize: 11, color: 'var(--warn-fg)' }}>pick one</span>}
                     </div>
                   )}
                   {f && <div style={{ fontSize: 12, color: 'var(--color-neutral-400)', marginTop: 2, lineHeight: 1.5 }}>{f.benefit}</div>}

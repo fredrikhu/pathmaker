@@ -3,7 +3,7 @@
 // abilities into the advancement progression once the source is chosen (see resolve.ts →
 // sourceFeatures). Core-scope; sources not listed here fall back to the class's descriptive feature.
 
-export interface SourceFeature { level: number; name: string; desc: string; }
+export interface SourceFeature { level: number; name: string; desc: string; grantsFeat?: string; grantsFeatChoice?: string[]; }
 
 /** Sorcerer bloodline powers, keyed by bloodline id (levels 1/3/9/15/20). */
 export const SORCERER_BLOODLINE_POWERS: Record<string, SourceFeature[]> = {
@@ -75,7 +75,7 @@ export const CAVALIER_ORDER_ABILITIES: Record<string, SourceFeature[]> = {
   ],
   shield: [
     { level: 2, name: 'Resolute', desc: 'Convert some damage to nonlethal while defending the weak.' },
-    { level: 8, name: 'Stem the Tide', desc: 'Gain Stand Still as a bonus feat.' },
+    { level: 8, name: 'Stem the Tide', desc: 'Gain Stand Still as a bonus feat.', grantsFeat: 'stand-still' },
     { level: 15, name: 'Protect the Meek', desc: 'Move to an endangered ally and attack as an immediate action.' },
   ],
   star: [
@@ -330,7 +330,7 @@ export const SCHOOL_POWERS: Record<string, SourceFeature[]> = {
     { level: 8, name: 'Invisibility Field', desc: 'Turn invisible (as greater invisibility) as a swift action for rounds per day.' },
   ],
   necromancy: [
-    { level: 1, name: 'Power over Undead', desc: 'Gain Command Undead or Turn Undead as a bonus feat.' },
+    { level: 1, name: 'Power over Undead', desc: 'Gain Command Undead or Turn Undead as a bonus feat.', grantsFeatChoice: ['command-undead', 'turn-undead'] },
     { level: 1, name: 'Grave Touch', desc: 'A melee touch leaves a living creature shaken, then frightened, a few times per day.' },
     { level: 8, name: 'Life Sight', desc: 'Blindsight that senses living and undead creatures for rounds per day.' },
   ],

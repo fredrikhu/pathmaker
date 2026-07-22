@@ -117,6 +117,12 @@ export interface ClassFeatureDef {
   name: string;
   desc: string;
   effects?: Effect[];
+  /** A feat this feature hands out (source-feature grants like the shield order's Stem the Tide →
+   *  Stand Still). Prerequisites are bypassed, as with any bonus feat. */
+  grantsFeat?: string;
+  /** A choice of feats the feature hands out; the player picks one (the necromancy school's Power
+   *  over Undead → Command Undead or Turn Undead). Prerequisites are bypassed. */
+  grantsFeatChoice?: string[];
 }
 
 /** A class feature tagged with the class level at which it is gained. */

@@ -359,6 +359,10 @@ export interface GrantedFeat {
   /** Feats that take a parameter (Weapon Focus → which weapon) carry the choice here.
    *  `key` is the decision key under `feat-params`; `value` is the chosen option's id. */
   param?: { key: string; label: string; options: { id: string; name: string }[]; value: string | null };
+  /** A grant that lets the player pick *which* feat (Power over Undead → Command Undead or Turn
+   *  Undead). `value` is the chosen feat id, stored under `feat-params[key]`; until it is set,
+   *  `featId` is empty and the grant contributes no feat. */
+  choice?: { key: string; options: { id: string; name: string }[]; value: string | null };
 }
 
 /** One carried item, with what is left of it after play (phase 5). */
