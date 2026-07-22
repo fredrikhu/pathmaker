@@ -1879,19 +1879,21 @@ describe('feat-granting talents (Combat Trick, Weapon Training)', () => {
 
   it('Combat Trick opens a combat-only feat slot', () => {
     const d = rogue({ 'rogue-talent-L2': ['combat-trick'] });
-    const slot = slotOf(d, 'talent-feat-rogue-talent-L2');
+    const slot = slotOf(d, 'feat-talent-rogue-talent-L2');
     expect(slot).toBeDefined();
     expect(slot!.step).toBe('feats');
+    // The Feats step only renders slots whose id starts with `feat`, so the key must follow suit.
+    expect(slot!.id.startsWith('feat')).toBe(true);
     // Combat-only: every offered option is a combat feat, and non-combat feats are absent.
     expect(slot!.options.every((o) => C.featById.get(o.id)?.types.includes('combat'))).toBe(true);
     expect(slot!.options.some((o) => o.id === 'toughness')).toBe(false); // general feat, filtered out
     // An unfilled slot nags like any other feat slot.
-    expect(resolve(d).issues.some((i) => i.slot === 'talent-feat-rogue-talent-L2')).toBe(true);
+    expect(resolve(d).issues.some((i) => i.slot === 'feat-talent-rogue-talent-L2')).toBe(true);
   });
 
   it('a feat placed in the Combat Trick slot takes effect', () => {
     const base = resolve(rogue({ 'rogue-talent-L2': ['combat-trick'] })).sheet.stats['init'].total; // Dex +3
-    const d = rogue({ 'rogue-talent-L2': ['combat-trick'] }, { 'talent-feat-rogue-talent-L2': 'improved-initiative' });
+    const d = rogue({ 'rogue-talent-L2': ['combat-trick'] }, { 'feat-talent-rogue-talent-L2': 'improved-initiative' });
     expect(resolve(d).sheet.feats).toContain('improved-initiative');
     expect(resolve(d).sheet.stats['init'].total).toBe(base + 4); // Improved Initiative
   });
@@ -1916,7 +1918,7 @@ describe('feat-granting talents (Combat Trick, Weapon Training)', () => {
   it('does not grant from a talent picked at a higher, suspended level', () => {
     const d = rogue({ 'rogue-talent-L4': ['weapon-training-talent'] }); // gained at rogue 4, viewed at 2
     expect(granted(d).some((g) => g.featId === 'weapon-focus')).toBe(false);
-    expect(slotOf(rogue({ 'rogue-talent-L4': ['combat-trick'] }), 'talent-feat-rogue-talent-L4')).toBeUndefined();
+    expect(slotOf(rogue({ 'rogue-talent-L4': ['combat-trick'] }), 'feat-talent-rogue-talent-L4')).toBeUndefined();
   });
 });
 

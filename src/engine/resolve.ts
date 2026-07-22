@@ -2005,9 +2005,11 @@ function featSlots(dec: Decisions, race: C.RaceDef | undefined, level: number): 
   }
   // Combat Trick (rogue/slayer talent) opens an extra combat feat slot the player fills. Each talent
   // pick that chose it gets its own slot, keyed off the talent slot so it is stable across levels.
+  // The key starts with `feat-` so it is recognised as a feat slot by the Feats step and the
+  // suspended-level checks, and keeps the talent's `-L<n>` suffix for level grouping.
   for (const { slot, level: l, id } of activeClassChoices(dec, level))
     if (TALENT_FEAT_GRANTS[id]?.combatSlot)
-      out.push({ key: `talent-feat-${slot}`, label: `${TALENT_FEAT_GRANTS[id].label} feat · combat only`, combatOnly: true, level: l, charLevel: l });
+      out.push({ key: `feat-talent-${slot}`, label: `${TALENT_FEAT_GRANTS[id].label} feat · combat only`, combatOnly: true, level: l, charLevel: l });
   return out;
 }
 
