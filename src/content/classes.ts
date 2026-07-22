@@ -5,6 +5,7 @@ import {
   SHIFTER_ASPECTS, SHAMAN_SPIRITS, EIDOLON_EVOLUTIONS,
 } from './subsystems';
 import { CLASS_PROGRESSION } from './class-features';
+import { archetypesForClass } from './archetypes';
 import type { CasterProgression, SpellTable } from '../engine/progression';
 
 // Caster level progression + the verified slots/known table for each casting class. Every class
@@ -511,6 +512,11 @@ for (const c of CLASSES) {
 for (const c of CLASSES) {
   const cfg = CASTER[c.id];
   if (c.spellcasting && cfg) { c.spellcasting.progression = cfg.progression; c.spellcasting.table = cfg.table; }
+}
+// Attach archetypes to their class.
+for (const c of CLASSES) {
+  const arch = archetypesForClass(c.id);
+  if (arch.length) c.archetypes = arch;
 }
 
 // Presented alphabetically. The definitions above are grouped by tier (core / base / hybrid) for

@@ -18,6 +18,13 @@ export function ClassStep({ ch }: { ch: CharCtl }) {
   const classChoices = (doc.decisions['class-choices'] as Record<string, string[]>) ?? {};
   const setChoice = (slotId: string, value: string[]) => setDecision('class-choices', { ...classChoices, [slotId]: value });
   const classSlots = resolution.slots.filter((s) => s.step === 'class');
+  const archetype = (doc.decisions['archetype'] as string | null) ?? null;
+  // Selecting a different class clears any archetype — an archetype belongs to one class.
+  const selectClass = (id: string) => {
+    if (id === selectedClass) return;
+    setDecision('class', id);
+    setDecision('archetype', null);
+  };
 
   const favored = doc.decisions['favored-class'] as string | null;
   const fcb = doc.decisions['fcb'] as string | null;
@@ -50,8 +57,8 @@ export function ClassStep({ ch }: { ch: CharCtl }) {
           {CLASSES.map((c) => (
             <div key={c.id} role="button" tabIndex={0}
               onClick={() => setViewId(c.id)}
-              onDoubleClick={() => setDecision('class', c.id)}
-              onKeyDown={(e) => { if (e.key === 'Enter') { setViewId(c.id); setDecision('class', c.id); } else if (e.key === ' ') { e.preventDefault(); setViewId(c.id); } }}
+              onDoubleClick={() => selectClass(c.id)}
+              onKeyDown={(e) => { if (e.key === 'Enter') { setViewId(c.id); selectClass(c.id); } else if (e.key === ' ') { e.preventDefault(); setViewId(c.id); } }}
               title="Click to preview · double-click or Enter to select"
               className={`pick is-clickable${viewId === c.id ? ' is-sel' : ''}`}
               style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px' }}>
@@ -70,7 +77,7 @@ export function ClassStep({ ch }: { ch: CharCtl }) {
       <div style={{ padding: '4px 26px 4px 0', marginRight: -26, flex: 1, minWidth: 0, overflowY: 'auto', minHeight: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 6, flexWrap: 'wrap' }}>
           <h3 style={{ fontSize: 24, margin: 0 }}>{view.name}</h3>
-          <button className="btn btn-primary" style={{ fontSize: 12 }} onClick={() => setDecision('class', view.id)}>
+          <button className="btn btn-primary" style={{ fontSize: 12 }} onClick={() => selectClass(view.id)}>
             {selectedClass === view.id ? '✓ Selected' : 'Select class'}
           </button>
           {conflict && (() => {
@@ -84,6 +91,24 @@ export function ClassStep({ ch }: { ch: CharCtl }) {
           <span>Good saves <strong>{view.goodSaves.map((s) => s.charAt(0).toUpperCase() + s.slice(1)).join(', ')}</strong></span>
           <span>Skill ranks <strong>{view.skillRanks} + Int</strong></span>
         </div>
+        {view.id === selectedClass && view.archetypes && view.archetypes.length > 0 && (
+          <div style={{ margin: '2px 0 14px' }}>
+            <label className="micro" style={{ display: 'block', marginBottom: 5 }}>Archetype</label>
+            <select className="input" style={{ maxWidth: 340 }} value={archetype ?? ''}
+              onChange={(e) => setDecision('archetype', e.target.value || null)}>
+              <option value="">Standard {view.name} — no archetype</option>
+              {view.archetypes.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+            </select>
+            {(() => {
+              const a = view.archetypes!.find((x) => x.id === archetype);
+              return a ? (
+                <p style={{ fontSize: 12.5, color: 'var(--color-neutral-400)', margin: '6px 0 0', maxWidth: '68ch' }}>
+                  {a.desc} <span className="text-muted">Swaps {a.replaces.length} class feature{a.replaces.length === 1 ? '' : 's'} for its own — see them in the Advancement table.</span>
+                </p>
+              ) : null;
+            })()}
+          </div>
+        )}
         {/* Body prose keeps a measure-based cap so lines stay readable on a wide window; the
             structured lists below are free to use the full panel. */}
         <p style={{ fontSize: 13.5, lineHeight: 1.65, color: 'var(--color-neutral-300)', maxWidth: '68ch' }}>{view.desc}</p>

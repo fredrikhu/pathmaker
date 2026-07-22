@@ -9,7 +9,23 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 **Current state** — branch `main`, working tree clean, **567 tests** passing; run
 `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
-**Latest — Advancement preview + feature tooltips (friend feedback #3); larger text (#1).** The
+**Latest — Archetypes proof-of-concept (friend feedback #2).** The mechanism is in, scoped to Fighter as
+a proof-of-concept per the user's choice. New `ArchetypeDef { classId, name, desc, replaces:[featureId],
+grants:[LeveledFeatureDef] }` on `ClassDef.archetypes`; content in `src/content/archetypes.ts` — **Two-Handed
+Fighter** and **Weapon Master**, verified against d20pfsrd (each swaps Bravery/Armor Training/Weapon Training/
+Armor Mastery for its own abilities; our fighter model treats Armor/Weapon Training as single features, so
+"replaces Armor Training 1–4" maps to the one id). Decision key `archetype`; `readDecisions` reads it;
+`classFeaturesUpTo` drops replaced ids and folds in the grants (only the archetype attached to *that* class
+matches, so multiclass/stale is a no-op). Class-step picker (Standard / archetypes) that clears on class
+change; the swapped features flow through the Advancement preview + tooltips built in #3. 5 tests (golden
+swap/restore for both archetypes + content integrity: replaces reference real feature ids, grant levels 1–20,
+unique grant ids); 604 pass. Browser-verified the picker + swaps (L2 Shattering Strike, L3 Overhand Chop, L20
+Weapon Mastery kept) and reversibility. **Scope/next:** other alterations (proficiencies, class skills,
+spellcasting) are out of the current model; expanding to more classes/archetypes is content batching (verify
+each vs d20pfsrd) — awaiting the user's review of the mechanism. This closes the friend-feedback batch (#5,
+#1, #3, #4, #2 all addressed).
+
+**Prior — Advancement preview + feature tooltips (friend feedback #3); larger text (#1).** The
 Advancement table now shows the **full 1–20 progression**: rows above your current level render greyed and
 read-only under a "Preview — what later levels bring" divider (a level-20 `resolve({...doc, level:20})`
 memoised on the doc; a planning view, not a lock), and each **class feature is a hover/click tooltip** with

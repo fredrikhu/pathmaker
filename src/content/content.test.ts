@@ -863,3 +863,22 @@ describe('cast-time buff parameters', () => {
     expect(at(20, 'acid').absorb!.amount).toBe(120); // capped
   });
 });
+
+describe('archetypes', () => {
+  it('replace real feature ids, grant valid levels, and use unique grant ids', () => {
+    const grantIds: string[] = [];
+    for (const c of C.CLASSES) {
+      for (const a of c.archetypes ?? []) {
+        expect(a.classId).toBe(c.id);
+        const featureIds = new Set((c.features ?? c.features1).map((f) => f.id));
+        for (const rid of a.replaces) expect(featureIds.has(rid), `${a.id} replaces unknown feature ${rid}`).toBe(true);
+        for (const g of a.grants) {
+          expect(g.level, `${a.id} grant ${g.id} level`).toBeGreaterThanOrEqual(1);
+          expect(g.level, `${a.id} grant ${g.id} level`).toBeLessThanOrEqual(20);
+          grantIds.push(g.id);
+        }
+      }
+    }
+    expect(new Set(grantIds).size, 'archetype grant ids are unique').toBe(grantIds.length);
+  });
+});

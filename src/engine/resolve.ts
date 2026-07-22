@@ -56,6 +56,7 @@ interface Decisions {
   alignment: Alignment | null;
   deityId: string | null;
   classId: string | null;
+  archetype: string | null; // archetype id for the (primary) class, if any
   /** The class taken at each character level (index 0 = level 1). Entries may be absent, in
    *  which case that level falls back to `classId` — so single-class documents store nothing. */
   classLevels: (string | null)[];
@@ -87,6 +88,7 @@ function readDecisions(doc: CharacterDoc): Decisions {
     alignment: get<Alignment | null>('alignment', null),
     deityId: get<string | null>('deity', null),
     classId: get<string | null>('class', null),
+    archetype: get<string | null>('archetype', null),
     classLevels: get<(string | null)[]>('class-levels', []),
     favoredClass: get<string | null>('favored-class', null),
     fcbChoice: get<FcbChoice | null>('fcb', null),
@@ -246,7 +248,15 @@ function finalAbilities(dec: Decisions, uptoLevel = Infinity): Record<Ability, n
  *  abilities fixed by an earlier choice (sorcerer bloodline, cavalier order). */
 function classFeaturesUpTo(klass: C.ClassDef | undefined, level: number, dec?: Decisions): C.LeveledFeatureDef[] {
   if (!klass) return [];
-  const src: C.LeveledFeatureDef[] = klass.features ?? klass.features1.map((f) => ({ ...f, level: 1 }));
+  let src: C.LeveledFeatureDef[] = klass.features ?? klass.features1.map((f) => ({ ...f, level: 1 }));
+  // An archetype (belonging to this class) swaps some features for its own — drop the replaced
+  // ids and fold in the grants. Only the archetype attached to *this* class matches, so a stale or
+  // wrong-class archetype simply has no effect.
+  const arch = dec?.archetype ? klass.archetypes?.find((a) => a.id === dec.archetype) : undefined;
+  if (arch) {
+    const replaced = new Set(arch.replaces);
+    src = [...src.filter((f) => !replaced.has(f.id)), ...arch.grants];
+  }
   const extra = dec ? sourceFeatures(dec) : [];
   return [...src, ...extra].filter((f) => f.level <= level).sort((a, b) => a.level - b.level);
 }

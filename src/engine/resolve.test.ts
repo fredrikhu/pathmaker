@@ -3391,3 +3391,45 @@ describe('per-level feat prerequisites', () => {
     expect(optIn(r.slots, 'feat-1', 'weapon-focus')?.legal).toBe(true);
   });
 });
+
+describe('archetypes (fighter proof-of-concept)', () => {
+  function fighter(archetype?: string, level = 20): CharacterDoc {
+    let d = newCharacter('t-arch', 'Val');
+    d = withDecision(d, 'ability-base', { str: 15, dex: 14, con: 14, int: 10, wis: 12, cha: 8 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['str']);
+    d = withDecision(d, 'alignment', 'LN');
+    d = withDecision(d, 'class', 'fighter');
+    if (archetype) d = withDecision(d, 'archetype', archetype);
+    return atLevel(d, level);
+  }
+  const featsAt = (doc: CharacterDoc, level: number) =>
+    resolve(doc).sheet.progression.find((r) => r.level === level)?.features ?? [];
+
+  it('standard fighter keeps Bravery and Armor Training', () => {
+    expect(featsAt(fighter(), 2)).toContain('Bravery +1');
+    expect(featsAt(fighter(), 3)).toContain('Armor Training 1');
+  });
+
+  it('Two-Handed Fighter swaps Bravery→Shattering Strike and Armor Training→Overhand Chop', () => {
+    const d = fighter('two-handed-fighter');
+    expect(featsAt(d, 2)).toContain('Shattering Strike');
+    expect(featsAt(d, 2)).not.toContain('Bravery +1');
+    expect(featsAt(d, 3)).toContain('Overhand Chop');
+    expect(featsAt(d, 3)).not.toContain('Armor Training 1');
+    expect(featsAt(d, 20)).toContain('Weapon Mastery'); // not replaced — stays
+  });
+
+  it('Weapon Master grants its own features and drops the replaced ones', () => {
+    const d = fighter('weapon-master');
+    expect(featsAt(d, 2)).toContain('Weapon Guard');
+    expect(featsAt(d, 5)).toContain('Reliable Strike');
+    expect(featsAt(d, 19)).toContain('Unstoppable Strike');
+    expect(featsAt(d, 19)).not.toContain('Armor Mastery');
+  });
+
+  it('clearing the archetype restores the standard features', () => {
+    expect(featsAt(fighter('weapon-master'), 2)).not.toContain('Bravery +1');
+    expect(featsAt(fighter(), 2)).toContain('Bravery +1');
+  });
+});

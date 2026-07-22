@@ -187,6 +187,19 @@ export interface ClassChoiceDef {
   options?: { id: string; name: string; desc: string }[];
 }
 
+/** A class archetype: removes some of the base class's features and grants alternates in their
+ *  place at set levels. `replaces` lists the class-feature ids removed; `grants` are the leveled
+ *  replacements. Other alterations (proficiencies, class skills, spellcasting) are out of scope for
+ *  the current model. */
+export interface ArchetypeDef {
+  id: string;
+  classId: string;
+  name: string;
+  desc: string;
+  replaces: string[];
+  grants: LeveledFeatureDef[];
+}
+
 export interface ClassDef {
   id: string;
   name: string;
@@ -208,6 +221,8 @@ export interface ClassDef {
   features1: ClassFeatureDef[];
   /** Full per-level feature progression (Part B). When present, supersedes `features1`. */
   features?: LeveledFeatureDef[];
+  /** Archetypes for this class — each swaps a set of class features for alternates. */
+  archetypes?: ArchetypeDef[];
   /** Class bonus feat slots, e.g. fighter at every even level, wizard at 5/10/15/20. */
   bonusFeats?: { levels: number[]; combatOnly?: boolean; label?: string };
   /** Fixed feats the class confers automatically (not player choices), e.g. warpriest's Weapon
