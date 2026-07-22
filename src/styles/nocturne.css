@@ -190,11 +190,18 @@ h1, h2, h3, h4 { font-family: var(--font-heading); font-weight: var(--font-headi
    ══════════════════════════════════════════════════════════════════════ */
 
 *, *::before, *::after { box-sizing: border-box; }
-body { margin: 0; font-size: 15px; line-height: 1.55; font-weight: 400; }
+/* IM Fell English (the body face) has a much smaller x-height than the Inter it
+   replaced, so text read small at the same px. font-size-adjust rescales the body
+   font to a consistent x-height, enlarging ALL body text (inline px included)
+   uniformly; the display/label faces (Cinzel, MedievalSharp) opt out below so they
+   keep their intended size. */
+body { margin: 0; font-size: 16px; line-height: 1.6; font-weight: 400; font-size-adjust: 0.52; }
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-heading); font-weight: var(--font-heading-weight);
   line-height: 1.12; letter-spacing: -0.015em; margin: 0 0 var(--space-2);
+  font-size-adjust: none;
 }
+.btn, .micro, .card-kicker, .tag { font-size-adjust: none; }
 h1 { font-size: 42px; }
 h2 { font-size: 32px; }
 h3 { font-size: 25px; }
