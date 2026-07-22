@@ -9,7 +9,17 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 **Current state** — branch `main`, working tree clean, **567 tests** passing; run
 `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
-**Latest — Candlelight dark variant + Light/Dark/System switch.** Parchment now has a full dark
+**Latest — Builder step order: Class → Race → Basics.** Reordered the creation steps so class and
+race come before Basics (was Basics-first), so by the time you reach Basics the ability rows already show
+racial modifiers and the alignment grid already knows any class constraint. The order is pure data —
+`deriveSteps` in resolve.ts sets the array (also used only for issue-panel grouping); `resolve()` itself is
+order-independent (a pure function of `doc.decisions`), navigation is direct tab-clicks (no Next/Prev
+walker), tests assert step *membership* not sequence, and nothing is persisted — so this is a ~4-line change:
+the array + `Builder.tsx` now opens on `steps[0]` (was hardcoded `'basics'`). The race-owned floating +2
+ability bonus stays rendered in Basics (per decision). 595 tests + tsc + build green; browser-verified the
+tab order and that a character opens on Class.
+
+**Prior — Candlelight dark variant + Light/Dark/System switch.** Parchment now has a full dark
 counterpart and a theme switch. **Theme mechanism:** the rendered theme is `data-theme` on `<html>`
 (`:root[data-theme="dark"]` in nocturne.css/app.css); a controller `src/ui/theme.ts` holds the preference
 (`system|light|dark` in `localStorage['pathmaker:theme']`) and resolves `system` from

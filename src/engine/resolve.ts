@@ -1628,7 +1628,11 @@ function carryingCapacity(str: number, size: 'small' | 'medium'): { light: numbe
 }
 
 function deriveSteps(klass?: C.ClassDef): string[] {
-  const steps = ['basics', 'race', 'class', 'advancement', 'skills', 'feats'];
+  // Class → Race → Basics: pick the class and race first so that by the time you reach
+  // Basics the ability rows already show racial modifiers and the alignment grid already
+  // knows any class constraint. The engine is order-independent (resolve() is a pure function
+  // of decisions), so this array only sets the tab order and the issue-panel grouping.
+  const steps = ['class', 'race', 'basics', 'advancement', 'skills', 'feats'];
   // Only classes that make a spell selection at creation get a Spells step. Prepared-list
   // divine casters (cleric, druid, warpriest) prepare from their whole list daily — nothing
   // to choose at level 1 — so they get no creation-time Spells step.

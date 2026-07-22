@@ -25,11 +25,12 @@ export function Builder({ id }: { id: string }) {
   const initial = loadCharacter(id) ?? newCharacter(id);
   const ch = useCharacter(initial);
   const { doc, resolution } = ch;
-  const [step, setStep] = useState('basics');
+  const [step, setStep] = useState<string | null>(null);
 
-  // Steps not present for this build (e.g. spells for a fighter) fall back to basics.
+  // Steps not present for this build (e.g. spells for a fighter) — and the initial null —
+  // fall back to the first step in the derived order.
   const steps = resolution.steps;
-  const activeStep = steps.includes(step) ? step : 'basics';
+  const activeStep = step && steps.includes(step) ? step : steps[0];
 
   const issuesByStep = (s: string) => resolution.issues.filter((i) => i.step === s);
   const glyph = (s: string): { g: string; color: string } => {
