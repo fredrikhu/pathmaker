@@ -295,7 +295,28 @@ function allGrantedFeats(dec: Decisions, level: number, params: Record<string, s
   return [
     ...classBreakdown(dec, level).flatMap((c) => grantedFeatsFor(c.klass, c.levels, params)),
     ...talentGrantedFeats(dec, level, params),
+    ...raceGrantedFeats(dec, params),
   ];
+}
+
+/** Decision key (under `feat-params`) for a race-trait-granted feat's parameter. */
+function raceGrantParamKey(traitId: string): string { return `granted-race:${traitId}`; }
+
+/** Feats a racial trait hands out (half-elf Adaptability → Skill Focus, half-orc Shaman's Apprentice
+ *  → Endurance, elf Fleet-Footed → Run). Racial traits are gained at 1st level. */
+function raceGrantedFeats(dec: Decisions, params: Record<string, string> = {}): GrantedFeat[] {
+  const { standard, alternates } = activeRacialTraits(dec);
+  const out: GrantedFeat[] = [];
+  for (const t of [...standard, ...alternates]) {
+    if (!t.grantsFeat) continue;
+    const def = C.featById.get(t.grantsFeat);
+    const key = raceGrantParamKey(t.id);
+    out.push({
+      level: 1, featId: t.grantsFeat, name: def?.name ?? t.grantsFeat, note: `from ${t.name}`,
+      ...(def?.param ? { param: { key, label: def.param.label, options: def.param.options, value: normalizeParam(t.grantsFeat, params[key]) } } : {}),
+    });
+  }
+  return out;
 }
 
 /** Every subsystem pick (talent, rage power, hex…) the character has actually reached, with the slot
@@ -1093,6 +1114,9 @@ function activeFeatParams(doc: CharacterDoc, dec: Decisions, level: number): { f
   }
   // Talent-granted feats (Weapon Training → Weapon Focus) carry their weapon choice the same way.
   for (const g of talentGrantedFeats(dec, level))
+    out.push({ featId: g.featId, param: g.param ? normalizeParam(g.featId, params[g.param.key]) : null });
+  // Race-trait-granted feats (half-elf Adaptability → Skill Focus) carry their parameter too.
+  for (const g of raceGrantedFeats(dec))
     out.push({ featId: g.featId, param: g.param ? normalizeParam(g.featId, params[g.param.key]) : null });
   return out;
 }

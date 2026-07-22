@@ -498,6 +498,7 @@ export const CLASS_PROGRESSION: Record<string, ClassProgression> = {
   },
   skald: {
     damageReduction: { levels: [9, 14, 19], bypass: '—' },
+    grantedFeats: [{ level: 1, feat: 'scribe-scroll' }],
     features: [
       f(1, 'skald-knowledge', 'Bardic Knowledge', 'Add half level to all Knowledge checks and use them untrained.'),
       f(1, 'skald-cantrips', 'Cantrips', 'Cast 0-level skald spells at will.'),

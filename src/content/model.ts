@@ -8,6 +8,10 @@ export interface RacialTraitDef {
   effects?: Effect[];
   /** Extra choice slots this trait opens (e.g. human bonus feat). */
   grantsFeatSlot?: string;
+  /** A specific feat this trait hands out (half-elf Adaptability → Skill Focus, half-orc Shaman's
+   *  Apprentice → Endurance). Shown read-only in the Feats step, with a parameter picker when the
+   *  feat needs one. Use `grantsFeatSlot` instead when the choice of feat is the player's. */
+  grantsFeat?: string;
   /** Extra skill ranks per level (human Skilled). */
   skillRanksPerLevel?: number;
   /** Racial Weapon Familiarity. `proficient` grants outright proficiency with those weapons;

@@ -154,7 +154,7 @@ const CORE_RACES: RaceDef[] = [
       { id: 'elf-weapon-familiarity', name: 'Weapon Familiarity', desc: 'Proficient with longbows, longswords, rapiers, and shortbows; treat any weapon with "elven" in its name as martial.', weaponFamiliarity: { proficient: ['longbow', 'comp-longbow', 'longsword', 'rapier', 'shortbow', 'comp-shortbow'], martial: ['elven-curve-blade'] } },
     ],
     altTraits: [
-      { id: 'elf-fleet-footed', name: 'Fleet-Footed', replaces: ['elf-keen-senses', 'elf-weapon-familiarity'], desc: 'Receive Run as a bonus feat and a +2 racial bonus on initiative checks.', effects: [{ target: 'init', type: 'racial', value: 2, note: 'Fleet-Footed (Elf)' }] },
+      { id: 'elf-fleet-footed', name: 'Fleet-Footed', replaces: ['elf-keen-senses', 'elf-weapon-familiarity'], desc: 'Receive Run as a bonus feat and a +2 racial bonus on initiative checks.', grantsFeat: 'run', effects: [{ target: 'init', type: 'racial', value: 2, note: 'Fleet-Footed (Elf)' }] },
       { id: 'elf-dreamspeaker', name: 'Dreamspeaker', replaces: ['elf-immunities'], desc: '+1 to the DC of spells of the divination school and sleep effects cast by the elf.' },
     ],
     favoredClassBonuses: FCB_ALT.elf,
@@ -194,7 +194,7 @@ const CORE_RACES: RaceDef[] = [
     size: 'medium', speed: 30, abilityMods: 'choice',
     traits: [
       { id: 'halfelf-low-light', name: 'Low-Light Vision', desc: 'Half-elves can see twice as far as humans in dim light.', senses: ['Low-light vision'] },
-      { id: 'halfelf-adaptability', name: 'Adaptability', desc: 'Half-elves receive Skill Focus as a bonus feat at 1st level.' },
+      { id: 'halfelf-adaptability', name: 'Adaptability', desc: 'Half-elves receive Skill Focus as a bonus feat at 1st level.', grantsFeat: 'skill-focus' },
       { id: 'halfelf-elf-blood', name: 'Elf Blood', desc: 'Half-elves count as both elves and humans for any effect related to race.' },
       { id: 'halfelf-immunities', name: 'Elven Immunities', desc: 'Immune to magic sleep effects; +2 racial saving throw bonus against enchantment spells and effects.', effects: [{ target: 'save:all', type: 'racial', value: 2, note: 'Elven Immunities', condition: 'vs enchantment' }] },
       { id: 'halfelf-keen-senses', name: 'Keen Senses', desc: '+2 racial bonus on Perception checks.', effects: [{ target: 'skill:perception', type: 'racial', value: 2, note: 'Keen Senses (Half-elf)' }] },
@@ -220,7 +220,7 @@ const CORE_RACES: RaceDef[] = [
     ],
     altTraits: [
       { id: 'halforc-sacred-tattoo', name: 'Sacred Tattoo', replaces: ['halforc-ferocity'], desc: '+1 luck bonus on all saving throws.', effects: [{ target: 'save:all', type: 'luck', value: 1, note: 'Sacred Tattoo' }] },
-      { id: 'halforc-shamans-apprentice', name: "Shaman's Apprentice", replaces: ['halforc-intimidating'], desc: 'Gain Endurance as a bonus feat.' },
+      { id: 'halforc-shamans-apprentice', name: "Shaman's Apprentice", replaces: ['halforc-intimidating'], desc: 'Gain Endurance as a bonus feat.', grantsFeat: 'endurance' },
     ],
     favoredClassBonuses: FCB_ALT['half-orc'],
     languagesAuto: ['common', 'orc'],

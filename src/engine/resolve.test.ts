@@ -1938,6 +1938,51 @@ describe('feat-granting talents (Combat Trick, Weapon Training)', () => {
   });
 });
 
+describe('class and race feat grants', () => {
+  const granted = (d: CharacterDoc) => resolve(d).sheet.grantedFeats;
+
+  function base(id: string, race: string, cls: string): CharacterDoc {
+    let d = newCharacter(id, 'Gr+');
+    d = withDecision(d, 'ability-base', { str: 12, dex: 12, con: 12, int: 10, wis: 10, cha: 10 });
+    d = withDecision(d, 'race', race);
+    d = withDecision(d, 'alignment', 'N');
+    d = withDecision(d, 'class', cls);
+    return d;
+  }
+
+  it('the skald gains Scribe Scroll as a class feat', () => {
+    const d = base('t-skald', 'human', 'skald');
+    expect(granted(d).some((g) => g.featId === 'scribe-scroll')).toBe(true);
+    expect(resolve(d).sheet.feats).toContain('scribe-scroll');
+  });
+
+  it('half-elf Adaptability grants a parameterised Skill Focus that applies', () => {
+    const d = base('t-halfelf', 'half-elf', 'fighter');
+    const sf = granted(d).find((g) => g.featId === 'skill-focus');
+    expect(sf).toBeDefined();
+    expect(sf!.note).toBe('from Adaptability');
+    expect(sf!.param?.key).toBe('granted-race:halfelf-adaptability');
+    // Choosing a skill applies Skill Focus's +3 to it.
+    const withSkill = withDecision(d, 'feat-params', { 'granted-race:halfelf-adaptability': 'perception' });
+    const bump = resolve(withSkill).sheet.stats['skill:perception'].total - resolve(d).sheet.stats['skill:perception'].total;
+    expect(bump).toBe(3);
+  });
+
+  it('half-orc Shaman\'s Apprentice grants Endurance, unlocking Diehard as a prerequisite', () => {
+    let d = base('t-halforc', 'half-orc', 'fighter');
+    d = withDecision(d, 'alt-traits', ['halforc-shamans-apprentice']);
+    expect(resolve(d).sheet.feats).toContain('endurance');
+    const diehard = resolve(d).slots.find((s) => s.id === 'feat-1')?.options.find((o) => o.id === 'diehard');
+    expect(diehard?.legal).toBe(true); // Endurance prerequisite is now met
+  });
+
+  it('elf Fleet-Footed grants the Run feat', () => {
+    let d = base('t-elf', 'elf', 'fighter');
+    d = withDecision(d, 'alt-traits', ['elf-fleet-footed']);
+    expect(resolve(d).sheet.feats).toContain('run');
+  });
+});
+
 describe('Skill Focus folds into the named skill', () => {
   function rogue(params: Record<string, string>, ranks: Record<string, number> = {}): CharacterDoc {
     let d = newCharacter('t-skillfocus', 'Sly');
