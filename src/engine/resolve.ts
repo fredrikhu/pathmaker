@@ -292,6 +292,24 @@ function validFeatIds(dec: Decisions, level: number): string[] {
   return [...chosen, ...allGrantedFeats(dec, level, dec.featParams).map((g) => g.featId).filter(Boolean)];
 }
 
+/** The prerequisite context AS OF a given character level — abilities, BAB, caster level and the
+ *  feat set exactly as they stand at that level. Feat prerequisites are checked against this so a
+ *  feat gained at, say, 3rd level must be legal with your level-3 numbers, not your final ones. */
+function predCtxAt(dec: Decisions, level: number): PredicateCtx {
+  const cls = classBreakdown(dec, level);
+  return {
+    abilities: finalAbilities(dec, level),
+    bab: sumBab(cls.map((c) => ({ bab: c.klass.bab, goodSaves: c.klass.goodSaves, levels: c.levels }))),
+    featIds: validFeatIds(dec, level),
+    raceId: dec.raceId, classId: dec.classId, alignment: dec.alignment,
+    casterLevel: cls.reduce((best, c) => {
+      const p = c.klass.spellcasting;
+      return p ? Math.max(best, casterLevel(p.progression ?? 'full', c.levels)) : best;
+    }, 0),
+    skillRanks: dec.skillRanks,
+  };
+}
+
 // Multiclass fan-outs: each class contributes at *its own* level, and the results concatenate.
 // Single-class characters get exactly the old single-class result.
 
@@ -1810,24 +1828,46 @@ function buildSlotsAndIssues(
   }
 
   // ---------- FEATS ----------
+  // Prerequisites are judged at the character level a feat is GAINED, not the final level — the
+  // feat in your 3rd-level slot must meet its prereqs with your level-3 BAB / abilities / feat set.
+  // Contexts and the derived option lists are memoised per level (slots cluster on a few levels).
   const featSlotKeys = featSlots(dec, race, ctx.level);
-  const featOptions: SlotOption[] = C.FEATS.map((f) => {
-    const legal = !f.prerequisites || evalPredicate(f.prerequisites, predCtx);
-    return {
-      id: f.id, name: f.name, desc: f.benefit, tags: f.types, legal,
-      whyNot: !legal && f.prerequisites ? explainFailure(f.prerequisites, predCtx, displayName) ?? undefined : undefined,
-      meta: { req: f.reqText },
-    };
-  });
+  const ctxCache = new Map<number, PredicateCtx>([[ctx.level, predCtx]]);
+  const ctxAtLevel = (L: number): PredicateCtx => {
+    const key = Math.min(L, ctx.level);
+    let c = ctxCache.get(key);
+    if (!c) { c = predCtxAt(dec, key); ctxCache.set(key, c); }
+    return c;
+  };
+  const optsCache = new Map<number, SlotOption[]>();
+  const optionsAtLevel = (L: number): SlotOption[] => {
+    const key = Math.min(L, ctx.level);
+    let o = optsCache.get(key);
+    if (!o) {
+      const pc = ctxAtLevel(key);
+      o = C.FEATS.map((f) => {
+        const legal = !f.prerequisites || evalPredicate(f.prerequisites, pc);
+        return {
+          id: f.id, name: f.name, desc: f.benefit, tags: f.types, legal,
+          whyNot: !legal && f.prerequisites ? explainFailure(f.prerequisites, pc, displayName) ?? undefined : undefined,
+          meta: { req: f.reqText },
+        };
+      });
+      optsCache.set(key, o);
+    }
+    return o;
+  };
+  const slotLevelByKey = new Map(featSlotKeys.map((fs) => [fs.key, fs.charLevel]));
   for (const fs of featSlotKeys) {
+    const opts = optionsAtLevel(fs.charLevel);
     slots.push({
       id: fs.key, step: 'feats', label: fs.label, count: 1, multi: false,
       selected: dec.feats[fs.key] ? [dec.feats[fs.key]!] : [],
-      options: fs.combatOnly ? featOptions.filter((o) => C.featById.get(o.id)?.types.includes('combat')) : featOptions,
+      options: fs.combatOnly ? opts.filter((o) => C.featById.get(o.id)?.types.includes('combat')) : opts,
     });
     if (!dec.feats[fs.key]) issues.push({ severity: 'info', step: 'feats', slot: fs.key, message: `${fs.label}: empty` });
   }
-  // Broken prereqs on already-selected feats (upstream edit)
+  // Broken prereqs on already-selected feats — checked at the feat's own level (upstream edit).
   for (const [key, fid] of Object.entries(dec.feats)) {
     if (!fid) continue;
     // Feats keyed for a level above the target are suspended (see the advancement notice),
@@ -1835,8 +1875,9 @@ function buildSlotsAndIssues(
     const keyLvl = key.match(/-L(\d+)$/);
     if (keyLvl && Number(keyLvl[1]) > ctx.level) continue;
     const f = C.featById.get(fid);
-    if (f?.prerequisites && !evalPredicate(f.prerequisites, predCtx)) {
-      issues.push({ severity: 'error', step: 'feats', slot: key, clearSlot: `feats.${key}`, message: `${f.name}: ${explainFailure(f.prerequisites, predCtx, displayName)}` });
+    const pc = ctxAtLevel(slotLevelByKey.get(key) ?? ctx.level);
+    if (f?.prerequisites && !evalPredicate(f.prerequisites, pc)) {
+      issues.push({ severity: 'error', step: 'feats', slot: key, clearSlot: `feats.${key}`, message: `${f.name}: ${explainFailure(f.prerequisites, pc, displayName)}` });
     }
     // Orphaned: feat sits in a slot that no longer exists (e.g. Focused Study removed human feat slot).
     if (!featSlotKeys.some((fs) => fs.key === key)) {

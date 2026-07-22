@@ -16,9 +16,17 @@ export function FeatsStep({ ch }: { ch: CharCtl }) {
   const [showIllegal, setShowIllegal] = useState(true);
   const [targetSlot, setTargetSlot] = useState<string | null>(null);
 
-  // Union of all feat options (from the widest slot: the 1st-level feat slot).
-  const generalSlot = featSlots.find((s) => s.id === 'feat-1') ?? featSlots[0];
-  const allOptions: SlotOption[] = generalSlot?.options ?? [];
+  // The picker's legality reflects the slot being filled — prerequisites are judged at the level a
+  // feat is gained. Use the explicitly targeted slot, else the broadest slot (general = the full feat
+  // list) at the highest level, so browsing reads roughly at the character's current capability;
+  // targeting an earlier slot then shows that slot's per-level prerequisites.
+  const maxOpts = featSlots.reduce((m, s) => Math.max(m, s.options.length), 0);
+  const browseSlot =
+    (targetSlot ? featSlots.find((s) => s.id === targetSlot) : undefined) ??
+    [...featSlots].filter((s) => s.options.length === maxOpts).sort((a, b) => slotLevel(b.id) - slotLevel(a.id))[0] ??
+    featSlots[0];
+  const allOptions: SlotOption[] = browseSlot?.options ?? [];
+  const browseLevel = browseSlot ? slotLevel(browseSlot.id) : 1;
 
   const setFeat = (slotKey: string, featId: string | null) => setDecision('feats', { ...feats, [slotKey]: featId });
 
@@ -166,11 +174,18 @@ export function FeatsStep({ ch }: { ch: CharCtl }) {
         <input className="input" style={{ width: 230 }} placeholder="Search feats…" value={query} onChange={(e) => setQuery(e.target.value)} />
         <div style={{ display: 'flex', gap: 6 }}>
           {(['All', 'combat', 'general'] as const).map((t) => (
-            <button key={t} onClick={() => setType(t)} style={{ padding: '5px 13px', borderRadius: 999, fontSize: 12, cursor: 'pointer', border: `1px solid ${typeFilter === t ? 'var(--color-accent)' : 'var(--color-divider)'}`, background: typeFilter === t ? 'rgba(145,132,217,.12)' : 'transparent', color: typeFilter === t ? 'var(--color-accent-300)' : 'var(--color-text)', fontFamily: 'inherit', textTransform: 'capitalize' }}>{t}</button>
+            <button key={t} onClick={() => setType(t)} style={{ padding: '5px 13px', borderRadius: 999, fontSize: 12, cursor: 'pointer', border: `1px solid ${typeFilter === t ? 'var(--color-accent)' : 'var(--color-divider)'}`, background: typeFilter === t ? 'color-mix(in srgb, var(--color-accent) 12%, transparent)' : 'transparent', color: typeFilter === t ? 'var(--color-accent-300)' : 'var(--color-text)', fontFamily: 'inherit', textTransform: 'capitalize' }}>{t}</button>
           ))}
         </div>
         <button onClick={() => setShowIllegal(!showIllegal)} style={{ padding: '5px 13px', borderRadius: 999, fontSize: 12, cursor: 'pointer', border: '1px solid var(--color-divider)', background: 'transparent', color: showIllegal ? 'var(--color-neutral-400)' : 'var(--color-accent-300)', fontFamily: 'inherit' }}>{showIllegal ? 'Illegal shown dimmed' : 'Illegal hidden — show'}</button>
       </div>
+
+      {browseLevel > 1 && (
+        <p className="text-muted" style={{ fontSize: 11.5, margin: '-2px 0 10px' }}>
+          Prerequisites checked at <b style={{ fontWeight: 600 }}>level {browseLevel}</b>
+          {targetSlot ? ' — the slot you’re filling' : ''}. A feat must meet its requirements at the level you gain it.
+        </p>
+      )}
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
         {filtered.map((o) => {

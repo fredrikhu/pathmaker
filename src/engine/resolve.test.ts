@@ -3340,3 +3340,54 @@ describe('favored-class alternative bonus', () => {
     expect(resolve(favoredChar('tiefling', 'fighter', 3, 'alt')).sheet.favoredClassAlt).toBeUndefined();
   });
 });
+
+describe('per-level feat prerequisites', () => {
+  // Wizard is half-BAB: BAB +0 at level 1, +1 at level 3. Weapon Focus needs BAB +1, so it is
+  // illegal in the 1st-level feat slot but legal in the 3rd-level slot — the prereq is judged at
+  // the level the feat is gained, not at the final level.
+  function wiz(feats: Record<string, string> = {}, params: Record<string, string> = {}, level = 3): CharacterDoc {
+    let d = newCharacter('t-perlevel', 'Ellis');
+    d = withDecision(d, 'ability-base', { str: 13, dex: 14, con: 13, int: 15, wis: 12, cha: 10 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['int']);
+    d = withDecision(d, 'alignment', 'N');
+    d = withDecision(d, 'class', 'wizard');
+    d = withDecision(d, 'feats', feats);
+    d = withDecision(d, 'feat-params', params);
+    return atLevel(d, level);
+  }
+  const optIn = (slots: ReturnType<typeof resolve>['slots'], slotId: string, optId: string) =>
+    slots.find((s) => s.id === slotId)?.options.find((o) => o.id === optId);
+
+  it('a BAB +1 feat is illegal in the level-1 slot but legal in the level-3 slot', () => {
+    const r = resolve(wiz());
+    const l1 = optIn(r.slots, 'feat-1', 'weapon-focus');
+    const l3 = optIn(r.slots, 'feat-L3', 'weapon-focus');
+    expect(l1?.legal).toBe(false);
+    expect(l1?.whyNot).toMatch(/BAB \+1/);
+    expect(l3?.legal).toBe(true);
+  });
+
+  it('warns when a feat placed in an early slot fails its prereq at that level', () => {
+    const r = resolve(wiz({ 'feat-1': 'weapon-focus' }));
+    const issue = r.issues.find((i) => i.slot === 'feat-1' && /Weapon Focus/i.test(i.message));
+    expect(issue?.severity).toBe('error');
+    expect(issue?.message).toMatch(/BAB \+1/);
+  });
+
+  it('does not warn when the same feat sits in a slot whose level meets the prereq', () => {
+    const r = resolve(wiz({ 'feat-L3': 'weapon-focus' }));
+    expect(r.issues.some((i) => i.slot === 'feat-L3' && /Weapon Focus/i.test(i.message))).toBe(false);
+  });
+
+  it('is unchanged for level-1 characters (per-level == final): a full-BAB feat is legal at level 1', () => {
+    let d = newCharacter('t-ftr1', 'Val');
+    d = withDecision(d, 'ability-base', { str: 15, dex: 14, con: 14, int: 10, wis: 12, cha: 8 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['str']);
+    d = withDecision(d, 'alignment', 'LN');
+    d = withDecision(d, 'class', 'fighter');
+    const r = resolve(atLevel(d, 1)); // fighter is full-BAB → +1 at level 1
+    expect(optIn(r.slots, 'feat-1', 'weapon-focus')?.legal).toBe(true);
+  });
+});

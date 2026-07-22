@@ -9,7 +9,21 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 **Current state** — branch `main`, working tree clean, **567 tests** passing; run
 `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
-**Latest — Builder step order: Class → Race → Basics.** Reordered the creation steps so class and
+**Latest — Per-level feat prerequisites (Swedish-friend feedback #5).** Feat prerequisites are now judged
+at the character level the feat is *gained*, not the final level. Before, options and the already-selected
+checks used one `predCtx` at the target level, so a feat in your 3rd-level slot that needs BAB +4 counted as
+legal if you'd reach +4 later — RAW requires prereqs met when the feat is taken. New `predCtxAt(dec, L)` in
+resolve.ts rebuilds the context (abilities/BAB/caster level/feat set) at level L; the FEATS section now
+memoises a context + option list per level and validates each slot's options and each placed feat against
+its own `charLevel` (already on `FeatSlotKey`). UI (Feats.tsx): the picker's legality follows the slot being
+filled (targeted slot, else the broadest slot at the highest level) with a caption "Prerequisites checked at
+level N"; also fixed a stray pre-reskin blurple on the type-filter pill. 4 golden tests (illegal in L1 slot /
+legal in L3 slot on a half-BAB wizard, the warn Issue, the no-warn case, level-1 no-regression); 599 pass.
+Browser-verified: a wizard-3 with Weapon Focus in the level-1 slot shows "Requires BAB +1 — you have +0".
+Remaining friend feedback, in order: #1 larger text, #3 advancement preview + tooltips, #4 reset buttons,
+#2 archetypes (own project).
+
+**Prior — Builder step order: Class → Race → Basics.** Reordered the creation steps so class and
 race come before Basics (was Basics-first), so by the time you reach Basics the ability rows already show
 racial modifiers and the alignment grid already knows any class constraint. The order is pure data —
 `deriveSteps` in resolve.ts sets the array (also used only for issue-panel grouping); `resolve()` itself is
