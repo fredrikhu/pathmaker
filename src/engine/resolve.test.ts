@@ -1858,6 +1858,68 @@ describe('Weapon Finesse from class grants', () => {
   });
 });
 
+describe('feat-granting talents (Combat Trick, Weapon Training)', () => {
+  const attack = (d: CharacterDoc, id: string) => resolve(d).sheet.attacks.find((a) => a.id === id)!;
+  const slotOf = (d: CharacterDoc, id: string) => resolve(d).slots.find((s) => s.id === id);
+  const granted = (d: CharacterDoc) => resolve(d).sheet.grantedFeats;
+
+  // Elf rogue: Str 12 (+1), Dex 14 → 16 (+3), rogue BAB +1 at level 2. A rapier is owned for the
+  // Weapon Training case; talents live in `class-choices` under the rogue-talent-L<n> slots.
+  function rogue(talents: Record<string, string[]>, feats: Record<string, string> = {}, params: Record<string, string> = {}): CharacterDoc {
+    let d = newCharacter('t-talent-feat', 'Sly');
+    d = withDecision(d, 'ability-base', { str: 12, dex: 14, con: 12, int: 12, wis: 10, cha: 10 });
+    d = withDecision(d, 'race', 'elf');
+    d = withDecision(d, 'alignment', 'N');
+    d = withDecision(d, 'class', 'rogue');
+    d = withDecision(d, 'class-choices', talents);
+    if (Object.keys(feats).length) d = withDecision(d, 'feats', feats);
+    if (Object.keys(params).length) d = withDecision(d, 'feat-params', params);
+    return { ...atLevel(d, 2), purchases: { rapier: 1 }, equipped: { armor: null, mainHand: 'rapier', offHand: null } };
+  }
+
+  it('Combat Trick opens a combat-only feat slot', () => {
+    const d = rogue({ 'rogue-talent-L2': ['combat-trick'] });
+    const slot = slotOf(d, 'talent-feat-rogue-talent-L2');
+    expect(slot).toBeDefined();
+    expect(slot!.step).toBe('feats');
+    // Combat-only: every offered option is a combat feat, and non-combat feats are absent.
+    expect(slot!.options.every((o) => C.featById.get(o.id)?.types.includes('combat'))).toBe(true);
+    expect(slot!.options.some((o) => o.id === 'toughness')).toBe(false); // general feat, filtered out
+    // An unfilled slot nags like any other feat slot.
+    expect(resolve(d).issues.some((i) => i.slot === 'talent-feat-rogue-talent-L2')).toBe(true);
+  });
+
+  it('a feat placed in the Combat Trick slot takes effect', () => {
+    const base = resolve(rogue({ 'rogue-talent-L2': ['combat-trick'] })).sheet.stats['init'].total; // Dex +3
+    const d = rogue({ 'rogue-talent-L2': ['combat-trick'] }, { 'talent-feat-rogue-talent-L2': 'improved-initiative' });
+    expect(resolve(d).sheet.feats).toContain('improved-initiative');
+    expect(resolve(d).sheet.stats['init'].total).toBe(base + 4); // Improved Initiative
+  });
+
+  it('Weapon Training grants a parameterised Weapon Focus', () => {
+    const d = rogue({ 'rogue-talent-L2': ['weapon-training-talent'] });
+    const wf = granted(d).find((g) => g.featId === 'weapon-focus');
+    expect(wf).toBeDefined();
+    expect(wf!.note).toBe('from Weapon Training');
+    expect(wf!.param?.key).toBe('talent-granted:rogue-talent-L2');
+    expect(resolve(d).sheet.feats).toContain('weapon-focus'); // counts for prerequisites
+  });
+
+  it('the chosen Weapon Training weapon gets the +1', () => {
+    const without = rogue({ 'rogue-talent-L2': ['weapon-training-talent'] });
+    expect(attack(without, 'rapier').bonuses).toEqual([2]); // BAB 1 + Str 1, weapon unset
+    const d = rogue({ 'rogue-talent-L2': ['weapon-training-talent'] }, {}, { 'talent-granted:rogue-talent-L2': 'rapier' });
+    expect(attack(d, 'rapier').bonuses).toEqual([3]); // + Weapon Focus
+    expect(attack(d, 'rapier').attackLines).toContainEqual({ label: 'Weapon Focus', value: 1 });
+  });
+
+  it('does not grant from a talent picked at a higher, suspended level', () => {
+    const d = rogue({ 'rogue-talent-L4': ['weapon-training-talent'] }); // gained at rogue 4, viewed at 2
+    expect(granted(d).some((g) => g.featId === 'weapon-focus')).toBe(false);
+    expect(slotOf(rogue({ 'rogue-talent-L4': ['combat-trick'] }), 'talent-feat-rogue-talent-L4')).toBeUndefined();
+  });
+});
+
 describe('Skill Focus folds into the named skill', () => {
   function rogue(params: Record<string, string>, ranks: Record<string, number> = {}): CharacterDoc {
     let d = newCharacter('t-skillfocus', 'Sly');

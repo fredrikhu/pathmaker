@@ -292,17 +292,56 @@ function allClassFeatures(dec: Decisions, level: number, withDec = true): C.Leve
 }
 
 function allGrantedFeats(dec: Decisions, level: number, params: Record<string, string> = {}): GrantedFeat[] {
-  return classBreakdown(dec, level).flatMap((c) => grantedFeatsFor(c.klass, c.levels, params));
+  return [
+    ...classBreakdown(dec, level).flatMap((c) => grantedFeatsFor(c.klass, c.levels, params)),
+    ...talentGrantedFeats(dec, level, params),
+  ];
 }
 
-/** Every subsystem pick (talent, rage power, hex…) the character has actually reached. Selections
- *  are keyed by slot; a `-L<n>` suffix carries the level a recurring pick belongs to, so picks stored
- *  for levels above the current target stay suspended rather than counting. Bare keys are level-1. */
-function activeClassChoiceIds(dec: Decisions, level: number): Set<string> {
+/** Every subsystem pick (talent, rage power, hex…) the character has actually reached, with the slot
+ *  it came from and the level it was gained. A `-L<n>` suffix on the slot key carries that level, so
+ *  picks stored for levels above the current target stay suspended rather than counting; bare keys
+ *  are level-1. */
+function activeClassChoices(dec: Decisions, level: number): { slot: string; level: number; id: string }[] {
   const levelOf = (key: string): number => { const m = key.match(/-L(\d+)$/); return m ? Number(m[1]) : 1; };
-  const out = new Set<string>();
-  for (const [key, ids] of Object.entries(dec.classChoices))
-    if (levelOf(key) <= level) for (const id of ids) out.add(id);
+  const out: { slot: string; level: number; id: string }[] = [];
+  for (const [slot, ids] of Object.entries(dec.classChoices)) {
+    const l = levelOf(slot);
+    if (l > level) continue;
+    for (const id of ids) out.push({ slot, level: l, id });
+  }
+  return out;
+}
+
+function activeClassChoiceIds(dec: Decisions, level: number): Set<string> {
+  return new Set(activeClassChoices(dec, level).map((c) => c.id));
+}
+
+/** Rogue/slayer talents that hand out a feat. Combat Trick opens a combat feat slot the player fills;
+ *  Weapon Training grants a specific parameterised feat (Weapon Focus). Keyed by talent id, so any
+ *  class whose talent list offers these ids gets them. */
+const TALENT_FEAT_GRANTS: Record<string, { label: string; combatSlot?: true; feat?: string }> = {
+  'combat-trick': { label: 'Combat Trick', combatSlot: true },
+  'weapon-training-talent': { label: 'Weapon Training', feat: 'weapon-focus' },
+};
+
+/** Decision key (under `feat-params`) for a talent-granted feat's parameter. */
+function talentParamKey(slot: string): string { return `talent-granted:${slot}`; }
+
+/** Feats granted by Weapon Training-style talents — a fixed feat (Weapon Focus) with a player-chosen
+ *  parameter, shown read-only in the Feats step exactly like a class-granted feat. */
+function talentGrantedFeats(dec: Decisions, level: number, params: Record<string, string> = {}): GrantedFeat[] {
+  const out: GrantedFeat[] = [];
+  for (const { slot, level: l, id } of activeClassChoices(dec, level)) {
+    const grant = TALENT_FEAT_GRANTS[id];
+    if (!grant?.feat) continue;
+    const def = C.featById.get(grant.feat);
+    const key = talentParamKey(slot);
+    out.push({
+      level: l, featId: grant.feat, name: def?.name ?? grant.feat, note: `from ${grant.label}`,
+      ...(def?.param ? { param: { key, label: def.param.label, options: def.param.options, value: normalizeParam(grant.feat, params[key]) } } : {}),
+    });
+  }
   return out;
 }
 
@@ -1051,6 +1090,9 @@ function activeFeatParams(doc: CharacterDoc, dec: Decisions, level: number): { f
       out.push({ featId: g.feat, param: normalizeParam(g.feat, params[grantedParamKey(g.feat, g.level)]) });
     }
   }
+  // Talent-granted feats (Weapon Training → Weapon Focus) carry their weapon choice the same way.
+  for (const g of talentGrantedFeats(dec, level))
+    out.push({ featId: g.featId, param: g.param ? normalizeParam(g.featId, params[g.param.key]) : null });
   return out;
 }
 
@@ -1961,6 +2003,11 @@ function featSlots(dec: Decisions, race: C.RaceDef | undefined, level: number): 
       });
     }
   }
+  // Combat Trick (rogue/slayer talent) opens an extra combat feat slot the player fills. Each talent
+  // pick that chose it gets its own slot, keyed off the talent slot so it is stable across levels.
+  for (const { slot, level: l, id } of activeClassChoices(dec, level))
+    if (TALENT_FEAT_GRANTS[id]?.combatSlot)
+      out.push({ key: `talent-feat-${slot}`, label: `${TALENT_FEAT_GRANTS[id].label} feat · combat only`, combatOnly: true, level: l, charLevel: l });
   return out;
 }
 
