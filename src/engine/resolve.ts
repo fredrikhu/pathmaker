@@ -317,11 +317,12 @@ function activeClassChoiceIds(dec: Decisions, level: number): Set<string> {
   return new Set(activeClassChoices(dec, level).map((c) => c.id));
 }
 
-/** Rogue/slayer talents that hand out a feat. Combat Trick opens a combat feat slot the player fills;
- *  Weapon Training grants a specific parameterised feat (Weapon Focus). Keyed by talent id, so any
- *  class whose talent list offers these ids gets them. */
-const TALENT_FEAT_GRANTS: Record<string, { label: string; combatSlot?: true; feat?: string }> = {
+/** Rogue/slayer talents that hand out a feat. Combat Trick opens a combat feat slot; the "Feat"
+ *  advanced talent opens an any-feat slot; Weapon Training grants a specific parameterised feat
+ *  (Weapon Focus). Keyed by talent id, so any class whose talent list offers these ids gets them. */
+const TALENT_FEAT_GRANTS: Record<string, { label: string; combatSlot?: true; anySlot?: true; feat?: string }> = {
   'combat-trick': { label: 'Combat Trick', combatSlot: true },
+  'advanced-feat': { label: 'Advanced talent', anySlot: true },
   'weapon-training-talent': { label: 'Weapon Training', feat: 'weapon-focus' },
 };
 
@@ -2003,13 +2004,15 @@ function featSlots(dec: Decisions, race: C.RaceDef | undefined, level: number): 
       });
     }
   }
-  // Combat Trick (rogue/slayer talent) opens an extra combat feat slot the player fills. Each talent
-  // pick that chose it gets its own slot, keyed off the talent slot so it is stable across levels.
-  // The key starts with `feat-` so it is recognised as a feat slot by the Feats step and the
-  // suspended-level checks, and keeps the talent's `-L<n>` suffix for level grouping.
-  for (const { slot, level: l, id } of activeClassChoices(dec, level))
-    if (TALENT_FEAT_GRANTS[id]?.combatSlot)
-      out.push({ key: `feat-talent-${slot}`, label: `${TALENT_FEAT_GRANTS[id].label} feat · combat only`, combatOnly: true, level: l, charLevel: l });
+  // Talents that open a feat slot (Combat Trick → combat feat; the "Feat" advanced talent → any feat)
+  // the player fills. Each talent pick that chose one gets its own slot, keyed off the talent slot so
+  // it is stable across levels. The key starts with `feat-` so it is recognised as a feat slot by the
+  // Feats step and the suspended-level checks, and keeps the talent's `-L<n>` suffix for level grouping.
+  for (const { slot, level: l, id } of activeClassChoices(dec, level)) {
+    const g = TALENT_FEAT_GRANTS[id];
+    if (!g?.combatSlot && !g?.anySlot) continue;
+    out.push({ key: `feat-talent-${slot}`, label: `${g.label} feat${g.combatSlot ? ' · combat only' : ''}`, combatOnly: !!g.combatSlot, level: l, charLevel: l });
+  }
   return out;
 }
 

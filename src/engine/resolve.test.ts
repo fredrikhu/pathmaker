@@ -1891,6 +1891,22 @@ describe('feat-granting talents (Combat Trick, Weapon Training)', () => {
     expect(resolve(d).issues.some((i) => i.slot === 'feat-talent-rogue-talent-L2')).toBe(true);
   });
 
+  it('the "Feat" advanced talent opens an any-feat slot', () => {
+    // Advanced talents come at rogue 10; the "Feat" talent grants a bonus feat of any type.
+    let d = newCharacter('t-adv-feat', 'Sly');
+    d = withDecision(d, 'ability-base', { str: 12, dex: 14, con: 12, int: 12, wis: 10, cha: 10 });
+    d = withDecision(d, 'race', 'elf');
+    d = withDecision(d, 'alignment', 'N');
+    d = withDecision(d, 'class', 'rogue');
+    d = withDecision(d, 'class-choices', { 'rogue-adv-talent-L10': ['advanced-feat'] });
+    d = atLevel(d, 10);
+    const slot = slotOf(d, 'feat-talent-rogue-adv-talent-L10');
+    expect(slot).toBeDefined();
+    expect(slot!.id.startsWith('feat')).toBe(true);
+    // Not combat-only: a general feat like Toughness is on offer here, unlike the Combat Trick slot.
+    expect(slot!.options.some((o) => o.id === 'toughness')).toBe(true);
+  });
+
   it('a feat placed in the Combat Trick slot takes effect', () => {
     const base = resolve(rogue({ 'rogue-talent-L2': ['combat-trick'] })).sheet.stats['init'].total; // Dex +3
     const d = rogue({ 'rogue-talent-L2': ['combat-trick'] }, { 'feat-talent-rogue-talent-L2': 'improved-initiative' });
