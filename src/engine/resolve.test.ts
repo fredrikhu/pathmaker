@@ -3514,6 +3514,44 @@ describe('archetypes — additional classes', () => {
   });
 });
 
+describe('archetypes — monk (feature-swap only)', () => {
+  const monk = (archetype: string | undefined, level: number): CharacterDoc => {
+    let d = newCharacter('t-monk', 'M');
+    d = withDecision(d, 'ability-base', { str: 14, dex: 14, con: 12, int: 10, wis: 14, cha: 8 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['wis']);
+    d = withDecision(d, 'alignment', 'LN');
+    d = withDecision(d, 'class', 'monk');
+    if (archetype) d = withDecision(d, 'archetype', archetype);
+    return atLevel(d, level);
+  };
+  const featsAt = (doc: CharacterDoc, lvl: number) =>
+    resolve(doc).sheet.progression.find((r) => r.level === lvl)?.features ?? [];
+
+  it('Master of Many Styles swaps flurry for Fuse Style and perfect self for Perfect Style', () => {
+    expect(featsAt(monk(undefined, 20), 1)).toContain('Flurry of Blows');
+    const m = monk('master-of-many-styles', 20);
+    expect(featsAt(m, 1)).toContain('Fuse Style');
+    expect(featsAt(m, 1)).not.toContain('Flurry of Blows');
+    expect(featsAt(m, 8)).toContain('Improved Fuse Style');
+    expect(featsAt(m, 20)).toContain('Perfect Style');
+    expect(featsAt(m, 20)).not.toContain('Perfect Self');
+  });
+
+  it('Zen Archer replaces flurry, stunning fist, and the defensive line with bow features', () => {
+    const z = monk('zen-archer', 17);
+    expect(featsAt(z, 1)).toContain('Flurry of Blows (bows)');
+    expect(featsAt(z, 1)).toContain('Perfect Strike');
+    expect(featsAt(z, 1)).not.toContain('Flurry of Blows');
+    expect(featsAt(z, 1)).not.toContain('Stunning Fist');
+    expect(featsAt(z, 3)).toContain('Zen Archery');
+    expect(featsAt(z, 3)).not.toContain('Maneuver Training');
+    expect(featsAt(z, 3)).not.toContain('Still Mind');
+    expect(featsAt(z, 17)).toContain('Ki Focus Bow');
+    expect(featsAt(z, 17)).not.toContain('Tongue of the Sun and Moon');
+  });
+});
+
 describe('archetypes — caster classes', () => {
   const build = (cls: string, archetype: string | undefined, level: number): CharacterDoc => {
     let d = newCharacter('t-arch3', 'X');

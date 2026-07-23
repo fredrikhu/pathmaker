@@ -9,7 +9,22 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 **Current state** — branch `main`, working tree clean, **567 tests** passing; run
 `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
-**Latest — Archetypes: partial-casting model (Diminished Spellcasting) + Kensai.** Closed the partial-casting
+**Latest — Archetypes: Monk batch (Master of Many Styles, Zen Archer).** Gave the Monk its first archetypes,
+both pure feature swaps (no casting, no new model work). **Master of Many Styles** trades flurry of blows for
+**Fuse Style** (two stances at once; monk bonus feats become style feats) — improving at 8/15 — and perfect
+self for **Perfect Style** (five stances). **Zen Archer** rebuilds the monk around the bow: **Flurry of Blows
+(bows)** and **Perfect Strike** at 1st (replacing flurry and Stunning Fist), then Way of the Bow, **Zen Archery**
+(Wis-to-hit), Point Blank Master, Ki Arrows, Reflexive Shot, Trick Shot, and Ki Focus Bow — replacing evasion,
+maneuver training, still mind, purity of body, improved evasion, diamond body, and tongue of the sun and moon.
+Both keep the monk's bonus-feat slots at their normal levels (the archetypes only narrow *which* feats qualify —
+a list restriction the engine doesn't enforce). Verified vs d20pfsrd. 2 golden tests (MoMS flurry→Fuse Style /
+perfect self→Perfect Style; Zen Archer's bow-feature swaps in and monk defensive line out); 626 pass;
+browser-verified the Monk picker shows both and the Advancement table reflects the Zen Archer swaps. Archetypes
+now span Fighter, Ranger, Rogue, Barbarian, Paladin, Bard, Alchemist, Magus, **Monk** (15 total). **Sensei was
+excluded** — it removes bonus-feat *slots* at 2/6/10/14, a dimension the archetype model doesn't cover yet (a
+bonus-feat-slot change, cousin to the class-skill gap); shipping it would show phantom feat slots.
+
+**Prior — Archetypes: partial-casting model (Diminished Spellcasting) + Kensai.** Closed the partial-casting
 gap so an archetype can keep a class's spellcasting but *adjust* it rather than replace/remove wholesale.
 `SpellcastingDef` gained `diminished?: boolean`; `ArchetypeDef` gained `spellcastingMod?: { diminished?;
 ability?; list? }`, which `effectiveClass` merges onto whatever casting survives (a no-op if casting was

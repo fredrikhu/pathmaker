@@ -207,9 +207,52 @@ export const MAGUS_ARCHETYPES: ArchetypeDef[] = [
   },
 ];
 
+export const MONK_ARCHETYPES: ArchetypeDef[] = [
+  {
+    id: 'master-of-many-styles', classId: 'monk', name: 'Master of Many Styles',
+    desc: 'A collector of fighting styles who fuses several stances at once, seeking a counter for every move.',
+    // Monk bonus feats stay at the same levels (1/2/6/10/14/18); the archetype only narrows them to
+    // style feats — a list restriction the engine doesn't enforce, so the slots are left untouched.
+    replaces: ['monk-flurry', 'monk-perfect-self'],
+    grants: [
+      g(1, 'moms-fuse-style', 'Fuse Style', 'Maintain the stances of two style feats at once, switching between them as a swift action. Your monk bonus feats must be style feats or Elemental Fist, taken without meeting their prerequisites (except Elemental Fist). Replaces flurry of blows.'),
+      g(8, 'moms-fuse-style-improved', 'Improved Fuse Style', 'Maintain three style stances at once and gain a bonus on attack rolls equal to the number of active stances.'),
+      g(15, 'moms-fuse-style-greater', 'Greater Fuse Style', 'Maintain four style stances at once and enter up to four as a free action by spending 1 ki point.'),
+      g(20, 'moms-perfect-style', 'Perfect Style', 'Maintain the stances of five style feats at once, changing them as a free action. Replaces perfect self.'),
+    ],
+  },
+  {
+    id: 'zen-archer', classId: 'monk', name: 'Zen Archer',
+    desc: 'A monk who makes the bow an extension of the self — flurrying arrows and guiding each shot with serene focus.',
+    // Bonus feats remain at the monk's levels but are drawn from a ranged-combat list (not modelled).
+    replaces: [
+      'monk-flurry',            // → Flurry of Blows (bows)
+      'monk-stunning-fist',     // → Perfect Strike
+      'monk-evasion',           // → Way of the Bow
+      'monk-maneuver-training', // → Zen Archery
+      'monk-still-mind',        // → Point Blank Master
+      'monk-purity-of-body',    // → Ki Arrows
+      'monk-improved-evasion',  // → Reflexive Shot
+      'monk-diamond-body',      // → Trick Shot
+      'monk-tongue',            // → Ki Focus Bow
+    ],
+    grants: [
+      g(1, 'zen-flurry', 'Flurry of Blows (bows)', 'Use flurry of blows with any bow, making the additional attacks as ranged attacks. Replaces flurry of blows.'),
+      g(1, 'zen-perfect-strike', 'Perfect Strike', 'Gain Perfect Strike as a bonus feat: spend ki to roll a bow attack twice and take the higher result. Replaces Stunning Fist.'),
+      g(2, 'zen-way-of-the-bow', 'Way of the Bow', 'Gain Weapon Focus with one type of bow at 2nd level and Weapon Specialization with it at 6th. Replaces evasion.'),
+      g(3, 'zen-zen-archery', 'Zen Archery', 'Use your Wisdom modifier instead of your Dexterity modifier on ranged attack rolls with a bow. Replaces maneuver training.'),
+      g(3, 'zen-point-blank-master', 'Point Blank Master', 'Gain Point Blank Master with your chosen bow, so firing it provokes no attacks of opportunity. Replaces still mind.'),
+      g(5, 'zen-ki-arrows', 'Ki Arrows', 'Spend ki to increase your bow’s damage dice to those of your monk unarmed strike. Replaces purity of body.'),
+      g(9, 'zen-reflexive-shot', 'Reflexive Shot', 'Make attacks of opportunity with your bow. Replaces improved evasion.'),
+      g(11, 'zen-trick-shot', 'Trick Shot', 'Spend ki to make ranged trick shots — disarm, feint, and similar maneuvers with your bow. Replaces diamond body.'),
+      g(17, 'zen-ki-focus-bow', 'Ki Focus Bow', 'Treat your bow as a ki focus weapon, delivering your ki-powered abilities through its arrows. Replaces tongue of the sun and moon.'),
+    ],
+  },
+];
+
 export const ARCHETYPES: ArchetypeDef[] = [
   ...FIGHTER_ARCHETYPES, ...RANGER_ARCHETYPES, ...ROGUE_ARCHETYPES, ...BARBARIAN_ARCHETYPES, ...PALADIN_ARCHETYPES,
-  ...BARD_ARCHETYPES, ...ALCHEMIST_ARCHETYPES, ...MAGUS_ARCHETYPES,
+  ...BARD_ARCHETYPES, ...ALCHEMIST_ARCHETYPES, ...MAGUS_ARCHETYPES, ...MONK_ARCHETYPES,
 ];
 export const archetypeById = new Map(ARCHETYPES.map((a) => [a.id, a]));
 export const archetypesForClass = (classId: string): ArchetypeDef[] => ARCHETYPES.filter((a) => a.classId === classId);
