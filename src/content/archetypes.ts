@@ -233,6 +233,19 @@ export const BARD_ARCHETYPES: ArchetypeDef[] = [
 
 export const ALCHEMIST_ARCHETYPES: ArchetypeDef[] = [
   {
+    id: 'chirurgeon', classId: 'alchemist', name: 'Chirurgeon',
+    desc: 'An alchemist who studies anatomy to heal — extracts of cure spells flow to any ally, and death itself can be pushed back.',
+    // Our alchemist models the whole poison-resistance→immunity line as one feature (alch-poison-resistance),
+    // so Anaesthetic (which replaces poison resistance +4) and Power Over Death (which replaces poison
+    // immunity) both map onto that single id; Infused Curative replaces poison use.
+    replaces: ['alch-poison-use', 'alch-poison-resistance'],
+    grants: [
+      g(2, 'chir-infused-curative', 'Infused Curative', 'Your extracts of cure spells automatically act as infusions usable by non-alchemists, and you can render them inert when preparing extracts to reclaim the slots. Replaces poison use.'),
+      g(5, 'chir-anaesthetic', 'Anaesthetic', 'Gain Skill Focus (Heal) as a bonus feat; any Heal check that risks harming the patient deals only minimum damage. Replaces poison resistance +4.'),
+      g(10, 'chir-power-over-death', 'Power Over Death', 'Add breath of life to your formula book as a 4th-level extract, and your infused curative ability applies to it. Replaces poison immunity.'),
+    ],
+  },
+  {
     id: 'vivisectionist', classId: 'alchemist', name: 'Vivisectionist',
     desc: 'A grim experimenter who studies living bodies — trading bombs for a surgeon’s deadly precision.',
     replaces: ['alch-bomb'],
@@ -383,6 +396,22 @@ export const MONK_ARCHETYPES: ArchetypeDef[] = [
 ];
 
 export const CLERIC_ARCHETYPES: ArchetypeDef[] = [
+  {
+    id: 'merciful-healer', classId: 'cleric', name: 'Merciful Healer',
+    desc: 'A master of battlefield revivification — one healing domain, positive channeling that cleanses conditions, and safer casting in the thick of the fight.',
+    // Must take the Healing domain and gains no second domain (RAW forces the specific domain — we model
+    // the count, not the identity), and must channel positive energy.
+    replaces: [],
+    choices: {
+      remove: ['domains'],
+      add: [{ id: 'domains', label: 'Domain (Healing)', kind: 'cleric-domains', count: 1 }],
+    },
+    grants: [
+      g(1, 'mh-combat-medic', 'Combat Medic', 'You do not provoke attacks of opportunity when using the Heal skill to stabilize a creature or when casting healing spells.'),
+      g(3, 'mh-merciful-healing', 'Merciful Healing', 'When you channel positive energy to heal, remove a chosen harmful condition (more conditions and targets at 6th, 9th, and 12th) from creatures in the burst. Paladin mercy feats and effects also apply.'),
+      g(8, 'mh-true-healer', 'True Healer', 'When you channel to heal, choose either to apply merciful healing or to reroll any 1s on the healing dice (decide before rolling).'),
+    ],
+  },
   {
     id: 'cloistered-cleric', classId: 'cleric', name: 'Cloistered Cleric',
     desc: 'A scholar-priest who trades martial training and a measure of divine power for deep learning and the support of allies.',
@@ -774,6 +803,21 @@ export const INVESTIGATOR_ARCHETYPES: ArchetypeDef[] = [
 
 export const ORACLE_ARCHETYPES: ArchetypeDef[] = [
   {
+    id: 'dual-cursed', classId: 'oracle', name: 'Dual-Cursed Oracle',
+    desc: 'An oracle who bears two curses and, in exchange, twists fate itself — forcing rerolls on friend and foe alike.',
+    // Two curses and the Misfortune/Fortune revelations (added to the revelation list, not modelled as a
+    // separate subsystem). The modelled cost/benefit: no additional revelation cost, but two extra
+    // revelation picks at 5th and 13th on top of the normal line. (RAW also swaps three mystery bonus
+    // spells and grants no mystery class skills — not modelled here.)
+    replaces: [],
+    choices: {
+      add: [{ id: 'revelation', label: 'Revelation (dual-cursed bonus)', kind: 'oracle-revelation', count: 1, levels: [5, 13] }],
+    },
+    grants: [
+      g(1, 'dc-dual-curse', 'Dual Curse', 'Choose two oracle’s curses at 1st level; one (your choice) never advances its abilities as you level, while the other progresses normally. You may take Misfortune (force a nearby creature to reroll a d20) and Fortune (reroll one of your own d20s) in place of mystery revelations.'),
+    ],
+  },
+  {
     id: 'warsighted', classId: 'oracle', name: 'Warsighted',
     desc: 'An oracle whose visions are of battle — trading mystic revelations for a warrior’s ever-shifting repertoire.',
     replaces: [],
@@ -836,6 +880,18 @@ export const BLOODRAGER_ARCHETYPES: ArchetypeDef[] = [
 ];
 
 export const SWASHBUCKLER_ARCHETYPES: ArchetypeDef[] = [
+  {
+    id: 'mouser', classId: 'swashbuckler', name: 'Mouser',
+    desc: 'A small, quick duelist who fights from within a giant’s own footprint — darting underfoot to turn size against the enemy.',
+    // Four deed-for-deed swaps (our deeds are one feature each, so these map cleanly).
+    replaces: ['swb-deed-opportune-parry', 'swb-deed-menacing-swordplay', 'swb-deed-targeted-strike', 'swb-deed-bleeding-wound'],
+    grants: [
+      g(1, 'mouser-underfoot-assault', 'Deed: Underfoot Assault', 'Spend 1 panache to slip into a larger foe’s space when it misses you; while there the foe takes −4 to attacks against others and your adjacent allies flank it. Replaces opportune parry and riposte.'),
+      g(3, 'mouser-quick-steal', 'Deed: Quick Steal', 'Spend 1 panache as a swift action when you hit a larger foe with a light or one-handed piercing weapon to attempt a steal combat maneuver without provoking. Replaces menacing swordplay.'),
+      g(7, 'mouser-hamstring', 'Deed: Hamstring', 'With panache, when you hit a larger foe with a light or one-handed piercing weapon, attempt a dirty trick as a swift action that can only stagger. Replaces targeted strike.'),
+      g(11, 'mouser-cats-charge', 'Deed: Cat’s Charge', 'With panache, when you charge a larger foe you may end the charge in any space you can reach, not just the nearest. Replaces bleeding wound.'),
+    ],
+  },
   {
     id: 'inspired-blade', classId: 'swashbuckler', name: 'Inspired Blade',
     desc: 'A duelist who perfects the science of the rapier — reading swordplay like geometry and striking with inspired precision.',

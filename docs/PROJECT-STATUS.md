@@ -9,7 +9,17 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 **Current state** — branch `main`, working tree clean, **567 tests** passing; run
 `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
-**Latest — Engine deferrals closed: Crossblooded + Divine Commander.** The two remaining archetype-model gaps
+**Latest — Archetypes: third-per-class breadth batch 3.** Four more classes brought to a third, all verified vs
+d20pfsrd (browser pane): Swashbuckler **Mouser** (four deed-for-deed swaps — underfoot/steal/hamstring/cat's
+charge), Oracle **Dual-Cursed** (two curses + bonus revelation picks at 5th/13th via a second `oracle-revelation`
+choice line, mirroring the witch's dual-`hex` pattern), Alchemist **Chirurgeon** (trades the poison line —
+modelled as one feature — for Infused Curative/Anaesthetic/Power Over Death), Cleric **Merciful Healer** (one
+Healing domain via the Cloistered/Crusader count-1 pattern + Combat Medic/Merciful Healing/True Healer). 4 golden
+tests; **699 pass**; tsc + build clean; browser-verified Dual-Cursed selects/resolves (Oracle now shows 3
+archetypes). Classes still at two: wizard, summoner, slayer, skald, shifter, shaman, inquisitor, hunter, druid,
+cavalier, bloodrager, bard, arcanist.
+
+**Prior — Engine deferrals closed: Crossblooded + Divine Commander.** The two remaining archetype-model gaps
 are both gone. (1) **Diminished spells *known*** — a new `spellsKnownPerLevel(table, level, diminished)` variant
 drops one spell known of *every* level **including cantrips** (distinct from diminished *slots*, which spare
 cantrips), wired through `SpellcastingDef.diminishedKnown` + `spellcastingMod.diminishedKnown` + a

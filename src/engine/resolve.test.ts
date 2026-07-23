@@ -4628,3 +4628,61 @@ describe('archetypes — subsystem casters (magus)', () => {
     expect(eff.proficiencies.armor).not.toContain('light'); // Kensai wears no armor
   });
 });
+
+describe('archetypes — thirds batch 3 (Mouser, Dual-Cursed, Chirurgeon, Merciful Healer)', () => {
+  const build = (cls: string, archetype: string | undefined, level: number, choices?: Record<string, string[]>): CharacterDoc => {
+    let d = newCharacter('t-thirds3', 'X');
+    d = withDecision(d, 'ability-base', { str: 13, dex: 14, con: 12, int: 13, wis: 14, cha: 12 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['dex']);
+    d = withDecision(d, 'alignment', 'N');
+    d = withDecision(d, 'class', cls);
+    if (choices) d = withDecision(d, 'class-choices', choices);
+    if (archetype) d = withDecision(d, 'archetype', archetype);
+    return atLevel(d, level);
+  };
+  const featsAt = (doc: CharacterDoc, lvl: number) =>
+    resolve(doc).sheet.progression.find((r) => r.level === lvl)?.features ?? [];
+
+  it('Mouser swaps four deeds for its underfoot line, keeping the rest', () => {
+    const m = build('swashbuckler', 'mouser', 11);
+    expect(featsAt(m, 1)).toContain('Deed: Underfoot Assault');
+    expect(featsAt(m, 1)).not.toContain('Deed: Opportune Parry and Riposte');
+    expect(featsAt(m, 3)).toContain('Deed: Quick Steal');
+    expect(featsAt(m, 3)).not.toContain('Deed: Menacing Swordplay');
+    expect(featsAt(m, 7)).toContain('Deed: Hamstring');
+    expect(featsAt(m, 11)).toContain('Deed: Cat’s Charge');
+    // A deed the archetype does not touch survives.
+    expect(featsAt(m, 1)).toContain('Deed: Derring-Do');
+  });
+
+  it('Dual-Cursed Oracle adds revelation picks at 5th and 13th on top of the normal line', () => {
+    const std = resolve(build('oracle', undefined, 13)).slots.filter((s) => s.id.startsWith('revelation')).map((s) => s.id);
+    const dc = resolve(build('oracle', 'dual-cursed', 13)).slots.filter((s) => s.id.startsWith('revelation')).map((s) => s.id);
+    expect(std).not.toContain('revelation-L5');
+    expect(std).not.toContain('revelation-L13');
+    expect(dc).toContain('revelation-L5');
+    expect(dc).toContain('revelation-L13');
+    // The normal revelation levels are still present.
+    expect(dc).toContain('revelation-L7');
+    expect(featsAt(build('oracle', 'dual-cursed', 1), 1)).toContain('Dual Curse');
+  });
+
+  it('Chirurgeon trades the poison line for healing extracts', () => {
+    const c = build('alchemist', 'chirurgeon', 10);
+    expect(featsAt(c, 2)).toContain('Infused Curative');
+    expect(featsAt(c, 2)).not.toContain('Poison Use');
+    expect(featsAt(c, 2)).not.toContain('Poison Resistance +2');
+    expect(featsAt(c, 5)).toContain('Anaesthetic');
+    expect(featsAt(c, 10)).toContain('Power Over Death');
+  });
+
+  it('Merciful Healer is a single-domain cleric with the healing-channel line', () => {
+    const eff = effectiveClass(C.classById.get('cleric')!, readDecisions(build('cleric', 'merciful-healer', 1)));
+    expect((eff.choices ?? []).find((x) => x.id === 'domains')?.count).toBe(1);
+    const mh = build('cleric', 'merciful-healer', 8);
+    expect(featsAt(mh, 1)).toContain('Combat Medic');
+    expect(featsAt(mh, 3)).toContain('Merciful Healing');
+    expect(featsAt(mh, 8)).toContain('True Healer');
+  });
+});
