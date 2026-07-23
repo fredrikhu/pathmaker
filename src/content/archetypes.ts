@@ -6,7 +6,7 @@
 // replaces "Armor Training 1–4" replaces that one id and grants its own abilities in their place.
 
 import type { ArchetypeDef, LeveledFeatureDef } from './model';
-import { ROGUE_TALENTS, ROGUE_ADVANCED_TALENTS, MAGUS_ARCANA, WITCH_HEXES } from './subsystems';
+import { ROGUE_TALENTS, ROGUE_ADVANCED_TALENTS, MAGUS_ARCANA, WITCH_HEXES, ARCANIST_EXPLOITS } from './subsystems';
 
 const g = (level: number, id: string, name: string, desc: string): LeveledFeatureDef => ({ level, id, name, desc });
 
@@ -556,6 +556,45 @@ export const SHIFTER_ARCHETYPES: ArchetypeDef[] = [
   },
 ];
 
+export const GUNSLINGER_ARCHETYPES: ArchetypeDef[] = [
+  {
+    id: 'musket-master', classId: 'gunslinger', name: 'Musket Master',
+    desc: 'A gunslinger devoted to the two-handed musket — reloading with uncanny speed and reaching out to touch distant foes.',
+    replaces: ['gun-deed-gunslingers-dodge', 'gun-deed-utility-shot', 'gun-gun-training'],
+    grants: [
+      g(1, 'mm-rapid-reload', 'Rapid Reload (musket)', 'Gain Rapid Reload with muskets as a bonus feat (your gunsmith firearm must be a musket).'),
+      g(1, 'mm-steady-aim', 'Deed: Steady Aim', 'As a move action, spend 1 grit to increase the range increment of your two-handed firearm by 10 feet for the rest of your turn. Replaces the gunslinger’s dodge deed.'),
+      g(3, 'mm-fast-musket', 'Deed: Fast Musket', 'Spend 1 grit to reload a two-handed firearm as if it were a one-handed firearm. Replaces the utility shot deed.'),
+      g(5, 'mm-musket-training', 'Musket Training', 'Add your Dexterity modifier to two-handed firearm damage and reduce their misfire value, improving at 9th, 13th, and 17th. Replaces gun training.'),
+    ],
+  },
+];
+
+export const ARCANIST_ARCHETYPES: ArchetypeDef[] = [
+  {
+    id: 'eldritch-font', classId: 'arcanist', name: 'Eldritch Font',
+    desc: 'An arcanist who is a wellspring of raw magic — surging with power at the cost of exhaustion rather than learning subtle tricks.',
+    replaces: ['arc-magical-supremacy'],
+    // Eldritch Surge and its improvements take the place of the exploits gained at 3rd, 7th, and 13th.
+    // The arcanist carries two 'exploit' choices (the 1st-level pick and the recurring line); removing
+    // by id drops both, so re-add the 1st-level pick and the recurring line minus 3/7/13.
+    choices: {
+      remove: ['exploit'],
+      add: [
+        { id: 'exploit', label: 'Arcanist exploit', kind: 'list', count: 1, options: ARCANIST_EXPLOITS },
+        { id: 'exploit', label: 'Arcanist exploit', kind: 'list', count: 1, levels: [5, 9, 11, 15, 17, 19], options: ARCANIST_EXPLOITS },
+      ],
+    },
+    grants: [
+      g(1, 'ef-font-of-power', 'Font of Power', 'You gain one bonus spell slot of each spell level but prepare one fewer spell of each level; unused slots can refill your reservoir or fuel metamagic.'),
+      g(3, 'ef-eldritch-surge', 'Eldritch Surge', 'As a swift action, add 2 to a spell’s caster level and DC, or treat your arcanist level as 2 higher for an exploit — becoming fatigued (then exhausted) that only rest can cure. Replaces the 3rd-level arcanist exploit.'),
+      g(7, 'ef-improved-surge', 'Improved Surge', 'While surging, reroll an attack roll tied to a spell or exploit, or reroll all its damage dice, taking the new result. Replaces the 7th-level arcanist exploit.'),
+      g(13, 'ef-greater-surge', 'Greater Surge', 'While surging, force one target to reroll a saving throw against your spell or exploit and take the lower result. Replaces the 13th-level arcanist exploit.'),
+      g(20, 'ef-bottomless-well', 'Bottomless Well', 'After an hour of study, regain reservoir points equal to half your arcanist level and prepare new spells — usable several times per day. Replaces magical supremacy.'),
+    ],
+  },
+];
+
 export const ARCHETYPES: ArchetypeDef[] = [
   ...FIGHTER_ARCHETYPES, ...RANGER_ARCHETYPES, ...ROGUE_ARCHETYPES, ...BARBARIAN_ARCHETYPES, ...PALADIN_ARCHETYPES,
   ...BARD_ARCHETYPES, ...ALCHEMIST_ARCHETYPES, ...MAGUS_ARCHETYPES, ...MONK_ARCHETYPES, ...CLERIC_ARCHETYPES,
@@ -563,6 +602,7 @@ export const ARCHETYPES: ArchetypeDef[] = [
   ...SORCERER_ARCHETYPES, ...WARPRIEST_ARCHETYPES, ...BRAWLER_ARCHETYPES, ...INVESTIGATOR_ARCHETYPES,
   ...ORACLE_ARCHETYPES, ...BLOODRAGER_ARCHETYPES, ...SWASHBUCKLER_ARCHETYPES,
   ...HUNTER_ARCHETYPES, ...SUMMONER_ARCHETYPES, ...SKALD_ARCHETYPES, ...SHAMAN_ARCHETYPES, ...SHIFTER_ARCHETYPES,
+  ...GUNSLINGER_ARCHETYPES, ...ARCANIST_ARCHETYPES,
 ];
 export const archetypeById = new Map(ARCHETYPES.map((a) => [a.id, a]));
 export const archetypesForClass = (classId: string): ArchetypeDef[] => ARCHETYPES.filter((a) => a.classId === classId);

@@ -3917,6 +3917,58 @@ describe('archetypes — final classes (Hunter, Summoner, Skald, Shaman, Shifter
   });
 });
 
+describe('archetypes — deed / exploit granularity (Gunslinger, Arcanist)', () => {
+  const build = (cls: string, archetype: string | undefined, level: number): CharacterDoc => {
+    let d = newCharacter('t-deed', 'X');
+    d = withDecision(d, 'ability-base', { str: 12, dex: 15, con: 12, int: 14, wis: 14, cha: 10 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['dex']);
+    d = withDecision(d, 'alignment', 'N');
+    d = withDecision(d, 'class', cls);
+    if (archetype) d = withDecision(d, 'archetype', archetype);
+    return atLevel(d, level);
+  };
+  const featsAt = (doc: CharacterDoc, lvl: number) =>
+    resolve(doc).sheet.progression.find((r) => r.level === lvl)?.features ?? [];
+  const exploitSlots = (doc: CharacterDoc) =>
+    resolve(doc).slots.filter((s) => s.step === 'class' && s.id.startsWith('exploit')).map((s) => s.id);
+
+  it('the gunslinger now grants each deed as its own feature', () => {
+    // Individual deeds are modelled separately, so an archetype can target one.
+    expect(featsAt(build('gunslinger', undefined, 1), 1)).toContain("Deed: Gunslinger's Dodge");
+    expect(featsAt(build('gunslinger', undefined, 3), 3)).toContain('Deed: Utility Shot');
+  });
+
+  it('Gunslinger Musket Master swaps two deeds and gun training for musket abilities', () => {
+    const m = build('gunslinger', 'musket-master', 5);
+    expect(featsAt(m, 1)).toContain('Deed: Steady Aim');
+    expect(featsAt(m, 1)).not.toContain("Deed: Gunslinger's Dodge");
+    expect(featsAt(m, 1)).toContain('Deed: Deadeye');      // untouched deeds remain
+    expect(featsAt(m, 1)).toContain('Deed: Quick Clear');
+    expect(featsAt(m, 3)).toContain('Deed: Fast Musket');
+    expect(featsAt(m, 3)).not.toContain('Deed: Utility Shot');
+    expect(featsAt(m, 5)).toContain('Musket Training');
+    expect(featsAt(m, 5)).not.toContain('Gun Training 1');
+  });
+
+  it('Arcanist Eldritch Font removes the 3rd/7th/13th exploit picks and grants surge abilities', () => {
+    const std = exploitSlots(build('arcanist', undefined, 20));
+    expect(std).toContain('exploit');       // the 1st-level exploit pick
+    expect(std).toContain('exploit-L3');
+    const e = build('arcanist', 'eldritch-font', 20);
+    const slots = exploitSlots(e);
+    expect(slots).toContain('exploit');      // 1st-level exploit kept
+    expect(slots).toContain('exploit-L5');
+    expect(slots).not.toContain('exploit-L3');
+    expect(slots).not.toContain('exploit-L7');
+    expect(slots).not.toContain('exploit-L13');
+    expect(featsAt(e, 3)).toContain('Eldritch Surge');
+    expect(featsAt(e, 20)).toContain('Bottomless Well');
+    expect(featsAt(e, 20)).not.toContain('Magical Supremacy');
+    expect(resolve(e).sheet.casting.length).toBeGreaterThan(0);
+  });
+});
+
 describe('archetypes — caster classes', () => {
   const build = (cls: string, archetype: string | undefined, level: number): CharacterDoc => {
     let d = newCharacter('t-arch3', 'X');

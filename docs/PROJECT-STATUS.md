@@ -9,7 +9,22 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 **Current state** — branch `main`, working tree clean, **567 tests** passing; run
 `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
-**Latest — Archetypes: final classes (Hunter, Summoner, Skald, Shaman, Shifter).** First archetypes for five
+**Latest — Archetypes: deed/exploit granularity → Gunslinger + Arcanist (all 29 classes done).** Split the
+gunslinger **deeds** from six grouped features (three deeds bundled per level) into **one feature per deed**
+(`gun-deed-<name>`), so an archetype can swap an individual deed — and the progression now lists each deed by
+name. The arcanist **exploit** was already a discrete choice (the 1st-level pick is its own `exploit` slot,
+recurring picks are `exploit` at [3,5,…], the witch-`hex` double-choice pattern), so no refactor was needed
+there. Shipped **Musket Master** (Gunslinger — Steady Aim and Fast Musket replace the gunslinger's-dodge and
+utility-shot *deeds*, Musket Training replaces gun training, plus Rapid Reload) and **Eldritch Font** (Arcanist —
+Eldritch/Improved/Greater Surge replace the exploits gained at 3rd/7th/13th via `choices`, Bottomless Well
+replaces magical supremacy). 3 golden tests (deeds are now individual; Musket Master deed swaps; Eldritch Font
+exploit-slot removal at 3/7/13 + surge features + still casts); 651 pass; browser-verified both pickers/Advancement
+(Musket Master: dodge/utility/gun-training gone, Deadeye kept; Eldritch Font: exploit picks at 5/9/11/15/17/19 only).
+**Every one of the 29 classes now has at least one archetype — 36 total.** The archetype system is complete:
+model (feature swaps, proficiency, spellcasting replace/remove/diminish + stat/list, choice slots, class skills,
+bonus-feat slots, source-power suppression, DR override) + verified content across all classes.
+
+**Prior — Archetypes: final classes (Hunter, Summoner, Skald, Shaman, Shifter).** First archetypes for five
 more classes, all verified vs d20pfsrd: **Feral Hunter** (drops the animal companion + its teamwork feats at
 6/9/12/15/18 for Feral Focus / Wild Shape / Summon Pack), **Master Summoner** (lesser eidolon + Summoning Mastery
 + Augment Summoning in place of eidolon/summon/shield/bond-senses), **Spell Warrior** (Skald — counterspell
