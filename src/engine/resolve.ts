@@ -270,7 +270,13 @@ function effectiveClass(klass: C.ClassDef, dec: Decisions): C.ClassDef {
   }
   // omit → keep the class's; null → remove casting; a def → replace it.
   const spellcasting = arch.spellcasting === undefined ? klass.spellcasting : (arch.spellcasting ?? undefined);
-  return { ...klass, features, proficiencies, spellcasting };
+  // Choice slots (subsystem picks + structural picks): drop removed ids, append added ones.
+  let choices = klass.choices;
+  if (arch.choices) {
+    const removed = new Set(arch.choices.remove ?? []);
+    choices = [...(klass.choices ?? []).filter((c) => !removed.has(c.id)), ...(arch.choices.add ?? [])];
+  }
+  return { ...klass, features, proficiencies, spellcasting, choices };
 }
 
 function classFeaturesUpTo(klass: C.ClassDef | undefined, level: number, dec?: Decisions): C.LeveledFeatureDef[] {

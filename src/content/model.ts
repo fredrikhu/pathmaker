@@ -207,6 +207,11 @@ export interface ArchetypeDef {
   /** Spellcasting change: omit the field to keep the class's casting, `null` to remove it entirely,
    *  or a full SpellcastingDef to replace it. */
   spellcasting?: SpellcastingDef | null;
+  /** Subsystem / choice-slot changes: `remove` drops class-choice slots by id (rage powers, talents,
+   *  discoveries, and the structural picks — domains, school, bloodline, mystery, patron, nature bond),
+   *  and `add` grants new ones. To *change* a choice (e.g. two domains → one), remove its id and add a
+   *  replacement. */
+  choices?: { remove?: string[]; add?: ClassChoiceDef[] };
 }
 
 export interface ClassDef {

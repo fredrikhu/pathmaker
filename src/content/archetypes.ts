@@ -6,6 +6,7 @@
 // replaces "Armor Training 1–4" replaces that one id and grants its own abilities in their place.
 
 import type { ArchetypeDef, LeveledFeatureDef } from './model';
+import { ROGUE_TALENTS, ROGUE_ADVANCED_TALENTS } from './subsystems';
 
 const g = (level: number, id: string, name: string, desc: string): LeveledFeatureDef => ({ level, id, name, desc });
 
@@ -112,9 +113,15 @@ export const BARD_ARCHETYPES: ArchetypeDef[] = [
       g(2, 'arch-clever-explorer', 'Clever Explorer', 'A bonus equal to half your class level on Disable Device and Perception; disable devices in half the time and open locks as a standard action; at 6th you can take 10 on Disable Device even when threatened and can disarm magical traps. Replaces Versatile Performance.'),
       g(2, 'arch-uncanny-dodge', 'Uncanny Dodge', 'As the rogue class feature. Replaces Well-Versed.'),
       g(3, 'arch-trap-sense', 'Trap Sense +1', 'As the rogue class feature — +1 at 3rd, improving by +1 for every three levels beyond (max +6 at 18th).'),
-      g(4, 'arch-rogue-talent', 'Rogue Talent', 'Gain a rogue talent at 4th level and an additional one every four levels thereafter.'),
       g(6, 'arch-evasion', 'Evasion', 'As the rogue ability.'),
     ],
+    // Rogue talents at 4th and every four levels after (advanced talents eligible at 10th+).
+    choices: {
+      add: [
+        { id: 'archaeologist-talent', label: 'Rogue talent', kind: 'list', count: 1, levels: [4, 8], options: ROGUE_TALENTS },
+        { id: 'archaeologist-adv-talent', label: 'Rogue talent (advanced eligible)', kind: 'list', count: 1, levels: [12, 16, 20], options: [...ROGUE_TALENTS, ...ROGUE_ADVANCED_TALENTS] },
+      ],
+    },
   },
 ];
 

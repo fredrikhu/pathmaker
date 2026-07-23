@@ -9,7 +9,22 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 **Current state** — branch `main`, working tree clean, **567 tests** passing; run
 `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
-**Latest — Archetypes: caster classes (Bard, Alchemist).** Added verified archetypes for the two caster
+**Latest — Archetypes: model extended for subsystem/choice changes.** Archetypes can now add and remove
+class **choice slots** — the whole `ClassChoiceDef` family, which turns out to cover both subsystem picks
+(rage powers, rogue talents, discoveries, arcana, hexes, exploits…) *and* the structural picks (domains,
+school, bloodline, mystery, patron, nature bond), since they're all `ClassDef.choices`. `ArchetypeDef` gained
+`choices?: { remove?: string[]; add?: ClassChoiceDef[] }` (to *change* a choice — e.g. two domains → one —
+remove its id and add a replacement). `effectiveClass` filters removed ids and appends added ones; the
+existing class-choice slot emission already reads `entry.klass.choices` from `classBreakdown`, so slots,
+options, and the Class-step UI all follow with no further wiring. Demonstrated by upgrading **Archaeologist**
+to grant its Rogue Talents as a real choice (levels 4/8 basic, 12/16/20 advanced-eligible, reusing the
+existing `ROGUE_TALENTS` lists) instead of a flat feature. 2 tests (Archaeologist emits talent slots a
+standard bard lacks; `effectiveClass` add/remove) — 614 pass; browser-verified the two "Choose rogue talent"
+picks appear. **The archetype model now covers**: feature swaps, weapon/armor proficiency, spellcasting
+(replace/remove), and choice-slot add/remove. Still unmodeled: partial spellcasting math (diminished slots,
+casting-stat/list tweaks short of a full replace) and class-skill lists — the last gaps for a few archetypes.
+
+**Prior — Archetypes: caster classes (Bard, Alchemist).** Added verified archetypes for the two caster
 classes whose archetypes are clean *feature* swaps: Bard **Archaeologist** (drops the entire bardic-performance
 suite + versatile performance + well-versed for Archaeologist's Luck, Clever Explorer, Uncanny Dodge, Trap
 Sense, Rogue Talent, Evasion — keeps spellcasting) and Alchemist **Vivisectionist** (Bomb → rogue Sneak

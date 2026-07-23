@@ -3543,3 +3543,43 @@ describe('archetypes — caster classes', () => {
     expect(featsAt(v, 1)).not.toContain('Bomb 1d6');
   });
 });
+
+describe('archetypes — subsystem / choice changes', () => {
+  const bard = (archetype: string | undefined, level: number): CharacterDoc => {
+    let d = newCharacter('t-arch4', 'B');
+    d = withDecision(d, 'ability-base', { str: 10, dex: 14, con: 12, int: 12, wis: 10, cha: 15 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['cha']);
+    d = withDecision(d, 'alignment', 'N');
+    d = withDecision(d, 'class', 'bard');
+    if (archetype) d = withDecision(d, 'archetype', archetype);
+    return atLevel(d, level);
+  };
+  const talentSlots = (doc: CharacterDoc) =>
+    resolve(doc).slots.filter((s) => s.step === 'class' && s.id.startsWith('archaeologist-talent'));
+
+  it('Bard Archaeologist grants rogue-talent choice slots a standard bard lacks', () => {
+    expect(talentSlots(bard(undefined, 8)).length).toBe(0);
+    const slots = talentSlots(bard('archaeologist', 8));
+    expect(slots.length).toBeGreaterThan(0); // slots at class levels 4 and 8
+    expect(slots[0].options.length).toBeGreaterThan(0); // real rogue-talent options
+  });
+
+  it('effectiveClass adds and removes choice slots', () => {
+    const base = C.classById.get('barbarian')!;
+    const testClass = {
+      ...base,
+      archetypes: [{
+        id: 'test-choice', classId: 'barbarian', name: 'T', desc: 'T', replaces: [], grants: [],
+        choices: {
+          remove: ['rage-power'],
+          add: [{ id: 'test-pick', label: 'Test', kind: 'list' as const, count: 1, levels: [1], options: [{ id: 'x', name: 'X', desc: 'x' }] }],
+        },
+      }],
+    };
+    const doc = withDecision(newCharacter('t-eff2', 'X'), 'archetype', 'test-choice');
+    const ids = (effectiveClass(testClass, readDecisions(doc)).choices ?? []).map((c) => c.id);
+    expect(ids).not.toContain('rage-power');
+    expect(ids).toContain('test-pick');
+  });
+});
