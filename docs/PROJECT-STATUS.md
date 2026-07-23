@@ -9,7 +9,21 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 **Current state** — branch `main`, working tree clean, **567 tests** passing; run
 `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
-**Latest — Archetypes: class-skill + bonus-feat-slot model (Sensei, Cloistered Cleric).** Closed the last two
+**Latest — Archetypes: breadth batch (Cavalier, Inquisitor, Druid).** With the model feature-complete, added
+first archetypes for three more classes — all verified vs d20pfsrd. **Gendarme** (Cavalier) moves its bonus feats
+to 1st/5th/8th/… (`bonusFeatSlots` add [1,5,8,11,14,17,20] / remove [6,12,18]), trades the tactician line for a
+cavalry-feat list, and gains Transfixing Charge at 20th. **Sanctified Slayer** (Inquisitor) swaps the whole
+judgment progression for **Studied Target** (1st), **Sneak Attack** (4th), and slayer talents at 8/16/17/20 —
+keeping full casting. **Aquatic Druid** trades the woodland line (wild empathy, woodland stride, trackless step,
+resist nature's lure, venom immunity, a thousand faces) for aquatic features (Aquatic Adaptation, Natural Swimmer,
+Resist Ocean's Fury, Seaborn, Deep Diver). 3 golden tests (Gendarme feat-slot relocation + Transfixing Charge;
+Sanctified Slayer judgment→studied-target/sneak/talents + still casts; Aquatic Druid woodland→aquatic swaps +
+still casts); 633 pass; browser-verified all three (Gendarme shows 7 bonus-feat slots not 3; the Inquisitor and
+Druid Advancement tables show the swaps). Archetypes now span Fighter, Ranger, Rogue, Barbarian, Paladin, Bard,
+Alchemist, Magus, Monk, Cleric, **Cavalier, Inquisitor, Druid** (20 total across 13 classes). Remaining classes
+with no archetype yet: Wizard, Sorcerer, Witch, Oracle, Summoner, Gunslinger, and the base/hybrid classes.
+
+**Prior — Archetypes: class-skill + bonus-feat-slot model (Sensei, Cloistered Cleric).** Closed the last two
 archetype-model gaps. `ArchetypeDef` gained `classSkills?: { add?; remove? }` and `bonusFeatSlots?: { add?;
 remove? }` (class levels). `effectiveClass` applies both onto the effective class; since every consumer already
 reads class skills and bonus-feat slots off `classBreakdown` (which runs `effectiveClass`), no downstream wiring

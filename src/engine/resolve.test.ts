@@ -3613,6 +3613,60 @@ describe('archetypes — class-skill changes (Cloistered Cleric)', () => {
   });
 });
 
+describe('archetypes — breadth (Cavalier, Inquisitor, Druid)', () => {
+  const build = (cls: string, archetype: string | undefined, level: number): CharacterDoc => {
+    let d = newCharacter('t-breadth', 'X');
+    d = withDecision(d, 'ability-base', { str: 14, dex: 13, con: 12, int: 12, wis: 14, cha: 12 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['str']);
+    d = withDecision(d, 'alignment', 'N');
+    d = withDecision(d, 'class', cls);
+    if (archetype) d = withDecision(d, 'archetype', archetype);
+    return atLevel(d, level);
+  };
+  const featsAt = (doc: CharacterDoc, lvl: number) =>
+    resolve(doc).sheet.progression.find((r) => r.level === lvl)?.features ?? [];
+  const bonusFeatSlots = (doc: CharacterDoc, cls: string) =>
+    resolve(doc).slots.filter((s) => s.step === 'feats' && s.id.startsWith(`feat-${cls}`)).map((s) => s.id);
+
+  it('Cavalier Gendarme moves its bonus feats to 1/5/8/… and swaps out the tactician line', () => {
+    const std = bonusFeatSlots(build('cavalier', undefined, 20), 'cavalier');
+    expect(std).toContain('feat-cavalier-L6'); // standard cavalier feats at 6/12/18
+    const g = build('cavalier', 'gendarme', 20);
+    const slots = bonusFeatSlots(g, 'cavalier');
+    expect(slots).toContain('feat-cavalier');     // 1st
+    expect(slots).toContain('feat-cavalier-L5');
+    expect(slots).toContain('feat-cavalier-L8');
+    expect(slots).not.toContain('feat-cavalier-L6');
+    expect(slots).not.toContain('feat-cavalier-L12');
+    expect(featsAt(g, 20)).toContain('Transfixing Charge');
+    expect(featsAt(g, 1)).not.toContain('Tactician');
+  });
+
+  it('Inquisitor Sanctified Slayer swaps judgment for Studied Target, Sneak Attack, and slayer talents', () => {
+    expect(featsAt(build('inquisitor', undefined, 8), 1)).toContain('Judgment 1/day');
+    const s = build('inquisitor', 'sanctified-slayer', 20);
+    expect(featsAt(s, 1)).toContain('Studied Target');
+    expect(featsAt(s, 1)).not.toContain('Judgment 1/day');
+    expect(featsAt(s, 4)).toContain('Sneak Attack +1d6');
+    expect(featsAt(s, 8)).toContain('Slayer Talent');
+    expect(featsAt(s, 8)).not.toContain('Second Judgment');
+    expect(featsAt(s, 20)).not.toContain('True Judgment');
+    expect(resolve(s).sheet.casting.length).toBeGreaterThan(0); // still a caster
+  });
+
+  it('Aquatic Druid trades the woodland line for aquatic features, keeping spellcasting', () => {
+    const a = build('druid', 'aquatic-druid', 13);
+    expect(featsAt(a, 2)).toContain('Aquatic Adaptation');
+    expect(featsAt(a, 2)).not.toContain('Woodland Stride');
+    expect(featsAt(a, 3)).toContain('Natural Swimmer');
+    expect(featsAt(a, 9)).toContain('Seaborn');
+    expect(featsAt(a, 9)).not.toContain('Venom Immunity');
+    expect(featsAt(a, 13)).toContain('Deep Diver');
+    expect(resolve(a).sheet.casting.length).toBeGreaterThan(0);
+  });
+});
+
 describe('archetypes — caster classes', () => {
   const build = (cls: string, archetype: string | undefined, level: number): CharacterDoc => {
     let d = newCharacter('t-arch3', 'X');

@@ -289,9 +289,56 @@ export const CLERIC_ARCHETYPES: ArchetypeDef[] = [
   },
 ];
 
+export const CAVALIER_ARCHETYPES: ArchetypeDef[] = [
+  {
+    id: 'gendarme', classId: 'cavalier', name: 'Gendarme',
+    desc: 'A heavy lancer who lives for the charge — pouring the order’s teaching into raw combat prowess.',
+    replaces: ['cav-tactician', 'cav-greater-tactician', 'cav-master-tactician', 'cav-supreme-charge'],
+    // Bonus feats move to 1st/5th and every three levels after, replacing the cavalier's 6/12/18 feats.
+    bonusFeatSlots: { remove: [6, 12, 18], add: [1, 5, 8, 11, 14, 17, 20] },
+    grants: [
+      g(1, 'gendarme-cavalry-feats', 'Cavalry Feats', 'Your cavalier bonus feats come at 1st, 5th, and every three levels thereafter, chosen from Improved Bull Rush, Mounted Combat, Power Attack, Ride-By Attack, Spirited Charge, Spring Attack, and Unseat until you have them all, then from any combat feat. Replaces tactician, greater tactician, and master tactician.'),
+      g(20, 'gendarme-transfixing-charge', 'Transfixing Charge', 'On a mounted charge, deal triple damage (quadruple with a lance); a confirmed critical deals maximum weapon damage. Replaces supreme charge.'),
+    ],
+  },
+];
+
+export const INQUISITOR_ARCHETYPES: ArchetypeDef[] = [
+  {
+    id: 'sanctified-slayer', classId: 'inquisitor', name: 'Sanctified Slayer',
+    desc: 'An inquisitor who hunts the faith’s enemies like a killer — marking a target and striking its vitals rather than passing judgment.',
+    replaces: ['inq-judgment', 'inq-second-judgment', 'inq-third-judgment', 'inq-slayer', 'inq-true-judgment'],
+    grants: [
+      g(1, 'ss-studied-target', 'Studied Target', 'As a move action, study a foe to gain a scaling bonus on attack and damage rolls and several skill checks against it, using your inquisitor level as your slayer level. Replaces judgment 1/day.'),
+      g(4, 'ss-sneak-attack', 'Sneak Attack +1d6', 'Deal +1d6 sneak-attack damage (rising by 1d6 every three levels) when your target is denied its Dexterity bonus to AC or you flank it; ranged sneak attacks require the target within 30 feet. Replaces the later daily uses of judgment.'),
+      g(8, 'ss-slayer-talent-8', 'Slayer Talent', 'Select a slayer talent. Replaces second judgment.'),
+      g(16, 'ss-slayer-talent-16', 'Slayer Talent', 'Select a slayer talent. Replaces third judgment.'),
+      g(17, 'ss-slayer-talent-17', 'Slayer Talent', 'Select a slayer talent. Replaces slayer.'),
+      g(20, 'ss-slayer-talent-20', 'Slayer Talent', 'Select a slayer talent. Replaces true judgment.'),
+    ],
+  },
+];
+
+export const DRUID_ARCHETYPES: ArchetypeDef[] = [
+  {
+    id: 'aquatic-druid', classId: 'druid', name: 'Aquatic Druid',
+    desc: 'A guardian of seas, rivers, and marshes — at home beneath the waves where land druids cannot follow.',
+    replaces: ['druid-wild-empathy', 'druid-woodland-stride', 'druid-trackless-step', 'druid-resist-natures-lure', 'druid-venom-immunity', 'druid-thousand-faces'],
+    grants: [
+      g(1, 'aqua-wild-empathy', 'Wild Empathy (aquatic)', 'Influence the attitude of creatures with a swim speed or the aquatic or water subtype — even mindless ones — as a Diplomacy check. Replaces wild empathy.'),
+      g(2, 'aqua-adaptation', 'Aquatic Adaptation', 'In aquatic terrain, gain an insight bonus equal to half your druid level on initiative, Knowledge (geography), Perception, Stealth, Survival, and Swim, and you cannot be tracked. Replaces woodland stride.'),
+      g(3, 'aqua-natural-swimmer', 'Natural Swimmer', 'Gain a swim speed equal to half your land speed. Replaces trackless step.'),
+      g(4, 'aqua-resist-oceans-fury', 'Resist Ocean’s Fury', '+4 on saving throws against water spells and the supernatural and extraordinary abilities of aquatic and water creatures. Replaces resist nature’s lure.'),
+      g(9, 'aqua-seaborn', 'Seaborn', 'Gain the aquatic subtype and the amphibious trait, a swim speed equal to your land speed, and endure cold climates as endure elements. Replaces venom immunity.'),
+      g(13, 'aqua-deep-diver', 'Deep Diver', 'Gain DR equal to half your druid level against slashing or piercing damage (and crushing or grappling effects), and immunity to pressure damage from deep water. Replaces a thousand faces.'),
+    ],
+  },
+];
+
 export const ARCHETYPES: ArchetypeDef[] = [
   ...FIGHTER_ARCHETYPES, ...RANGER_ARCHETYPES, ...ROGUE_ARCHETYPES, ...BARBARIAN_ARCHETYPES, ...PALADIN_ARCHETYPES,
   ...BARD_ARCHETYPES, ...ALCHEMIST_ARCHETYPES, ...MAGUS_ARCHETYPES, ...MONK_ARCHETYPES, ...CLERIC_ARCHETYPES,
+  ...CAVALIER_ARCHETYPES, ...INQUISITOR_ARCHETYPES, ...DRUID_ARCHETYPES,
 ];
 export const archetypeById = new Map(ARCHETYPES.map((a) => [a.id, a]));
 export const archetypesForClass = (classId: string): ArchetypeDef[] => ARCHETYPES.filter((a) => a.classId === classId);
