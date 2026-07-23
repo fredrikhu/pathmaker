@@ -51,6 +51,16 @@ export const RANGER_ARCHETYPES: ArchetypeDef[] = [
       g(5, 'skirmisher-hunters-tricks', 'Hunter’s Tricks', 'Learns a hunter’s trick at 5th level and another at 7th and every two levels after; usable a number of times per day equal to 1/2 the ranger’s level + Wisdom modifier. Replaces the ranger’s spellcasting.'),
     ],
   },
+  {
+    id: 'trapper', classId: 'ranger', name: 'Trapper',
+    desc: 'A ranger who forsakes spells for the cunning of the snare — turning the wilderness itself into a weapon.',
+    replaces: ['ranger-spells'],
+    spellcasting: null, // a trapper has no spells
+    grants: [
+      g(1, 'trapper-trapfinding', 'Trapfinding', 'Add half your ranger level to Perception to find traps and to Disable Device, and you can disarm magical traps.'),
+      g(5, 'trapper-trap', 'Ranger Traps', 'Learn to craft a snare trap and one other ranger trap at 5th level, and another trap every two levels thereafter. Replaces spellcasting.'),
+    ],
+  },
 ];
 
 export const ROGUE_ARCHETYPES: ArchetypeDef[] = [
@@ -84,6 +94,15 @@ export const BARBARIAN_ARCHETYPES: ArchetypeDef[] = [
       g(3, 'ir-extreme-endurance', 'Extreme Endurance', 'Inured to a hot or cold climate (choose one) as endure elements, plus 1 point of fire or cold resistance for every three levels beyond 3rd. Replaces Trap Sense.'),
     ],
   },
+  {
+    id: 'mounted-fury', classId: 'barbarian', name: 'Mounted Fury',
+    desc: 'A barbarian who rages from the saddle — one being with a savage mount, thundering across the field.',
+    replaces: ['barb-fast-movement', 'barb-uncanny-dodge', 'barb-improved-uncanny-dodge'],
+    grants: [
+      g(1, 'mf-fast-rider', 'Fast Rider', '+10 feet to the speed of any mount you ride. Replaces fast movement.'),
+      g(5, 'mf-bestial-mount', 'Bestial Mount', 'Gain a feral mount as an animal companion (druid level = barbarian level − 4); while you rage mounted on it, it gains a +2 morale bonus to Strength. Replaces uncanny dodge and improved uncanny dodge.'),
+    ],
+  },
 ];
 
 export const PALADIN_ARCHETYPES: ArchetypeDef[] = [
@@ -94,6 +113,20 @@ export const PALADIN_ARCHETYPES: ArchetypeDef[] = [
     spellcasting: null, // no spells, no caster level
     grants: [
       g(4, 'wohl-power-of-faith', 'Power of Faith', 'You gain no spells or caster level. Instead you gain one extra use of Lay on Hands per day (and another per four levels beyond 4th); spend one as a standard action to raise a 30-ft nimbus of light that grants you and nearby allies a +1 morale bonus to AC and on attack rolls, damage rolls, and saves vs fear for 1 minute (adds healing at 8th, daylight + energy resistance 10 at 12th, crit protection at 16th, and a larger, stronger nimbus at 20th). Replaces the paladin’s spellcasting.'),
+    ],
+  },
+  {
+    id: 'divine-hunter', classId: 'paladin', name: 'Divine Hunter',
+    desc: 'A paladin who smites from afar — sanctifying the bow and sharing the blessing of a true aim with allies.',
+    replaces: ['paladin-aura-courage', 'paladin-aura-resolve', 'paladin-aura-justice', 'paladin-aura-faith'],
+    // Trades heavy armor for a focus on ranged combat.
+    proficiencies: { armor: { remove: ['heavy'] } },
+    grants: [
+      g(1, 'dh-precise-shot', 'Precise Shot', 'Gain Precise Shot as a bonus feat. Replaces heavy armor proficiency.'),
+      g(3, 'dh-shared-precision', 'Shared Precision', 'Grant allies within 10 feet the benefit of your Precise Shot for a number of rounds per day. Replaces aura of courage.'),
+      g(8, 'dh-aura-of-care', 'Aura of Care', 'Your lay on hands and mercies can reach a target at range. Replaces aura of resolve.'),
+      g(11, 'dh-hunters-blessing', 'Hunter’s Blessing', 'Grant an ally the use of your smite evil against a target at range. Replaces aura of justice.'),
+      g(14, 'dh-righteous-hunter', 'Righteous Hunter', 'Your ranged smite ignores damage reduction and pierces defenses. Replaces aura of faith.'),
     ],
   },
 ];
@@ -122,6 +155,19 @@ export const BARD_ARCHETYPES: ArchetypeDef[] = [
         { id: 'archaeologist-adv-talent', label: 'Rogue talent (advanced eligible)', kind: 'list', count: 1, levels: [12, 16, 20], options: [...ROGUE_TALENTS, ...ROGUE_ADVANCED_TALENTS] },
       ],
     },
+  },
+  {
+    id: 'arcane-duelist', classId: 'bard', name: 'Arcane Duelist',
+    desc: 'A bard who fights as a martial spellblade — weaving combat feats and enchanted steel into every performance.',
+    replaces: ['bard-knowledge', 'bard-countersong', 'bard-versatile-performance', 'bard-well-versed', 'bard-lore-master', 'bard-suggestion', 'bard-mass-suggestion'],
+    grants: [
+      g(1, 'ad-arcane-strike', 'Arcane Strike', 'Gain Arcane Strike as a bonus feat. Replaces bardic knowledge.'),
+      g(1, 'ad-rallying-cry', 'Rallying Cry', 'A performance that lets allies use your save bonus against fear and reroll a failed save each round. Replaces countersong.'),
+      g(2, 'ad-combat-casting', 'Combat Casting', 'Gain Combat Casting as a bonus feat. Replaces versatile performance and well-versed.'),
+      g(5, 'ad-arcane-bond', 'Arcane Bond', 'Gain an arcane bond with a bonded object, as a wizard. Replaces lore master.'),
+      g(6, 'ad-bladethirst', 'Bladethirst', 'A performance that grants an ally’s weapon a scaling enhancement bonus. Replaces suggestion.'),
+      g(18, 'ad-mass-bladethirst', 'Mass Bladethirst', 'Bladethirst empowers the weapons of many allies at once. Replaces mass suggestion.'),
+    ],
   },
 ];
 
@@ -287,6 +333,22 @@ export const CLERIC_ARCHETYPES: ArchetypeDef[] = [
       add: [{ id: 'domains', label: 'Domain', kind: 'cleric-domains', count: 1 }],
     },
   },
+  {
+    id: 'crusader', classId: 'cleric', name: 'Crusader',
+    desc: 'A warrior-priest who marches at the front of the faithful — trading a measure of divine magic for martial might.',
+    replaces: [],
+    // Diminished Spellcasting and a single domain buy martial training and combat feats.
+    spellcastingMod: { diminished: true },
+    proficiencies: { weapons: { add: ['martial'] } },
+    bonusFeatSlots: { add: [1, 5, 10, 15, 20] },
+    choices: {
+      remove: ['domains'],
+      add: [{ id: 'domains', label: 'Domain', kind: 'cleric-domains', count: 1 }],
+    },
+    grants: [
+      g(8, 'crusader-legions-blessing', 'Legion’s Blessing', 'Quickly confer a beneficial touch- or close-range spell you cast to many allies at once. '),
+    ],
+  },
 ];
 
 export const CAVALIER_ARCHETYPES: ArchetypeDef[] = [
@@ -333,6 +395,18 @@ export const DRUID_ARCHETYPES: ArchetypeDef[] = [
       g(13, 'aqua-deep-diver', 'Deep Diver', 'Gain DR equal to half your druid level against slashing or piercing damage (and crushing or grappling effects), and immunity to pressure damage from deep water. Replaces a thousand faces.'),
     ],
   },
+  {
+    id: 'blight-druid', classId: 'druid', name: 'Blight Druid',
+    desc: 'A druid who tends decay rather than growth — spreading sickness and rot as nature’s grim caretaker.',
+    replaces: ['druid-nature-bond', 'druid-wild-empathy', 'druid-trackless-step', 'druid-resist-natures-lure', 'druid-venom-immunity', 'druid-thousand-faces'],
+    grants: [
+      g(1, 'bd-nature-bond', 'Blight Nature Bond', 'You cannot bond with an animal companion; instead call a familiar as a wizard of your druid level, or choose from the Darkness, Death, and Destruction domains in addition to the usual options. Replaces nature bond.'),
+      g(1, 'bd-vermin-empathy', 'Vermin Empathy', 'Influence the attitude of vermin as a Diplomacy check, and animals and undead at a penalty. Replaces wild empathy.'),
+      g(5, 'bd-miasma', 'Miasma', 'Creatures adjacent to you must save or be sickened (nauseated for animals, fey, and plants). Replaces trackless step and resist nature’s lure.'),
+      g(9, 'bd-blightblooded', 'Blightblooded', 'Gain immunity to disease and to the sickened and nauseated conditions. Replaces venom immunity.'),
+      g(13, 'bd-plaguebearer', 'Plaguebearer', 'Creatures that strike you with a touch, unarmed strike, or natural weapon must save or contract a disease. Replaces a thousand faces.'),
+    ],
+  },
 ];
 
 export const WIZARD_ARCHETYPES: ArchetypeDef[] = [
@@ -348,6 +422,15 @@ export const WIZARD_ARCHETYPES: ArchetypeDef[] = [
       g(1, 'scroll-blade', 'Scroll Blade', 'Wield a scroll from your spellbook as a magic short sword whose enhancement bonus scales with the highest-level spell it holds; the spell is expended when the blade fades. Replaces arcane bond.'),
       g(1, 'scroll-shield', 'Scroll Shield', 'Wield a scroll as a light wooden shield granting a scaling shield bonus, expending the spell. Part of the arcane bond replacement.'),
       g(10, 'scroll-improved-casting', 'Improved Scroll Casting', 'When casting from a scroll, use your own Intelligence and feats to set the spell’s save DC and other variables. Replaces the 10th-level wizard bonus feat.'),
+    ],
+  },
+  {
+    id: 'spellbinder', classId: 'wizard', name: 'Spellbinder',
+    desc: 'An elven wizard who bonds not with a familiar or object but with the spells themselves, ready at a thought.',
+    replaces: ['wizard-arcane-bond'],
+    choices: { remove: ['arcane-bond'] },
+    grants: [
+      g(1, 'sb-spellbound', 'Spellbound', 'Bond with one spell you know; as a full-round action you can swap a prepared spell of equal or higher level for your bonded spell. Bond another spell at 3rd level and every two levels after, up to nine at 17th. Replaces arcane bond.'),
     ],
   },
 ];
@@ -389,6 +472,22 @@ export const SORCERER_ARCHETYPES: ArchetypeDef[] = [
       g(1, 'tattoo-mages-tattoo', 'Mage’s Tattoo', 'Gain Mage’s Tattoo as a bonus feat, choosing its school freely if you lack Spell Focus. Replaces Eschew Materials.'),
       g(7, 'tattoo-create-spell-tattoo', 'Create Spell Tattoo', 'Once per day (twice at 11th, three times at 15th), inscribe a spell without costly components onto a willing creature as a tattoo it can later trigger. Replaces the bloodline feat gained at 7th level.'),
       g(9, 'tattoo-enhanced-magical', 'Enhanced Magical Tattoo', 'Choose a spell you know that is enhanced by Mage’s Tattoo; once per day cast it as a spell-like ability at +2 caster levels. Replaces the 9th-level bloodline power.'),
+    ],
+  },
+  {
+    id: 'razmiran-priest', classId: 'sorcerer', name: 'Razmiran Priest',
+    desc: 'A sorcerer who cloaks arcane power in the trappings of a false faith — miracle-worker, charlatan, and cult agent.',
+    replaces: ['sorc-eschew'],
+    // Lay Healer takes the 3rd/5th bloodline bonus spells; False Channel takes the 9th bloodline power.
+    suppressSourcePowers: [
+      { prefix: 'sorc-bl-sp', levels: [3, 5] },
+      { prefix: 'sorc-bl', levels: [9] },
+    ],
+    grants: [
+      g(1, 'rp-false-piety', 'False Piety', 'You can use and activate divine scrolls and wands as if the spells were on your spell list, and pass your arcane magic off as divine. Replaces Eschew Materials.'),
+      g(3, 'rp-lay-healer', 'Lay Healer', 'Add aid to your spells known as a 2nd-level spell. Replaces the 3rd-level bloodline bonus spell.'),
+      g(5, 'rp-lay-healer-greater', 'Lay Healer (greater)', 'Add remove disease to your spells known as a 3rd-level spell. Replaces the 5th-level bloodline bonus spell.'),
+      g(9, 'rp-false-channel', 'False Channel', 'Expend a spell slot to mimic a cleric channeling positive energy, healing or dazzling onlookers. Replaces the 9th-level bloodline power.'),
     ],
   },
 ];

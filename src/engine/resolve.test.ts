@@ -3969,6 +3969,106 @@ describe('archetypes — deed / exploit granularity (Gunslinger, Arcanist)', () 
   });
 });
 
+describe('archetypes — second archetype per core class', () => {
+  const build = (cls: string, archetype: string | undefined, level: number, choices?: Record<string, string[]>): CharacterDoc => {
+    let d = newCharacter('t-second', 'X');
+    d = withDecision(d, 'ability-base', { str: 13, dex: 13, con: 12, int: 12, wis: 13, cha: 13 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['str']);
+    d = withDecision(d, 'alignment', cls === 'paladin' ? 'LG' : 'N');
+    d = withDecision(d, 'class', cls);
+    if (choices) d = withDecision(d, 'class-choices', choices);
+    if (archetype) d = withDecision(d, 'archetype', archetype);
+    return atLevel(d, level);
+  };
+  const featsAt = (doc: CharacterDoc, lvl: number) =>
+    resolve(doc).sheet.progression.find((r) => r.level === lvl)?.features ?? [];
+
+  it('Barbarian Mounted Fury swaps fast movement and the uncanny-dodge line for a mount', () => {
+    const m = build('barbarian', 'mounted-fury', 5);
+    expect(featsAt(m, 1)).toContain('Fast Rider');
+    expect(featsAt(m, 1)).not.toContain('Fast Movement');
+    expect(featsAt(m, 5)).toContain('Bestial Mount');
+    expect(featsAt(m, 5)).not.toContain('Improved Uncanny Dodge');
+  });
+
+  it('Paladin Divine Hunter trades heavy armor and auras for ranged smiting, keeping casting', () => {
+    const p = build('paladin', 'divine-hunter', 14);
+    expect(featsAt(p, 1)).toContain('Precise Shot');
+    expect(featsAt(p, 3)).toContain('Shared Precision');
+    expect(featsAt(p, 3)).not.toContain('Aura of Courage');
+    expect(featsAt(p, 14)).toContain('Righteous Hunter');
+    const eff = effectiveClass(C.classById.get('paladin')!, readDecisions(build('paladin', 'divine-hunter', 1)));
+    expect(eff.proficiencies.armor).not.toContain('heavy');
+    expect(resolve(p).sheet.casting.length).toBeGreaterThan(0);
+  });
+
+  it('Bard Arcane Duelist swaps knowledge/performances for martial-arcane abilities, keeping casting', () => {
+    const a = build('bard', 'arcane-duelist', 6);
+    expect(featsAt(a, 1)).toContain('Arcane Strike');
+    expect(featsAt(a, 1)).not.toContain('Bardic Knowledge');
+    expect(featsAt(a, 2)).toContain('Combat Casting');
+    expect(featsAt(a, 2)).not.toContain('Versatile Performance');
+    expect(featsAt(a, 6)).toContain('Bladethirst');
+    expect(resolve(a).sheet.casting.length).toBeGreaterThan(0);
+  });
+
+  it('Cleric Crusader is a diminished, martial, single-domain cleric with bonus feats', () => {
+    const c = build('cleric', 'crusader', 10);
+    const eff = effectiveClass(C.classById.get('cleric')!, readDecisions(build('cleric', 'crusader', 1)));
+    expect(eff.spellcasting?.diminished).toBe(true);
+    expect(eff.proficiencies.weapons).toContain('martial');
+    expect((eff.choices ?? []).find((x) => x.id === 'domains')?.count).toBe(1);
+    const bf = resolve(c).slots.filter((s) => s.step === 'feats' && s.id.startsWith('feat-cleric')).map((s) => s.id);
+    expect(bf).toContain('feat-cleric');      // 1st
+    expect(bf).toContain('feat-cleric-L5');
+    expect(bf).toContain('feat-cleric-L10');
+    expect(featsAt(c, 8)).toContain('Legion’s Blessing');
+  });
+
+  it('Druid Blight Druid swaps the nature line for disease features, keeping casting', () => {
+    const b = build('druid', 'blight-druid', 13);
+    expect(featsAt(b, 1)).toContain('Vermin Empathy');
+    expect(featsAt(b, 1)).not.toContain('Wild Empathy');
+    expect(featsAt(b, 5)).toContain('Miasma');
+    expect(featsAt(b, 5)).not.toContain("Resist Nature's Lure");
+    expect(featsAt(b, 13)).toContain('Plaguebearer');
+    expect(resolve(b).sheet.casting.length).toBeGreaterThan(0);
+  });
+
+  it('Sorcerer Razmiran Priest suppresses the 3rd/5th bloodline spells and 9th power', () => {
+    const std = build('sorcerer', undefined, 9, { bloodline: ['draconic'] });
+    expect(featsAt(std, 3)).toContain('Bonus Spell (1st): Mage Armor');
+    const r = build('sorcerer', 'razmiran-priest', 9, { bloodline: ['draconic'] });
+    expect(featsAt(r, 1)).toContain('False Piety');
+    expect(featsAt(r, 1)).not.toContain('Eschew Materials');
+    expect(featsAt(r, 3)).toContain('Lay Healer');
+    expect(featsAt(r, 3)).not.toContain('Bonus Spell (1st): Mage Armor'); // 3rd bloodline spell suppressed
+    expect(featsAt(r, 9)).toContain('False Channel');
+    expect(featsAt(r, 9)).not.toContain('Breath Weapon'); // 9th bloodline power suppressed
+    expect(resolve(r).sheet.casting.length).toBeGreaterThan(0);
+  });
+
+  it('Ranger Trapper replaces spells with ranger traps and trapfinding', () => {
+    expect(resolve(build('ranger', undefined, 5)).sheet.casting.length).toBeGreaterThan(0);
+    const t = build('ranger', 'trapper', 5);
+    expect(featsAt(t, 1)).toContain('Trapfinding');
+    expect(featsAt(t, 5)).toContain('Ranger Traps');
+    expect(featsAt(t, 5)).not.toContain('Spellcasting');
+    expect(resolve(t).sheet.casting.length).toBe(0);
+  });
+
+  it('Wizard Spellbinder swaps arcane bond for Spellbound and drops the bond pick', () => {
+    const w = build('wizard', 'spellbinder', 5);
+    expect(featsAt(w, 1)).toContain('Spellbound');
+    expect(featsAt(w, 1)).not.toContain('Arcane Bond');
+    const choiceIds = resolve(w).slots.filter((s) => s.step === 'class').map((s) => s.id);
+    expect(choiceIds).not.toContain('arcane-bond');
+    expect(choiceIds).toContain('school');
+    expect(resolve(w).sheet.casting.length).toBeGreaterThan(0);
+  });
+});
+
 describe('archetypes — caster classes', () => {
   const build = (cls: string, archetype: string | undefined, level: number): CharacterDoc => {
     let d = newCharacter('t-arch3', 'X');

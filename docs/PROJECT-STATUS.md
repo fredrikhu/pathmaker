@@ -9,7 +9,16 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 **Current state** — branch `main`, working tree clean, **567 tests** passing; run
 `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
-**Latest — Archetypes: deed/exploit granularity → Gunslinger + Arcanist (all 29 classes done).** Split the
+**Latest — Archetypes: a second one for every core class.** Each of the 11 Core Rulebook classes now has ≥2
+archetypes (Fighter/Rogue/Monk already did). Added: Barbarian **Mounted Fury**, Paladin **Divine Hunter**, Bard
+**Arcane Duelist**, Cleric **Crusader** (diminished + martial + one domain + bonus feats — the martial foil to
+Cloistered), Druid **Blight Druid**, Sorcerer **Razmiran Priest** (suppresses the 3rd/5th bloodline *bonus spells*
+via `sorc-bl-sp` + the 9th bloodline power via `sorc-bl`), Ranger **Trapper** (spells → ranger traps), Wizard
+**Spellbinder** (arcane bond → bonded spells). All verified vs d20pfsrd. 8 golden tests; 659 pass; browser-verified
+the Cleric picker (Cloistered + Crusader), Crusader's bonus-feat slots, Razmiran's bloodline-spell/power
+suppression, and Blight Druid's swaps. **34 total → 44 archetypes across all 29 classes.**
+
+**Prior — Archetypes: deed/exploit granularity → Gunslinger + Arcanist (all 29 classes done).** Split the
 gunslinger **deeds** from six grouped features (three deeds bundled per level) into **one feature per deed**
 (`gun-deed-<name>`), so an archetype can swap an individual deed — and the progression now lists each deed by
 name. The arcanist **exploit** was already a discrete choice (the 1st-level pick is its own `exploit` slot,
