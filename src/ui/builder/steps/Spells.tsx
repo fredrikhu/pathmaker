@@ -1,6 +1,7 @@
 import { useState, type CSSProperties } from 'react';
 import type { CharCtl } from '../../Builder';
-import { spellById, SPELLS, classById } from '../../../content/index';
+import { spellById, SPELLS, classById, spellLevelOn } from '../../../content/index';
+import { effectiveClass, readDecisions } from '../../../engine/resolve';
 import { TermSpan } from '../../Tooltip';
 
 export function SpellsStep({ ch }: { ch: CharCtl }) {
@@ -17,7 +18,10 @@ export function SpellsStep({ ch }: { ch: CharCtl }) {
 
   if (!klass?.spellcasting || slots.length === 0) return <div style={{ padding: 8 }}>No spell selection for this class.</div>;
 
-  const list = klass.spellcasting.list;
+  // Use the archetype-effective spell list (e.g. the Unlettered Arcanist casts from the witch list,
+  // not the arcanist's arcane list), and the per-list spell level (witch cures sit a level higher).
+  const list = effectiveClass(klass, readDecisions(doc)).spellcasting?.list ?? klass.spellcasting.list;
+  const lvlOf = (sp: (typeof SPELLS)[number]) => spellLevelOn(sp, list);
   const spellsOnList = SPELLS.filter((s) => s.lists.includes(list as never));
   const schools = [...new Set(spellsOnList.map((s) => s.school))].sort();
 
@@ -41,13 +45,13 @@ export function SpellsStep({ ch }: { ch: CharCtl }) {
 
   const rows = spellsOnList
     .filter((sp) => {
-      if (sp.level > maxLevel) return false;
-      if (levelFilter !== 'all' && sp.level !== levelFilter) return false;
+      if (lvlOf(sp) > maxLevel) return false;
+      if (levelFilter !== 'all' && lvlOf(sp) !== levelFilter) return false;
       if (schoolFilter !== 'all' && sp.school !== schoolFilter) return false;
       if (query && !sp.name.toLowerCase().includes(query.toLowerCase())) return false;
       return true;
     })
-    .sort((a, b) => a.level - b.level || a.name.localeCompare(b.name));
+    .sort((a, b) => lvlOf(a) - lvlOf(b) || a.name.localeCompare(b.name));
 
   const view = viewId ? spellById.get(viewId) : null;
 
@@ -92,15 +96,16 @@ export function SpellsStep({ ch }: { ch: CharCtl }) {
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
           {rows.map((sp) => {
-            const isPicked = allPicked.has(sp.id) || (sp.level === 0 && slotForLevel(0)?.auto);
-            const slot = slotForLevel(sp.level);
+            const spLevel = lvlOf(sp);
+            const isPicked = allPicked.has(sp.id) || (spLevel === 0 && slotForLevel(0)?.auto);
+            const slot = slotForLevel(spLevel);
             const auto = slot?.auto;
-            const full = isFull(sp.level);
+            const full = isFull(spLevel);
             return (
               <div key={sp.id} onClick={() => setViewId(sp.id)}
                 className={`pick is-clickable${viewId === sp.id ? ' is-sel' : isPicked ? ' is-marked' : ''}`}
                 style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px' }}>
-                <span className="num" style={{ width: 16, fontSize: 13, color: 'var(--color-neutral-500)', flex: 'none' }}>{sp.level}</span>
+                <span className="num" style={{ width: 16, fontSize: 13, color: 'var(--color-neutral-500)', flex: 'none' }}>{spLevel}</span>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span style={{ fontSize: 13.5, fontWeight: 500 }}>{sp.name}</span>
@@ -111,7 +116,7 @@ export function SpellsStep({ ch }: { ch: CharCtl }) {
                 </div>
                 {auto ? <span className="text-muted" style={{ fontSize: 11, flex: 'none' }}>in book</span>
                   : <button className="btn btn-ghost" style={{ fontSize: 11.5, flex: 'none' }} disabled={!allPicked.has(sp.id) && full}
-                      onClick={(e) => { e.stopPropagation(); toggle(sp.id, sp.level); }}>
+                      onClick={(e) => { e.stopPropagation(); toggle(sp.id, spLevel); }}>
                       {allPicked.has(sp.id) ? '✓ Known' : full ? 'Full' : 'Add'}
                     </button>}
               </div>
@@ -129,7 +134,7 @@ export function SpellsStep({ ch }: { ch: CharCtl }) {
             <div style={{ fontSize: 17, fontWeight: 500 }}>{view.name}</div>
             <div style={{ display: 'flex', gap: 6, margin: '6px 0 10px', flexWrap: 'wrap' }}>
               <span className="tag tag-neutral" style={{ fontSize: 10 }}>{view.school}</span>
-              <span className="tag tag-neutral" style={{ fontSize: 10 }}>{view.level === 0 ? '0 (cantrip)' : `level ${view.level}`}</span>
+              <span className="tag tag-neutral" style={{ fontSize: 10 }}>{lvlOf(view) === 0 ? '0 (cantrip)' : `level ${lvlOf(view)}`}</span>
               {opposedNames.has(view.name) && <span className="warn-tag">opposed school</span>}
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '4px 12px', fontSize: 12, marginBottom: 10 }}>

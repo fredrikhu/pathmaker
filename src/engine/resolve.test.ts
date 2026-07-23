@@ -4273,6 +4273,35 @@ describe('archetypes — second archetype per base/hybrid class (batch C)', () =
     expect(featsAt(v, 2)).not.toContain('Defensive Instinct');
     expect(featsAt(v, 6)).toContain('Plant Shape');
   });
+
+  it('Arcanist Unlettered Arcanist swaps the arcane spell list for the witch list', () => {
+    const u = build('arcanist', 'unlettered-arcanist', 5);
+    expect(featsAt(u, 1)).toContain('Familiar');
+    const eff = effectiveClass(C.classById.get('arcanist')!, readDecisions(u));
+    expect(eff.spellcasting?.list).toBe('witch');
+    expect(resolve(u).sheet.casting[0].list).toBe('witch'); // the play-sheet block carries it too
+    // The spell picker draws from the witch list, not the arcane one: it offers Cure Light Wounds
+    // (witch-only, never on the wizard list) and hides Magic Missile (arcane-only, never witch).
+    const spellSlots = resolve(u).slots.filter((s) => s.step === 'spells' && s.options);
+    const opts = new Set(spellSlots.flatMap((s) => (s.options ?? []).map((o) => o.id)));
+    expect(opts.has('cure-light-wounds')).toBe(true);
+    expect(opts.has('magic-missile')).toBe(false);
+  });
+});
+
+describe('witch spell list data', () => {
+  it('tags witch spells and omits non-witch ones, with per-list level overrides', () => {
+    const on = (id: string) => C.spellById.get(id)!.lists.includes('witch');
+    expect(on('lightning-bolt')).toBe(true);
+    expect(on('vampiric-touch')).toBe(true);
+    expect(on('wail-of-the-banshee')).toBe(true);
+    expect(on('fireball')).toBe(false);
+    expect(on('scorching-ray')).toBe(false);
+    // Cures sit a level higher on the witch list than on the cleric list.
+    expect(C.spellLevelOn(C.spellById.get('cure-serious-wounds')!, 'witch')).toBe(4);
+    expect(C.spellLevelOn(C.spellById.get('cone-of-cold')!, 'witch')).toBe(6);
+    expect(C.spellLevelOn(C.spellById.get('plane-shift')!, 'witch')).toBe(7);
+  });
 });
 
 describe('archetypes — caster classes', () => {

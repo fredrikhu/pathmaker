@@ -9,7 +9,21 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 **Current state** — branch `main`, working tree clean, **567 tests** passing; run
 `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
-**Latest — Archetypes: second-per-base/hybrid class, batch C (Swashbuckler deed-split + 7 archetypes).** Split the
+**Latest — Spell-list-swap + Unlettered Arcanist (every class with an archetype now has ≥2).** Added a `witch`
+`SpellList` and tagged the 144 curated spells that sit on the witch list — parsed authoritatively from the
+d20pfsrd witch spell list (loaded via the browser pane to dodge WebFetch truncation, then intersected with our
+inventory by name), including 19 per-list level overrides (`levelByList.witch`: cures +1, Cone of Cold 6, Plane
+Shift 7…). Fireball et al. are correctly excluded. Applied in one post-processing loop in `spells.ts` via a
+`WITCH_LEVELS` id→level map, so all existing list-filtering code keeps working. The `spellcastingMod.list`
+mechanism already existed; **Unlettered Arcanist** (Arcanist) now uses `list: 'witch'` + a Familiar grant.
+Fixed two places that read the *base* class list instead of the archetype-effective one: `Spells.tsx` (builder
+picker) and the play-sheet — added `list` to the resolved `CastingBlock` and taught `Spells.tsx` to use
+`effectiveClass` + `spellLevelOn`. 2 new tests; **679 pass**; browser-verified the Unlettered Arcanist draws the
+witch list (Cure/Inflict Light Wounds shown, Magic Missile/Fireball/Scorching Ray hidden, per-list levels gated
+right). **The "2 archetypes per class" goal is complete** for every class that has any (Slayer has 1;
+vampire-hunter has none published).
+
+**Prior — Archetypes: second-per-base/hybrid class, batch C (Swashbuckler deed-split + 7 archetypes).** Split the
 swashbuckler **deeds** into one feature per deed (`swb-deed-<name>`, as done for the gunslinger) so archetypes can
 swap individual deeds — and fixed **Inspired Blade** to actually replace the bleeding-wound deed. Added second
 archetypes: Swashbuckler **Flying Blade** (thrown-blade deed swaps), Summoner **Broodmaster**, Brawler **Mutagenic

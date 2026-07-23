@@ -483,6 +483,40 @@ export const SPELLS: SpellDef[] = [
   { id: 'breath-of-life', name: 'Breath of Life', level: 5, school: 'Conjuration', lists: ['divine'], summary: 'Heal, and revive the just-slain.', cast: '1 standard action', comp: 'V, S', range: 'Touch', dur: 'Instantaneous', save: 'Will negates (harmless)', desc: 'Cures 5d8 +1 per caster level (max +25), and can restore a creature that died within the last round.' },
 ];
 
+// The witch spell list (Advanced Player's Guide) is its own tradition — overlapping the arcane list
+// but adding cures and divine-flavoured magic while dropping the direct-damage evocations (no fireball).
+// This maps each of our curated spells that sits on the witch list to its witch spell level, parsed
+// from the d20pfsrd witch spell list (many witch spells land a level higher than on the wizard list —
+// e.g. the cures at +1, Cone of Cold at 6, Plane Shift at 7). Applied below as a 'witch' list tag so
+// list-swap archetypes (Unlettered Arcanist) draw from it. Non-Core witch spells we don't yet carry
+// simply aren't listed; the witch caster shows the witch-list spells we have data for.
+const WITCH_LEVELS: Record<string, number> = {
+  'arcane-mark': 0, 'bleed': 0, 'dancing-lights': 0, 'daze': 0, 'detect-magic': 0, 'detect-poison': 0,
+  'guidance': 0, 'light': 0, 'mending': 0, 'message': 0, 'read-magic': 0, 'resistance': 0,
+  'stabilize': 0, 'touch-of-fatigue': 0, 'burning-hands': 1, 'cause-fear': 1, 'charm-person': 1, 'chill-touch': 1,
+  'command': 1, 'comprehend-languages': 1, 'cure-light-wounds': 1, 'enlarge-person': 1, 'hypnotism': 1, 'identify': 1,
+  'inflict-light-wounds': 1, 'mage-armor': 1, 'mount': 1, 'obscuring-mist': 1, 'ray-of-enfeeblement': 1, 'reduce-person': 1,
+  'sleep': 1, 'summon-monster-i': 1, 'unseen-servant': 1, 'alter-self': 2, 'blindness': 2, 'cure-moderate-wounds': 2,
+  'death-knell': 2, 'delay-poison': 2, 'detect-thoughts': 2, 'enthrall': 2, 'false-life': 2, 'fog-cloud': 2,
+  'gentle-repose': 2, 'glitterdust': 2, 'hold-person': 2, 'inflict-moderate-wounds': 2, 'levitate': 2, 'see-invisibility': 2,
+  'spectral-hand': 2, 'status': 2, 'summon-monster-ii': 2, 'summon-swarm': 2, 'touch-of-idiocy': 2, 'web': 2,
+  'zone-of-truth': 2, 'bestow-curse': 3, 'dispel-magic': 3, 'fly': 3, 'glyph-of-warding': 3, 'heroism': 3,
+  'lightning-bolt': 3, 'locate-object': 3, 'rage': 3, 'remove-curse': 3, 'remove-disease': 3, 'sleet-storm': 3,
+  'speak-with-dead': 3, 'stinking-cloud': 3, 'suggestion': 3, 'summon-monster-iii': 3, 'tongues': 3, 'vampiric-touch': 3,
+  'black-tentacles': 4, 'charm-monster': 4, 'confusion': 4, 'cure-serious-wounds': 4, 'death-ward': 4, 'dimension-door': 4,
+  'discern-lies': 4, 'divination': 4, 'enervation': 4, 'fear': 4, 'ice-storm': 4, 'inflict-serious-wounds': 4,
+  'minor-creation': 4, 'neutralize-poison': 4, 'phantasmal-killer': 4, 'solid-fog': 4, 'summon-monster-iv': 4, 'baleful-polymorph': 5,
+  'break-enchantment': 5, 'cloudkill': 5, 'cure-critical-wounds': 5, 'dominate-person': 5, 'feeblemind': 5, 'hold-monster': 5,
+  'inflict-critical-wounds': 5, 'major-creation': 5, 'mind-fog': 5, 'overland-flight': 5, 'summon-monster-v': 5, 'telepathic-bond': 5,
+  'teleport': 5, 'animate-objects': 6, 'cone-of-cold': 6, 'eyebite': 6, 'find-the-path': 6, 'flesh-to-stone': 6,
+  'geas-quest': 6, 'legend-lore': 6, 'raise-dead': 6, 'slay-living': 6, 'true-seeing': 6, 'chain-lightning': 7,
+  'control-weather': 7, 'harm': 7, 'heal': 7, 'insanity': 7, 'instant-summons': 7, 'phase-door': 7,
+  'plane-shift': 7, 'power-word-blind': 7, 'regenerate': 7, 'waves-of-exhaustion': 7, 'demand': 8, 'destruction': 8,
+  'discern-location': 8, 'horrid-wilting': 8, 'maze': 8, 'mind-blank': 8, 'moment-of-prescience': 8, 'power-word-stun': 8,
+  'resurrection': 8, 'symbol-of-death': 8, 'astral-projection': 9, 'dominate-monster': 9, 'elemental-swarm': 9, 'foresight': 9,
+  'power-word-kill': 9, 'refuge': 9, 'storm-of-vengeance': 9, 'summon-monster-ix': 9, 'teleportation-circle': 9, 'wail-of-the-banshee': 9,
+};
+
 // Structured effects live beside the prose rather than inline, so this table stays readable and the
 // verified scaling clauses sit together in one file. Attached here so every consumer sees them.
 for (const s of SPELLS) {
@@ -492,6 +526,11 @@ for (const s of SPELLS) {
   if (damage) s.damage = damage;
   const attacker = SPELL_ATTACKERS[s.id];
   if (attacker) s.attacker = attacker;
+  const witchLevel = WITCH_LEVELS[s.id];
+  if (witchLevel !== undefined) {
+    if (!s.lists.includes('witch')) s.lists = [...s.lists, 'witch'];
+    if (witchLevel !== s.level) s.levelByList = { ...s.levelByList, witch: witchLevel };
+  }
 }
 
 export const spellById = new Map(SPELLS.map((s) => [s.id, s]));

@@ -301,10 +301,7 @@ export function PlaySheet({ id }: { id: string }) {
   const castingBlockFor = (spellId: string) => {
     const sp = spellById.get(spellId);
     if (!sp) return null;
-    const matching = sheet.casting.filter((b) => {
-      const list = classById.get(b.classId)?.spellcasting?.list;
-      return list && sp.lists.includes(list as never);
-    });
+    const matching = sheet.casting.filter((b) => sp.lists.includes(b.list as never));
     return matching.length ? matching.reduce((best, b) => (b.casterLevel > best.casterLevel ? b : best)) : null;
   };
   const casterLevelFor = (spellId: string): number | null => castingBlockFor(spellId)?.casterLevel ?? null;
@@ -858,7 +855,7 @@ export function PlaySheet({ id }: { id: string }) {
                   // With metamagic, a lower-level spell can be raised to fill this slot, so the pool
                   // opens up to every base level ≤ this slot's level.
                   const pool = ownedMeta.length ? preparablePoolUpTo(cls, level) : preparablePool(cls, level);
-                  const csList = classById.get(cls)?.spellcasting?.list;
+                  const csList = block.list;
                   const prep = preparedAt(cls, level);
                   const cast = new Set(castAt(cls, level));
                   // The arcanist prepares one number of spells and casts a different number of
@@ -1237,7 +1234,7 @@ function MetamagicSpontaneousTool({ block, ownedMeta, usedAt, spend, rollDamageF
   const [spellId, setSpellId] = useState('');
   const [applied, setApplied] = useState<string[]>([]);
   const [heightenTo, setHeightenTo] = useState<number | ''>('');
-  const list = classById.get(block.classId)?.spellcasting?.list;
+  const list = block.list;
   const slots = block.slots ?? [];
   const maxLevel = slots.reduce((m, n, l) => (n > 0 ? l : m), 0);
   const options = list

@@ -317,6 +317,9 @@ export interface CastingBlock {
   className: string;
   kind: string;
   ability: Ability;
+  /** The spell list this block draws from — the archetype-effective list, so an Unlettered Arcanist
+   *  reads 'witch' rather than the arcanist's base 'arcane'. */
+  list: string;
   casterLevel: number;
   /** Slots per day, indexed by spell level (index 0 = cantrips). */
   slots?: number[];

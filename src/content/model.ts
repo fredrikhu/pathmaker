@@ -133,7 +133,7 @@ export interface LeveledFeatureDef extends ClassFeatureDef {
 export interface SpellcastingDef {
   kind: 'prepared-book' | 'spontaneous' | 'prepared-list';
   ability: Ability;
-  list: 'arcane' | 'bard' | 'divine' | 'druid' | 'ranger' | 'paladin';
+  list: 'arcane' | 'bard' | 'divine' | 'druid' | 'ranger' | 'paladin' | 'witch';
   /** Slot/known progression speed ('full' 9-level, 'six', or 'four'). Drives caster level. */
   progression?: CasterProgression;
   /** Which verified slot/known table this class uses. Only set when the table is encoded;
@@ -449,7 +449,7 @@ export interface SpellDamageDef {
   note?(casterLevel: number): string;
 }
 
-export type SpellList = 'arcane' | 'bard' | 'divine' | 'druid';
+export type SpellList = 'arcane' | 'bard' | 'divine' | 'druid' | 'witch';
 
 export interface SpellDef {
   id: string;

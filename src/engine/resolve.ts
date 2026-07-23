@@ -1106,6 +1106,7 @@ export function resolve(doc: CharacterDoc): Resolution {
       className: c.klass.name,
       kind: csc.kind,
       ability: csc.ability,
+      list: csc.list,
       casterLevel: casterLevel(csc.progression ?? 'full', c.levels),
       slots,
       known: csc.kind === 'spontaneous' ? spellsKnownPerLevel(table, c.levels) : undefined,

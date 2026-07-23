@@ -905,6 +905,18 @@ export const ARCANIST_ARCHETYPES: ArchetypeDef[] = [
       g(20, 'ef-bottomless-well', 'Bottomless Well', 'After an hour of study, regain reservoir points equal to half your arcanist level and prepare new spells — usable several times per day. Replaces magical supremacy.'),
     ],
   },
+  {
+    id: 'unlettered-arcanist', classId: 'arcanist', name: 'Unlettered Arcanist',
+    desc: 'An arcanist who keeps no spellbook — her magic is bound in a familiar, and she draws on the witch’s tradition rather than the wizard’s.',
+    replaces: [],
+    // Familiar replaces the spellbook (a flavour feature in our model — the arcanist has no discrete
+    // spellbook slot), and the witch spell list replaces the arcanist's normal (arcane) list.
+    spellcastingMod: { list: 'witch' },
+    grants: [
+      g(1, 'ua-familiar', 'Familiar', 'You store your spells in a familiar rather than a spellbook, gaining a familiar as a witch of your arcanist level. Anything that would add spells to your spellbook adds them to the familiar instead. Replaces spellbooks.'),
+      g(1, 'ua-witch-magic', 'Witch Magic', 'You draw your spells from the witch spell list instead of the sorcerer/wizard list. Alters the arcanist’s spells.'),
+    ],
+  },
 ];
 
 export const SLAYER_ARCHETYPES: ArchetypeDef[] = [

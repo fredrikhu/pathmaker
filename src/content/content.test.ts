@@ -14,7 +14,7 @@ const BONUS_TYPES = new Set([
   'sacred', 'deflection', 'natural-armor', 'armor', 'shield', 'size', 'circumstance', 'alchemical',
   'resistance', 'untyped', 'penalty',
 ]);
-const SPELL_LISTS = new Set(['arcane', 'bard', 'divine', 'druid', 'ranger', 'paladin']);
+const SPELL_LISTS = new Set(['arcane', 'bard', 'divine', 'druid', 'ranger', 'paladin', 'witch']);
 const CHOICE_KINDS = new Set([
   'wizard-school', 'wizard-opposition', 'arcane-bond', 'cleric-domains', 'warpriest-blessings',
   'sorcerer-bloodline', 'oracle-revelation', 'eidolon-evolutions', 'list',
