@@ -4184,6 +4184,52 @@ describe('archetypes — second archetype per base/hybrid class (batch A)', () =
     expect(talents).toContain('slayer-talent-L4');
   });
 
+  it('Fighter Archer swaps bravery/armor-training/weapon-training for ranged features', () => {
+    const a = build('fighter', 'archer', 20);
+    expect(featsAt(a, 2)).toContain('Hawkeye');
+    expect(featsAt(a, 2)).not.toContain('Bravery +1');
+    expect(featsAt(a, 3)).toContain('Trick Shot');
+    expect(featsAt(a, 3)).not.toContain('Armor Training 1');
+    expect(featsAt(a, 5)).toContain('Expert Archer');
+    expect(featsAt(a, 20)).toContain('Weapon Mastery'); // archer keeps weapon mastery
+  });
+
+  it('Rogue Scout swaps uncanny dodge for charge-based sneak attacks', () => {
+    const s = build('rogue', 'scout', 8);
+    expect(featsAt(s, 4)).toContain('Scout’s Charge');
+    expect(featsAt(s, 4)).not.toContain('Uncanny Dodge');
+    expect(featsAt(s, 8)).toContain('Skirmisher');
+    expect(featsAt(s, 8)).not.toContain('Improved Uncanny Dodge');
+  });
+
+  it('Barbarian Titan Mauler swaps the mobility/defense line for giant-weapon features', () => {
+    const t = build('barbarian', 'titan-mauler', 14);
+    expect(featsAt(t, 1)).toContain('Big Game Hunter');
+    expect(featsAt(t, 1)).not.toContain('Fast Movement');
+    expect(featsAt(t, 2)).toContain('Jotungrip');
+    expect(featsAt(t, 3)).toContain('Massive Weapons');
+    expect(featsAt(t, 14)).toContain('Titanic Rage');
+    expect(featsAt(t, 14)).not.toContain('Indomitable Will');
+  });
+
+  it('Ranger Guide swaps favored enemy / hunter’s bond / quarry for focus & terrain features', () => {
+    const gd = build('ranger', 'guide', 16);
+    expect(featsAt(gd, 1)).toContain('Ranger’s Focus');
+    expect(featsAt(gd, 1)).not.toContain('Favored Enemy');
+    expect(featsAt(gd, 4)).toContain('Terrain Bond');
+    expect(featsAt(gd, 4)).not.toContain("Hunter's Bond");
+    expect(featsAt(gd, 11)).toContain('Inspired Moment');
+    expect(featsAt(gd, 11)).not.toContain('Quarry');
+  });
+
+  it('Paladin Undead Scourge swaps aura of resolve/justice for anti-undead powers', () => {
+    const u = build('paladin', 'undead-scourge', 11);
+    expect(featsAt(u, 8)).toContain('Aura of Life');
+    expect(featsAt(u, 8)).not.toContain('Aura of Resolve');
+    expect(featsAt(u, 11)).toContain('Undead Annihilation');
+    expect(featsAt(u, 11)).not.toContain('Aura of Justice');
+  });
+
   it('Slayer Bounty Hunter swaps the 2nd/6th talents and the 10th advanced talent for capture tools', () => {
     const b = build('slayer', 'bounty-hunter', 12);
     expect(featsAt(b, 2)).toContain('Dirty Trick');

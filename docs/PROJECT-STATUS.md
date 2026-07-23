@@ -9,7 +9,14 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 **Current state** — branch `main`, working tree clean, **567 tests** passing; run
 `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
-**Latest — Slayer Bounty Hunter (its second archetype).** The capture-focused slayer: swaps the slayer talents
+**Latest — Archetypes: third-per-class breadth batch (5 popular Core classes).** With every class at ≥2, brought
+the most-played Core classes to a third (matching monk/magus): Fighter **Archer**, Rogue **Scout**, Barbarian
+**Titan Mauler**, Ranger **Guide**, Paladin **Undead Scourge**. All verified vs d20pfsrd; clean feature swaps
+(Archer keeps weapon mastery; the fighter's intermediate weapon/armor-training ranks aren't modelled as separate
+features, so Safe Shot/Evasive/Volley grant at their levels without a removal target). **vampire-hunter stays at
+0 by design** — no standard published archetypes. 5 golden tests; **685 pass**; browser-verified Archer.
+
+**Prior — Slayer Bounty Hunter (its second archetype).** The capture-focused slayer: swaps the slayer talents
 at 2nd and 6th and the advanced talent at 10th for Dirty Trick, Submission Hold, and Incapacitate, plus a
 Manhunter’s Training proficiency grant. Verified vs d20pfsrd. 1 golden test; **680 pass**; browser-verified the
 features render (needed a hard reload — stale HMR). **Slayer now has 2**, so every class with any archetype has

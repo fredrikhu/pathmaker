@@ -15,6 +15,20 @@ const g = (level: number, id: string, name: string, desc: string): LeveledFeatur
 
 export const FIGHTER_ARCHETYPES: ArchetypeDef[] = [
   {
+    id: 'archer', classId: 'fighter', name: 'Archer',
+    desc: 'A fighter who has made the bow an extension of the eye — every arrow a considered, killing choice.',
+    replaces: ['fighter-bravery', 'fighter-armor-training', 'fighter-weapon-training', 'fighter-armor-mastery'],
+    grants: [
+      g(2, 'archer-hawkeye', 'Hawkeye', 'Add to your ranged weapons’ range increments and gain a scaling bonus on ranged attack rolls. Replaces bravery.'),
+      g(3, 'archer-trick-shot', 'Trick Shot', 'Perform disarm, feint, and sunder combat maneuvers (and more, as you level) at range with a bow. Replaces armor training.'),
+      g(5, 'archer-expert-archer', 'Expert Archer', '+1 on attack and damage with ranged weapons, rising every four levels. Replaces weapon training 1.'),
+      g(9, 'archer-safe-shot', 'Safe Shot', 'Firing your chosen bow no longer provokes attacks of opportunity. Replaces weapon training 2.'),
+      g(13, 'archer-evasive', 'Evasive Archer', '+2 dodge AC against ranged attacks (+4 at 17th). Replaces weapon training 3.'),
+      g(17, 'archer-volley', 'Volley', 'As a full-round action, make a ranged attack against every creature in a 15-foot-radius burst. Replaces weapon training 4.'),
+      g(19, 'archer-ranged-defense', 'Ranged Defense', 'Gain DR against ranged attacks and catch or deflect one arrow per round. Replaces armor mastery.'),
+    ],
+  },
+  {
     id: 'two-handed-fighter', classId: 'fighter', name: 'Two-Handed Fighter',
     desc: 'Masters of massive two-handed weapons — trading armor training for brutal, Strength-driven strikes.',
     replaces: ['fighter-bravery', 'fighter-armor-training', 'fighter-weapon-training', 'fighter-armor-mastery'],
@@ -46,6 +60,18 @@ export const FIGHTER_ARCHETYPES: ArchetypeDef[] = [
 
 export const RANGER_ARCHETYPES: ArchetypeDef[] = [
   {
+    id: 'guide', classId: 'ranger', name: 'Guide',
+    desc: 'A ranger who knows one stretch of wild country better than anyone — and gets clients through it alive.',
+    replaces: ['ranger-favored-enemy', 'ranger-hunters-bond', 'ranger-evasion', 'ranger-quarry', 'ranger-improved-quarry', 'ranger-improved-evasion'],
+    grants: [
+      g(1, 'guide-focus', 'Ranger’s Focus', 'Several times per day, focus on one target for a scaling bonus on attack and damage rolls against it. Replaces favored enemy.'),
+      g(4, 'guide-terrain-bond', 'Terrain Bond', 'Grant allies a bonus on initiative, Perception, Stealth, and Survival while in a chosen terrain. Replaces hunter’s bond.'),
+      g(9, 'guide-luck', 'Ranger’s Luck', 'Once per focus, reroll an attack roll or force a foe to reroll an attack against you. Replaces evasion.'),
+      g(11, 'guide-inspired-moment', 'Inspired Moment', 'Once per day, take a moment of perfect action — extra move, full AC, sure hits — for one round. Replaces quarry and improved quarry.'),
+      g(16, 'guide-improved-luck', 'Improved Ranger’s Luck', 'Your Ranger’s Luck reroll applies a larger bonus or penalty. Replaces improved evasion.'),
+    ],
+  },
+  {
     id: 'skirmisher', classId: 'ranger', name: 'Skirmisher',
     desc: 'A ranger who forgoes spellcasting entirely, relying on wits and instinct — trading spells for hunter’s tricks.',
     replaces: [],
@@ -68,6 +94,15 @@ export const RANGER_ARCHETYPES: ArchetypeDef[] = [
 
 export const ROGUE_ARCHETYPES: ArchetypeDef[] = [
   {
+    id: 'scout', classId: 'rogue', name: 'Scout',
+    desc: 'A rogue who turns momentum into a weapon — striking hardest the instant she closes the distance.',
+    replaces: ['rogue-uncanny-dodge', 'rogue-improved-uncanny-dodge'],
+    grants: [
+      g(4, 'scout-charge', 'Scout’s Charge', 'When you charge, the target is treated as flat-footed against your attack, letting you sneak attack it. Replaces uncanny dodge.'),
+      g(8, 'scout-skirmisher', 'Skirmisher', 'If you move at least 10 feet, your attacks that round deal sneak attack damage as though the target were flat-footed. Replaces improved uncanny dodge.'),
+    ],
+  },
+  {
     id: 'thug', classId: 'rogue', name: 'Thug',
     desc: 'A brute who gets what she wants through threat and violence rather than finesse.',
     replaces: ['rogue-trapfinding', 'rogue-trap-sense'],
@@ -89,6 +124,18 @@ export const ROGUE_ARCHETYPES: ArchetypeDef[] = [
 
 export const BARBARIAN_ARCHETYPES: ArchetypeDef[] = [
   {
+    id: 'titan-mauler', classId: 'barbarian', name: 'Titan Mauler',
+    desc: 'A barbarian raised to fell giants — hefting weapons built for creatures far larger than herself.',
+    replaces: ['barb-fast-movement', 'barb-uncanny-dodge', 'barb-trap-sense', 'barb-improved-uncanny-dodge', 'barb-indomitable-will'],
+    grants: [
+      g(1, 'tm-big-game-hunter', 'Big Game Hunter', '+1 on attack rolls and +2 on damage rolls against creatures larger than you. Replaces fast movement.'),
+      g(2, 'tm-jotungrip', 'Jotungrip', 'Wield a two-handed melee weapon sized for you in one hand, taking a −2 penalty on attacks with it. Replaces uncanny dodge.'),
+      g(3, 'tm-massive-weapons', 'Massive Weapons', 'Wield weapons up to two size categories larger than you with reduced penalties. Replaces trap sense.'),
+      g(5, 'tm-evade-reach', 'Evade Reach', 'Once per rage, avoid an attack of opportunity provoked by moving into a foe’s threatened space. Replaces improved uncanny dodge.'),
+      g(14, 'tm-titanic-rage', 'Titanic Rage', 'Once per rage, grow one size category (as enlarge person) for a few rounds. Replaces indomitable will.'),
+    ],
+  },
+  {
     id: 'invulnerable-rager', classId: 'barbarian', name: 'Invulnerable Rager',
     desc: 'A barbarian who shrugs off mortal wounds, turning raw punishment into fuel for her rage.',
     replaces: ['barb-uncanny-dodge', 'barb-improved-uncanny-dodge', 'barb-dr', 'barb-trap-sense'],
@@ -109,6 +156,16 @@ export const BARBARIAN_ARCHETYPES: ArchetypeDef[] = [
 ];
 
 export const PALADIN_ARCHETYPES: ArchetypeDef[] = [
+  {
+    id: 'undead-scourge', classId: 'paladin', name: 'Undead Scourge',
+    desc: 'A paladin sworn against the walking dead — every smite a hammer brought down on unlife.',
+    replaces: ['paladin-aura-resolve', 'paladin-aura-justice'],
+    grants: [
+      g(1, 'us-smite-undead', 'Smite Evil (Undead)', 'Your smite evil deals no extra damage against evil dragons or outsiders, but deals double its bonus damage against evil undead. Alters smite evil.'),
+      g(8, 'us-aura-of-life', 'Aura of Life', 'A 10-foot aura gives undead a −4 penalty on Will saves against positive energy and stops them from healing via channeled negative energy. Replaces aura of resolve.'),
+      g(11, 'us-undead-annihilation', 'Undead Annihilation', 'Expend a use of smite evil to make a melee attack that can destroy an undead outright (Will negates; DC 10 + ½ level + Cha). Replaces aura of justice.'),
+    ],
+  },
   {
     id: 'warrior-of-the-holy-light', classId: 'paladin', name: 'Warrior of the Holy Light',
     desc: 'A paladin who forgoes spellcasting to channel her faith into radiant light and greater healing.',
