@@ -4727,6 +4727,57 @@ describe('archetypes — thirds batch 3 (Mouser, Dual-Cursed, Chirurgeon, Mercif
     expect(featsAt(br, 4)).not.toContain('Expert Trainer');
   });
 
+  it('Cave Druid swaps the surface line underground and moves wild shape to 6th', () => {
+    const eff = effectiveClass(C.classById.get('druid')!, readDecisions(build('druid', 'cave-druid', 1)));
+    expect(eff.classSkills).toContain('know-dungeoneering');
+    expect(eff.classSkills).not.toContain('know-geography');
+    const cd = build('druid', 'cave-druid', 6);
+    expect(featsAt(cd, 1)).toContain('Cavesense');
+    expect(featsAt(cd, 1)).not.toContain('Nature Sense');
+    expect(featsAt(cd, 2)).toContain('Tunnelrunner');
+    expect(featsAt(cd, 3)).toContain('Lightfoot');
+    expect(featsAt(cd, 4)).toContain('Resist Subterranean Corruption');
+    // Wild shape is gone from 4th and arrives at 6th instead.
+    expect(featsAt(cd, 4)).not.toContain('Wild Shape 1/day');
+    expect(featsAt(cd, 6)).toContain('Wild Shape (cave)');
+  });
+
+  it('Metamagic Rager trades improved uncanny dodge for Meta-Rage', () => {
+    const mr = build('bloodrager', 'metamagic-rager', 5);
+    expect(featsAt(mr, 5)).toContain('Meta-Rage');
+    expect(featsAt(mr, 5)).not.toContain('Improved Uncanny Dodge');
+    // Plain uncanny dodge at 2nd is untouched.
+    expect(featsAt(mr, 2)).toContain('Uncanny Dodge');
+  });
+
+  it('Battle Scion swaps dirge of doom and master skald for its courtly line', () => {
+    const bs = build('skald', 'battle-scion', 20);
+    expect(featsAt(bs, 1)).toContain('Courtly Presence');
+    expect(featsAt(bs, 3)).toContain('Battle Prowess');
+    expect(featsAt(bs, 10)).toContain('Song of Questing');
+    expect(featsAt(bs, 10)).not.toContain('Dirge of Doom');
+    expect(featsAt(bs, 20)).toContain('Once and Future Scion');
+    expect(featsAt(bs, 20)).not.toContain('Master Skald');
+  });
+
+  it('Stygian Slayer loses the 4th talent and 10th advanced talent, plus medium armor', () => {
+    const eff = effectiveClass(C.classById.get('slayer')!, readDecisions(build('slayer', 'stygian-slayer', 1)));
+    expect(eff.proficiencies.armor).toContain('light');
+    expect(eff.proficiencies.armor).not.toContain('medium');
+    expect(eff.proficiencies.armor).not.toContain('shield');
+    const ids = resolve(build('slayer', 'stygian-slayer', 12)).slots.map((s) => s.id);
+    expect(ids).not.toContain('slayer-talent-L4');
+    expect(ids).not.toContain('slayer-adv-talent-L10');
+    expect(ids).toContain('slayer-talent-L2');
+    expect(ids).toContain('slayer-talent-L6');
+    expect(ids).toContain('slayer-adv-talent-L12');
+    const s = build('slayer', 'stygian-slayer', 10);
+    expect(featsAt(s, 4)).toContain('Invisibility');
+    expect(featsAt(s, 7)).toContain('Spell Use');
+    expect(featsAt(s, 7)).not.toContain('Stalker');
+    expect(featsAt(s, 10)).toContain('Shadowy Mist Form');
+  });
+
   it('Merciful Healer is a single-domain cleric with the healing-channel line', () => {
     const eff = effectiveClass(C.classById.get('cleric')!, readDecisions(build('cleric', 'merciful-healer', 1)));
     expect((eff.choices ?? []).find((x) => x.id === 'domains')?.count).toBe(1);

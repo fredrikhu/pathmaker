@@ -549,6 +549,20 @@ export const INQUISITOR_ARCHETYPES: ArchetypeDef[] = [
 
 export const DRUID_ARCHETYPES: ArchetypeDef[] = [
   {
+    id: 'cave-druid', classId: 'druid', name: 'Cave Druid',
+    desc: 'A guardian of the lightless world below — at home in crawlspaces and cavern dark, and sworn against the horrors that creep up from deeper still.',
+    replaces: ['druid-nature-sense', 'druid-woodland-stride', 'druid-trackless-step', 'druid-resist-natures-lure', 'druid-wild-shape'],
+    // Cavesense swaps Knowledge (geography) for Knowledge (dungeoneering).
+    classSkills: { add: ['know-dungeoneering'], remove: ['know-geography'] },
+    grants: [
+      g(1, 'cave-cavesense', 'Cavesense', 'Knowledge (dungeoneering) is a class skill instead of Knowledge (geography), and you gain +2 on Knowledge (dungeoneering) and Survival checks. Replaces nature sense.'),
+      g(2, 'cave-tunnelrunner', 'Tunnelrunner', 'Move through rubble and passages that require squeezing at your normal speed and without penalty. Replaces woodland stride.'),
+      g(3, 'cave-lightfoot', 'Lightfoot', 'You cannot be detected by tremorsense. Replaces trackless step.'),
+      g(4, 'cave-resist-corruption', 'Resist Subterranean Corruption', '+2 on saves against the extraordinary, supernatural, and spell-like abilities of oozes and aberrations. Replaces resist nature’s lure.'),
+      g(6, 'cave-wild-shape', 'Wild Shape (cave)', 'Gain wild shape at 6th level using your druid level −2, and you cannot take plant forms. From 10th you can become a Small or Medium ooze (beast shape III) and from 12th a Tiny or Large ooze (beast shape IV); in ooze form you are immune to poison, sneak attacks, and critical hits. Also: your nature bond may take the Darkness domain but not Air or Weather, and your wild empathy influences oozes at −4 rather than magical beasts.'),
+    ],
+  },
+  {
     id: 'aquatic-druid', classId: 'druid', name: 'Aquatic Druid',
     desc: 'A guardian of seas, rivers, and marshes — at home beneath the waves where land druids cannot follow.',
     replaces: ['druid-wild-empathy', 'druid-woodland-stride', 'druid-trackless-step', 'druid-resist-natures-lure', 'druid-venom-immunity', 'druid-thousand-faces'],
@@ -892,6 +906,14 @@ export const ORACLE_ARCHETYPES: ArchetypeDef[] = [
 
 export const BLOODRAGER_ARCHETYPES: ArchetypeDef[] = [
   {
+    id: 'metamagic-rager', classId: 'bloodrager', name: 'Metamagic Rager',
+    desc: 'A bloodrager who bends his fury into his spellcasting — burning rage rounds to twist a spell mid-cast.',
+    replaces: ['br-improved-uncanny-dodge'],
+    grants: [
+      g(5, 'mr-meta-rage', 'Meta-Rage', 'Sacrifice rounds of bloodrage — twice the spell’s adjusted level, minimum 2 — to apply a metamagic feat you know to a bloodrager spell without raising the slot’s level (casting time still increases, one feat per casting, and you need not be bloodraging). You may also take a metamagic feat in place of a bloodline feat. Replaces improved uncanny dodge.'),
+    ],
+  },
+  {
     id: 'steelblood', classId: 'bloodrager', name: 'Steelblood',
     desc: 'A bloodrager who fights from within a steel shell, wading through the fray heedless of the blows that ring off his armor.',
     replaces: ['br-fast-movement', 'br-uncanny-dodge', 'br-improved-uncanny-dodge', 'br-dr'],
@@ -1012,6 +1034,20 @@ export const SUMMONER_ARCHETYPES: ArchetypeDef[] = [
 ];
 
 export const SKALD_ARCHETYPES: ArchetypeDef[] = [
+  {
+    id: 'battle-scion', classId: 'skald', name: 'Battle Scion',
+    desc: 'A warrior-poet of noble bearing — as deadly with a blade as with a barbed word, and apt to bind brave followers to a quest.',
+    // RAW also replaces "song of the fallen", which our skald progression does not model as its own
+    // feature; Courtly Presence and Battle Prowess *alter* bardic knowledge and the rage-power line
+    // rather than replacing them, so both are granted alongside the abilities they modify.
+    replaces: ['skald-dirge-of-doom', 'skald-master'],
+    grants: [
+      g(1, 'bscion-courtly-presence', 'Courtly Presence', 'Add half your character level on Intimidate checks and begin any verbal duel with an extra edge for the presence tactic. Your bardic knowledge applies only to Knowledge (geography, history, local, nobility). Alters bardic knowledge.'),
+      g(3, 'bscion-battle-prowess', 'Battle Prowess', 'Whenever you would gain a rage power, you may instead take a combat or teamwork feat you qualify for, and grant it to allies under inspired rage for 2 rounds of raging song per round granted. Alters the rage power ability.'),
+      g(10, 'bscion-song-of-questing', 'Song of Questing', 'Spend 4 rounds of raging song to bind a truly willing target to an agreed quest as geas/quest (the target understands the full terms first); at 14th you may offer it to one willing creature per skald level. Replaces dirge of doom and song of the fallen.'),
+      g(20, 'bscion-once-and-future', 'Once and Future Scion', 'When slain, so long as your body is intact you fall into a deathlike sleep for 3 days and then return as raise dead — even from a death effect. Replaces master skald.'),
+    ],
+  },
   {
     id: 'spell-warrior', classId: 'skald', name: 'Spell Warrior',
     desc: 'A skald whose songs sharpen steel and unravel magic — a battle-mage’s bane at the front line.',
@@ -1168,6 +1204,27 @@ export const ARCANIST_ARCHETYPES: ArchetypeDef[] = [
 ];
 
 export const SLAYER_ARCHETYPES: ArchetypeDef[] = [
+  {
+    id: 'stygian-slayer', classId: 'slayer', name: 'Stygian Slayer',
+    desc: 'A killer who steps out of the deepest shadow — arriving unseen, doing murder, and dissolving into mist before anyone thinks to look.',
+    replaces: ['slay-stalker'],
+    // Light armor only, no shields.
+    proficiencies: { armor: { remove: ['medium', 'shield'] } },
+    // Invisibility takes the 4th-level slayer talent and Shadowy Mist Form the 10th-level advanced
+    // talent, so each line is re-added without that one level.
+    choices: {
+      remove: ['slayer-talent', 'slayer-adv-talent'],
+      add: [
+        { id: 'slayer-talent', label: 'Slayer talent', kind: 'list', count: 1, levels: [2, 6, 8], options: SLAYER_TALENTS },
+        { id: 'slayer-adv-talent', label: 'Slayer talent (advanced eligible)', kind: 'list', count: 1, levels: [12, 14, 16, 18, 20], options: SLAYER_TALENTS_ALL },
+      ],
+    },
+    grants: [
+      g(4, 'stygian-invisibility', 'Invisibility', 'Cast invisibility once per day at your slayer level (Intelligence for concentration), plus once more at 8th and every four levels thereafter. Replaces the 4th-level slayer talent.'),
+      g(7, 'stygian-spell-use', 'Spell Use', 'Use spell-completion and spell-trigger items as an arcane caster with darkness, forced quiet, modify memory, nondetection, obscuring mist, phantom steed, shadow walk, and 0–4th-level illusion wizard spells on your list, using your class level as caster level. Replaces stalker.'),
+      g(10, 'stygian-shadowy-mist', 'Shadowy Mist Form', 'Become an inky cloud as gaseous form that also obscures vision like fog cloud, for a number of minutes per day equal to your level (in 1-minute increments). Replaces the 10th-level advanced slayer talent.'),
+    ],
+  },
   {
     id: 'sniper', classId: 'slayer', name: 'Sniper',
     desc: 'A slayer who kills from the shadows at a distance — patient, precise, and gone before the body falls.',

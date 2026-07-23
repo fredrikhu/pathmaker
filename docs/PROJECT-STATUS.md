@@ -9,7 +9,22 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 **Current state** — branch `main`, working tree clean, **567 tests** passing; run
 `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
-**Latest — Archetypes: third-per-class breadth batch 3.** Four more classes brought to a third, all verified vs
+**Latest — Archetypes: third-per-class breadth batch 5.** Druid **Cave Druid** (underground line + a
+Knowledge geography→dungeoneering class-skill swap; wild shape moves from 4th to 6th), Bloodrager **Metamagic
+Rager** (Meta-Rage for improved uncanny dodge), Skald **Battle Scion** (courtly/quest line for dirge of doom +
+master skald; its "alters" abilities are granted alongside what they modify, and RAW's *song of the fallen* isn't
+a modelled feature), Slayer **Stygian Slayer** (light armor only; the 4th talent and 10th advanced talent are
+removed by re-adding each line without that level). All verified vs d20pfsrd. 4 golden tests; **707 pass**; tsc +
+build clean; browser-verified Stygian Slayer (exactly 4 talent slots at 12 vs a standard slayer's 6, no Level-4
+slot, and the three grants render). Classes still at two: wizard, summoner, shifter, shaman, hunter, arcanist.
+
+**Prior — Archetypes: batch 4 (Court Bard, Spellbreaker, Beast Rider) + bard performance split.** Inspire courage
+was folded into the `bard-performance` rounds/day feature, so no bard archetype could swap it — split into its own
+`bard-inspire-courage` feature (mirroring the gunslinger/swashbuckler deed splits), unblocking the whole bard
+family; also added the missing `bard-jack-of-all-trades` (10th). Court Bard, Inquisitor Spellbreaker (drops **all
+six** teamwork bonus feats), Cavalier Beast Rider. 4 golden tests; 703 pass.
+
+**Prior — Archetypes: third-per-class breadth batch 3.** Four more classes brought to a third, all verified vs
 d20pfsrd (browser pane): Swashbuckler **Mouser** (four deed-for-deed swaps — underfoot/steal/hamstring/cat's
 charge), Oracle **Dual-Cursed** (two curses + bonus revelation picks at 5th/13th via a second `oracle-revelation`
 choice line, mirroring the witch's dual-`hex` pattern), Alchemist **Chirurgeon** (trades the poison line —
