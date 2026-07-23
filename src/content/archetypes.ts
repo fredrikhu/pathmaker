@@ -6,7 +6,10 @@
 // replaces "Armor Training 1–4" replaces that one id and grants its own abilities in their place.
 
 import type { ArchetypeDef, LeveledFeatureDef } from './model';
-import { ROGUE_TALENTS, ROGUE_ADVANCED_TALENTS, MAGUS_ARCANA, WITCH_HEXES, ARCANIST_EXPLOITS, BARBARIAN_RAGE_POWERS, SLAYER_TALENTS, SHAMAN_HEXES } from './subsystems';
+import { ROGUE_TALENTS, ROGUE_ADVANCED_TALENTS, MAGUS_ARCANA, WITCH_HEXES, ARCANIST_EXPLOITS, BARBARIAN_RAGE_POWERS, SLAYER_TALENTS, SLAYER_ADVANCED_TALENTS, SHAMAN_HEXES } from './subsystems';
+
+// The advanced slayer-talent line lets you pick a basic or an advanced talent (mirrors class-features).
+const SLAYER_TALENTS_ALL = [...SLAYER_TALENTS, ...SLAYER_ADVANCED_TALENTS];
 
 const g = (level: number, id: string, name: string, desc: string): LeveledFeatureDef => ({ level, id, name, desc });
 
@@ -932,6 +935,26 @@ export const SLAYER_ARCHETYPES: ArchetypeDef[] = [
     grants: [
       g(1, 'sniper-accuracy', 'Accuracy', 'Halve all range increment penalties when attacking with a bow, crossbow, or firearm. Replaces track.'),
       g(2, 'sniper-deadly-range', 'Deadly Range', 'Against a target within the first range increment who is unaware of you, ignore the 30-foot limit on ranged sneak attacks and add your slayer level to the sneak-attack damage. Replaces the 2nd-level slayer talent.'),
+    ],
+  },
+  {
+    id: 'bounty-hunter', classId: 'slayer', name: 'Bounty Hunter',
+    desc: 'A slayer who brings the mark back alive — trading a few tricks of the trade for the tools of capture.',
+    replaces: [],
+    // Dirty Trick / Submission Hold take the slayer talents at 2nd and 6th; Incapacitate takes the
+    // advanced talent at 10th. Re-add the remaining talent picks on each line.
+    choices: {
+      remove: ['slayer-talent', 'slayer-adv-talent'],
+      add: [
+        { id: 'slayer-talent', label: 'Slayer talent', kind: 'list', count: 1, levels: [4, 8], options: SLAYER_TALENTS },
+        { id: 'slayer-adv-talent', label: 'Slayer talent (advanced eligible)', kind: 'list', count: 1, levels: [12, 14, 16, 18, 20], options: SLAYER_TALENTS_ALL },
+      ],
+    },
+    grants: [
+      g(1, 'bh-training', 'Manhunter’s Training', 'Gain proficiency with simple and martial weapons plus the aklys, bolas, dan bong, lasso, and net, and with light armor and shields (except tower shields). Replaces the slayer’s weapon and armor proficiencies.'),
+      g(2, 'bh-dirty-trick', 'Dirty Trick', 'Forgo your sneak attack dice on a hit against your studied target to attempt a dirty trick combat maneuver as a free action. Replaces the 2nd-level slayer talent.'),
+      g(6, 'bh-submission-hold', 'Submission Hold', 'Add your sneak attack damage to a grapple damage roll at a −5 penalty, dealing nonlethal damage if you choose. Replaces the 6th-level slayer talent.'),
+      g(10, 'bh-incapacitate', 'Incapacitate', 'As the assassinate talent, but a failed save leaves the target unconscious for 1d6 rounds rather than dead; a successful save still takes nonlethal sneak attack damage. Replaces the 10th-level advanced slayer talent.'),
     ],
   },
 ];

@@ -9,7 +9,13 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 **Current state** — branch `main`, working tree clean, **567 tests** passing; run
 `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
-**Latest — Spell-list-swap + Unlettered Arcanist (every class with an archetype now has ≥2).** Added a `witch`
+**Latest — Slayer Bounty Hunter (its second archetype).** The capture-focused slayer: swaps the slayer talents
+at 2nd and 6th and the advanced talent at 10th for Dirty Trick, Submission Hold, and Incapacitate, plus a
+Manhunter’s Training proficiency grant. Verified vs d20pfsrd. 1 golden test; **680 pass**; browser-verified the
+features render (needed a hard reload — stale HMR). **Slayer now has 2**, so every class with any archetype has
+≥2 except vampire-hunter (no standard published archetypes).
+
+**Prior — Spell-list-swap + Unlettered Arcanist (every class with an archetype now has ≥2).** Added a `witch`
 `SpellList` and tagged the 144 curated spells that sit on the witch list — parsed authoritatively from the
 d20pfsrd witch spell list (loaded via the browser pane to dodge WebFetch truncation, then intersected with our
 inventory by name), including 19 per-list level overrides (`levelByList.witch`: cures +1, Cone of Cold 6, Plane

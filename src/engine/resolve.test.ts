@@ -4183,6 +4183,19 @@ describe('archetypes — second archetype per base/hybrid class (batch A)', () =
     expect(talents).not.toContain('slayer-talent-L2');
     expect(talents).toContain('slayer-talent-L4');
   });
+
+  it('Slayer Bounty Hunter swaps the 2nd/6th talents and the 10th advanced talent for capture tools', () => {
+    const b = build('slayer', 'bounty-hunter', 12);
+    expect(featsAt(b, 2)).toContain('Dirty Trick');
+    expect(featsAt(b, 6)).toContain('Submission Hold');
+    expect(featsAt(b, 10)).toContain('Incapacitate');
+    const talents = resolve(b).slots.filter((x) => x.step === 'class' && x.id.startsWith('slayer-')).map((x) => x.id);
+    expect(talents).not.toContain('slayer-talent-L2');
+    expect(talents).not.toContain('slayer-talent-L6');
+    expect(talents).not.toContain('slayer-adv-talent-L10');
+    expect(talents).toContain('slayer-talent-L4');   // kept
+    expect(talents).toContain('slayer-adv-talent-L12'); // kept
+  });
 });
 
 describe('archetypes — second archetype per base/hybrid class (batch C)', () => {
