@@ -9,7 +9,19 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 **Current state** — branch `main`, working tree clean, **567 tests** passing; run
 `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
-**Latest — Archetypes: a second one for every core class.** Each of the 11 Core Rulebook classes now has ≥2
+**Latest — Archetypes: second-per-base/hybrid class, batches A+B (10 archetypes).** Corrected an earlier
+miscount — there are **31 classes**, and Slayer + vampire-hunter had been missed (zero archetypes). Added second
+archetypes for: Alchemist **Grenadier**, Cavalier **Standard Bearer**, Gunslinger **Pistolero** (uses the split
+deed model), Inquisitor **Sacred Huntsmaster**, Oracle **Seeker**, Investigator **Sleuth**, Warpriest **Champion
+of the Faith**, Skald **Totemic Skald**, Hunter **Packmaster** — plus **Sniper**, the Slayer's *first* archetype.
+All verified vs d20pfsrd. 11 golden tests; 669 pass; browser-verified batch A (Cleric picker etc.). **Still one
+archetype each** (to finish the "2 per class" goal): Summoner, Arcanist, Bloodrager, Brawler, Shaman, Shifter,
+Witch, Swashbuckler (+ a 2nd for Slayer). **Swashbuckler** needs its deeds split into individual features first
+(grouped 3-per-level, as the gunslinger's were) so a deed-swapping archetype can be authored; **vampire-hunter**
+has no standard published archetypes. Several d20pfsrd pages 404 / return partial extracts, so each remaining one
+needs a careful re-verify.
+
+**Prior — Archetypes: a second one for every core class.** Each of the 11 Core Rulebook classes now has ≥2
 archetypes (Fighter/Rogue/Monk already did). Added: Barbarian **Mounted Fury**, Paladin **Divine Hunter**, Bard
 **Arcane Duelist**, Cleric **Crusader** (diminished + martial + one domain + bonus feats — the martial foil to
 Cloistered), Druid **Blight Druid**, Sorcerer **Razmiran Priest** (suppresses the 3rd/5th bloodline *bonus spells*

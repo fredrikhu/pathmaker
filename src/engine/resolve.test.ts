@@ -4144,6 +4144,45 @@ describe('archetypes — second archetype per base/hybrid class (batch A)', () =
     expect(featsAt(s, 4)).not.toContain('Swift Alchemy');
     expect(resolve(s).sheet.casting.length).toBe(0);
   });
+
+  it('Warpriest Champion of the Faith swaps channel/sacred-weapon and drops the 3rd bonus feat', () => {
+    const c = build('warpriest', 'champion-of-the-faith', 6);
+    expect(featsAt(c, 4)).toContain('Smite');
+    expect(featsAt(c, 4)).not.toContain('Channel Energy');
+    const bf = resolve(c).slots.filter((s) => s.step === 'feats' && s.id.startsWith('feat-warpriest')).map((s) => s.id);
+    expect(bf).not.toContain('feat-warpriest-L3');
+    expect(bf).toContain('feat-warpriest-L6');
+  });
+
+  it('Skald Totemic Skald swaps the uncanny/kenning line and the 3rd rage power', () => {
+    const t = build('skald', 'totemic-skald', 9);
+    expect(featsAt(t, 4)).toContain('Totem Empathy');
+    expect(featsAt(t, 4)).not.toContain('Uncanny Dodge');
+    expect(featsAt(t, 5)).toContain('Wild Shape');
+    expect(featsAt(t, 5)).not.toContain('Spell Kenning');
+    const rp = resolve(t).slots.filter((s) => s.step === 'class' && s.id.startsWith('skald-rage-power')).map((s) => s.id);
+    expect(rp).not.toContain('skald-rage-power-L3');
+    expect(rp).toContain('skald-rage-power-L6');
+  });
+
+  it('Hunter Packmaster swaps the animal companion / focus for a pack', () => {
+    const p = build('hunter', 'packmaster', 20);
+    expect(featsAt(p, 1)).toContain('Pack Bond');
+    expect(featsAt(p, 1)).not.toContain('Animal Companion');
+    expect(featsAt(p, 1)).toContain('Pack Focus');
+    expect(featsAt(p, 20)).toContain('Master of the Pack');
+    expect(featsAt(p, 20)).not.toContain('Master Hunter');
+  });
+
+  it('Slayer Sniper (its first archetype) replaces track and the 2nd-level talent', () => {
+    const s = build('slayer', 'sniper', 8);
+    expect(featsAt(s, 1)).toContain('Accuracy');
+    expect(featsAt(s, 1)).not.toContain('Track');
+    expect(featsAt(s, 2)).toContain('Deadly Range');
+    const talents = resolve(s).slots.filter((x) => x.step === 'class' && x.id.startsWith('slayer-talent')).map((x) => x.id);
+    expect(talents).not.toContain('slayer-talent-L2');
+    expect(talents).toContain('slayer-talent-L4');
+  });
 });
 
 describe('archetypes — caster classes', () => {

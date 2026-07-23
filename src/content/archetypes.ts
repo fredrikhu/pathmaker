@@ -6,7 +6,7 @@
 // replaces "Armor Training 1–4" replaces that one id and grants its own abilities in their place.
 
 import type { ArchetypeDef, LeveledFeatureDef } from './model';
-import { ROGUE_TALENTS, ROGUE_ADVANCED_TALENTS, MAGUS_ARCANA, WITCH_HEXES, ARCANIST_EXPLOITS } from './subsystems';
+import { ROGUE_TALENTS, ROGUE_ADVANCED_TALENTS, MAGUS_ARCANA, WITCH_HEXES, ARCANIST_EXPLOITS, BARBARIAN_RAGE_POWERS, SLAYER_TALENTS } from './subsystems';
 
 const g = (level: number, id: string, name: string, desc: string): LeveledFeatureDef => ({ level, id, name, desc });
 
@@ -544,6 +544,19 @@ export const WARPRIEST_ARCHETYPES: ArchetypeDef[] = [
       g(7, 'sf-ki-pool', 'Ki Pool', 'Gain a ki pool as a monk, using your warpriest level − 3 as your monk level for its size and unarmed-strike bonuses. Replaces sacred armor.'),
     ],
   },
+  {
+    id: 'champion-of-the-faith', classId: 'warpriest', name: 'Champion of the Faith',
+    desc: 'A crusading warpriest sworn to an ideal — smiting the opposed and reading the guilt in their eyes.',
+    replaces: ['wp-sacred-weapon', 'wp-channel'],
+    // Detect Alignment takes the place of the 3rd-level bonus feat.
+    bonusFeatSlots: { remove: [3] },
+    grants: [
+      g(1, 'cf-chosen-alignment', 'Chosen Alignment', 'Choose an alignment component (chaos, evil, good, or law) shared with your deity, and take the matching blessing even if it is not on your deity’s domain list.'),
+      g(1, 'cf-sacred-weapon', 'Sacred Weapon (aligned)', 'Your sacred weapon gains no enhancement bonus, but counts as your chosen alignment for overcoming DR and can be charged with an alignment weapon property for a short time. Alters sacred weapon.'),
+      g(3, 'cf-detect-alignment', 'Detect Alignment', 'As a move action, detect creatures of your opposed alignment within 60 feet. Replaces the 3rd-level bonus feat.'),
+      g(4, 'cf-smite', 'Smite', 'Spend two fervor uses to smite a creature of your opposed alignment, adding Charisma to attack and your warpriest level to damage. Replaces channel energy.'),
+    ],
+  },
 ];
 
 export const BRAWLER_ARCHETYPES: ArchetypeDef[] = [
@@ -669,6 +682,17 @@ export const HUNTER_ARCHETYPES: ArchetypeDef[] = [
       g(6, 'fh-summon-pack', 'Summon Pack', 'Summon a pack of natural creatures that share your active animal focus. Replaces the teamwork feats gained at 6th, 9th, 12th, 15th, and 18th.'),
     ],
   },
+  {
+    id: 'packmaster', classId: 'hunter', name: 'Packmaster',
+    desc: 'A hunter who runs with a pack of small beasts rather than one great companion — many teeth, one will.',
+    replaces: ['hunter-animal-companion', 'hunter-animal-focus', 'hunter-master-hunter'],
+    grants: [
+      g(1, 'pm-pack-bond', 'Pack Bond', 'Gain several small animal companions instead of one, dividing your effective druid levels among them. Replaces animal companion.'),
+      g(1, 'pm-pack-focus', 'Pack Focus', 'Apply an animal focus to your whole pack at once. Replaces animal focus.'),
+      g(8, 'pm-second-pack-focus', 'Second Pack Focus', 'Apply a second animal focus to the pack. Replaces the second animal focus.'),
+      g(20, 'pm-master-of-pack', 'Master of the Pack', 'Your pack strikes as one against a studied foe. Replaces master hunter.'),
+    ],
+  },
 ];
 
 export const SUMMONER_ARCHETYPES: ArchetypeDef[] = [
@@ -695,6 +719,21 @@ export const SKALD_ARCHETYPES: ArchetypeDef[] = [
       g(5, 'sw-greater-counterspell', 'Greater Counterspell', 'Counterspell as an immediate action, and weaken rather than fully negate a foe’s spell. Replaces spell kenning.'),
       g(10, 'sw-song-arcane-manipulation', 'Song of Arcane Manipulation', 'A raging song that lets affected allies apply metamagic or dispel magic through your performance. Replaces dirge of doom.'),
       g(20, 'sw-spell-tamper', 'Spell Tamper', 'Your counterspelling can seize a foe’s spell and turn it back on them. Replaces master skald.'),
+    ],
+  },
+  {
+    id: 'totemic-skald', classId: 'skald', name: 'Totemic Skald',
+    desc: 'A skald who channels a primal totem beast — howling its fury into allies and wearing its shape into battle.',
+    replaces: ['skald-uncanny-dodge', 'skald-improved-uncanny-dodge', 'skald-spell-kenning'],
+    // Totem takes the rage power gained at 3rd level.
+    choices: {
+      remove: ['skald-rage-power'],
+      add: [{ id: 'skald-rage-power', label: 'Rage power', kind: 'list', count: 1, levels: [6, 9, 12, 15, 18], options: BARBARIAN_RAGE_POWERS }],
+    },
+    grants: [
+      g(3, 'ts-totem', 'Totem', 'Gain the Song of the Beast rage power, tied to your chosen totem animal. Replaces the rage power gained at 3rd level.'),
+      g(4, 'ts-totem-empathy', 'Totem Empathy', 'Improve the attitude of animals and cast charm animal a few times per day. Replaces uncanny dodge and improved uncanny dodge.'),
+      g(5, 'ts-wild-shape', 'Wild Shape', 'Transform into your totem animal’s form (Small or Medium) once per day, more often as you level. Replaces spell kenning.'),
     ],
   },
 ];
@@ -776,6 +815,23 @@ export const ARCANIST_ARCHETYPES: ArchetypeDef[] = [
   },
 ];
 
+export const SLAYER_ARCHETYPES: ArchetypeDef[] = [
+  {
+    id: 'sniper', classId: 'slayer', name: 'Sniper',
+    desc: 'A slayer who kills from the shadows at a distance — patient, precise, and gone before the body falls.',
+    replaces: ['slay-track'],
+    // Deadly Range takes the slayer talent gained at 2nd level.
+    choices: {
+      remove: ['slayer-talent'],
+      add: [{ id: 'slayer-talent', label: 'Slayer talent', kind: 'list', count: 1, levels: [4, 6, 8], options: SLAYER_TALENTS }],
+    },
+    grants: [
+      g(1, 'sniper-accuracy', 'Accuracy', 'Halve all range increment penalties when attacking with a bow, crossbow, or firearm. Replaces track.'),
+      g(2, 'sniper-deadly-range', 'Deadly Range', 'Against a target within the first range increment who is unaware of you, ignore the 30-foot limit on ranged sneak attacks and add your slayer level to the sneak-attack damage. Replaces the 2nd-level slayer talent.'),
+    ],
+  },
+];
+
 export const ARCHETYPES: ArchetypeDef[] = [
   ...FIGHTER_ARCHETYPES, ...RANGER_ARCHETYPES, ...ROGUE_ARCHETYPES, ...BARBARIAN_ARCHETYPES, ...PALADIN_ARCHETYPES,
   ...BARD_ARCHETYPES, ...ALCHEMIST_ARCHETYPES, ...MAGUS_ARCHETYPES, ...MONK_ARCHETYPES, ...CLERIC_ARCHETYPES,
@@ -783,7 +839,7 @@ export const ARCHETYPES: ArchetypeDef[] = [
   ...SORCERER_ARCHETYPES, ...WARPRIEST_ARCHETYPES, ...BRAWLER_ARCHETYPES, ...INVESTIGATOR_ARCHETYPES,
   ...ORACLE_ARCHETYPES, ...BLOODRAGER_ARCHETYPES, ...SWASHBUCKLER_ARCHETYPES,
   ...HUNTER_ARCHETYPES, ...SUMMONER_ARCHETYPES, ...SKALD_ARCHETYPES, ...SHAMAN_ARCHETYPES, ...SHIFTER_ARCHETYPES,
-  ...GUNSLINGER_ARCHETYPES, ...ARCANIST_ARCHETYPES,
+  ...GUNSLINGER_ARCHETYPES, ...ARCANIST_ARCHETYPES, ...SLAYER_ARCHETYPES,
 ];
 export const archetypeById = new Map(ARCHETYPES.map((a) => [a.id, a]));
 export const archetypesForClass = (classId: string): ArchetypeDef[] => ARCHETYPES.filter((a) => a.classId === classId);
