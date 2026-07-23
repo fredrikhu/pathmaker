@@ -9,7 +9,20 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 **Current state** — branch `main`, working tree clean, **567 tests** passing; run
 `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
-**Latest — Archetypes: content batch (three more classes).** Added verified archetypes for Rogue
+**Latest — Archetypes: caster classes (Bard, Alchemist).** Added verified archetypes for the two caster
+classes whose archetypes are clean *feature* swaps: Bard **Archaeologist** (drops the entire bardic-performance
+suite + versatile performance + well-versed for Archaeologist's Luck, Clever Explorer, Uncanny Dodge, Trap
+Sense, Rogue Talent, Evasion — keeps spellcasting) and Alchemist **Vivisectionist** (Bomb → rogue Sneak
+Attack, plus Torturer's Eye / Cruel Anatomist / Torturous Transformation). Verified vs d20pfsrd. 2 golden
+tests (Archaeologist swap + still-casts; Vivisectionist bomb→sneak) + content-integrity; 612 pass;
+browser-verified the bard picker, the swap, and that the Archaeologist still shows spell slots. **Scope note:**
+the remaining casters can't be modeled accurately yet — the 9-level casters (Wizard/Cleric/Druid/Sorcerer) and
+subsystem-driven ones (Oracle mysteries, Witch hexes, Summoner eidolon, Magus arcana, Arcanist exploits,
+Sorcerer bloodlines, Wizard schools, Cleric/Druid domains & nature bond, Inquisitor judgment swaps) hinge on
+subsystem/choice changes the archetype model doesn't cover (only feature swaps + proficiency + spellcasting
+override). Archetypes now span Fighter, Ranger, Rogue, Barbarian, Paladin, Bard, Alchemist (10 total).
+
+**Prior — Archetypes: content batch (three more classes).** Added verified archetypes for Rogue
 (**Thug**: Trapfinding→Frightening, Trap Sense→Brutal Beating; **Acrobat**: Trapfinding→Expert Acrobat,
 Trap Sense→Second Chance), Barbarian (**Invulnerable Rager**: Uncanny/Improved Uncanny Dodge + DR →
 Invulnerability, Trap Sense → Extreme Endurance), and Paladin (**Warrior of the Holy Light**: removes

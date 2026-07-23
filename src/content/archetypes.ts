@@ -97,8 +97,44 @@ export const PALADIN_ARCHETYPES: ArchetypeDef[] = [
   },
 ];
 
+export const BARD_ARCHETYPES: ArchetypeDef[] = [
+  {
+    id: 'archaeologist', classId: 'bard', name: 'Archaeologist',
+    desc: 'A field researcher who forgoes bardic performance for fortune’s favor and a smattering of rogue talents.',
+    // Loses bardic performance and all its performance types, plus versatile performance and well-versed.
+    replaces: [
+      'bard-performance', 'bard-countersong', 'bard-inspire-competence', 'bard-suggestion', 'bard-dirge-of-doom',
+      'bard-inspire-greatness', 'bard-soothing-performance', 'bard-frightening-tune', 'bard-inspire-heroics',
+      'bard-mass-suggestion', 'bard-deadly-performance', 'bard-versatile-performance', 'bard-well-versed',
+    ],
+    grants: [
+      g(1, 'arch-luck', 'Archaeologist’s Luck', 'As a swift action, gain a +1 luck bonus on attack rolls, saves, skill checks, and weapon damage rolls for a number of rounds/day equal to 4 + your Charisma modifier (free action to maintain). Improves to +2 at 5th, +3 at 11th, +4 at 17th. Treated as bardic performance. Replaces Bardic Performance.'),
+      g(2, 'arch-clever-explorer', 'Clever Explorer', 'A bonus equal to half your class level on Disable Device and Perception; disable devices in half the time and open locks as a standard action; at 6th you can take 10 on Disable Device even when threatened and can disarm magical traps. Replaces Versatile Performance.'),
+      g(2, 'arch-uncanny-dodge', 'Uncanny Dodge', 'As the rogue class feature. Replaces Well-Versed.'),
+      g(3, 'arch-trap-sense', 'Trap Sense +1', 'As the rogue class feature — +1 at 3rd, improving by +1 for every three levels beyond (max +6 at 18th).'),
+      g(4, 'arch-rogue-talent', 'Rogue Talent', 'Gain a rogue talent at 4th level and an additional one every four levels thereafter.'),
+      g(6, 'arch-evasion', 'Evasion', 'As the rogue ability.'),
+    ],
+  },
+];
+
+export const ALCHEMIST_ARCHETYPES: ArchetypeDef[] = [
+  {
+    id: 'vivisectionist', classId: 'alchemist', name: 'Vivisectionist',
+    desc: 'A grim experimenter who studies living bodies — trading bombs for a surgeon’s deadly precision.',
+    replaces: ['alch-bomb'],
+    grants: [
+      g(1, 'vivi-sneak-attack', 'Sneak Attack +1d6', 'Gain sneak attack as a rogue of the same level; levels from other sneak-attack classes stack. Replaces Bomb.'),
+      g(2, 'vivi-torturers-eye', 'Torturer’s Eye', 'Add deathwatch to your formula book as a 1st-level extract.'),
+      g(3, 'vivi-cruel-anatomist', 'Cruel Anatomist', 'Use your Knowledge (nature) skill bonus in place of your Heal skill bonus.'),
+      g(7, 'vivi-torturous-transformation', 'Torturous Transformation', 'Add anthropomorphic animal (2nd), then awaken and baleful polymorph (3rd, at 9th) and regenerate (5th, at 15th) to your formula book, used through lengthy surgical procedures.'),
+    ],
+  },
+];
+
 export const ARCHETYPES: ArchetypeDef[] = [
   ...FIGHTER_ARCHETYPES, ...RANGER_ARCHETYPES, ...ROGUE_ARCHETYPES, ...BARBARIAN_ARCHETYPES, ...PALADIN_ARCHETYPES,
+  ...BARD_ARCHETYPES, ...ALCHEMIST_ARCHETYPES,
 ];
 export const archetypeById = new Map(ARCHETYPES.map((a) => [a.id, a]));
 export const archetypesForClass = (classId: string): ArchetypeDef[] => ARCHETYPES.filter((a) => a.classId === classId);

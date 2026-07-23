@@ -3512,3 +3512,34 @@ describe('archetypes — additional classes', () => {
     expect(featsAt(w, 4)).not.toContain('Spellcasting');
   });
 });
+
+describe('archetypes — caster classes', () => {
+  const build = (cls: string, archetype: string | undefined, level: number): CharacterDoc => {
+    let d = newCharacter('t-arch3', 'X');
+    d = withDecision(d, 'ability-base', { str: 12, dex: 14, con: 13, int: 14, wis: 12, cha: 14 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['cha']);
+    d = withDecision(d, 'alignment', 'N');
+    d = withDecision(d, 'class', cls);
+    if (archetype) d = withDecision(d, 'archetype', archetype);
+    return atLevel(d, level);
+  };
+  const featsAt = (doc: CharacterDoc, lvl: number) =>
+    resolve(doc).sheet.progression.find((r) => r.level === lvl)?.features ?? [];
+
+  it('Bard Archaeologist swaps Bardic Performance for Archaeologist’s Luck, keeping spellcasting', () => {
+    expect(featsAt(build('bard', undefined, 3), 1)).toContain('Bardic Performance');
+    const a = build('bard', 'archaeologist', 6);
+    expect(featsAt(a, 1)).toContain('Archaeologist’s Luck');
+    expect(featsAt(a, 1)).not.toContain('Bardic Performance');
+    expect(featsAt(a, 6)).toContain('Evasion');
+    expect(resolve(a).sheet.casting.length).toBeGreaterThan(0); // still a caster
+  });
+
+  it('Alchemist Vivisectionist swaps Bomb for Sneak Attack', () => {
+    expect(featsAt(build('alchemist', undefined, 3), 1)).toContain('Bomb 1d6');
+    const v = build('alchemist', 'vivisectionist', 3);
+    expect(featsAt(v, 1)).toContain('Sneak Attack +1d6');
+    expect(featsAt(v, 1)).not.toContain('Bomb 1d6');
+  });
+});
