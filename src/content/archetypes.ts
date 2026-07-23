@@ -335,10 +335,51 @@ export const DRUID_ARCHETYPES: ArchetypeDef[] = [
   },
 ];
 
+export const WIZARD_ARCHETYPES: ArchetypeDef[] = [
+  {
+    id: 'scrollmaster', classId: 'wizard', name: 'Scrollmaster',
+    desc: 'A battle-scholar who wields scrolls as blade and shield, turning written magic into a martial art.',
+    replaces: ['wizard-arcane-bond'],
+    // The 10th-level bonus feat becomes Improved Scroll Casting.
+    bonusFeatSlots: { remove: [10] },
+    // No familiar or bonded object — the arcane-bond pick goes away with the feature.
+    choices: { remove: ['arcane-bond'] },
+    grants: [
+      g(1, 'scroll-blade', 'Scroll Blade', 'Wield a scroll from your spellbook as a magic short sword whose enhancement bonus scales with the highest-level spell it holds; the spell is expended when the blade fades. Replaces arcane bond.'),
+      g(1, 'scroll-shield', 'Scroll Shield', 'Wield a scroll as a light wooden shield granting a scaling shield bonus, expending the spell. Part of the arcane bond replacement.'),
+      g(10, 'scroll-improved-casting', 'Improved Scroll Casting', 'When casting from a scroll, use your own Intelligence and feats to set the spell’s save DC and other variables. Replaces the 10th-level wizard bonus feat.'),
+    ],
+  },
+];
+
+export const WITCH_ARCHETYPES: ArchetypeDef[] = [
+  {
+    id: 'beast-bonded', classId: 'witch', name: 'Beast-Bonded',
+    desc: 'A witch whose bond with her familiar runs soul-deep — pouring her hexes into the beast rather than herself.',
+    replaces: [],
+    // Enhanced Familiar / Familiar Form / Twin Soul take the place of the hexes gained at 4th, 8th, and 10th.
+    // The witch carries two 'hex' choices (the 1st-level hex and the recurring line); removing by id drops
+    // both, so re-add the 1st-level hex unchanged and the recurring line without its 4th/8th/10th picks.
+    choices: {
+      remove: ['hex'],
+      add: [
+        { id: 'hex', label: 'Hex', kind: 'list', count: 1, options: WITCH_HEXES },
+        { id: 'hex', label: 'Hex', kind: 'list', count: 1, levels: [2, 6, 12, 14, 16, 18, 20], options: WITCH_HEXES },
+      ],
+    },
+    grants: [
+      g(1, 'bb-transfer-feats', 'Transfer Feats', 'Whenever you could learn a feat, you may instead have your familiar learn it as a bonus feat.'),
+      g(4, 'bb-enhanced-familiar', 'Enhanced Familiar', 'Your familiar is treated as belonging to a witch one level higher for its abilities. Replaces the 4th-level hex.'),
+      g(8, 'bb-familiar-form', 'Familiar Form', 'Assume the shape of your familiar (or a similar animal) for a number of minutes per day equal to your level. Replaces the 8th-level hex.'),
+      g(10, 'bb-twin-soul', 'Twin Soul', 'When you or your familiar would die, your souls merge in the survivor’s body — able to communicate and trade control. Replaces the major hex gained at 10th level.'),
+    ],
+  },
+];
+
 export const ARCHETYPES: ArchetypeDef[] = [
   ...FIGHTER_ARCHETYPES, ...RANGER_ARCHETYPES, ...ROGUE_ARCHETYPES, ...BARBARIAN_ARCHETYPES, ...PALADIN_ARCHETYPES,
   ...BARD_ARCHETYPES, ...ALCHEMIST_ARCHETYPES, ...MAGUS_ARCHETYPES, ...MONK_ARCHETYPES, ...CLERIC_ARCHETYPES,
-  ...CAVALIER_ARCHETYPES, ...INQUISITOR_ARCHETYPES, ...DRUID_ARCHETYPES,
+  ...CAVALIER_ARCHETYPES, ...INQUISITOR_ARCHETYPES, ...DRUID_ARCHETYPES, ...WIZARD_ARCHETYPES, ...WITCH_ARCHETYPES,
 ];
 export const archetypeById = new Map(ARCHETYPES.map((a) => [a.id, a]));
 export const archetypesForClass = (classId: string): ArchetypeDef[] => ARCHETYPES.filter((a) => a.classId === classId);

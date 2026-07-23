@@ -9,7 +9,26 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 **Current state** — branch `main`, working tree clean, **567 tests** passing; run
 `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
-**Latest — Archetypes: breadth batch (Cavalier, Inquisitor, Druid).** With the model feature-complete, added
+**Latest — Archetypes: core casters (Wizard, Witch) + Sorcerer blocker noted.** **Scrollmaster** (Wizard) swaps
+Arcane Bond for **Scroll Blade** and **Scroll Shield** (wielding scrolls as weapon/shield), drops the arcane-bond
+pick (`choices.remove`), and replaces the 10th-level bonus feat with Improved Scroll Casting (`bonusFeatSlots`).
+**Beast-Bonded** (Witch) trades the hexes gained at 4th/8th/10th for Enhanced Familiar, Familiar Form, and Twin
+Soul, plus Transfer Feats — modelled by re-adding the witch's two `hex` choices (the 1st-level hex kept, the
+recurring line minus levels 4/8/10). Note: the witch carries **two choices sharing id `hex`** (1st-level + the
+recurring line), so `remove: ['hex']` drops both — the archetype re-adds both, keeping the 1st-level pick.
+Verified vs d20pfsrd. 2 golden tests (Scrollmaster arcane-bond→scroll features + arcane-bond pick gone + 10th
+feat gone + still casts; Beast-Bonded hex-slot removal at 4/8/10 + familiar features + still casts); 635 pass;
+browser-verified both pickers and Advancement tables. Archetypes now span 15 classes, 22 total.
+
+**Sorcerer is deferred** — nearly every sorcerer archetype (Tattooed, Crossblooded, the Wildblooded family,
+Razmiran Priest…) swaps specific **bloodline powers/arcana**, which the engine grants monolithically from the
+bloodline subsystem via `sourceFeatures` (ids like `sorc-bl-<bloodline>-<level>`), not as discrete class features
+an archetype can `replace`. Cleanly supporting them needs a small new hook — "suppress a source-granted power at
+given level(s)" on `ArchetypeDef` — plus `Crossblooded` additionally needs a *diminished spells-known* variant
+(the current `diminished` only touches slots/day). Both are modest additions; deferred rather than ship an
+archetype that double-shows the powers it's supposed to remove.
+
+**Prior — Archetypes: breadth batch (Cavalier, Inquisitor, Druid).** With the model feature-complete, added
 first archetypes for three more classes — all verified vs d20pfsrd. **Gendarme** (Cavalier) moves its bonus feats
 to 1st/5th/8th/… (`bonusFeatSlots` add [1,5,8,11,14,17,20] / remove [6,12,18]), trades the tactician line for a
 cavalry-feat list, and gains Transfixing Charge at 20th. **Sanctified Slayer** (Inquisitor) swaps the whole

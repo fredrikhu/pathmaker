@@ -3665,6 +3665,40 @@ describe('archetypes — breadth (Cavalier, Inquisitor, Druid)', () => {
     expect(featsAt(a, 13)).toContain('Deep Diver');
     expect(resolve(a).sheet.casting.length).toBeGreaterThan(0);
   });
+
+  it('Wizard Scrollmaster swaps arcane bond for Scroll Blade/Shield and drops the arcane-bond pick', () => {
+    expect(featsAt(build('wizard', undefined, 10), 1)).toContain('Arcane Bond');
+    const w = build('wizard', 'scrollmaster', 10);
+    expect(featsAt(w, 1)).toContain('Scroll Blade');
+    expect(featsAt(w, 1)).toContain('Scroll Shield');
+    expect(featsAt(w, 1)).not.toContain('Arcane Bond');
+    expect(featsAt(w, 10)).toContain('Improved Scroll Casting');
+    // The arcane-bond choice slot is gone; school + opposition remain.
+    const choiceIds = resolve(w).slots.filter((s) => s.step === 'class').map((s) => s.id);
+    expect(choiceIds).not.toContain('arcane-bond');
+    expect(choiceIds).toContain('school');
+    // The 10th-level wizard bonus feat is replaced (5/15/20 remain).
+    const bf = resolve(w).slots.filter((s) => s.step === 'feats' && s.id.startsWith('feat-wizard')).map((s) => s.id);
+    expect(bf).not.toContain('feat-wizard-L10');
+    expect(bf).toContain('feat-wizard-L5');
+    expect(resolve(w).sheet.casting.length).toBeGreaterThan(0);
+  });
+
+  it('Witch Beast-Bonded removes the 4th/8th/10th hex picks and grants familiar features', () => {
+    const hexSlots = (doc: CharacterDoc) =>
+      resolve(doc).slots.filter((s) => s.step === 'class' && s.id.startsWith('hex')).map((s) => s.id);
+    expect(hexSlots(build('witch', undefined, 20))).toContain('hex-L4'); // standard witch picks a hex at 4th
+    const b = build('witch', 'beast-bonded', 20);
+    const hexes = hexSlots(b);
+    expect(hexes).not.toContain('hex-L4');
+    expect(hexes).not.toContain('hex-L8');
+    expect(hexes).not.toContain('hex-L10');
+    expect(hexes).toContain('hex-L6'); // other hex picks remain
+    expect(featsAt(b, 4)).toContain('Enhanced Familiar');
+    expect(featsAt(b, 8)).toContain('Familiar Form');
+    expect(featsAt(b, 10)).toContain('Twin Soul');
+    expect(resolve(b).sheet.casting.length).toBeGreaterThan(0);
+  });
 });
 
 describe('archetypes — caster classes', () => {
