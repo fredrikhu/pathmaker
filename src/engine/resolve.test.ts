@@ -4848,6 +4848,36 @@ describe('archetypes — thirds batch 3 (Mouser, Dual-Cursed, Chirurgeon, Mercif
     expect(featsAt(ff, 14)).toContain('Greater Chimeric Fiend');
   });
 
+  it('Brown-Fur Transmuter takes the 3rd and 9th exploits and the capstone', () => {
+    const ids = resolve(build('arcanist', 'brown-fur-transmuter', 20)).slots.map((s) => s.id);
+    expect(ids).not.toContain('exploit-L3');
+    expect(ids).not.toContain('exploit-L9');
+    expect(ids).toContain('exploit');     // the 1st-level pick survives
+    expect(ids).toContain('exploit-L5');
+    expect(ids).toContain('exploit-L19');
+    const bft = build('arcanist', 'brown-fur-transmuter', 20);
+    expect(featsAt(bft, 3)).toContain('Powerful Change');
+    expect(featsAt(bft, 9)).toContain('Share Transmutation');
+    expect(featsAt(bft, 20)).toContain('Transmutation Supremacy');
+    expect(featsAt(bft, 20)).not.toContain('Magical Supremacy');
+  });
+
+  it('Wild Caller swaps the eidolon base forms for plant forms and moves aspect to 18th', () => {
+    const eff = effectiveClass(C.classById.get('summoner')!, readDecisions(build('summoner', 'wild-caller', 1)));
+    const forms = (eff.choices ?? []).find((c) => c.id === 'eidolon-form')?.options?.map((o) => o.id) ?? [];
+    expect(forms).toEqual(['cactus', 'conifer', 'mushroom', 'tree']);
+    expect(forms).not.toContain('biped');
+    const wc = build('summoner', 'wild-caller', 18);
+    expect(featsAt(wc, 1)).toContain('Plant Eidolon');
+    expect(featsAt(wc, 1)).toContain('Summon Nature’s Ally');
+    expect(featsAt(wc, 10)).toContain('Fey Friend');
+    expect(featsAt(wc, 10)).not.toContain('Aspect');
+    expect(featsAt(wc, 18)).toContain('Aspect');
+    expect(featsAt(wc, 18)).not.toContain('Greater Aspect');
+    // The evolution point-buy still works off the standard pool.
+    expect(resolve(wc).slots.some((s) => s.id === 'evolutions')).toBe(true);
+  });
+
   it('Merciful Healer is a single-domain cleric with the healing-channel line', () => {
     const eff = effectiveClass(C.classById.get('cleric')!, readDecisions(build('cleric', 'merciful-healer', 1)));
     expect((eff.choices ?? []).find((x) => x.id === 'domains')?.count).toBe(1);

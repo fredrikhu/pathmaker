@@ -1045,6 +1045,34 @@ export const SUMMONER_ARCHETYPES: ArchetypeDef[] = [
     ],
   },
   {
+    id: 'wild-caller', classId: 'summoner', name: 'Wild Caller',
+    desc: 'A summoner bound to the First World — his eidolon grown from extraplanar plant matter, and his summons drawn from the wild rather than the planes.',
+    // Fey Friend replaces aspect, which returns at 18th in place of greater aspect.
+    replaces: ['summ-aspect', 'summ-greater-aspect'],
+    // The plant eidolon uses its own four base forms instead of biped/quadruped/serpentine. Consequence:
+    // the five form-gated evolutions (mount, pounce, constrict, rake, trample) are unavailable to a plant
+    // eidolon, since none of them list a plant form as a prerequisite — which matches RAW reading these
+    // as biped/quadruped/serpentine-only.
+    choices: {
+      remove: ['eidolon-form'],
+      add: [{
+        id: 'eidolon-form', label: 'Plant eidolon base form', kind: 'list', count: 1,
+        options: [
+          { id: 'cactus', name: 'Cactus (desert)', desc: 'Medium, speed 30 ft, +2 natural armor. Good Fort and Ref, poor Will. Slam 1d8 and sting 1d4. Str 14, Dex 14, Con 13, Int 7, Wis 10, Cha 11. Free evolutions: limbs (arms), limbs (legs), sting, tail.' },
+          { id: 'conifer', name: 'Conifer (forest, mountain)', desc: 'Medium, speed 30 ft, +2 natural armor. Good Fort and Will, poor Ref. Two claws 1d4. Str 14, Dex 12, Con 15, Int 7, Wis 10, Cha 11. Resist cold 10. Free evolutions: claws, limbs (arms), limbs (legs), resistance (cold).' },
+          { id: 'mushroom', name: 'Mushroom (swamp, underground)', desc: 'Medium, speed 20 ft, +2 natural armor. Good Fort and Ref, poor Will. Bite 1d6 plus poison. Str 14, Dex 14, Con 13, Int 7, Wis 10, Cha 11. Free evolutions: bite, limbs (arms), limbs (legs), poison.' },
+          { id: 'tree', name: 'Tree (forest, jungle, swamp)', desc: 'Medium, speed 20 ft, +4 natural armor. Good Fort and Ref, poor Will. Two slams 1d8. Str 16, Dex 12, Con 13, Int 7, Wis 10, Cha 11. Free evolutions: improved natural armor, limbs (arms), limbs (legs), slam ×2.' },
+        ],
+      }],
+    },
+    grants: [
+      g(1, 'wc-plant-eidolon', 'Plant Eidolon', 'Your eidolon’s body is extraplanar plant matter housing a First World mind: it gains the plant type and extraplanar subtype and immunity to paralysis, poison, sleep, and stunning, but unlike other plants is not immune to mind-affecting or polymorph effects. When summoned in an environment matching one of the plant base forms, you may switch it to that form by spending a daily use of summon nature’s ally. Alters the eidolon.'),
+      g(1, 'wc-summon-natures-ally', 'Summon Nature’s Ally', 'Cast summon nature’s ally as a spell-like ability 3 + your Charisma modifier times per day, lasting 1 minute per summoner level. You gain each new tier where a summoner would gain summon monster (at 19th, summon nature’s ally IX or gate), and each becomes a class spell for you. Alters summon monster.'),
+      g(10, 'wc-fey-friend', 'Fey Friend', '+4 on Bluff, Diplomacy, and Sense Motive checks against fey. Replaces aspect.'),
+      g(18, 'wc-aspect', 'Aspect', 'Gain the summoner’s aspect ability at 18th level, in place of greater aspect.'),
+    ],
+  },
+  {
     id: 'broodmaster', classId: 'summoner', name: 'Broodmaster',
     desc: 'A summoner bonded not to one great eidolon but to a brood of lesser ones, sharing a single well of power.',
     replaces: ['summ-eidolon', 'summ-life-link', 'summ-life-bond', 'summ-merge-forms'],
@@ -1225,6 +1253,26 @@ export const GUNSLINGER_ARCHETYPES: ArchetypeDef[] = [
 ];
 
 export const ARCANIST_ARCHETYPES: ArchetypeDef[] = [
+  {
+    id: 'brown-fur-transmuter', classId: 'arcanist', name: 'Brown-Fur Transmuter',
+    desc: 'A “brown-fur” — a transmutation specialist who turns herself, and everyone else, into whatever the moment calls for.',
+    replaces: ['arc-magical-supremacy'],
+    // Powerful Change and Share Transmutation take the exploits gained at 3rd and 9th. The arcanist
+    // carries two 'exploit' choices (the 1st-level pick and the recurring line); removing by id drops
+    // both, so re-add the 1st-level pick and the recurring line minus 3 and 9.
+    choices: {
+      remove: ['exploit'],
+      add: [
+        { id: 'exploit', label: 'Arcanist exploit', kind: 'list', count: 1, options: ARCANIST_EXPLOITS },
+        { id: 'exploit', label: 'Arcanist exploit', kind: 'list', count: 1, levels: [5, 7, 11, 13, 15, 17, 19], options: ARCANIST_EXPLOITS },
+      ],
+    },
+    grants: [
+      g(3, 'bft-powerful-change', 'Powerful Change', 'When you cast a transmutation spell from an arcanist slot, expend 1 point of your arcane reservoir as a free action to increase the bonus it grants to one ability score by 2 (only one score if it boosts several; never more than 1 point per spell). Replaces the 3rd-level exploit.'),
+      g(9, 'bft-share-transmutation', 'Share Transmutation', 'Expend 1 point of your arcane reservoir to change any personal-range transmutation spell to a range of touch; it automatically fails on unwilling creatures. Replaces the 9th-level exploit.'),
+      g(20, 'bft-transmutation-supremacy', 'Transmutation Supremacy', 'Your transmutation spells are treated as Extended without changing casting time or slot (and cannot be extended again), powerful change grants +4 instead of +2, and share transmutation reaches a willing creature within 30 feet. Replaces magical supremacy.'),
+    ],
+  },
   {
     id: 'eldritch-font', classId: 'arcanist', name: 'Eldritch Font',
     desc: 'An arcanist who is a wellspring of raw magic — surging with power at the cost of exhaustion rather than learning subtle tricks.',

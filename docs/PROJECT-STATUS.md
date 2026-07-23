@@ -9,7 +9,20 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 **Current state** — branch `main`, working tree clean, **567 tests** passing; run
 `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
-**Latest — Archetypes: batch 6 (Spell Sage, Divine Hunter, Spirit Warden, Fiendflesh Shifter) + a source-leak
+**Latest — Every class now has ≥3 archetypes.** Arcanist **Brown-Fur Transmuter** (powerful change / share
+transmutation take the 3rd and 9th exploits; transmutation supremacy takes magical supremacy — the same
+exploit-line remove-and-re-add the shipped Eldritch Font uses) and Summoner **Wild Caller** (plant eidolon with
+its own four verified base forms replacing biped/quadruped/serpentine, summon nature's ally, fey friend for
+aspect — which returns at 18th in place of greater aspect). Both verified vs d20pfsrd; **neither needed any
+engine work**, correcting an earlier note that called these two classes blocked (see
+[SCOPE-remaining-engine-work.md](SCOPE-remaining-engine-work.md)). One consequence worth knowing: the five
+form-gated evolutions (mount, pounce, constrict, rake, trample) are unavailable to a plant eidolon, since none
+lists a plant form as a prerequisite. 2 golden tests; **714 pass**; tsc + build clean; browser-verified Wild
+Caller (picker offers Cactus/Conifer/Mushroom/Tree and no longer Biped/Quadruped; Greater Aspect gone, Aspect
+present at 18th). **What remains is only the two scoped engine projects** — companion creatures (unblocks
+Synthesist) and a source subsystem on a second class (unblocks Blood Arcanist / School Savant).
+
+**Prior — Archetypes: batch 6 (Spell Sage, Divine Hunter, Spirit Warden, Fiendflesh Shifter) + a source-leak
 fix.** Engine: an archetype that removes the *choice* selecting a source (Spell Sage loses its arcane school)
 was still injecting that source's powers — and the specialist bonus slot — off the stale, now-orphaned decision,
 because `sourceFeatures` and `isSpecialist` read `dec.classChoices` directly. Both now check that the **effective**
