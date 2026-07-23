@@ -246,17 +246,37 @@ function finalAbilities(dec: Decisions, uptoLevel = Infinity): Record<Ability, n
 /** Normalized class features gained at or below `level` (uses per-level `features`, else the
  *  level-1 `features1` fallback while Part B authoring is in progress). Includes source-dependent
  *  abilities fixed by an earlier choice (sorcerer bloodline, cavalier order). */
+/** The class as modified by the character's archetype (if any belongs to this class): features
+ *  swapped, weapon/armor proficiency and spellcasting altered. Applied once, at classBreakdown time
+ *  and to the primary class, so every downstream consumer sees the effective class. A class with no
+ *  matching archetype is returned unchanged (the common case, so no needless object churn). */
+function effectiveClass(klass: C.ClassDef, dec: Decisions): C.ClassDef {
+  const arch = dec.archetype ? klass.archetypes?.find((a) => a.id === dec.archetype) : undefined;
+  if (!arch) return klass;
+  const baseFeatures = klass.features ?? klass.features1.map((f) => ({ ...f, level: 1 }));
+  const replaced = new Set(arch.replaces);
+  const features = [...baseFeatures.filter((f) => !replaced.has(f.id)), ...arch.grants];
+  let proficiencies = klass.proficiencies;
+  if (arch.proficiencies) {
+    const apply = <T,>(base: readonly T[], mod?: { add?: T[]; remove?: T[] }): T[] => {
+      let out = base.filter((x) => !mod?.remove?.includes(x));
+      for (const x of mod?.add ?? []) if (!out.includes(x)) out = [...out, x];
+      return out;
+    };
+    proficiencies = {
+      weapons: apply(klass.proficiencies.weapons, arch.proficiencies.weapons),
+      armor: apply(klass.proficiencies.armor, arch.proficiencies.armor),
+    };
+  }
+  // omit → keep the class's; null → remove casting; a def → replace it.
+  const spellcasting = arch.spellcasting === undefined ? klass.spellcasting : (arch.spellcasting ?? undefined);
+  return { ...klass, features, proficiencies, spellcasting };
+}
+
 function classFeaturesUpTo(klass: C.ClassDef | undefined, level: number, dec?: Decisions): C.LeveledFeatureDef[] {
   if (!klass) return [];
-  let src: C.LeveledFeatureDef[] = klass.features ?? klass.features1.map((f) => ({ ...f, level: 1 }));
-  // An archetype (belonging to this class) swaps some features for its own — drop the replaced
-  // ids and fold in the grants. Only the archetype attached to *this* class matches, so a stale or
-  // wrong-class archetype simply has no effect.
-  const arch = dec?.archetype ? klass.archetypes?.find((a) => a.id === dec.archetype) : undefined;
-  if (arch) {
-    const replaced = new Set(arch.replaces);
-    src = [...src.filter((f) => !replaced.has(f.id)), ...arch.grants];
-  }
+  // `klass` is already the archetype-effective class (see effectiveClass / classBreakdown).
+  const src: C.LeveledFeatureDef[] = klass.features ?? klass.features1.map((f) => ({ ...f, level: 1 }));
   const extra = dec ? sourceFeatures(dec) : [];
   return [...src, ...extra].filter((f) => f.level <= level).sort((a, b) => a.level - b.level);
 }
@@ -610,7 +630,7 @@ function classBreakdown(dec: Decisions, level: number): ClassEntry[] {
     const existing = out.get(id);
     if (existing) { existing.levels += 1; return; }
     const klass = C.classById.get(id);
-    if (klass) out.set(id, { klass, levels: 1, firstAt: i + 1 });
+    if (klass) out.set(id, { klass: effectiveClass(klass, dec), levels: 1, firstAt: i + 1 });
   });
   return [...out.values()].sort((a, b) => a.firstAt - b.firstAt);
 }
@@ -668,7 +688,8 @@ export function resolve(doc: CharacterDoc): Resolution {
   const dec = readDecisions(doc);
   const level = Math.max(1, Math.min(20, Math.floor(doc.level) || 1));
   const race = dec.raceId ? C.raceById.get(dec.raceId) : undefined;
-  const klass = dec.classId ? C.classById.get(dec.classId) : undefined;
+  const baseKlass = dec.classId ? C.classById.get(dec.classId) : undefined;
+  const klass = baseKlass ? effectiveClass(baseKlass, dec) : undefined;
   // Every class the character has levels in. For a single-class character this is just [klass],
   // so all the summing below collapses to the old single-class arithmetic.
   const classes = classBreakdown(dec, level);
@@ -1071,8 +1092,9 @@ export function resolve(doc: CharacterDoc): Resolution {
         fort: sumSave('fort', soFar),
         ref: sumSave('ref', soFar),
         will: sumSave('will', soFar),
-        // Features gained at this character level are the ones this class grants at its own level.
-        features: kl ? classFeaturesUpTo(kl, clsLevel, dec).filter((f) => f.level === clsLevel).map((f) => f.name) : [],
+        // Features gained at this character level are the ones this class grants at its own level
+        // (through the archetype, if any belongs to that class).
+        features: kl ? classFeaturesUpTo(effectiveClass(kl, dec), clsLevel, dec).filter((f) => f.level === clsLevel).map((f) => f.name) : [],
         featSlots: featSlotKeys.filter((fs) => fs.charLevel === l).map((fs) => fs.label),
         abilityIncrease: dec.abilityIncreases[l],
         hp: l === 1
@@ -2239,4 +2261,4 @@ function classChoiceOptions(ch: C.ClassChoiceDef, dec: Decisions, level = 1): Sl
 function cap(s: string): string { return s.charAt(0).toUpperCase() + s.slice(1); }
 
 // Re-export for other modules.
-export { activeRacialTraits, finalAbilities };
+export { activeRacialTraits, finalAbilities, effectiveClass, readDecisions };

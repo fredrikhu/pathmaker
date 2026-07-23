@@ -189,8 +189,8 @@ export interface ClassChoiceDef {
 
 /** A class archetype: removes some of the base class's features and grants alternates in their
  *  place at set levels. `replaces` lists the class-feature ids removed; `grants` are the leveled
- *  replacements. Other alterations (proficiencies, class skills, spellcasting) are out of scope for
- *  the current model. */
+ *  replacements. Optionally alters weapon/armor proficiency and spellcasting. (Class-skill changes
+ *  remain out of the current model.) */
 export interface ArchetypeDef {
   id: string;
   classId: string;
@@ -198,6 +198,15 @@ export interface ArchetypeDef {
   desc: string;
   replaces: string[];
   grants: LeveledFeatureDef[];
+  /** Proficiency changes layered on the class's. Weapon changes affect attack math; armor entries
+   *  are recorded but not yet consumed by the engine (no arcane-failure / penalty modelling). */
+  proficiencies?: {
+    weapons?: { add?: string[]; remove?: string[] };
+    armor?: { add?: ('light' | 'medium' | 'heavy' | 'shield')[]; remove?: ('light' | 'medium' | 'heavy' | 'shield')[] };
+  };
+  /** Spellcasting change: omit the field to keep the class's casting, `null` to remove it entirely,
+   *  or a full SpellcastingDef to replace it. */
+  spellcasting?: SpellcastingDef | null;
 }
 
 export interface ClassDef {

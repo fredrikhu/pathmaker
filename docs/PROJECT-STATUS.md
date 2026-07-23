@@ -9,7 +9,23 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 **Current state** — branch `main`, working tree clean, **567 tests** passing; run
 `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
-**Latest — Archetypes proof-of-concept (friend feedback #2).** The mechanism is in, scoped to Fighter as
+**Latest — Archetypes: model extended for proficiency + spellcasting.** The archetype model now covers
+weapon/armor proficiency and spellcasting changes, not just feature swaps. `ArchetypeDef` gained
+`proficiencies?: { weapons?:{add?,remove?}, armor?:{add?,remove?} }` and `spellcasting?: SpellcastingDef |
+null` (omit = keep, `null` = remove casting, a def = replace). Engine: a new `effectiveClass(klass, dec)`
+applies the whole archetype (features + proficiencies + spellcasting) **once**, at `classBreakdown` time and
+to the primary class, so every consumer (proficiency ctx, the per-class spellcasting/caster-level reads, the
+progression) sees the effective class; `classFeaturesUpTo` no longer re-applies it. Content: **Skirmisher
+(Ranger)** — removes spellcasting, grants Hunter's Tricks (verified vs d20pfsrd). Tests: golden (Skirmisher
+casts nothing vs a standard ranger; gains Hunter's Tricks at 5) + a unit test on `effectiveClass` for
+weapon/armor add-remove and a spellcasting override; 607 pass. Browser-verified the ranger archetype picker
+and no caster level. **Note:** armor proficiency is recorded but not yet consumed by the engine (no
+arcane-failure/penalty modelling); class-skill changes remain unmodeled — so archetypes that also alter
+domains/slots/skills (e.g. Cloistered Cleric) aren't shippable accurately yet. **⚠ resolve.test.ts is being
+edited by a parallel session (reorder churn); this commit deliberately excludes it — the new archetype tests
+sit there uncommitted, to be committed once the other session lands.**
+
+**Prior — Archetypes proof-of-concept (friend feedback #2).** The mechanism is in, scoped to Fighter as
 a proof-of-concept per the user's choice. New `ArchetypeDef { classId, name, desc, replaces:[featureId],
 grants:[LeveledFeatureDef] }` on `ClassDef.archetypes`; content in `src/content/archetypes.ts` — **Two-Handed
 Fighter** and **Weapon Master**, verified against d20pfsrd (each swaps Bravery/Armor Training/Weapon Training/

@@ -40,6 +40,18 @@ export const FIGHTER_ARCHETYPES: ArchetypeDef[] = [
   },
 ];
 
-export const ARCHETYPES: ArchetypeDef[] = [...FIGHTER_ARCHETYPES];
+export const RANGER_ARCHETYPES: ArchetypeDef[] = [
+  {
+    id: 'skirmisher', classId: 'ranger', name: 'Skirmisher',
+    desc: 'A ranger who forgoes spellcasting entirely, relying on wits and instinct — trading spells for hunter’s tricks.',
+    replaces: [],
+    spellcasting: null, // a skirmisher has no spells
+    grants: [
+      g(5, 'skirmisher-hunters-tricks', 'Hunter’s Tricks', 'Learns a hunter’s trick at 5th level and another at 7th and every two levels after; usable a number of times per day equal to 1/2 the ranger’s level + Wisdom modifier. Replaces the ranger’s spellcasting.'),
+    ],
+  },
+];
+
+export const ARCHETYPES: ArchetypeDef[] = [...FIGHTER_ARCHETYPES, ...RANGER_ARCHETYPES];
 export const archetypeById = new Map(ARCHETYPES.map((a) => [a.id, a]));
 export const archetypesForClass = (classId: string): ArchetypeDef[] => ARCHETYPES.filter((a) => a.classId === classId);
