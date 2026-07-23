@@ -9,7 +9,18 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 **Current state** — branch `main`, working tree clean, **567 tests** passing; run
 `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
-**Latest — Archetypes: source-power suppression + Tattooed Sorcerer.** Closed the sorcerer blocker with a small
+**Latest — Archetypes: breadth batch (Warpriest, Brawler, Investigator).** First archetypes for three more
+classes, all verified vs d20pfsrd. **Sacred Fist** (Warpriest) drops all armor and swaps Sacred Weapon / Focus
+Weapon / Sacred Armor for monk-style **Flurry of Blows**, **Unarmed Strike**, **AC Bonus**, and a **Ki Pool** at
+7th — keeping full casting. **Snakebite Striker** (Brawler) trades Martial Flexibility and Maneuver Training for
+**Sneak Attack**, **Snake Feint**, and **Opportunist**. **Empiricist** (Investigator) swaps Poison Lore, Swift
+Alchemy, and True Inspiration for **Ceaseless Observation**, **Unfailing Logic**, and **Master Intellect**. 3
+golden tests (Sacred Fist unarmed swaps + no armor + still casts; Snakebite sneak-attack swaps; Empiricist
+observation swaps); 640 pass; browser-verified all three pickers and Advancement tables. Archetypes now span
+**19 classes, 26 total**. Remaining with none: Oracle, Summoner, Gunslinger, Arcanist, Bloodrager, Swashbuckler,
+Hunter, Shaman, Skald, Shifter.
+
+**Prior — Archetypes: source-power suppression + Tattooed Sorcerer.** Closed the sorcerer blocker with a small
 hook: `ArchetypeDef.suppressSourcePowers?: { prefix; levels }[]` drops specific *source-granted* powers (those
 injected by `sourceFeatures` from a chosen bloodline/order/school/etc. — ids like `sorc-bl-<bloodline>-<level>`),
 which `replaces` can't reach because they aren't the class's own features. `sourceFeatures` now looks up the

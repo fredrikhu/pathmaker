@@ -3740,6 +3740,54 @@ describe('archetypes — source-power suppression (Tattooed Sorcerer)', () => {
   });
 });
 
+describe('archetypes — breadth (Warpriest, Brawler, Investigator)', () => {
+  const build = (cls: string, archetype: string | undefined, level: number): CharacterDoc => {
+    let d = newCharacter('t-breadth2', 'X');
+    d = withDecision(d, 'ability-base', { str: 14, dex: 13, con: 12, int: 13, wis: 14, cha: 10 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['wis']);
+    d = withDecision(d, 'alignment', cls === 'warpriest' ? 'LN' : 'N');
+    d = withDecision(d, 'class', cls);
+    if (archetype) d = withDecision(d, 'archetype', archetype);
+    return atLevel(d, level);
+  };
+  const featsAt = (doc: CharacterDoc, lvl: number) =>
+    resolve(doc).sheet.progression.find((r) => r.level === lvl)?.features ?? [];
+
+  it('Warpriest Sacred Fist swaps sacred weapon/armor for monk-style unarmed combat and loses armor', () => {
+    const s = build('warpriest', 'sacred-fist', 7);
+    expect(featsAt(s, 1)).toContain('Flurry of Blows');
+    expect(featsAt(s, 1)).toContain('Unarmed Strike');
+    expect(featsAt(s, 1)).not.toContain('Sacred Weapon');
+    expect(featsAt(s, 1)).not.toContain('Focus Weapon');
+    expect(featsAt(s, 7)).toContain('Ki Pool');
+    expect(featsAt(s, 7)).not.toContain('Sacred Armor');
+    const eff = effectiveClass(C.classById.get('warpriest')!, readDecisions(build('warpriest', 'sacred-fist', 1)));
+    expect(eff.proficiencies.armor).toEqual([]); // no armor at all
+    expect(resolve(s).sheet.casting.length).toBeGreaterThan(0); // still a caster
+  });
+
+  it('Brawler Snakebite Striker swaps martial flexibility / maneuver training for sneak attack', () => {
+    expect(featsAt(build('brawler', undefined, 3), 1)).toContain('Martial Flexibility');
+    const s = build('brawler', 'snakebite-striker', 11);
+    expect(featsAt(s, 1)).toContain('Sneak Attack +1d6');
+    expect(featsAt(s, 1)).not.toContain('Martial Flexibility');
+    expect(featsAt(s, 3)).toContain('Snake Feint');
+    expect(featsAt(s, 3)).not.toContain('Maneuver Training');
+    expect(featsAt(s, 11)).toContain('Opportunist');
+  });
+
+  it('Investigator Empiricist swaps poison lore / swift alchemy for observation-based abilities', () => {
+    const e = build('investigator', 'empiricist', 20);
+    expect(featsAt(e, 2)).toContain('Ceaseless Observation');
+    expect(featsAt(e, 2)).not.toContain('Poison Lore / Resistance');
+    expect(featsAt(e, 4)).toContain('Unfailing Logic');
+    expect(featsAt(e, 4)).not.toContain('Swift Alchemy');
+    expect(featsAt(e, 20)).toContain('Master Intellect');
+    expect(featsAt(e, 20)).not.toContain('True Inspiration');
+  });
+});
+
 describe('archetypes — caster classes', () => {
   const build = (cls: string, archetype: string | undefined, level: number): CharacterDoc => {
     let d = newCharacter('t-arch3', 'X');

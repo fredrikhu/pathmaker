@@ -393,11 +393,53 @@ export const SORCERER_ARCHETYPES: ArchetypeDef[] = [
   },
 ];
 
+export const WARPRIEST_ARCHETYPES: ArchetypeDef[] = [
+  {
+    id: 'sacred-fist', classId: 'warpriest', name: 'Sacred Fist',
+    desc: 'A warrior-monk of the faith who forgoes armor and blessed steel to strike with blessed fists.',
+    replaces: ['wp-sacred-weapon', 'wp-focus-weapon', 'wp-sacred-armor'],
+    // No armor or shields — a sacred fist fights unarmored.
+    proficiencies: { armor: { remove: ['light', 'medium', 'heavy', 'shield'] } },
+    grants: [
+      g(1, 'sf-flurry', 'Flurry of Blows', 'Make a flurry of blows as a full-attack action (as the monk ability), though your warpriest levels do not count as your base attack bonus for it. Replaces sacred weapon.'),
+      g(1, 'sf-unarmed', 'Unarmed Strike', 'Gain Improved Unarmed Strike as a bonus feat and deal unarmed damage as a monk of your warpriest level. Replaces focus weapon.'),
+      g(1, 'sf-ac-bonus', 'AC Bonus', 'While unarmored and unencumbered, add your Wisdom modifier to AC and CMD, plus a +1 dodge bonus at 4th level that rises by 1 every four levels.'),
+      g(7, 'sf-ki-pool', 'Ki Pool', 'Gain a ki pool as a monk, using your warpriest level − 3 as your monk level for its size and unarmed-strike bonuses. Replaces sacred armor.'),
+    ],
+  },
+];
+
+export const BRAWLER_ARCHETYPES: ArchetypeDef[] = [
+  {
+    id: 'snakebite-striker', classId: 'brawler', name: 'Snakebite Striker',
+    desc: 'A brawler who fights like a gutter-scrapper — reading openings and striking vital spots instead of drilling maneuvers.',
+    replaces: ['brawl-martial-flexibility', 'brawl-maneuver-training'],
+    grants: [
+      g(1, 'sbs-sneak-attack', 'Sneak Attack +1d6', 'Deal +1d6 sneak-attack damage (rising at 6th, 10th, 12th, and 20th) against a foe denied its Dexterity bonus or that you flank. Replaces martial flexibility.'),
+      g(3, 'sbs-snake-feint', 'Snake Feint', 'Move and feint (Bluff vs Sense Motive) as a standard action; at higher levels, treat additional squares as your flanking position. Replaces maneuver training gained at 3rd and 7th.'),
+      g(11, 'sbs-opportunist', 'Opportunist', 'Once per round (twice at 19th), make an attack of opportunity against a foe just struck in melee by another creature. Replaces maneuver training gained at 11th and 19th.'),
+    ],
+  },
+];
+
+export const INVESTIGATOR_ARCHETYPES: ArchetypeDef[] = [
+  {
+    id: 'empiricist', classId: 'investigator', name: 'Empiricist',
+    desc: 'An investigator who trusts cold observation over instinct — turning a keen intellect on every problem.',
+    replaces: ['inv-poison-lore', 'inv-swift-alchemy', 'inv-true-inspiration'],
+    grants: [
+      g(2, 'emp-ceaseless-observation', 'Ceaseless Observation', 'Use your Intelligence modifier in place of the usual ability for Disable Device, Perception, Sense Motive, and Use Magic Device, and for Diplomacy checks to gather information. Replaces poison lore and poison resistance.'),
+      g(4, 'emp-unfailing-logic', 'Unfailing Logic', '+2 insight bonus on Will saves against illusions you can disbelieve (rising to +4 at 8th, immunity at 16th); spend inspiration to use Intelligence rather than Wisdom on such saves. Replaces swift alchemy.'),
+      g(20, 'emp-master-intellect', 'Master Intellect', 'Apply inspiration to any skill or ability check, including initiative, without spending inspiration points. Replaces true inspiration.'),
+    ],
+  },
+];
+
 export const ARCHETYPES: ArchetypeDef[] = [
   ...FIGHTER_ARCHETYPES, ...RANGER_ARCHETYPES, ...ROGUE_ARCHETYPES, ...BARBARIAN_ARCHETYPES, ...PALADIN_ARCHETYPES,
   ...BARD_ARCHETYPES, ...ALCHEMIST_ARCHETYPES, ...MAGUS_ARCHETYPES, ...MONK_ARCHETYPES, ...CLERIC_ARCHETYPES,
   ...CAVALIER_ARCHETYPES, ...INQUISITOR_ARCHETYPES, ...DRUID_ARCHETYPES, ...WIZARD_ARCHETYPES, ...WITCH_ARCHETYPES,
-  ...SORCERER_ARCHETYPES,
+  ...SORCERER_ARCHETYPES, ...WARPRIEST_ARCHETYPES, ...BRAWLER_ARCHETYPES, ...INVESTIGATOR_ARCHETYPES,
 ];
 export const archetypeById = new Map(ARCHETYPES.map((a) => [a.id, a]));
 export const archetypesForClass = (classId: string): ArchetypeDef[] => ARCHETYPES.filter((a) => a.classId === classId);
