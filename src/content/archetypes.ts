@@ -193,6 +193,22 @@ export const PALADIN_ARCHETYPES: ArchetypeDef[] = [
 
 export const BARD_ARCHETYPES: ArchetypeDef[] = [
   {
+    id: 'court-bard', classId: 'bard', name: 'Court Bard',
+    desc: 'The artist-in-residence of a noble house — a poised proclaimer whose wit cuts sharper than any blade, and whose gossip can start a riot.',
+    replaces: [
+      'bard-inspire-courage', 'bard-inspire-competence', 'bard-dirge-of-doom', 'bard-frightening-tune',
+      'bard-knowledge', 'bard-lore-master', 'bard-jack-of-all-trades',
+    ],
+    grants: [
+      g(1, 'court-satire', 'Satire', 'Your performance undermines enemies who hear it, imposing a scaling penalty on their attack and damage rolls and on saves against fear and charm. Replaces inspire courage.'),
+      g(1, 'court-heraldic-expertise', 'Heraldic Expertise', 'Add half your bard level (minimum +1) on Diplomacy and Knowledge (history, local, nobility), and reroll one such check per day (more at 5th and every five levels). Replaces bardic knowledge.'),
+      g(3, 'court-mockery', 'Mockery', 'Ridicule one target who can hear you, imposing a −2 penalty (worsening every four levels after 3rd) on its Charisma checks and Charisma-based skill checks. Replaces inspire competence.'),
+      g(5, 'court-wide-audience', 'Wide Audience', 'Your area performances can affect a 60-foot cone instead of a 30-foot radius, growing every five levels beyond 5th (or affecting extra creatures). Replaces lore master and jack of all trades.'),
+      g(8, 'court-glorious-epic', 'Glorious Epic', 'Enemies within 30 feet become flat-footed unless they succeed at a Will save; a save grants 24-hour immunity. Replaces dirge of doom.'),
+      g(14, 'court-scandal', 'Scandal', 'Enemies within 30 feet are affected as by song of discord while they hear you; a Will save negates and grants 24-hour immunity. Replaces frightening tune.'),
+    ],
+  },
+  {
     id: 'archaeologist', classId: 'bard', name: 'Archaeologist',
     desc: 'A field researcher who forgoes bardic performance for fortune’s favor and a smattering of rogue talents.',
     // Loses bardic performance and all its performance types, plus versatile performance and well-versed.
@@ -455,6 +471,16 @@ export const CLERIC_ARCHETYPES: ArchetypeDef[] = [
 
 export const CAVALIER_ARCHETYPES: ArchetypeDef[] = [
   {
+    id: 'beast-rider', classId: 'cavalier', name: 'Beast Rider',
+    desc: 'A cavalier who spends his life seeking ever more exotic and powerful mounts — riding to war on a dinosaur or a mammoth rather than a warhorse.',
+    replaces: ['cav-mount', 'cav-expert-trainer'],
+    // A beast rider gives up heavy armor (light, medium and shields only).
+    proficiencies: { armor: { remove: ['heavy'] } },
+    grants: [
+      g(1, 'br-exotic-mount', 'Exotic Mount', 'Bond with an exotic mount that functions as a druid’s animal companion using your cavalier level as your effective druid level, always combat trained and starting with Endurance as a bonus feat (it gains no share spells). Larger and more impressive mounts unlock at 4th and 7th level, and you may trade up each time you gain a level. Replaces mount and expert trainer.'),
+    ],
+  },
+  {
     id: 'gendarme', classId: 'cavalier', name: 'Gendarme',
     desc: 'A heavy lancer who lives for the charge — pouring the order’s teaching into raw combat prowess.',
     replaces: ['cav-tactician', 'cav-greater-tactician', 'cav-master-tactician', 'cav-supreme-charge'],
@@ -479,6 +505,19 @@ export const CAVALIER_ARCHETYPES: ArchetypeDef[] = [
 ];
 
 export const INQUISITOR_ARCHETYPES: ArchetypeDef[] = [
+  {
+    id: 'spellbreaker', classId: 'inquisitor', name: 'Spellbreaker',
+    desc: 'An inquisitor who has learned to wade through hostile magic — reading a school’s workings well enough to shrug it off, and to foul a caster mid-word.',
+    replaces: ['inq-monster-lore', 'inq-solo-tactics', 'inq-true-judgment'],
+    // Defense against Magic replaces *all* the inquisitor's bonus teamwork feats.
+    bonusFeatSlots: { remove: [3, 6, 9, 12, 15, 18] },
+    grants: [
+      g(1, 'sbr-strong-willed', 'Strong-Willed', 'Roll twice and take the better result on Will saves against mind-affecting effects. Replaces monster lore.'),
+      g(3, 'sbr-defense-against-magic', 'Defense against Magic', 'Pick a wizard school for a +1 bonus on saves against arcane spells of that school; every four levels beyond 3rd pick another school (up to five at 19th) and increase the bonus for each school already chosen by 1. Replaces all bonus teamwork feats.'),
+      g(3, 'sbr-foil-casting', 'Foil Casting', 'Casting defensively in your threatened area costs arcane casters +2 DC (stacking with Disruptive), and hitting an arcane caster with a ranged attack raises its concentration DCs by 2 for 1 round. Replaces solo tactics.'),
+      g(20, 'sbr-impervious', 'Impervious', 'Become immune to your first chosen school of arcane magic — helpful or harmful — and once per day grant that imperviousness to allies in a 60-foot burst for 1 minute. Replaces true judgment.'),
+    ],
+  },
   {
     id: 'sanctified-slayer', classId: 'inquisitor', name: 'Sanctified Slayer',
     desc: 'An inquisitor who hunts the faith’s enemies like a killer — marking a target and striking its vitals rather than passing judgment.',

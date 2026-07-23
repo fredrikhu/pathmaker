@@ -4677,6 +4677,56 @@ describe('archetypes — thirds batch 3 (Mouser, Dual-Cursed, Chirurgeon, Mercif
     expect(featsAt(c, 10)).toContain('Power Over Death');
   });
 
+  it('the bard splits inspire courage out of the performance pool and has jack of all trades at 10', () => {
+    // Both are their own features so archetypes can swap them individually (Court Bard does).
+    const b = build('bard', undefined, 10);
+    expect(featsAt(b, 1)).toContain('Bardic Performance');
+    expect(featsAt(b, 1)).toContain('Inspire Courage');
+    expect(featsAt(b, 10)).toContain('Jack of All Trades');
+  });
+
+  it('Court Bard swaps the four performances plus bardic knowledge and lore master', () => {
+    const cb = build('bard', 'court-bard', 14);
+    expect(featsAt(cb, 1)).toContain('Satire');
+    expect(featsAt(cb, 1)).not.toContain('Inspire Courage');
+    expect(featsAt(cb, 1)).toContain('Heraldic Expertise');
+    expect(featsAt(cb, 1)).not.toContain('Bardic Knowledge');
+    // The performance-rounds pool itself is untouched.
+    expect(featsAt(cb, 1)).toContain('Bardic Performance');
+    expect(featsAt(cb, 3)).toContain('Mockery');
+    expect(featsAt(cb, 3)).not.toContain('Inspire Competence');
+    expect(featsAt(cb, 5)).toContain('Wide Audience');
+    expect(featsAt(cb, 5)).not.toContain('Lore Master');
+    expect(featsAt(cb, 8)).toContain('Glorious Epic');
+    expect(featsAt(cb, 14)).toContain('Scandal');
+    expect(featsAt(cb, 10)).not.toContain('Jack of All Trades');
+  });
+
+  it('Spellbreaker gives up every teamwork bonus feat for its anti-magic line', () => {
+    const std = resolve(build('inquisitor', undefined, 18)).slots.filter((s) => s.step === 'feats' && s.id.startsWith('feat-inquisitor')).map((s) => s.id);
+    const sb = resolve(build('inquisitor', 'spellbreaker', 18)).slots.filter((s) => s.step === 'feats' && s.id.startsWith('feat-inquisitor')).map((s) => s.id);
+    expect(std.length).toBe(6); // teamwork feats at 3/6/9/12/15/18
+    expect(sb.length).toBe(0);  // all of them replaced by Defense against Magic
+    const s = build('inquisitor', 'spellbreaker', 20);
+    expect(featsAt(s, 1)).toContain('Strong-Willed');
+    expect(featsAt(s, 1)).not.toContain('Monster Lore');
+    expect(featsAt(s, 3)).toContain('Defense against Magic');
+    expect(featsAt(s, 3)).toContain('Foil Casting');
+    expect(featsAt(s, 3)).not.toContain('Solo Tactics');
+    expect(featsAt(s, 20)).toContain('Impervious');
+    expect(featsAt(s, 20)).not.toContain('True Judgment');
+  });
+
+  it('Beast Rider trades mount and expert trainer for an exotic mount, losing heavy armor', () => {
+    const eff = effectiveClass(C.classById.get('cavalier')!, readDecisions(build('cavalier', 'beast-rider', 1)));
+    expect(eff.proficiencies.armor).toContain('medium');
+    expect(eff.proficiencies.armor).not.toContain('heavy');
+    const br = build('cavalier', 'beast-rider', 4);
+    expect(featsAt(br, 1)).toContain('Exotic Mount');
+    expect(featsAt(br, 1)).not.toContain('Mount');
+    expect(featsAt(br, 4)).not.toContain('Expert Trainer');
+  });
+
   it('Merciful Healer is a single-domain cleric with the healing-channel line', () => {
     const eff = effectiveClass(C.classById.get('cleric')!, readDecisions(build('cleric', 'merciful-healer', 1)));
     expect((eff.choices ?? []).find((x) => x.id === 'domains')?.count).toBe(1);

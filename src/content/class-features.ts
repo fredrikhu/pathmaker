@@ -194,7 +194,11 @@ export const CLASS_PROGRESSION: Record<string, ClassProgression> = {
   },
   bard: {
     features: [
-      f(1, 'bard-performance', 'Bardic Performance', 'Inspire courage and other performances a number of rounds/day.'),
+      // Inspire courage is its own feature (not folded into the rounds/day pool) because nearly every
+      // bard archetype swaps it for a signature performance — same granularity as the gunslinger and
+      // swashbuckler deed splits.
+      f(1, 'bard-performance', 'Bardic Performance', 'A pool of performance rounds per day that fuels your performances.'),
+      f(1, 'bard-inspire-courage', 'Inspire Courage', 'A rousing performance grants allies a scaling morale bonus on attack and damage rolls and against charm and fear.'),
       f(1, 'bard-knowledge', 'Bardic Knowledge', 'Add half level to all Knowledge checks and make them untrained.'),
       f(1, 'bard-cantrips', 'Cantrips', 'Cast 0-level bard spells at will.'),
       f(1, 'bard-countersong', 'Countersong / Distraction / Fascinate', 'Performances that counter sound, illusions, or transfix foes.'),
@@ -205,6 +209,7 @@ export const CLASS_PROGRESSION: Record<string, ClassProgression> = {
       f(6, 'bard-suggestion', 'Suggestion', 'Plant a suggestion in a fascinated creature.'),
       f(8, 'bard-dirge-of-doom', 'Dirge of Doom', 'Shake nearby enemies with a grim performance.'),
       f(9, 'bard-inspire-greatness', 'Inspire Greatness', 'Grant allies bonus Hit Dice and attack.'),
+      f(10, 'bard-jack-of-all-trades', 'Jack of All Trades', 'Use any skill untrained; from 16th all skills are class skills for you (19th: take 10 on any skill).'),
       f(12, 'bard-soothing-performance', 'Soothing Performance', 'Perform a mass cure serious wounds.'),
       f(14, 'bard-frightening-tune', 'Frightening Tune', 'Frighten foes who fail their save.'),
       f(15, 'bard-inspire-heroics', 'Inspire Heroics', 'Grant allies large morale bonuses to AC and saves.'),
