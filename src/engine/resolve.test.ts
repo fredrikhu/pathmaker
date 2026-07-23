@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { resolve, doubleThreatRange } from './resolve';
+import { resolve, doubleThreatRange, effectiveClass, readDecisions } from './resolve';
 import { newCharacter, withDecision } from './character';
 import type { CharacterDoc } from './types';
 import { emptyPlayState } from './types';
@@ -3431,5 +3431,46 @@ describe('archetypes (fighter proof-of-concept)', () => {
   it('clearing the archetype restores the standard features', () => {
     expect(featsAt(fighter('weapon-master'), 2)).not.toContain('Bravery +1');
     expect(featsAt(fighter(), 2)).toContain('Bravery +1');
+  });
+});
+
+describe('archetypes — extended model (proficiency + spellcasting)', () => {
+  function ranger(archetype: string | undefined, level = 5): CharacterDoc {
+    let d = newCharacter('t-ranger', 'Ari');
+    d = withDecision(d, 'ability-base', { str: 14, dex: 15, con: 13, int: 10, wis: 14, cha: 8 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['dex']);
+    d = withDecision(d, 'alignment', 'N');
+    d = withDecision(d, 'class', 'ranger');
+    if (archetype) d = withDecision(d, 'archetype', archetype);
+    return atLevel(d, level);
+  }
+
+  it('a standard ranger 5 casts; the Skirmisher removes spellcasting', () => {
+    expect(resolve(ranger(undefined)).sheet.casting.length).toBeGreaterThan(0);
+    expect(resolve(ranger('skirmisher')).sheet.casting.length).toBe(0);
+  });
+
+  it('the Skirmisher gains Hunter’s Tricks at 5th', () => {
+    const feats5 = resolve(ranger('skirmisher')).sheet.progression.find((r) => r.level === 5)?.features ?? [];
+    expect(feats5.some((f) => /Hunter’s Tricks/.test(f))).toBe(true);
+  });
+
+  it('effectiveClass applies weapon/armor proficiency changes and a spellcasting override', () => {
+    const base = C.classById.get('fighter')!;
+    const testClass = {
+      ...base,
+      archetypes: [{
+        id: 'test-prof', classId: 'fighter', name: 'T', desc: 'T', replaces: [], grants: [],
+        proficiencies: { weapons: { add: ['whip'], remove: ['martial'] }, armor: { remove: ['heavy' as const] } },
+        spellcasting: { kind: 'spontaneous' as const, ability: 'cha' as const, list: 'bard' as const, slots1: [999, 1] },
+      }],
+    };
+    const doc = withDecision(newCharacter('t-eff', 'X'), 'archetype', 'test-prof');
+    const eff = effectiveClass(testClass, readDecisions(doc));
+    expect(eff.proficiencies.weapons).toContain('whip');
+    expect(eff.proficiencies.weapons).not.toContain('martial');
+    expect(eff.proficiencies.armor).not.toContain('heavy');
+    expect(eff.spellcasting?.list).toBe('bard');
   });
 });
