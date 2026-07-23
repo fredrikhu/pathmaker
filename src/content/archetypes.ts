@@ -170,6 +170,41 @@ export const MAGUS_ARCHETYPES: ArchetypeDef[] = [
       ],
     },
   },
+  {
+    id: 'kensai', classId: 'magus', name: 'Kensai',
+    desc: 'A weapon master who forgoes armor and half his spellcasting to perfect a single blade, defending with wit and intellect.',
+    // Diminished Spellcasting: keeps magus casting but one fewer slot of each level per day.
+    spellcastingMod: { diminished: true },
+    // No armor at all (loses light-armor proficiency); weapon focus on one chosen weapon (the
+    // "one martial or exotic weapon" choice itself is not modelled — proficiency stays simple+martial).
+    proficiencies: { armor: { remove: ['light'] } },
+    replaces: [
+      'magus-spell-recall',      // → Perfect Strike (4th)
+      'magus-knowledge-pool',    // → Fighter Training (7th)
+      'magus-medium-armor',      // → Iaijutsu (7th)
+      'magus-improved-spell-recall', // → Superior Reflexes (11th)
+      'magus-heavy-armor',       // → Iaijutsu Focus (13th)
+      'magus-greater-spell-access', // → Iaijutsu Master (19th)
+      'magus-true-magus',        // → Weapon Mastery (20th)
+    ],
+    grants: [
+      g(1, 'kensai-canny-defense', 'Canny Defense', 'While wielding your chosen weapon and unarmored, add your Intelligence bonus (max your kensai level) to AC as a dodge bonus, as the duelist ability.'),
+      g(1, 'kensai-weapon-focus', 'Weapon Focus', 'Gain Weapon Focus as a bonus feat with your chosen weapon.'),
+      g(4, 'kensai-perfect-strike', 'Perfect Strike', 'Spend 1 arcane pool point to maximize your chosen weapon’s damage on a hit; spend 2 on a critical to raise its multiplier by 1. Replaces spell recall.'),
+      g(7, 'kensai-fighter-training', 'Fighter Training', 'Count your magus level − 3 as your fighter level for feat prerequisites, but only with your chosen weapon. Replaces knowledge pool.'),
+      g(7, 'kensai-iaijutsu', 'Iaijutsu', 'Add your Intelligence modifier to initiative, make attacks of opportunity while flat-footed, and draw your weapon as a free action when making one. Replaces medium armor.'),
+      g(9, 'kensai-critical-perfection', 'Critical Perfection', 'Add your Intelligence bonus to critical confirmation rolls with your chosen weapon, and use your magus level as your BAB for Critical Focus feat prerequisites. Replaces the 9th-level magus arcana.'),
+      g(11, 'kensai-superior-reflexes', 'Superior Reflexes', 'You may make a number of attacks of opportunity per round equal to your Intelligence modifier (minimum 1); this stacks with Combat Reflexes. Replaces improved spell recall.'),
+      g(13, 'kensai-iaijutsu-focus', 'Iaijutsu Focus', 'You always act in the surprise round, draw your weapon as a swift action, and add your Intelligence modifier to damage against flat-footed foes. Replaces heavy armor.'),
+      g(19, 'kensai-iaijutsu-master', 'Iaijutsu Master', 'Treat your initiative roll as a natural 20 and you can never be surprised. Replaces greater spell access.'),
+      g(20, 'kensai-weapon-mastery', 'Weapon Mastery', 'Gain the fighter’s weapon mastery with your chosen weapon (automatic confirm, +1 damage multiplier on crits, no disarm). Replaces true magus.'),
+    ],
+    // Critical Perfection replaces the 9th-level magus arcana; the other arcana picks remain.
+    choices: {
+      remove: ['magus-arcana'],
+      add: [{ id: 'magus-arcana', label: 'Magus arcana', kind: 'list', count: 1, levels: [3, 6, 12, 15, 18], options: MAGUS_ARCANA }],
+    },
+  },
 ];
 
 export const ARCHETYPES: ArchetypeDef[] = [

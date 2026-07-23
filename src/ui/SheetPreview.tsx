@@ -84,6 +84,7 @@ export function SheetPreview({ id }: { id: string }) {
               <div key={b.classId} className="text-muted" style={{ fontSize: 12, marginBottom: 4 }}>
                 {sheet.casting.length > 1 && <strong>{b.className}: </strong>}
                 Caster level {b.casterLevel}
+                {b.diminished && <> · <span title="One fewer slot of each spell level per day">diminished</span></>}
                 {b.slots && b.slots.some((n) => n > 0) && <> · slots/day {b.slots.map((n, l) => ({ n, l })).filter((s) => s.n > 0).map(({ n, l }) => `L${l}:${n}`).join('  ')}</>}
               </div>
             ))}

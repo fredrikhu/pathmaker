@@ -9,7 +9,28 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 **Current state** — branch `main`, working tree clean, **567 tests** passing; run
 `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
-**Latest — Archetypes: subsystem casters (Magus).** With the choice-slot model in place, authored the two
+**Latest — Archetypes: partial-casting model (Diminished Spellcasting) + Kensai.** Closed the partial-casting
+gap so an archetype can keep a class's spellcasting but *adjust* it rather than replace/remove wholesale.
+`SpellcastingDef` gained `diminished?: boolean`; `ArchetypeDef` gained `spellcastingMod?: { diminished?;
+ability?; list? }`, which `effectiveClass` merges onto whatever casting survives (a no-op if casting was
+removed). `spellSlotsPerDay(table, level, mod, diminished?)` now subtracts 1 from each spell level's base
+slots (min 0) before adding ability-bonus slots, so a high casting stat can still backfill a level whose base
+fell to 0 — matching RAW ("if this reduces the number to 0, you may cast only if your ability allows bonus
+spells of that level"). Cantrips are never reduced. `CastingBlock.diminished` surfaces it; the sheet's Spells
+line shows a **diminished** tag. Demonstrated by shipping **Kensai** (the previously-deferred Magus archetype):
+`spellcastingMod: { diminished: true }`, loses light-armor proficiency, and swaps 7 magus features for
+Canny Defense / Weapon Focus / Perfect Strike / Fighter Training / Iaijutsu (+Focus/Master) / Critical
+Perfection / Superior Reflexes / Weapon Mastery, with Critical Perfection dropping the 9th-level arcana pick.
+Verified vs d20pfsrd (Diminished text quoted). 4 progression unit tests (−1/level, floor-at-0, high-stat
+backfill, default off) + 3 Kensai golden tests (diminished slots one below standard at every level with
+cantrips intact + still casts; Perfect Strike swaps spell recall + no 9th arcana; `effectiveClass` merges the
+flag + strips armor) + a content-integrity guard (spellcastingMod requires surviving casting); 624 pass.
+Browser-verified a Kensai 20 shows "diminished" and slots one below a standard Magus 20 at each spell level.
+Archetypes now span Fighter, Ranger, Rogue, Barbarian, Paladin, Bard, Alchemist, Magus (13 total). The
+`ability`/`list` mod fields round out "casting-stat/list tweaks"; the last remaining archetype gap is
+**class-skill-list changes** (e.g. Cloistered Cleric) — not a spellcasting concern.
+
+**Prior — Archetypes: subsystem casters (Magus).** With the choice-slot model in place, authored the two
 Magus archetypes that reshape the magus-arcana subsystem. **Bladebound** replaces the 3rd-level arcana with
 the **Black Blade** (a sentient bonded weapon) and swaps Arcane Pool for the black-blade pool (1/3 level + Int):
 `replaces: ['magus-arcane-pool']`, grants the black-blade pool at 1 + Black Blade at 3, and re-adds the arcana
@@ -21,8 +42,8 @@ Strike**: `choices` re-add the arcana slot with `[...MAGUS_ARCANA, ...WITCH_HEXE
 still casts; Hexcrafter → hexes in the arcana list, Hex Magus slot at 4, Accursed Strike, still casts); 617 pass;
 browser-verified the Magus picker shows both archetypes and the Advancement table shows the black-blade pool at
 1 and Black Blade at 3. Archetypes now span Fighter, Ranger, Rogue, Barbarian, Paladin, Bard, Alchemist, Magus
-(12 total). **Kensai deferred** — its Diminished Spellcasting (−1 slot/level) is the still-unmodeled
-partial-casting gap; shipping it would show full slots. Also fixed the **Class step "level 1 features" preview**
+(12 total at the time; Kensai was deferred here for its Diminished Spellcasting, then shipped in the Latest
+entry above once that math was modelled). Also fixed the **Class step "level 1 features" preview**
 to run through `effectiveClass` when an archetype is selected, so swapped level-1 features (e.g. Bladebound's
 black-blade Arcane Pool) show there too — previously it read the base `features1` list and ignored the
 archetype. The standard (no-archetype) preview is unchanged.

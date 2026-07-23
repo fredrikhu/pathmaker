@@ -327,6 +327,9 @@ export interface CastingBlock {
   preparedPerLevel?: number[];
   /** 10 + this class's casting-ability modifier; the per-spell DC adds the spell's level. */
   dcBase: number;
+  /** Diminished Spellcasting (Kensai etc.): `slots` already reflect the −1/level. Flagged so the
+   *  sheet can note it, since the reduced numbers alone don't explain themselves. */
+  diminished?: boolean;
   /** The one restricted bonus slot per spell level a cleric-with-domains or a specialist wizard
    *  gets (replacing the old +1-to-the-count approximation). Absent for everyone else. */
   bonusSlot?: {

@@ -3628,4 +3628,34 @@ describe('archetypes — subsystem casters (magus)', () => {
     expect(hexMagus.length).toBe(1); // one dedicated pick at 4th
     expect(resolve(hc).sheet.casting.length).toBeGreaterThan(0);
   });
+
+  it('Kensai has Diminished Spellcasting — one fewer slot of each spell level, cantrips intact', () => {
+    const std = resolve(magus(undefined, 20)).sheet.casting.find((b) => b.classId === 'magus')!;
+    const ken = resolve(magus('kensai', 20)).sheet.casting.find((b) => b.classId === 'magus')!;
+    expect(ken.diminished).toBe(true);
+    expect(std.diminished).toBeFalsy();
+    expect(ken.slots![0]).toBe(std.slots![0]); // cantrips unaffected
+    // At 20th every real spell level's base is ≥1, so each drops by exactly 1 (bonus slots identical).
+    for (let L = 1; L <= 6; L++) expect(ken.slots![L]).toBe(std.slots![L] - 1);
+    expect(resolve(magus('kensai', 20)).sheet.casting.length).toBeGreaterThan(0); // still a caster
+  });
+
+  it('Kensai swaps spell recall for Perfect Strike and drops the 9th-level arcana', () => {
+    const k = magus('kensai', 20);
+    expect(featsAt(k, 4)).toContain('Perfect Strike');
+    expect(featsAt(k, 4)).not.toContain('Spell Recall');
+    const ids = arcanaSlots(k).map((s) => s.id);
+    expect(ids).not.toContain('magus-arcana-L9'); // Critical Perfection replaces the 9th arcana
+    expect(ids).toContain('magus-arcana-L6');
+    expect(ids).toContain('magus-arcana-L12');
+  });
+
+  it('effectiveClass merges the diminished flag and strips armor proficiency', () => {
+    const base = C.classById.get('magus')!;
+    let d = withDecision(newCharacter('t-ken', 'K'), 'class', 'magus');
+    d = withDecision(d, 'archetype', 'kensai');
+    const eff = effectiveClass(base, readDecisions(d));
+    expect(eff.spellcasting?.diminished).toBe(true);
+    expect(eff.proficiencies.armor).not.toContain('light'); // Kensai wears no armor
+  });
 });

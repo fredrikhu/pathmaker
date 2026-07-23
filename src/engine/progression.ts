@@ -408,11 +408,16 @@ export function spellsPreparedPerLevel(table: SpellTable | undefined, level: num
 }
 
 /** Total spell slots per day at a class level: the base table plus ability bonus spells.
- *  Returns [] when the class has no encoded table. */
-export function spellSlotsPerDay(table: SpellTable | undefined, level: number, abilityMod: number): number[] {
+ *  Returns [] when the class has no encoded table. With `diminished` (Kensai / Cloistered Cleric /
+ *  Spellslinger), each spell level's base slots drop by 1 (min 0) before the ability bonus is added,
+ *  so a high casting stat can still grant a slot at a level whose base fell to 0. Cantrips unaffected. */
+export function spellSlotsPerDay(table: SpellTable | undefined, level: number, abilityMod: number, diminished = false): number[] {
   if (!table || level < 1) return [];
   const base = baseSlotTable(table)[Math.min(20, level) - 1] ?? [];
-  return base.map((n, spellLvl) => n + bonusSpellSlots(abilityMod, spellLvl));
+  return base.map((n, spellLvl) => {
+    const b = diminished && spellLvl > 0 ? Math.max(0, n - 1) : n;
+    return b + bonusSpellSlots(abilityMod, spellLvl);
+  });
 }
 
 /** Spells known per spell level for a spontaneous caster (fixed; empty for prepared casters). */

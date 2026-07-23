@@ -122,6 +122,25 @@ describe('encoded slot tables (Part-2 depth)', () => {
   });
 });
 
+describe('diminished spellcasting (Kensai / Cloistered Cleric / Spellslinger)', () => {
+  it('drops one slot of each spell level, leaving cantrips alone', () => {
+    // magus 20 with a 0 casting mod: cantrips (index 0) stay 5, every real spell level 5 → 4.
+    expect(spellSlotsPerDay('prepared-six', 20, 0, true)).toEqual([5, 4, 4, 4, 4, 4, 4]);
+  });
+  it('floors a base of 1 at 0, and never touches cantrips', () => {
+    // magus 4 base [4,3,1] → [4,2,0]: the lone 3rd-level slot is lost with no bonus to backfill.
+    expect(spellSlotsPerDay('prepared-six', 4, 0, true)).toEqual([4, 2, 0]);
+  });
+  it('a high casting stat can still grant a slot at a level whose base fell to 0', () => {
+    // magus 1 base [3,1], Int +4: diminished 1st-level base 1→0, but the +1 bonus slot survives.
+    expect(spellSlotsPerDay('prepared-six', 1, 4, false)).toEqual([3, 2]);
+    expect(spellSlotsPerDay('prepared-six', 1, 4, true)).toEqual([3, 1]);
+  });
+  it('defaults to non-diminished when the flag is omitted', () => {
+    expect(spellSlotsPerDay('prepared-six', 20, 0)).toEqual(spellSlotsPerDay('prepared-six', 20, 0, false));
+  });
+});
+
 describe('multiclass sums', () => {
   const fighter = (levels: number) => ({ bab: 'full' as const, goodSaves: ['fort'] as const, levels });
   const rogue = (levels: number) => ({ bab: 'threequarter' as const, goodSaves: ['ref'] as const, levels });

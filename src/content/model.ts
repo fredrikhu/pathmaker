@@ -145,6 +145,9 @@ export interface SpellcastingDef {
   known1?: number[];
   /** prepared-book: number of 1st-level spells in the starting spellbook (plus all cantrips). */
   bookPicks1?: 'threePlusInt';
+  /** Diminished Spellcasting: one fewer slot of each spell level per day (min 0). Set by an archetype
+   *  via `spellcastingMod.diminished`; consumed by `spellSlotsPerDay`. Cantrips are unaffected. */
+  diminished?: boolean;
 }
 
 export type ClassChoiceKind =
@@ -207,6 +210,15 @@ export interface ArchetypeDef {
   /** Spellcasting change: omit the field to keep the class's casting, `null` to remove it entirely,
    *  or a full SpellcastingDef to replace it. */
   spellcasting?: SpellcastingDef | null;
+  /** Partial-casting tweaks that keep the class's spellcasting but adjust it — for archetypes with
+   *  Diminished Spellcasting (one fewer slot of each level per day, min 0; bonus slots from a high
+   *  ability still apply) or a changed casting stat / spell list. Merged onto the effective casting;
+   *  ignored when `spellcasting` replaces or removes casting outright (there is nothing to modify). */
+  spellcastingMod?: {
+    diminished?: boolean;
+    ability?: Ability;
+    list?: SpellcastingDef['list'];
+  };
   /** Subsystem / choice-slot changes: `remove` drops class-choice slots by id (rage powers, talents,
    *  discoveries, and the structural picks — domains, school, bloodline, mystery, patron, nature bond),
    *  and `add` grants new ones. To *change* a choice (e.g. two domains → one), remove its id and add a

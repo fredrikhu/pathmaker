@@ -269,7 +269,18 @@ function effectiveClass(klass: C.ClassDef, dec: Decisions): C.ClassDef {
     };
   }
   // omit → keep the class's; null → remove casting; a def → replace it.
-  const spellcasting = arch.spellcasting === undefined ? klass.spellcasting : (arch.spellcasting ?? undefined);
+  let spellcasting = arch.spellcasting === undefined ? klass.spellcasting : (arch.spellcasting ?? undefined);
+  // Partial-casting tweaks (Diminished Spellcasting, casting-stat/list change) layer onto whatever
+  // casting survives above — a no-op when casting was removed, since there is nothing to modify.
+  if (spellcasting && arch.spellcastingMod) {
+    const m = arch.spellcastingMod;
+    spellcasting = {
+      ...spellcasting,
+      ...(m.ability ? { ability: m.ability } : {}),
+      ...(m.list ? { list: m.list } : {}),
+      ...(m.diminished ? { diminished: true } : {}),
+    };
+  }
   // Choice slots (subsystem picks + structural picks): drop removed ids, append added ones.
   let choices = klass.choices;
   if (arch.choices) {
@@ -1038,7 +1049,7 @@ export function resolve(doc: CharacterDoc): Resolution {
     const csc = c.klass.spellcasting;
     if (!csc) return [];
     const table = spellTableFor(csc);
-    const slots = spellSlotsPerDay(table, c.levels, mods[csc.ability]);
+    const slots = spellSlotsPerDay(table, c.levels, mods[csc.ability], csc.diminished);
     // Domain (cleric) and specialist-school (non-universalist wizard) grant one bonus slot per spell
     // level, restricted to a domain spell / a specialty-school spell. Modelled as its own slot
     // (rather than the old +1 to the count), so the restriction can actually be enforced.
@@ -1073,6 +1084,7 @@ export function resolve(doc: CharacterDoc): Resolution {
       // Each class's DC uses its own casting ability.
       dcBase: 10 + mods[csc.ability],
       ...(bonusSlot ? { bonusSlot } : {}),
+      ...(csc.diminished ? { diminished: true } : {}),
     }];
   });
   // The primary casting class, kept for the single-caster views that show one number.

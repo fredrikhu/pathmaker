@@ -872,6 +872,12 @@ describe('archetypes', () => {
         expect(a.classId).toBe(c.id);
         const featureIds = new Set((c.features ?? c.features1).map((f) => f.id));
         for (const rid of a.replaces) expect(featureIds.has(rid), `${a.id} replaces unknown feature ${rid}`).toBe(true);
+        // Partial-casting tweaks (Diminished Spellcasting etc.) only mean something on a class that
+        // still casts after the archetype is applied — a mod with nothing to modify is a mistake.
+        if (a.spellcastingMod) {
+          const stillCasts = a.spellcasting === undefined ? !!c.spellcasting : a.spellcasting !== null;
+          expect(stillCasts, `${a.id}: spellcastingMod but no surviving spellcasting`).toBe(true);
+        }
         for (const g of a.grants) {
           expect(g.level, `${a.id} grant ${g.id} level`).toBeGreaterThanOrEqual(1);
           expect(g.level, `${a.id} grant ${g.id} level`).toBeLessThanOrEqual(20);
