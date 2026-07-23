@@ -6,7 +6,7 @@
 // replaces "Armor Training 1–4" replaces that one id and grants its own abilities in their place.
 
 import type { ArchetypeDef, LeveledFeatureDef } from './model';
-import { ROGUE_TALENTS, ROGUE_ADVANCED_TALENTS, MAGUS_ARCANA, WITCH_HEXES, ARCANIST_EXPLOITS, BARBARIAN_RAGE_POWERS, SLAYER_TALENTS } from './subsystems';
+import { ROGUE_TALENTS, ROGUE_ADVANCED_TALENTS, MAGUS_ARCANA, WITCH_HEXES, ARCANIST_EXPLOITS, BARBARIAN_RAGE_POWERS, SLAYER_TALENTS, SHAMAN_HEXES } from './subsystems';
 
 const g = (level: number, id: string, name: string, desc: string): LeveledFeatureDef => ({ level, id, name, desc });
 
@@ -495,6 +495,24 @@ export const WITCH_ARCHETYPES: ArchetypeDef[] = [
       g(10, 'bb-twin-soul', 'Twin Soul', 'When you or your familiar would die, your souls merge in the survivor’s body — able to communicate and trade control. Replaces the major hex gained at 10th level.'),
     ],
   },
+  {
+    id: 'hedge-witch', classId: 'witch', name: 'Hedge Witch',
+    desc: 'A village witch who turns her patron’s gifts to mending and mercy rather than curses.',
+    replaces: [],
+    // Spontaneous / Empathic Healing take the hexes gained at 4th and 8th. The witch carries two 'hex'
+    // choices (the 1st-level hex and the recurring line); re-add the 1st-level hex and the line minus 4/8.
+    choices: {
+      remove: ['hex'],
+      add: [
+        { id: 'hex', label: 'Hex', kind: 'list', count: 1, options: WITCH_HEXES },
+        { id: 'hex', label: 'Hex', kind: 'list', count: 1, levels: [2, 6, 10, 12, 14, 16, 18, 20], options: WITCH_HEXES },
+      ],
+    },
+    grants: [
+      g(4, 'hw-spontaneous-healing', 'Spontaneous Healing', 'Expend a prepared spell to spontaneously cast a cure spell of the same level, even one you do not know. Replaces the 4th-level hex.'),
+      g(8, 'hw-empathic-healing', 'Empathic Healing', 'Draw a poison or disease from an ally onto yourself without suffering its effect. Replaces the 8th-level hex.'),
+    ],
+  },
 ];
 
 export const SORCERER_ARCHETYPES: ArchetypeDef[] = [
@@ -568,6 +586,18 @@ export const BRAWLER_ARCHETYPES: ArchetypeDef[] = [
       g(1, 'sbs-sneak-attack', 'Sneak Attack +1d6', 'Deal +1d6 sneak-attack damage (rising at 6th, 10th, 12th, and 20th) against a foe denied its Dexterity bonus or that you flank. Replaces martial flexibility.'),
       g(3, 'sbs-snake-feint', 'Snake Feint', 'Move and feint (Bluff vs Sense Motive) as a standard action; at higher levels, treat additional squares as your flanking position. Replaces maneuver training gained at 3rd and 7th.'),
       g(11, 'sbs-opportunist', 'Opportunist', 'Once per round (twice at 19th), make an attack of opportunity against a foe just struck in melee by another creature. Replaces maneuver training gained at 11th and 19th.'),
+    ],
+  },
+  {
+    id: 'mutagenic-mauler', classId: 'brawler', name: 'Mutagenic Mauler',
+    desc: 'A brawler who brews a bestial draught, swelling into a savage predator mid-fight.',
+    replaces: ['brawl-martial-flexibility', 'brawl-ac-bonus'],
+    grants: [
+      g(1, 'mm-mutagen', 'Mutagen', 'Brew and drink a mutagen as an alchemist, using your brawler level as your alchemist level. Replaces martial flexibility.'),
+      g(4, 'mm-beastmorph', 'Beastmorph', 'While mutagenic, gain low-light vision, darkvision, a climb speed, and a large enhancement bonus to speed, improving at 13th and 18th. Replaces AC bonus.'),
+      g(6, 'mm-mutagen-damage', 'Mutagen Damage', '+2 on melee damage rolls while mutagenic, rising to +3 at 11th and +4 at 16th.'),
+      g(10, 'mm-discovery', 'Alchemist Discovery', 'Learn one of feral mutagen, infuse mutagen, preserve organs, or spontaneous healing.'),
+      g(12, 'mm-greater-mutagen', 'Greater Mutagen', 'Gain the greater mutagen discovery, boosting a second physical ability.'),
     ],
   },
 ];
@@ -651,19 +681,44 @@ export const BLOODRAGER_ARCHETYPES: ArchetypeDef[] = [
       g(7, 'sb-blood-deflection', 'Blood Deflection', 'Sacrifice a bloodrager spell slot as an immediate action for a deflection bonus to AC equal to the spell’s level until your next turn — even after seeing an attack roll. Replaces damage reduction.'),
     ],
   },
+  {
+    id: 'blood-conduit', classId: 'bloodrager', name: 'Blood Conduit',
+    desc: 'A bloodrager who channels spells through his grip — every lock and throw a doorway for his magic.',
+    replaces: ['br-fast-movement', 'br-uncanny-dodge', 'br-improved-uncanny-dodge', 'br-indomitable-will'],
+    grants: [
+      g(1, 'bc-contact-specialist', 'Contact Specialist', 'Gain a bonus combat-maneuver feat, and your bloodline feats must be combat feats. Replaces fast movement.'),
+      g(5, 'bc-spell-conduit', 'Spell Conduit', 'Deliver a touch-range spell through a successful combat maneuver. Replaces uncanny dodge and improved uncanny dodge.'),
+      g(14, 'bc-reflexive-conduit', 'Reflexive Conduit', 'Cast a touch spell as an immediate action against a foe that targets you with a combat maneuver. Replaces indomitable will.'),
+    ],
+  },
 ];
 
 export const SWASHBUCKLER_ARCHETYPES: ArchetypeDef[] = [
   {
     id: 'inspired-blade', classId: 'swashbuckler', name: 'Inspired Blade',
     desc: 'A duelist who perfects the science of the rapier — reading swordplay like geometry and striking with inspired precision.',
-    replaces: ['swb-panache', 'swb-finesse', 'swb-weapon-training', 'swb-weapon-mastery'],
+    replaces: ['swb-panache', 'swb-finesse', 'swb-weapon-training', 'swb-weapon-mastery', 'swb-deed-bleeding-wound'],
     grants: [
       g(1, 'ib-inspired-panache', 'Inspired Panache', 'Your panache pool equals your Charisma modifier + your Intelligence modifier (each minimum 1); you regain panache only by scoring a critical hit with a rapier, never from a killing blow. Alters panache.'),
       g(1, 'ib-inspired-finesse', 'Inspired Finesse', 'Gain Weapon Finesse and Weapon Focus (rapier) as bonus feats. Replaces swashbuckler finesse.'),
       g(5, 'ib-rapier-training', 'Rapier Training', 'Gain a scaling +1 (rising every four levels) on attack and damage rolls with the rapier. Replaces swashbuckler weapon training.'),
       g(11, 'ib-inspired-strike', 'Inspired Strike', 'Spend a panache point to add your Intelligence bonus to the damage of a rapier attack. Replaces the bleeding wound deed.'),
       g(20, 'ib-rapier-weapon-mastery', 'Rapier Weapon Mastery', 'Critical hits with a rapier are automatically confirmed, and its threat range and critical multiplier each increase by 1. Replaces swashbuckler weapon mastery.'),
+    ],
+  },
+  {
+    id: 'flying-blade', classId: 'swashbuckler', name: 'Flying Blade',
+    desc: 'A swashbuckler who fights with the thrown dagger and starknife — deadly at a distance as at arm’s reach.',
+    replaces: ['swb-deed-dodging-panache', 'swb-deed-kip-up', 'swb-deed-menacing-swordplay', 'swb-deed-targeted-strike', 'swb-deed-perfect-thrust', 'swb-weapon-training', 'swb-weapon-mastery'],
+    grants: [
+      g(1, 'fb-flying-panache', 'Flying Panache', 'You regain panache only by confirming a critical hit or making a killing blow with a dagger or starknife. Alters panache.'),
+      g(1, 'fb-subtle-throw', 'Deed: Subtle Throw', 'Spend panache to throw a dagger or starknife without provoking an attack of opportunity. Replaces dodging panache.'),
+      g(3, 'fb-disrupting-counter', 'Deed: Disrupting Counter', 'Spend panache to throw a blade at a foe who provokes, disrupting its action. Replaces kip-up.'),
+      g(3, 'fb-precise-throw', 'Deed: Precise Throw', 'Add your level to thrown-blade damage while you have panache. Replaces menacing swordplay.'),
+      g(5, 'fb-flying-blade-training', 'Flying Blade Training', 'Gain a scaling bonus on attack and damage with thrown daggers and starknives. Replaces swashbuckler weapon training.'),
+      g(7, 'fb-targeted-throw', 'Deed: Targeted Throw', 'Make a thrown called strike to a limb, head, or body. Replaces targeted strike.'),
+      g(15, 'fb-perfect-throw', 'Deed: Perfect Throw', 'Spend panache to ignore a foe’s DR and hardness with a thrown blade. Replaces perfect thrust.'),
+      g(20, 'fb-flying-blade-mastery', 'Flying Blade Mastery', 'Critical hits with a thrown dagger or starknife are automatically confirmed and bypass DR. Replaces swashbuckler weapon mastery.'),
     ],
   },
 ];
@@ -704,6 +759,17 @@ export const SUMMONER_ARCHETYPES: ArchetypeDef[] = [
       g(1, 'ms-lesser-eidolon', 'Lesser Eidolon', 'Your eidolon uses half your summoner level (minimum 1) for its Hit Dice, evolution pool, and abilities. Replaces the normal eidolon.'),
       g(1, 'ms-summoning-mastery', 'Summoning Mastery', 'Cast summon monster as a spell-like ability 5 + your Charisma modifier times per day (its level rising as you advance), and keep several summons active at once. Replaces summon monster and shield ally.'),
       g(2, 'ms-augment-summoning', 'Augment Summoning', 'Gain Augment Summoning as a bonus feat without meeting its prerequisites. Replaces bond senses.'),
+    ],
+  },
+  {
+    id: 'broodmaster', classId: 'summoner', name: 'Broodmaster',
+    desc: 'A summoner bonded not to one great eidolon but to a brood of lesser ones, sharing a single well of power.',
+    replaces: ['summ-eidolon', 'summ-life-link', 'summ-life-bond', 'summ-merge-forms'],
+    grants: [
+      g(1, 'bm-eidolon-brood', 'Eidolon Brood', 'Gain two Small eidolons instead of one, sharing your base attack and saves but dividing Hit Dice, skills, feats, and the evolution pool between them. Replaces the normal eidolon.'),
+      g(1, 'bm-brood-link', 'Brood Link', 'Sacrifice hit points to protect one eidolon of your brood at a time, as life link. Replaces life link.'),
+      g(14, 'bm-brood-bond', 'Brood Bond', 'One eidolon of your brood can keep you from dying, as life bond. Replaces life bond.'),
+      g(18, 'bm-merge-forms', 'Merge Forms', 'Meld into a single eidolon of your brood to weather danger. Replaces merge forms.'),
     ],
   },
 ];
@@ -749,6 +815,21 @@ export const SHAMAN_ARCHETYPES: ArchetypeDef[] = [
       g(4, 'sfp-revelations-of-past', 'Revelations of the Past', 'At 4th, 6th, 12th, 14th, and 20th level, select a revelation from the Ancestor or Time mystery, using your shaman level as your oracle level and Wisdom in place of Charisma. Replaces wandering spirit and wandering hex.'),
     ],
   },
+  {
+    id: 'witch-doctor', classId: 'shaman', name: 'Witch Doctor',
+    desc: 'A shaman who wards a community against curse and plague — mending with one hand, unmaking dark magic with the other.',
+    replaces: [],
+    // Channel Energy / Counter Curse / Countering Hex take the hexes gained at 4th, 8th, 10th, and 12th.
+    choices: {
+      remove: ['shaman-hex'],
+      add: [{ id: 'shaman-hex', label: 'Hex', kind: 'list', count: 1, levels: [2, 16, 18, 20], options: SHAMAN_HEXES }],
+    },
+    grants: [
+      g(4, 'wd-channel', 'Channel Energy', 'Channel positive energy to heal, as a cleric of your shaman level − 3. Replaces the hexes gained at 4th and 12th.'),
+      g(8, 'wd-counter-curse', 'Counter Curse', 'Sacrifice a prepared spirit magic spell to cast dispel magic or remove curse on an ally. Replaces the 8th-level hex.'),
+      g(10, 'wd-countering-hex', 'Countering Hex', 'Counterspell a spell with a dispel magic check rather than the identical spell. Replaces the 10th-level hex.'),
+    ],
+  },
 ];
 
 export const SHIFTER_ARCHETYPES: ArchetypeDef[] = [
@@ -761,6 +842,17 @@ export const SHIFTER_ARCHETYPES: ArchetypeDef[] = [
       g(1, 'wt-lycanthropic-empathy', 'Lycanthropic Empathy', '+4 to influence animals of your chosen type as a Diplomacy check, but only that type. Replaces wild empathy.'),
       g(4, 'wt-lycanthropic-wild-shape', 'Lycanthropic Wild Shape', 'Wild shape only into your chosen animal or its hybrid form (+2 Strength, +2 natural armor); your equipment does not merge. Alters wild shape.'),
       g(5, 'wt-lycanthrope-enhancement', 'Lycanthrope Aspect Enhancement', 'Gain DR equal to half your shifter level (maximum 10) bypassed by silver, and immunity to the curse of lycanthropy. Alters shifter aspect.'),
+    ],
+  },
+  {
+    id: 'verdant-shifter', classId: 'shifter', name: 'Verdant Shifter',
+    desc: 'A shifter attuned to root and vine rather than fang and claw, taking on the resilient body of a plant.',
+    replaces: ['shifter-wild-empathy', 'shifter-aspect', 'shifter-defensive-instinct', 'shifter-chimeric-aspect'],
+    grants: [
+      g(1, 'vs-speak-plants', 'Speak with Plants', 'Communicate with plants at will, as speak with plants. Replaces wild empathy.'),
+      g(1, 'vs-verdant-body', 'Verdant Body', 'Take on a plantlike body in place of an animal aspect, gaining a scaling Constitution bonus and, later, resistance to critical hits and other plant traits. Replaces shifter aspect.'),
+      g(2, 'vs-wild-armor', 'Wild Armor', 'Gain a natural armor bonus that improves as you level. Replaces defensive instinct.'),
+      g(6, 'vs-plant-shape', 'Plant Shape', 'Your wild shape assumes plant forms (plant shape I, then II and III) rather than animal forms. Alters wild shape; replaces chimeric aspect.'),
     ],
   },
 ];

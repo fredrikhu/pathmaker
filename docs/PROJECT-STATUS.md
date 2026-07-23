@@ -9,7 +9,18 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 **Current state** — branch `main`, working tree clean, **567 tests** passing; run
 `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
-**Latest — Archetypes: second-per-base/hybrid class, batches A+B (10 archetypes).** Corrected an earlier
+**Latest — Archetypes: second-per-base/hybrid class, batch C (Swashbuckler deed-split + 7 archetypes).** Split the
+swashbuckler **deeds** into one feature per deed (`swb-deed-<name>`, as done for the gunslinger) so archetypes can
+swap individual deeds — and fixed **Inspired Blade** to actually replace the bleeding-wound deed. Added second
+archetypes: Swashbuckler **Flying Blade** (thrown-blade deed swaps), Summoner **Broodmaster**, Brawler **Mutagenic
+Mauler**, Bloodrager **Blood Conduit**, Shaman **Witch Doctor** (channel/counter magic for the 4/8/10/12 hexes),
+Witch **Hedge Witch** (healing for the 4th/8th hexes), Shifter **Verdant Shifter** (plant body). Verified vs
+d20pfsrd. 8 golden tests; 677 pass; browser-verified Flying Blade (2 swashbuckler archetypes now, deed swaps) and
+Witch Doctor. **Remaining to hit "2 per class": Arcanist only** — its second (Unlettered/Blood Arcanist/School
+Savant) needs modelling the engine doesn't have (witch spell-list swap, or adding a bloodline/arcane-school
+subsystem to the arcanist); deferred. **vampire-hunter** has no standard published archetypes.
+
+**Prior — Archetypes: second-per-base/hybrid class, batches A+B (10 archetypes).** Corrected an earlier
 miscount — there are **31 classes**, and Slayer + vampire-hunter had been missed (zero archetypes). Added second
 archetypes for: Alchemist **Grenadier**, Cavalier **Standard Bearer**, Gunslinger **Pistolero** (uses the split
 deed model), Inquisitor **Sacred Huntsmaster**, Oracle **Seeker**, Investigator **Sleuth**, Warpriest **Champion

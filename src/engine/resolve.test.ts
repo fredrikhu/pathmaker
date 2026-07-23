@@ -4185,6 +4185,96 @@ describe('archetypes — second archetype per base/hybrid class (batch A)', () =
   });
 });
 
+describe('archetypes — second archetype per base/hybrid class (batch C)', () => {
+  const build = (cls: string, archetype: string | undefined, level: number): CharacterDoc => {
+    let d = newCharacter('t-baseC', 'X');
+    d = withDecision(d, 'ability-base', { str: 14, dex: 14, con: 13, int: 13, wis: 13, cha: 13 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['cha']);
+    d = withDecision(d, 'alignment', 'N');
+    d = withDecision(d, 'class', cls);
+    if (archetype) d = withDecision(d, 'archetype', archetype);
+    return atLevel(d, level);
+  };
+  const featsAt = (doc: CharacterDoc, lvl: number) =>
+    resolve(doc).sheet.progression.find((r) => r.level === lvl)?.features ?? [];
+  const classSlots = (doc: CharacterDoc, prefix: string) =>
+    resolve(doc).slots.filter((s) => s.step === 'class' && s.id.startsWith(prefix)).map((s) => s.id);
+
+  it('the swashbuckler now grants each deed as its own feature', () => {
+    expect(featsAt(build('swashbuckler', undefined, 1), 1)).toContain('Deed: Dodging Panache');
+    expect(featsAt(build('swashbuckler', undefined, 3), 3)).toContain('Deed: Menacing Swordplay');
+  });
+
+  it('Swashbuckler Flying Blade swaps thrown-blade deeds and weapon features', () => {
+    const f = build('swashbuckler', 'flying-blade', 20);
+    expect(featsAt(f, 1)).toContain('Deed: Subtle Throw');
+    expect(featsAt(f, 1)).not.toContain('Deed: Dodging Panache');
+    expect(featsAt(f, 1)).toContain('Deed: Derring-Do'); // untouched deed remains
+    expect(featsAt(f, 3)).toContain('Deed: Precise Throw');
+    expect(featsAt(f, 3)).not.toContain('Deed: Menacing Swordplay');
+    expect(featsAt(f, 5)).toContain('Flying Blade Training');
+    expect(featsAt(f, 20)).toContain('Flying Blade Mastery');
+  });
+
+  it('Summoner Broodmaster swaps the eidolon and life-link line, keeping casting', () => {
+    const b = build('summoner', 'broodmaster', 18);
+    expect(featsAt(b, 1)).toContain('Eidolon Brood');
+    expect(featsAt(b, 1)).not.toContain('Eidolon');
+    expect(featsAt(b, 1)).toContain('Brood Link');
+    expect(featsAt(b, 1)).not.toContain('Life Link');
+    expect(featsAt(b, 18)).toContain('Merge Forms');
+    expect(resolve(b).sheet.casting.length).toBeGreaterThan(0);
+  });
+
+  it('Brawler Mutagenic Mauler swaps martial flexibility and AC bonus for mutagen abilities', () => {
+    const m = build('brawler', 'mutagenic-mauler', 4);
+    expect(featsAt(m, 1)).toContain('Mutagen');
+    expect(featsAt(m, 1)).not.toContain('Martial Flexibility');
+    expect(featsAt(m, 4)).toContain('Beastmorph');
+    expect(featsAt(m, 4)).not.toContain('AC Bonus');
+  });
+
+  it('Bloodrager Blood Conduit swaps the movement/dodge/will line for spell delivery', () => {
+    const b = build('bloodrager', 'blood-conduit', 14);
+    expect(featsAt(b, 1)).toContain('Contact Specialist');
+    expect(featsAt(b, 1)).not.toContain('Fast Movement');
+    expect(featsAt(b, 5)).toContain('Spell Conduit');
+    expect(featsAt(b, 14)).toContain('Reflexive Conduit');
+    expect(featsAt(b, 14)).not.toContain('Indomitable Will');
+  });
+
+  it('Shaman Witch Doctor swaps the 4/8/10/12 hexes for healing/counter magic', () => {
+    const w = build('shaman', 'witch-doctor', 12);
+    expect(featsAt(w, 4)).toContain('Channel Energy');
+    expect(featsAt(w, 8)).toContain('Counter Curse');
+    const hexes = classSlots(w, 'shaman-hex');
+    expect(hexes).not.toContain('shaman-hex-L4');
+    expect(hexes).not.toContain('shaman-hex-L8');
+    expect(hexes).toContain('shaman-hex-L2');
+    expect(resolve(w).sheet.casting.length).toBeGreaterThan(0);
+  });
+
+  it('Witch Hedge Witch swaps the 4th/8th hexes for healing (keeping the 1st-level hex)', () => {
+    const h = build('witch', 'hedge-witch', 10);
+    expect(featsAt(h, 4)).toContain('Spontaneous Healing');
+    const hexes = classSlots(h, 'hex');
+    expect(hexes).toContain('hex');        // 1st-level hex kept
+    expect(hexes).not.toContain('hex-L4');
+    expect(hexes).not.toContain('hex-L8');
+    expect(hexes).toContain('hex-L6');
+  });
+
+  it('Shifter Verdant Shifter swaps the animal aspect line for a plant body', () => {
+    const v = build('shifter', 'verdant-shifter', 6);
+    expect(featsAt(v, 1)).toContain('Verdant Body');
+    expect(featsAt(v, 1)).not.toContain('Shifter Aspect');
+    expect(featsAt(v, 2)).toContain('Wild Armor');
+    expect(featsAt(v, 2)).not.toContain('Defensive Instinct');
+    expect(featsAt(v, 6)).toContain('Plant Shape');
+  });
+});
+
 describe('archetypes — caster classes', () => {
   const build = (cls: string, archetype: string | undefined, level: number): CharacterDoc => {
     let d = newCharacter('t-arch3', 'X');
