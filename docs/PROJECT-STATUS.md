@@ -9,7 +9,21 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 **Current state** — branch `main`, working tree clean, **567 tests** passing; run
 `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
-**Latest — Archetypes: third-per-class breadth batch 5.** Druid **Cave Druid** (underground line + a
+**Latest — Archetypes: batch 6 (Spell Sage, Divine Hunter, Spirit Warden, Fiendflesh Shifter) + a source-leak
+fix.** Engine: an archetype that removes the *choice* selecting a source (Spell Sage loses its arcane school)
+was still injecting that source's powers — and the specialist bonus slot — off the stale, now-orphaned decision,
+because `sourceFeatures` and `isSpecialist` read `dec.classChoices` directly. Both now check that the **effective**
+class still offers the pick; removing-and-re-adding the same id (Crossblooded's two bloodlines, the one-domain
+clerics) still counts as keeping it. Content: Wizard **Spell Sage** (focused spells + spell study for arcane bond
+and the whole school apparatus), Hunter **Divine Hunter** (a domain for **all six** teamwork feats, plus a
+Knowledge religion↔dungeoneering skill swap), Shaman **Spirit Warden** (loses the 2nd and 10th hexes and three
+class skills), Shifter **Fiendflesh Shifter** (fiendish line for wild shape, both aspect picks, defensive
+instinct and chimeric aspect). 5 golden tests (one pins the leak fix); **712 pass**; tsc + build clean.
+Browser-verified the fix as a true A/B on one character with a stale evocation pick: plain wizard shows Intense
+Spells / Arcane School / Arcane Bond, Spell Sage shows none of them and gains Focused Spells + Spell Study.
+Classes still at two: summoner, arcanist.
+
+**Prior — Archetypes: third-per-class breadth batch 5.** Druid **Cave Druid** (underground line + a
 Knowledge geography→dungeoneering class-skill swap; wild shape moves from 4th to 6th), Bloodrager **Metamagic
 Rager** (Meta-Rage for improved uncanny dodge), Skald **Battle Scion** (courtly/quest line for dirge of doom +
 master skald; its "alters" abilities are granted alongside what they modify, and RAW's *song of the fallen* isn't

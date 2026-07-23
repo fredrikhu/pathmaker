@@ -4778,6 +4778,76 @@ describe('archetypes — thirds batch 3 (Mouser, Dual-Cursed, Chirurgeon, Mercif
     expect(featsAt(s, 10)).toContain('Shadowy Mist Form');
   });
 
+  it('Spell Sage drops arcane bond and the whole school apparatus', () => {
+    const eff = effectiveClass(C.classById.get('wizard')!, readDecisions(build('wizard', 'spell-sage', 1)));
+    const ids = (eff.choices ?? []).map((c) => c.id);
+    expect(ids).not.toContain('arcane-bond');
+    expect(ids).not.toContain('school');
+    expect(ids).not.toContain('opposition');
+    const ss = build('wizard', 'spell-sage', 2);
+    expect(featsAt(ss, 1)).toContain('Focused Spells');
+    expect(featsAt(ss, 1)).not.toContain('Arcane Bond');
+    expect(featsAt(ss, 1)).not.toContain('Arcane School');
+    expect(featsAt(ss, 2)).toContain('Spell Study');
+  });
+
+  it('a removed source choice stops injecting its powers and its bonus slot (stale school decision)', () => {
+    // A wizard who picked a school and *then* took Spell Sage keeps the orphaned decision; neither the
+    // school powers nor the specialist bonus slot may survive it.
+    const stale = build('wizard', 'spell-sage', 8, { school: ['evocation'] });
+    const plain = build('wizard', undefined, 8, { school: ['evocation'] });
+    const specialistBlock = resolve(plain).sheet.casting.find((b) => b.classId === 'wizard')!;
+    expect(specialistBlock.bonusSlot).toBeTruthy(); // the standard specialist does get one
+    const sageBlock = resolve(stale).sheet.casting.find((b) => b.classId === 'wizard')!;
+    expect(sageBlock.bonusSlot).toBeFalsy();
+    // Evocation's 1st-level school power must not appear either.
+    expect(featsAt(plain, 1)).toContain('Intense Spells');
+    expect(featsAt(stale, 1)).not.toContain('Intense Spells');
+  });
+
+  it('Divine Hunter trades every teamwork feat and hunter tactics for a domain', () => {
+    const eff = effectiveClass(C.classById.get('hunter')!, readDecisions(build('hunter', 'divine-hunter', 1)));
+    expect(eff.classSkills).toContain('know-religion');
+    expect(eff.classSkills).not.toContain('know-dungeoneering');
+    const tw = resolve(build('hunter', 'divine-hunter', 18)).slots.filter((s) => s.step === 'feats' && s.id.startsWith('feat-hunter'));
+    expect(tw.length).toBe(0);
+    expect(resolve(build('hunter', undefined, 18)).slots.filter((s) => s.step === 'feats' && s.id.startsWith('feat-hunter')).length).toBe(6);
+    const dh = build('hunter', 'divine-hunter', 3);
+    expect(featsAt(dh, 3)).toContain('Domain');
+    expect(featsAt(dh, 3)).toContain('Otherworldly Companion');
+    expect(featsAt(dh, 3)).not.toContain('Hunter Tactics');
+  });
+
+  it('Spirit Warden loses the 2nd and 10th hexes and swaps three class skills', () => {
+    const eff = effectiveClass(C.classById.get('shaman')!, readDecisions(build('shaman', 'spirit-warden', 1)));
+    expect(eff.classSkills).toContain('intimidate');
+    expect(eff.classSkills).not.toContain('diplomacy');
+    expect(eff.classSkills).not.toContain('handle-animal');
+    const ids = resolve(build('shaman', 'spirit-warden', 12)).slots.map((s) => s.id);
+    expect(ids).not.toContain('shaman-hex-L2');
+    expect(ids).not.toContain('shaman-hex-L10');
+    expect(ids).toContain('shaman-hex-L4');
+    expect(ids).toContain('shaman-hex-L12');
+    const sw = build('shaman', 'spirit-warden', 10);
+    expect(featsAt(sw, 2)).toContain('Rebuke Spirits');
+    expect(featsAt(sw, 10)).toContain('Laugh at Death');
+  });
+
+  it('Fiendflesh Shifter replaces wild shape and both aspect picks', () => {
+    const eff = effectiveClass(C.classById.get('shifter')!, readDecisions(build('shifter', 'fiendflesh-shifter', 1)));
+    const ids = (eff.choices ?? []).map((c) => c.id);
+    expect(ids).not.toContain('aspect');
+    expect(ids).not.toContain('shifter-aspect-extra');
+    const ff = build('shifter', 'fiendflesh-shifter', 14);
+    expect(featsAt(ff, 1)).toContain('Fiendish Aspect');
+    expect(featsAt(ff, 1)).not.toContain('Shifter Aspect');
+    expect(featsAt(ff, 2)).toContain('Fiendish Resilience');
+    expect(featsAt(ff, 2)).not.toContain('Defensive Instinct');
+    expect(featsAt(ff, 4)).not.toContain('Wild Shape');
+    expect(featsAt(ff, 9)).toContain('Chimeric Fiend');
+    expect(featsAt(ff, 14)).toContain('Greater Chimeric Fiend');
+  });
+
   it('Merciful Healer is a single-domain cleric with the healing-channel line', () => {
     const eff = effectiveClass(C.classById.get('cleric')!, readDecisions(build('cleric', 'merciful-healer', 1)));
     expect((eff.choices ?? []).find((x) => x.id === 'domains')?.count).toBe(1);

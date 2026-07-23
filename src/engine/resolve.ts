@@ -330,7 +330,14 @@ function sourceFeatures(dec: Decisions): C.LeveledFeatureDef[] {
     ? C.classById.get(dec.classId)?.archetypes?.find((a) => a.id === dec.archetype)
     : undefined;
   const out: C.LeveledFeatureDef[] = [];
-  const add = (map: Record<string, C.SourceFeature[]>, sourceId: string | undefined, prefix: string) => {
+  // An archetype that removes the *choice* selecting a source (the Spell Sage loses its arcane school)
+  // must not keep injecting that source's powers off a stale, now-orphaned decision. Removing and
+  // re-adding the same id (Crossblooded's two bloodlines) is a change, not a removal.
+  const choiceRemoved = (choiceId: string) =>
+    !!arch?.choices?.remove?.includes(choiceId) && !(arch?.choices?.add ?? []).some((c) => c.id === choiceId);
+  const add = (map: Record<string, C.SourceFeature[]>, choiceId: string, prefix: string) => {
+    if (choiceRemoved(choiceId)) return;
+    const sourceId = dec.classChoices[choiceId]?.[0];
     const drop = arch?.suppressSourcePowers?.find((s) => s.prefix === prefix)?.levels;
     const list = sourceId ? map[sourceId] : undefined;
     if (list) for (const p of list) {
@@ -342,17 +349,17 @@ function sourceFeatures(dec: Decisions): C.LeveledFeatureDef[] {
       });
     }
   };
-  if (dec.classId === 'sorcerer') add(C.SORCERER_BLOODLINE_POWERS, dec.classChoices['bloodline']?.[0], 'sorc-bl');
-  if (dec.classId === 'sorcerer') add(C.SORCERER_BLOODLINE_SPELLS, dec.classChoices['bloodline']?.[0], 'sorc-bl-sp');
-  if (dec.classId === 'bloodrager') add(C.BLOODRAGER_BLOODLINE_POWERS, dec.classChoices['bloodline']?.[0], 'br-bl');
-  if (dec.classId === 'bloodrager') add(C.BLOODRAGER_BLOODLINE_SPELLS, dec.classChoices['bloodline']?.[0], 'br-bl-sp');
-  if (dec.classId === 'shaman') add(C.SHAMAN_SPIRIT_ABILITIES, dec.classChoices['spirit']?.[0], 'shaman-spirit');
-  if (dec.classId === 'oracle') add(C.ORACLE_FINAL_REVELATIONS, dec.classChoices['mystery']?.[0], 'oracle-final');
-  if (dec.classId === 'oracle') add(C.ORACLE_CURSE_ABILITIES, dec.classChoices['curse']?.[0], 'oracle-curse');
-  if (dec.classId === 'wizard') add(C.SCHOOL_POWERS, dec.classChoices['school']?.[0], 'wiz-school');
-  if (dec.classId === 'cavalier') add(C.CAVALIER_ORDER_ABILITIES, dec.classChoices['order']?.[0], 'cav-ord');
-  if (dec.classId === 'shifter') add(C.SHIFTER_ASPECT_ABILITIES, dec.classChoices['aspect']?.[0], 'shifter-asp');
-  if (dec.classId === 'witch') add(C.WITCH_PATRON_SPELLS, dec.classChoices['patron']?.[0], 'witch-patron');
+  if (dec.classId === 'sorcerer') add(C.SORCERER_BLOODLINE_POWERS, 'bloodline', 'sorc-bl');
+  if (dec.classId === 'sorcerer') add(C.SORCERER_BLOODLINE_SPELLS, 'bloodline', 'sorc-bl-sp');
+  if (dec.classId === 'bloodrager') add(C.BLOODRAGER_BLOODLINE_POWERS, 'bloodline', 'br-bl');
+  if (dec.classId === 'bloodrager') add(C.BLOODRAGER_BLOODLINE_SPELLS, 'bloodline', 'br-bl-sp');
+  if (dec.classId === 'shaman') add(C.SHAMAN_SPIRIT_ABILITIES, 'spirit', 'shaman-spirit');
+  if (dec.classId === 'oracle') add(C.ORACLE_FINAL_REVELATIONS, 'mystery', 'oracle-final');
+  if (dec.classId === 'oracle') add(C.ORACLE_CURSE_ABILITIES, 'curse', 'oracle-curse');
+  if (dec.classId === 'wizard') add(C.SCHOOL_POWERS, 'school', 'wiz-school');
+  if (dec.classId === 'cavalier') add(C.CAVALIER_ORDER_ABILITIES, 'order', 'cav-ord');
+  if (dec.classId === 'shifter') add(C.SHIFTER_ASPECT_ABILITIES, 'aspect', 'shifter-asp');
+  if (dec.classId === 'witch') add(C.WITCH_PATRON_SPELLS, 'patron', 'witch-patron');
   return out;
 }
 
@@ -1086,8 +1093,12 @@ export function resolve(doc: CharacterDoc): Resolution {
     // Domain (cleric) and specialist-school (non-universalist wizard) grant one bonus slot per spell
     // level, restricted to a domain spell / a specialty-school spell. Modelled as its own slot
     // (rather than the old +1 to the count), so the restriction can actually be enforced.
-    const hasDomains = c.klass.id === 'cleric' && (dec.classChoices['domains']?.length ?? 0) > 0;
-    const isSpecialist = c.klass.id === 'wizard' && (dec.classChoices['school']?.length ?? 0) > 0 && !(dec.classChoices['school'] ?? []).includes('universalist');
+    // Gate on the *effective* class still offering the pick: an archetype that drops the arcane school
+    // outright (Spell Sage) must not hand out a specialist bonus slot off a stale school decision.
+    // Archetypes that merely narrow the pick (one domain instead of two) keep the id, so keep the slot.
+    const offers = (choiceId: string) => (c.klass.choices ?? []).some((ch) => ch.id === choiceId);
+    const hasDomains = c.klass.id === 'cleric' && offers('domains') && (dec.classChoices['domains']?.length ?? 0) > 0;
+    const isSpecialist = c.klass.id === 'wizard' && offers('school') && (dec.classChoices['school']?.length ?? 0) > 0 && !(dec.classChoices['school'] ?? []).includes('universalist');
     let bonusSlot: CastingBlock['bonusSlot'];
     if (hasDomains) {
       const doms = (dec.classChoices['domains'] ?? []).map((id) => C.domainById.get(id)).filter(Boolean) as C.DomainDef[];

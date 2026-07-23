@@ -591,6 +591,18 @@ export const DRUID_ARCHETYPES: ArchetypeDef[] = [
 
 export const WIZARD_ARCHETYPES: ArchetypeDef[] = [
   {
+    id: 'spell-sage', classId: 'wizard', name: 'Spell Sage',
+    desc: 'A wizard who studies spells themselves rather than any one school — pushing a formula past its limits, and eventually borrowing from other traditions entirely.',
+    replaces: ['wizard-arcane-bond', 'wizard-arcane-school'],
+    // No school at all, so the opposition-school picks go with it (and, via the engine's choice-removal
+    // guard, so do the school powers and the specialist bonus slot).
+    choices: { remove: ['arcane-bond', 'school', 'opposition'] },
+    grants: [
+      g(1, 'sage-focused-spells', 'Focused Spells', 'Once per day (twice at 8th, three times at 16th), increase your caster level by 4 for a single spell as you cast it. Replaces arcane bond.'),
+      g(2, 'sage-spell-study', 'Spell Study', 'Once per day, spontaneously cast any bard, cleric, or druid spell as a wizard spell you knew and had prepared, spending 1 full round per spell level and expending two prepared spells of that level or higher. One additional use at 6th and every five levels thereafter (four per day at 16th). Replaces arcane school.'),
+    ],
+  },
+  {
     id: 'scrollmaster', classId: 'wizard', name: 'Scrollmaster',
     desc: 'A battle-scholar who wields scrolls as blade and shield, turning written magic into a martial art.',
     replaces: ['wizard-arcane-bond'],
@@ -984,6 +996,18 @@ export const SWASHBUCKLER_ARCHETYPES: ArchetypeDef[] = [
 
 export const HUNTER_ARCHETYPES: ArchetypeDef[] = [
   {
+    id: 'divine-hunter', classId: 'hunter', name: 'Divine Hunter',
+    desc: 'A hunter who answers to a higher power than the wild — her faith flowing into her companion until the beast itself becomes a champion of the god.',
+    replaces: ['hunter-tactics'],
+    // The domain replaces every teamwork bonus feat.
+    bonusFeatSlots: { remove: [3, 6, 9, 12, 15, 18] },
+    classSkills: { add: ['know-religion'], remove: ['know-dungeoneering'] },
+    grants: [
+      g(3, 'dh-domain', 'Domain', 'Choose one domain from those your deity grants, using your hunter level −2 as your cleric level for its granted powers, and add each domain spell to your spells known as you reach the level for it (1st at 3rd, 2nd at 6th, and so on). Replaces teamwork feats.'),
+      g(3, 'dh-otherworldly-companion', 'Otherworldly Companion', 'Your animal companion gains the celestial template if you are good (or worship a good deity) or the fiendish template if evil; a neutral hunter of a neutral deity chooses one permanently. Replaces hunter tactics.'),
+    ],
+  },
+  {
     id: 'feral-hunter', classId: 'hunter', name: 'Feral Hunter',
     desc: 'A hunter who becomes the beast rather than keeping one — wearing animal aspects like a second skin.',
     replaces: ['hunter-animal-companion', 'hunter-precise-companion', 'hunter-tactics', 'hunter-speak-with-master'],
@@ -1079,6 +1103,24 @@ export const SKALD_ARCHETYPES: ArchetypeDef[] = [
 
 export const SHAMAN_ARCHETYPES: ArchetypeDef[] = [
   {
+    id: 'spirit-warden', classId: 'shaman', name: 'Spirit Warden',
+    desc: 'A shaman who holds that some spirits deserve no reverence at all — and who has made ending them her business.',
+    // Restless Magic swaps the spirit's spirit-magic spells for an undead-themed line; our shaman does not
+    // model spirit magic spells as their own feature, so that change is described rather than swapped.
+    replaces: [],
+    classSkills: { add: ['intimidate'], remove: ['diplomacy', 'handle-animal'] },
+    // Rebuke Spirits takes the 2nd-level hex and Laugh at Death the 10th, so the line is re-added without them.
+    choices: {
+      remove: ['shaman-hex'],
+      add: [{ id: 'shaman-hex', label: 'Hex', kind: 'list', count: 1, levels: [4, 8, 12, 16, 18, 20], options: SHAMAN_HEXES }],
+    },
+    grants: [
+      g(1, 'sw-unnatural-mien', 'Unnatural Mien', 'Diplomacy and Handle Animal are no longer class skills; Intimidate is, and you gain +2 on Intimidate checks to demoralize. Your spirit magic spells become an undead-themed list (detect undead, command undead, halt undead, death ward, possess object, undead to death, ethereal jaunt, control undead, foresight).'),
+      g(2, 'sw-rebuke-spirits', 'Rebuke Spirits', 'Channel positive energy as a cleric of your level, but only to harm undead, 3 + your Charisma modifier times per day. Replaces the hex gained at 2nd level.'),
+      g(10, 'sw-laugh-at-death', 'Laugh at Death', '+4 insight bonus on saves against death effects and to avoid or remove negative levels. Replaces the hex gained at 10th level.'),
+    ],
+  },
+  {
     id: 'speaker-for-the-past', classId: 'shaman', name: 'Speaker for the Past',
     desc: 'A shaman who gives voice to ancestral spirits — trading a familiar bond for the wisdom of ages.',
     replaces: ['shaman-spirit-animal', 'shaman-wandering-spirit', 'shaman-wandering-hex'],
@@ -1106,6 +1148,22 @@ export const SHAMAN_ARCHETYPES: ArchetypeDef[] = [
 ];
 
 export const SHIFTER_ARCHETYPES: ArchetypeDef[] = [
+  {
+    id: 'fiendflesh-shifter', classId: 'shifter', name: 'Fiendflesh Shifter',
+    desc: 'A shifter who bargained with the Outer Planes instead of the wild — wearing daemon, demon, and devil rather than beast. (RAW requires an evil alignment; not enforced here.)',
+    // Fiendish Aspect replaces wild shape, shifter aspect and every improvement to it — so both aspect
+    // picks go, and with them (via the engine's choice-removal guard) the aspect source powers. RAW also
+    // replaces "greater chimeric aspect", which our shifter does not model as its own feature.
+    replaces: ['shifter-aspect', 'shifter-wild-shape', 'shifter-defensive-instinct', 'shifter-chimeric-aspect'],
+    choices: { remove: ['aspect', 'shifter-aspect-extra'] },
+    grants: [
+      g(1, 'ff-infernal-claws', 'Infernal Claws', 'Your shifter claws count as evil weapons for overcoming damage reduction; otherwise they work as normal. Alters shifter claws.'),
+      g(1, 'ff-fiendish-aspect', 'Fiendish Aspect', 'As a swift action, take an amalgam fiendish form for 3 + your shifter level minutes per day: darkvision 60 ft (or doubled), a 1d6 gore attack, and DR 1/good. DR rises to 2/good at 5th (plus bat wings, fly 30 ft average), 5/good at 10th (doubling your fiendish resilience energy resistances), 7/good at 15th (fly 60 ft), and 10/good at 20th with immunity to electricity and fire and SR 15 + your shifter level. Replaces wild shape and shifter aspect.'),
+      g(2, 'ff-fiendish-resilience', 'Fiendish Resilience', '+1 natural armor and resistance 5 to electricity and fire while unencumbered and in no armor or light/medium nonmetal armor; the natural armor rises at 4th, 12th, and 20th and the resistances at 8th and 16th. Replaces defensive instinct.'),
+      g(9, 'ff-chimeric-fiend', 'Chimeric Fiend', 'While in fiendish aspect, also gain one of: daemon (acid resistance 10 and +4 profane on saves vs disease), demon (double electricity resistance), or devil (double fire resistance), chosen anew each use. Replaces chimeric aspect.'),
+      g(14, 'ff-greater-chimeric-fiend', 'Greater Chimeric Fiend', 'Your chimeric fiend choice also grants: daemon (+4 Constitution and immunity to disease), demon (+4 Strength and natural attack damage dice up one step), or devil (+4 Dexterity and see in darkness). Replaces greater chimeric aspect.'),
+    ],
+  },
   {
     id: 'weretouched', classId: 'shifter', name: 'Weretouched',
     desc: 'A shifter of lycanthropic blood, bound to a single beast whose hybrid form they can assume at will.',
