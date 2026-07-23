@@ -376,10 +376,28 @@ export const WITCH_ARCHETYPES: ArchetypeDef[] = [
   },
 ];
 
+export const SORCERER_ARCHETYPES: ArchetypeDef[] = [
+  {
+    id: 'tattooed-sorcerer', classId: 'sorcerer', name: 'Tattooed Sorcerer',
+    desc: 'A sorcerer whose magic is etched in living ink — a familiar that rides as a tattoo, and spells stored in the skin.',
+    replaces: ['sorc-eschew', 'sorc-bloodline-feat'],
+    // Familiar Tattoo and Enhanced Magical Tattoo take the place of the 1st- and 9th-level bloodline
+    // powers, which come from the chosen bloodline rather than the class's own feature list.
+    suppressSourcePowers: [{ prefix: 'sorc-bl', levels: [1, 9] }],
+    grants: [
+      g(1, 'tattoo-familiar', 'Familiar Tattoo', 'Gain a familiar as an arcane bond; as a move action it becomes a tattoo on your body, still granting its special ability while it rests there. Replaces the 1st-level bloodline power.'),
+      g(1, 'tattoo-mages-tattoo', 'Mage’s Tattoo', 'Gain Mage’s Tattoo as a bonus feat, choosing its school freely if you lack Spell Focus. Replaces Eschew Materials.'),
+      g(7, 'tattoo-create-spell-tattoo', 'Create Spell Tattoo', 'Once per day (twice at 11th, three times at 15th), inscribe a spell without costly components onto a willing creature as a tattoo it can later trigger. Replaces the bloodline feat gained at 7th level.'),
+      g(9, 'tattoo-enhanced-magical', 'Enhanced Magical Tattoo', 'Choose a spell you know that is enhanced by Mage’s Tattoo; once per day cast it as a spell-like ability at +2 caster levels. Replaces the 9th-level bloodline power.'),
+    ],
+  },
+];
+
 export const ARCHETYPES: ArchetypeDef[] = [
   ...FIGHTER_ARCHETYPES, ...RANGER_ARCHETYPES, ...ROGUE_ARCHETYPES, ...BARBARIAN_ARCHETYPES, ...PALADIN_ARCHETYPES,
   ...BARD_ARCHETYPES, ...ALCHEMIST_ARCHETYPES, ...MAGUS_ARCHETYPES, ...MONK_ARCHETYPES, ...CLERIC_ARCHETYPES,
   ...CAVALIER_ARCHETYPES, ...INQUISITOR_ARCHETYPES, ...DRUID_ARCHETYPES, ...WIZARD_ARCHETYPES, ...WITCH_ARCHETYPES,
+  ...SORCERER_ARCHETYPES,
 ];
 export const archetypeById = new Map(ARCHETYPES.map((a) => [a.id, a]));
 export const archetypesForClass = (classId: string): ArchetypeDef[] => ARCHETYPES.filter((a) => a.classId === classId);

@@ -887,6 +887,15 @@ describe('archetypes', () => {
           expect(l, `${a.id} bonus-feat level ${l}`).toBeGreaterThanOrEqual(1);
           expect(l, `${a.id} bonus-feat level ${l}`).toBeLessThanOrEqual(20);
         }
+        // Source-power suppression: non-empty prefix and levels in 1..20.
+        for (const s of a.suppressSourcePowers ?? []) {
+          expect(s.prefix.length, `${a.id} suppressSourcePowers empty prefix`).toBeGreaterThan(0);
+          expect(s.levels.length, `${a.id} suppressSourcePowers empty levels`).toBeGreaterThan(0);
+          for (const l of s.levels) {
+            expect(l, `${a.id} suppress level ${l}`).toBeGreaterThanOrEqual(1);
+            expect(l, `${a.id} suppress level ${l}`).toBeLessThanOrEqual(20);
+          }
+        }
         for (const g of a.grants) {
           expect(g.level, `${a.id} grant ${g.id} level`).toBeGreaterThanOrEqual(1);
           expect(g.level, `${a.id} grant ${g.id} level`).toBeLessThanOrEqual(20);

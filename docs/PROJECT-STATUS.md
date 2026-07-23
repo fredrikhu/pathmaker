@@ -9,7 +9,21 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 **Current state** — branch `main`, working tree clean, **567 tests** passing; run
 `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
-**Latest — Archetypes: core casters (Wizard, Witch) + Sorcerer blocker noted.** **Scrollmaster** (Wizard) swaps
+**Latest — Archetypes: source-power suppression + Tattooed Sorcerer.** Closed the sorcerer blocker with a small
+hook: `ArchetypeDef.suppressSourcePowers?: { prefix; levels }[]` drops specific *source-granted* powers (those
+injected by `sourceFeatures` from a chosen bloodline/order/school/etc. — ids like `sorc-bl-<bloodline>-<level>`),
+which `replaces` can't reach because they aren't the class's own features. `sourceFeatures` now looks up the
+active archetype and skips matching prefix+level entries. Demonstrated with **Tattooed Sorcerer**: suppresses the
+1st- and 9th-level bloodline powers (`{ prefix: 'sorc-bl', levels: [1, 9] }`) for Familiar Tattoo and Enhanced
+Magical Tattoo, replaces Eschew Materials with Mage's Tattoo and the 7th-level bloodline feat with Create Spell
+Tattoo. The rest of the chosen bloodline (3rd/15th/20th powers, arcana, bonus spells) is untouched. Verified vs
+d20pfsrd. 2 golden tests (standard draconic sorcerer keeps Claws/Breath Weapon; Tattooed suppresses both, keeps
+Dragon Resistances, swaps in the tattoo abilities, still casts) + a content-integrity guard; 637 pass;
+browser-verified the picker + Advancement (Claws/Breath Weapon gone, Dragon Resistances kept, tattoo features
+present). Archetypes now span **16 classes, 23 total**. **Crossblooded** still needs a *diminished spells-known*
+variant (today's `diminished` = slots/day only) — the last narrow casting gap.
+
+**Prior — Archetypes: core casters (Wizard, Witch) + Sorcerer blocker noted.** **Scrollmaster** (Wizard) swaps
 Arcane Bond for **Scroll Blade** and **Scroll Shield** (wielding scrolls as weapon/shield), drops the arcane-bond
 pick (`choices.remove`), and replaces the 10th-level bonus feat with Improved Scroll Casting (`bonusFeatSlots`).
 **Beast-Bonded** (Witch) trades the hexes gained at 4th/8th/10th for Enhanced Familiar, Familiar Form, and Twin

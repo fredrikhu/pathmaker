@@ -315,16 +315,25 @@ function classFeaturesUpTo(klass: C.ClassDef | undefined, level: number, dec?: D
   return [...src, ...extra].filter((f) => f.level <= level).sort((a, b) => a.level - b.level);
 }
 
-/** Per-level abilities fixed by a chosen source (bloodline/order) — injected into the progression. */
+/** Per-level abilities fixed by a chosen source (bloodline/order) — injected into the progression.
+ *  An archetype may suppress some of these (e.g. the Tattooed Sorcerer drops the 1st/9th bloodline
+ *  powers) via `suppressSourcePowers`, matched by the exact source prefix and level. */
 function sourceFeatures(dec: Decisions): C.LeveledFeatureDef[] {
+  const arch = dec.archetype && dec.classId
+    ? C.classById.get(dec.classId)?.archetypes?.find((a) => a.id === dec.archetype)
+    : undefined;
   const out: C.LeveledFeatureDef[] = [];
   const add = (map: Record<string, C.SourceFeature[]>, sourceId: string | undefined, prefix: string) => {
+    const drop = arch?.suppressSourcePowers?.find((s) => s.prefix === prefix)?.levels;
     const list = sourceId ? map[sourceId] : undefined;
-    if (list) for (const p of list) out.push({
-      level: p.level, id: `${prefix}-${sourceId}-${p.level}`, name: p.name, desc: p.desc,
-      ...(p.grantsFeat ? { grantsFeat: p.grantsFeat } : {}),
-      ...(p.grantsFeatChoice ? { grantsFeatChoice: p.grantsFeatChoice } : {}),
-    });
+    if (list) for (const p of list) {
+      if (drop?.includes(p.level)) continue; // archetype removes this source-granted power
+      out.push({
+        level: p.level, id: `${prefix}-${sourceId}-${p.level}`, name: p.name, desc: p.desc,
+        ...(p.grantsFeat ? { grantsFeat: p.grantsFeat } : {}),
+        ...(p.grantsFeatChoice ? { grantsFeatChoice: p.grantsFeatChoice } : {}),
+      });
+    }
   };
   if (dec.classId === 'sorcerer') add(C.SORCERER_BLOODLINE_POWERS, dec.classChoices['bloodline']?.[0], 'sorc-bl');
   if (dec.classId === 'sorcerer') add(C.SORCERER_BLOODLINE_SPELLS, dec.classChoices['bloodline']?.[0], 'sorc-bl-sp');

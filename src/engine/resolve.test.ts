@@ -3701,6 +3701,45 @@ describe('archetypes — breadth (Cavalier, Inquisitor, Druid)', () => {
   });
 });
 
+describe('archetypes — source-power suppression (Tattooed Sorcerer)', () => {
+  const sorcerer = (archetype: string | undefined, level: number): CharacterDoc => {
+    let d = newCharacter('t-tat', 'S');
+    d = withDecision(d, 'ability-base', { str: 8, dex: 14, con: 12, int: 10, wis: 10, cha: 16 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['cha']);
+    d = withDecision(d, 'alignment', 'N');
+    d = withDecision(d, 'class', 'sorcerer');
+    d = withDecision(d, 'class-choices', { bloodline: ['draconic'] });
+    if (archetype) d = withDecision(d, 'archetype', archetype);
+    return atLevel(d, level);
+  };
+  const featsAt = (doc: CharacterDoc, lvl: number) =>
+    resolve(doc).sheet.progression.find((r) => r.level === lvl)?.features ?? [];
+
+  it('a standard draconic sorcerer gains the 1st- and 9th-level bloodline powers', () => {
+    expect(featsAt(sorcerer(undefined, 9), 1)).toContain('Claws');
+    expect(featsAt(sorcerer(undefined, 9), 9)).toContain('Breath Weapon');
+  });
+
+  it('Tattooed Sorcerer suppresses the 1st/9th bloodline powers and swaps in tattoo abilities', () => {
+    const t = sorcerer('tattooed-sorcerer', 9);
+    // 1st-level bloodline power (Claws) suppressed; Familiar Tattoo + Mage's Tattoo take its place.
+    expect(featsAt(t, 1)).not.toContain('Claws');
+    expect(featsAt(t, 1)).toContain('Familiar Tattoo');
+    expect(featsAt(t, 1)).toContain('Mage’s Tattoo');
+    expect(featsAt(t, 1)).not.toContain('Eschew Materials'); // replaced by Mage's Tattoo
+    // 9th-level bloodline power (Breath Weapon) suppressed; Enhanced Magical Tattoo replaces it.
+    expect(featsAt(t, 9)).not.toContain('Breath Weapon');
+    expect(featsAt(t, 9)).toContain('Enhanced Magical Tattoo');
+    // 7th-level bloodline feat replaced by Create Spell Tattoo.
+    expect(featsAt(t, 7)).toContain('Create Spell Tattoo');
+    expect(featsAt(t, 7)).not.toContain('Bloodline Feat');
+    // Other bloodline powers (3rd) survive, and the sorcerer still casts.
+    expect(featsAt(t, 3)).toContain('Dragon Resistances');
+    expect(resolve(t).sheet.casting.length).toBeGreaterThan(0);
+  });
+});
+
 describe('archetypes — caster classes', () => {
   const build = (cls: string, archetype: string | undefined, level: number): CharacterDoc => {
     let d = newCharacter('t-arch3', 'X');

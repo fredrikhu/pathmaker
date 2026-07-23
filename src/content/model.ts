@@ -232,6 +232,13 @@ export interface ArchetypeDef {
    *  a class with no bonus feats creates one. Used by archetypes that trade bonus feats for other
    *  abilities (e.g. the Sensei loses its feats at 2nd/6th/10th/14th). */
   bonusFeatSlots?: { add?: number[]; remove?: number[] };
+  /** Suppress specific source-granted powers (bloodline powers, order abilities, school powers…) that
+   *  the archetype removes. These come from a *chosen source* via the engine's `sourceFeatures`, not
+   *  the class's own feature list, so `replaces` can't reach them. Keyed by the engine prefix and the
+   *  levels to drop — e.g. `{ prefix: 'sorc-bl', levels: [1, 9] }` for the Tattooed Sorcerer dropping
+   *  the 1st- and 9th-level bloodline powers (prefixes: 'sorc-bl' sorcerer bloodline powers, 'br-bl'
+   *  bloodrager bloodline powers, 'wiz-school' wizard school powers, 'cav-ord' cavalier order, etc.). */
+  suppressSourcePowers?: { prefix: string; levels: number[] }[];
 }
 
 export interface ClassDef {
