@@ -9,7 +9,16 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 **Current state** — branch `main`, working tree clean, **567 tests** passing; run
 `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
-**Latest — Archetypes: model extended for proficiency + spellcasting.** The archetype model now covers
+**Latest — Archetypes: content batch (three more classes).** Added verified archetypes for Rogue
+(**Thug**: Trapfinding→Frightening, Trap Sense→Brutal Beating; **Acrobat**: Trapfinding→Expert Acrobat,
+Trap Sense→Second Chance), Barbarian (**Invulnerable Rager**: Uncanny/Improved Uncanny Dodge + DR →
+Invulnerability, Trap Sense → Extreme Endurance), and Paladin (**Warrior of the Holy Light**: removes
+spellcasting via `spellcasting: null`, replaces the `paladin-spells` feature with Power of Faith). All
+verified against d20pfsrd. Archetypes now cover Fighter, Ranger, Rogue, Barbarian, Paladin (8 total). 3
+golden tests (Thug swap, Invulnerable Rager DR swap, Warrior-of-the-Holy-Light casting removal) + the
+content-integrity check; 610 pass. Browser-verified the barbarian picker and the Invulnerability swap.
+
+**Prior — Archetypes: model extended for proficiency + spellcasting.** The archetype model now covers
 weapon/armor proficiency and spellcasting changes, not just feature swaps. `ArchetypeDef` gained
 `proficiencies?: { weapons?:{add?,remove?}, armor?:{add?,remove?} }` and `spellcasting?: SpellcastingDef |
 null` (omit = keep, `null` = remove casting, a def = replace). Engine: a new `effectiveClass(klass, dec)`

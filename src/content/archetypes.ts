@@ -52,6 +52,53 @@ export const RANGER_ARCHETYPES: ArchetypeDef[] = [
   },
 ];
 
-export const ARCHETYPES: ArchetypeDef[] = [...FIGHTER_ARCHETYPES, ...RANGER_ARCHETYPES];
+export const ROGUE_ARCHETYPES: ArchetypeDef[] = [
+  {
+    id: 'thug', classId: 'rogue', name: 'Thug',
+    desc: 'A brute who gets what she wants through threat and violence rather than finesse.',
+    replaces: ['rogue-trapfinding', 'rogue-trap-sense'],
+    grants: [
+      g(1, 'thug-frightening', 'Frightening', 'A successful Intimidate to demoralize lasts 1 round longer; if the target ends up shaken for 4+ rounds, you may instead make it frightened for 1 round. Replaces Trapfinding.'),
+      g(3, 'thug-brutal-beating', 'Brutal Beating', 'When you deal sneak attack damage you may forgo 1d6 of it to sicken the target for a number of rounds equal to 1/2 your rogue level (does not stack). Replaces Trap Sense.'),
+    ],
+  },
+  {
+    id: 'acrobat', classId: 'rogue', name: 'Acrobat',
+    desc: 'A daring tumbler and climber who trades trap-sense for agility.',
+    replaces: ['rogue-trapfinding', 'rogue-trap-sense'],
+    grants: [
+      g(1, 'acrobat-expert-acrobat', 'Expert Acrobat', 'No armor check penalty on Acrobatics, Climb, Fly, Sleight of Hand, or Stealth while in light armor; +2 competence on Acrobatics and Fly when unarmored. Replaces Trapfinding.'),
+      g(3, 'acrobat-second-chance', 'Second Chance', 'Reroll an Acrobatics, Climb, or Fly check at −5, keeping the second result; usable 1/day at 3rd, +1/day per three levels beyond. Replaces Trap Sense.'),
+    ],
+  },
+];
+
+export const BARBARIAN_ARCHETYPES: ArchetypeDef[] = [
+  {
+    id: 'invulnerable-rager', classId: 'barbarian', name: 'Invulnerable Rager',
+    desc: 'A barbarian who shrugs off mortal wounds, turning raw punishment into fuel for her rage.',
+    replaces: ['barb-uncanny-dodge', 'barb-improved-uncanny-dodge', 'barb-dr', 'barb-trap-sense'],
+    grants: [
+      g(2, 'ir-invulnerability', 'Invulnerability', 'DR/— equal to half your barbarian level, doubled against nonlethal damage. Replaces Uncanny Dodge, Improved Uncanny Dodge, and Damage Reduction.'),
+      g(3, 'ir-extreme-endurance', 'Extreme Endurance', 'Inured to a hot or cold climate (choose one) as endure elements, plus 1 point of fire or cold resistance for every three levels beyond 3rd. Replaces Trap Sense.'),
+    ],
+  },
+];
+
+export const PALADIN_ARCHETYPES: ArchetypeDef[] = [
+  {
+    id: 'warrior-of-the-holy-light', classId: 'paladin', name: 'Warrior of the Holy Light',
+    desc: 'A paladin who forgoes spellcasting to channel her faith into radiant light and greater healing.',
+    replaces: ['paladin-spells'],
+    spellcasting: null, // no spells, no caster level
+    grants: [
+      g(4, 'wohl-power-of-faith', 'Power of Faith', 'You gain no spells or caster level. Instead you gain one extra use of Lay on Hands per day (and another per four levels beyond 4th); spend one as a standard action to raise a 30-ft nimbus of light that grants you and nearby allies a +1 morale bonus to AC and on attack rolls, damage rolls, and saves vs fear for 1 minute (adds healing at 8th, daylight + energy resistance 10 at 12th, crit protection at 16th, and a larger, stronger nimbus at 20th). Replaces the paladin’s spellcasting.'),
+    ],
+  },
+];
+
+export const ARCHETYPES: ArchetypeDef[] = [
+  ...FIGHTER_ARCHETYPES, ...RANGER_ARCHETYPES, ...ROGUE_ARCHETYPES, ...BARBARIAN_ARCHETYPES, ...PALADIN_ARCHETYPES,
+];
 export const archetypeById = new Map(ARCHETYPES.map((a) => [a.id, a]));
 export const archetypesForClass = (classId: string): ArchetypeDef[] => ARCHETYPES.filter((a) => a.classId === classId);

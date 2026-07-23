@@ -3474,3 +3474,41 @@ describe('archetypes — extended model (proficiency + spellcasting)', () => {
     expect(eff.spellcasting?.list).toBe('bard');
   });
 });
+
+describe('archetypes — additional classes', () => {
+  const build = (cls: string, archetype: string | undefined, level: number): CharacterDoc => {
+    let d = newCharacter('t-arch2', 'X');
+    d = withDecision(d, 'ability-base', { str: 14, dex: 14, con: 14, int: 10, wis: 12, cha: 12 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['str']);
+    d = withDecision(d, 'alignment', cls === 'paladin' ? 'LG' : 'N');
+    d = withDecision(d, 'class', cls);
+    if (archetype) d = withDecision(d, 'archetype', archetype);
+    return atLevel(d, level);
+  };
+  const featsAt = (doc: CharacterDoc, lvl: number) =>
+    resolve(doc).sheet.progression.find((r) => r.level === lvl)?.features ?? [];
+
+  it('Rogue Thug replaces Trapfinding with Frightening and Trap Sense with Brutal Beating', () => {
+    expect(featsAt(build('rogue', undefined, 3), 1)).toContain('Trapfinding');
+    const t = build('rogue', 'thug', 3);
+    expect(featsAt(t, 1)).toContain('Frightening');
+    expect(featsAt(t, 1)).not.toContain('Trapfinding');
+    expect(featsAt(t, 3)).toContain('Brutal Beating');
+  });
+
+  it('Barbarian Invulnerable Rager swaps DR / uncanny dodge for Invulnerability', () => {
+    const ir = build('barbarian', 'invulnerable-rager', 7);
+    expect(featsAt(ir, 2)).toContain('Invulnerability');
+    expect(featsAt(ir, 2)).not.toContain('Uncanny Dodge');
+    expect(featsAt(ir, 7)).not.toContain('Damage Reduction 1/—');
+  });
+
+  it('Paladin Warrior of the Holy Light removes spellcasting for Power of Faith', () => {
+    expect(resolve(build('paladin', undefined, 6)).sheet.casting.length).toBeGreaterThan(0);
+    const w = build('paladin', 'warrior-of-the-holy-light', 6);
+    expect(resolve(w).sheet.casting.length).toBe(0);
+    expect(featsAt(w, 4)).toContain('Power of Faith');
+    expect(featsAt(w, 4)).not.toContain('Spellcasting');
+  });
+});
