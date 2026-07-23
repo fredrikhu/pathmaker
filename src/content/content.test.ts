@@ -887,6 +887,14 @@ describe('archetypes', () => {
           expect(l, `${a.id} bonus-feat level ${l}`).toBeGreaterThanOrEqual(1);
           expect(l, `${a.id} bonus-feat level ${l}`).toBeLessThanOrEqual(20);
         }
+        // DR override: null is fine (removes DR); an object needs non-empty levels in 1..20.
+        if (a.damageReduction) {
+          expect(a.damageReduction.levels.length, `${a.id} DR override empty levels`).toBeGreaterThan(0);
+          for (const l of a.damageReduction.levels) {
+            expect(l, `${a.id} DR level ${l}`).toBeGreaterThanOrEqual(1);
+            expect(l, `${a.id} DR level ${l}`).toBeLessThanOrEqual(20);
+          }
+        }
         // Source-power suppression: non-empty prefix and levels in 1..20.
         for (const s of a.suppressSourcePowers ?? []) {
           expect(s.prefix.length, `${a.id} suppressSourcePowers empty prefix`).toBeGreaterThan(0);

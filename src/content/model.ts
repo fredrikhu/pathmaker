@@ -239,6 +239,10 @@ export interface ArchetypeDef {
    *  the 1st- and 9th-level bloodline powers (prefixes: 'sorc-bl' sorcerer bloodline powers, 'br-bl'
    *  bloodrager bloodline powers, 'wiz-school' wizard school powers, 'cav-ord' cavalier order, etc.). */
   suppressSourcePowers?: { prefix: string; levels: number[] }[];
+  /** Damage-reduction change. The barbarian/bloodrager DR is a numeric class progression (not a
+   *  feature `replaces` can reach), so an archetype that trades it away sets `null` (e.g. Steelblood's
+   *  Blood Deflection), or provides a `{ levels, bypass }` table to override it. Omitted ⇒ unchanged. */
+  damageReduction?: { levels: number[]; bypass: string } | null;
 }
 
 export interface ClassDef {

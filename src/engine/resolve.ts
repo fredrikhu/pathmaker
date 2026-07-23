@@ -126,7 +126,13 @@ function gatherDefenses(dec: Decisions, classes: ClassEntry[], play: PlayState |
   }
 
   for (const c of classes) {
-    const prog = C.CLASS_PROGRESSION[c.klass.id]?.damageReduction;
+    let prog = C.CLASS_PROGRESSION[c.klass.id]?.damageReduction;
+    // An archetype on this class may remove (`null`) or override the class DR — the DR is a numeric
+    // progression, not a feature, so this is the only way to reflect e.g. Steelblood's Blood Deflection.
+    if (c.klass.id === dec.classId && dec.archetype) {
+      const arch = C.classById.get(c.klass.id)?.archetypes?.find((a) => a.id === dec.archetype);
+      if (arch && 'damageReduction' in arch) prog = arch.damageReduction ?? undefined;
+    }
     if (!prog) continue;
     // The amount is how many of the listed levels this class has reached: DR 1 at the first,
     // rising by 1 at each one after.

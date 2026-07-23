@@ -9,7 +9,23 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 **Current state** — branch `main`, working tree clean, **567 tests** passing; run
 `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
-**Latest — Archetypes: breadth batch (Warpriest, Brawler, Investigator).** First archetypes for three more
+**Latest — Archetypes: breadth batch (Oracle, Bloodrager, Swashbuckler) + DR-override hook.** Added a
+`ArchetypeDef.damageReduction?: { levels; bypass } | null` hook: the barbarian/bloodrager DR is a numeric class
+progression (not a feature `replaces` can reach), so an archetype that trades it away sets `null` — `gatherDefenses`
+now consults the active archetype before applying the class DR. First archetypes for three more classes, all
+verified vs d20pfsrd. **Warsighted** (Oracle) swaps the revelations gained at 1st/7th/11th/15th (keeping 3rd/19th)
+for **Martial Flexibility**. **Steelblood** (Bloodrager) gains heavy armor, swaps fast movement / uncanny dodge /
+improved uncanny dodge / DR for Indomitable Stance, Armored Swiftness, Armor Training, and **Blood Deflection**
+(`damageReduction: null`, so the numeric DR is gone too). **Inspired Blade** (Swashbuckler) rebuilds panache and
+weapon features around the rapier (Inspired Panache/Finesse, Rapier Training, Inspired Strike, Rapier Weapon
+Mastery). 3 golden tests (Warsighted revelation-slot removal + still casts; Steelblood feature swaps + heavy armor
++ `defenses.dr` empty; Inspired Blade rapier swaps) + a DR-override integrity guard; 643 pass; browser-verified all
+three pickers/Advancement and that the Steelblood sheet shows no DR line. Archetypes now span **22 classes, 29
+total**. Remaining with none: Summoner, Gunslinger, Arcanist, Hunter, Shaman, Skald, Shifter. (Note: the numeric-DR
+gap also affected the earlier Invulnerable Rager, whose Invulnerability isn't cleanly expressible as a fixed table
+— left as-is for now.)
+
+**Prior — Archetypes: breadth batch (Warpriest, Brawler, Investigator).** First archetypes for three more
 classes, all verified vs d20pfsrd. **Sacred Fist** (Warpriest) drops all armor and swaps Sacred Weapon / Focus
 Weapon / Sacred Armor for monk-style **Flurry of Blows**, **Unarmed Strike**, **AC Bonus**, and a **Ki Pool** at
 7th — keeping full casting. **Snakebite Striker** (Brawler) trades Martial Flexibility and Maneuver Training for

@@ -3788,6 +3788,63 @@ describe('archetypes — breadth (Warpriest, Brawler, Investigator)', () => {
   });
 });
 
+describe('archetypes — breadth (Oracle, Bloodrager, Swashbuckler)', () => {
+  const build = (cls: string, archetype: string | undefined, level: number, choices?: Record<string, string[]>): CharacterDoc => {
+    let d = newCharacter('t-breadth3', 'X');
+    d = withDecision(d, 'ability-base', { str: 14, dex: 14, con: 12, int: 13, wis: 12, cha: 14 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['cha']);
+    d = withDecision(d, 'alignment', 'N');
+    d = withDecision(d, 'class', cls);
+    if (choices) d = withDecision(d, 'class-choices', choices);
+    if (archetype) d = withDecision(d, 'archetype', archetype);
+    return atLevel(d, level);
+  };
+  const featsAt = (doc: CharacterDoc, lvl: number) =>
+    resolve(doc).sheet.progression.find((r) => r.level === lvl)?.features ?? [];
+
+  it('Oracle Warsighted replaces the 1/7/11/15 revelations with Martial Flexibility', () => {
+    const revSlots = (doc: CharacterDoc) =>
+      resolve(doc).slots.filter((s) => s.step === 'class' && s.id.startsWith('revelation')).map((s) => s.id);
+    expect(revSlots(build('oracle', undefined, 20))).toContain('revelation'); // standard oracle: 1st revelation
+    const w = build('oracle', 'warsighted', 20);
+    expect(featsAt(w, 1)).toContain('Martial Flexibility');
+    const rev = revSlots(w);
+    expect(rev).not.toContain('revelation');       // 1st revelation replaced
+    expect(rev).not.toContain('revelation-L7');
+    expect(rev).not.toContain('revelation-L11');
+    expect(rev).not.toContain('revelation-L15');
+    expect(rev).toContain('revelation-L3');         // 3rd and 19th remain
+    expect(rev).toContain('revelation-L19');
+    expect(resolve(w).sheet.casting.length).toBeGreaterThan(0);
+  });
+
+  it('Bloodrager Steelblood gains heavy armor, swaps the defensive line, and loses class DR', () => {
+    const std = resolve(build('bloodrager', undefined, 7, { bloodline: ['draconic'] }));
+    expect(std.sheet.defenses.dr.length).toBeGreaterThan(0); // standard bloodrager has DR at 7th
+    const s = build('bloodrager', 'steelblood', 7, { bloodline: ['draconic'] });
+    expect(featsAt(s, 1)).toContain('Indomitable Stance');
+    expect(featsAt(s, 1)).not.toContain('Fast Movement');
+    expect(featsAt(s, 2)).toContain('Armored Swiftness');
+    expect(featsAt(s, 7)).toContain('Blood Deflection');
+    expect(featsAt(s, 7)).not.toContain('Damage Reduction 1/—');
+    expect(resolve(s).sheet.defenses.dr).toEqual([]); // Blood Deflection replaces the numeric DR too
+    const eff = effectiveClass(C.classById.get('bloodrager')!, readDecisions(build('bloodrager', 'steelblood', 1)));
+    expect(eff.proficiencies.armor).toContain('heavy');
+  });
+
+  it('Swashbuckler Inspired Blade rebuilds panache and weapon features around the rapier', () => {
+    const i = build('swashbuckler', 'inspired-blade', 20);
+    expect(featsAt(i, 1)).toContain('Inspired Panache');
+    expect(featsAt(i, 1)).toContain('Inspired Finesse');
+    expect(featsAt(i, 1)).not.toContain('Panache');
+    expect(featsAt(i, 1)).not.toContain('Swashbuckler Finesse');
+    expect(featsAt(i, 5)).toContain('Rapier Training');
+    expect(featsAt(i, 20)).toContain('Rapier Weapon Mastery');
+    expect(featsAt(i, 20)).not.toContain('Swashbuckler Weapon Mastery');
+  });
+});
+
 describe('archetypes — caster classes', () => {
   const build = (cls: string, archetype: string | undefined, level: number): CharacterDoc => {
     let d = newCharacter('t-arch3', 'X');

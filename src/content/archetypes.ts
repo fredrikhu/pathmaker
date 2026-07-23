@@ -435,11 +435,62 @@ export const INVESTIGATOR_ARCHETYPES: ArchetypeDef[] = [
   },
 ];
 
+export const ORACLE_ARCHETYPES: ArchetypeDef[] = [
+  {
+    id: 'warsighted', classId: 'oracle', name: 'Warsighted',
+    desc: 'An oracle whose visions are of battle — trading mystic revelations for a warrior’s ever-shifting repertoire.',
+    replaces: [],
+    // Martial Flexibility takes the place of the revelations gained at 1st, 7th, 11th, and 15th;
+    // the 3rd- and 19th-level revelations remain.
+    choices: {
+      remove: ['revelation'],
+      add: [{ id: 'revelation', label: 'Revelation', kind: 'oracle-revelation', count: 1, levels: [3, 19] }],
+    },
+    grants: [
+      g(1, 'ws-martial-flexibility', 'Martial Flexibility', 'As a move action, gain the benefit of a combat feat you lack for 1 minute, 3 + ½ your oracle level times per day; at 7th, 11th, and 15th you can borrow two or three feats at once or use faster action types. Replaces the revelations gained at 1st, 7th, 11th, and 15th.'),
+    ],
+  },
+];
+
+export const BLOODRAGER_ARCHETYPES: ArchetypeDef[] = [
+  {
+    id: 'steelblood', classId: 'bloodrager', name: 'Steelblood',
+    desc: 'A bloodrager who fights from within a steel shell, wading through the fray heedless of the blows that ring off his armor.',
+    replaces: ['br-fast-movement', 'br-uncanny-dodge', 'br-improved-uncanny-dodge', 'br-dr'],
+    // Gains heavy armor (and casts in it without failure); Blood Deflection takes the place of DR.
+    proficiencies: { armor: { add: ['heavy'] } },
+    damageReduction: null,
+    grants: [
+      g(1, 'sb-heavy-armor', 'Heavy Armor Training', 'Gain proficiency with heavy armor and cast bloodrager spells in heavy armor without arcane spell failure. Replaces the bloodrager’s armor proficiency.'),
+      g(1, 'sb-indomitable-stance', 'Indomitable Stance', '+1 on combat maneuver checks, CMD vs overrun, Reflex saves vs trample, AC vs charges, and attack/damage against charging foes. Replaces fast movement.'),
+      g(2, 'sb-armored-swiftness', 'Armored Swiftness', 'Move at full speed in medium or heavy armor. Replaces uncanny dodge.'),
+      g(5, 'sb-armor-training', 'Armor Training', 'Reduce your armor’s check penalty and raise its maximum Dexterity bonus, improving as you level. Replaces improved uncanny dodge.'),
+      g(7, 'sb-blood-deflection', 'Blood Deflection', 'Sacrifice a bloodrager spell slot as an immediate action for a deflection bonus to AC equal to the spell’s level until your next turn — even after seeing an attack roll. Replaces damage reduction.'),
+    ],
+  },
+];
+
+export const SWASHBUCKLER_ARCHETYPES: ArchetypeDef[] = [
+  {
+    id: 'inspired-blade', classId: 'swashbuckler', name: 'Inspired Blade',
+    desc: 'A duelist who perfects the science of the rapier — reading swordplay like geometry and striking with inspired precision.',
+    replaces: ['swb-panache', 'swb-finesse', 'swb-weapon-training', 'swb-weapon-mastery'],
+    grants: [
+      g(1, 'ib-inspired-panache', 'Inspired Panache', 'Your panache pool equals your Charisma modifier + your Intelligence modifier (each minimum 1); you regain panache only by scoring a critical hit with a rapier, never from a killing blow. Alters panache.'),
+      g(1, 'ib-inspired-finesse', 'Inspired Finesse', 'Gain Weapon Finesse and Weapon Focus (rapier) as bonus feats. Replaces swashbuckler finesse.'),
+      g(5, 'ib-rapier-training', 'Rapier Training', 'Gain a scaling +1 (rising every four levels) on attack and damage rolls with the rapier. Replaces swashbuckler weapon training.'),
+      g(11, 'ib-inspired-strike', 'Inspired Strike', 'Spend a panache point to add your Intelligence bonus to the damage of a rapier attack. Replaces the bleeding wound deed.'),
+      g(20, 'ib-rapier-weapon-mastery', 'Rapier Weapon Mastery', 'Critical hits with a rapier are automatically confirmed, and its threat range and critical multiplier each increase by 1. Replaces swashbuckler weapon mastery.'),
+    ],
+  },
+];
+
 export const ARCHETYPES: ArchetypeDef[] = [
   ...FIGHTER_ARCHETYPES, ...RANGER_ARCHETYPES, ...ROGUE_ARCHETYPES, ...BARBARIAN_ARCHETYPES, ...PALADIN_ARCHETYPES,
   ...BARD_ARCHETYPES, ...ALCHEMIST_ARCHETYPES, ...MAGUS_ARCHETYPES, ...MONK_ARCHETYPES, ...CLERIC_ARCHETYPES,
   ...CAVALIER_ARCHETYPES, ...INQUISITOR_ARCHETYPES, ...DRUID_ARCHETYPES, ...WIZARD_ARCHETYPES, ...WITCH_ARCHETYPES,
   ...SORCERER_ARCHETYPES, ...WARPRIEST_ARCHETYPES, ...BRAWLER_ARCHETYPES, ...INVESTIGATOR_ARCHETYPES,
+  ...ORACLE_ARCHETYPES, ...BLOODRAGER_ARCHETYPES, ...SWASHBUCKLER_ARCHETYPES,
 ];
 export const archetypeById = new Map(ARCHETYPES.map((a) => [a.id, a]));
 export const archetypesForClass = (classId: string): ArchetypeDef[] => ARCHETYPES.filter((a) => a.classId === classId);
