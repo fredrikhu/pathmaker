@@ -333,6 +333,9 @@ export interface CastingBlock {
   /** Diminished Spellcasting (Kensai etc.): `slots` already reflect the −1/level. Flagged so the
    *  sheet can note it, since the reduced numbers alone don't explain themselves. */
   diminished?: boolean;
+  /** Diminished spells known (Crossblooded): `known` already reflect the −1/level (cantrips too).
+   *  Flagged so the sheet can note it. */
+  diminishedKnown?: boolean;
   /** The one restricted bonus slot per spell level a cleric-with-domains or a specialist wizard
    *  gets (replacing the old +1-to-the-count approximation). Absent for everyone else. */
   bonusSlot?: {

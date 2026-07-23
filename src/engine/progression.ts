@@ -420,8 +420,10 @@ export function spellSlotsPerDay(table: SpellTable | undefined, level: number, a
   });
 }
 
-/** Spells known per spell level for a spontaneous caster (fixed; empty for prepared casters). */
-export function spellsKnownPerLevel(table: SpellTable | undefined, level: number): number[] {
+/** Spells known per spell level for a spontaneous caster (fixed; empty for prepared casters).
+ *  With `diminished` (the Crossblooded sorcerer), every entry drops by one (min 0) — and unlike the
+ *  Diminished *Spellcasting* slot penalty, this one **includes cantrips** (0-level), per RAW. */
+export function spellsKnownPerLevel(table: SpellTable | undefined, level: number, diminished = false): number[] {
   if (level < 1) return [];
   const src = table === 'spontaneous-full' ? SORCERER_KNOWN
     : table === 'bard' ? BARD_KNOWN
@@ -430,7 +432,8 @@ export function spellsKnownPerLevel(table: SpellTable | undefined, level: number
     : table === 'vampire-hunter' ? VAMPIRE_HUNTER_KNOWN
     : null;
   if (!src) return [];
-  return src[Math.min(20, level) - 1] ?? [];
+  const row = src[Math.min(20, level) - 1] ?? [];
+  return diminished ? row.map((n) => Math.max(0, n - 1)) : row;
 }
 
 /** Character Wealth by Level (Core, verified against d20pfsrd): the gold a character *created* at

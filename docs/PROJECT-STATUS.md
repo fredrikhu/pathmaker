@@ -9,7 +9,21 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 **Current state** — branch `main`, working tree clean, **567 tests** passing; run
 `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
-**Latest — Archetypes: third-per-class breadth batch 2 (Base/Hybrid classes).** Gunslinger **Mysterious Stranger**
+**Latest — Engine deferrals closed: Crossblooded + Divine Commander.** The two remaining archetype-model gaps
+are both gone. (1) **Diminished spells *known*** — a new `spellsKnownPerLevel(table, level, diminished)` variant
+drops one spell known of *every* level **including cantrips** (distinct from diminished *slots*, which spare
+cantrips), wired through `SpellcastingDef.diminishedKnown` + `spellcastingMod.diminishedKnown` + a
+`CastingBlock.diminishedKnown` sheet note ("−1 known/level"). Shipped **Crossblooded** (Sorcerer): two bloodlines
+(bloodline choice `count: 2` → both class skills + arcana; powers stay one-per-level, so the engine's single
+injected line is one legal set), −1 known/level, and a −2 Will penalty routed through a granted feature's
+`effects` (so it hits the actual save total). (2) **Divine Commander** (Warpriest) needed no engine work after
+all — `bonusFeatSlots.remove` already existed; it trades blessings + the 3rd/6th/12th/15th bonus feats (keeping
+9th/18th) for Mount, Battle Tactician, Blessed Mount, Greater Battle Tactician, Bless Army. Both verified vs
+d20pfsrd (browser pane). 6 new tests (2 progression unit, 4 golden); **695 pass**; browser-verified Crossblooded's
+−1-known note + applied −2 Will, and Divine Commander resolves/plays clean at 15. **No known archetype-model gaps
+remain.**
+
+**Prior — Archetypes: third-per-class breadth batch 2 (Base/Hybrid classes).** Gunslinger **Mysterious Stranger**
 (Cha-grit; swaps two deeds + nimble + gun training 1), Brawler **Exemplar** (inspiring performance), Witch
 **Gravewalker** (undead mastery; swaps the 1st/4th/8th hexes), Investigator **Mastermind** (swaps trapfinding/
 swift alchemy + the 9th talent). All verified vs d20pfsrd; choice-slot swaps for the hex/talent lines. **Deferred:

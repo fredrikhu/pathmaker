@@ -285,6 +285,7 @@ function effectiveClass(klass: C.ClassDef, dec: Decisions): C.ClassDef {
       ...(m.ability ? { ability: m.ability } : {}),
       ...(m.list ? { list: m.list } : {}),
       ...(m.diminished ? { diminished: true } : {}),
+      ...(m.diminishedKnown ? { diminishedKnown: true } : {}),
     };
   }
   // Choice slots (subsystem picks + structural picks): drop removed ids, append added ones.
@@ -1109,7 +1110,7 @@ export function resolve(doc: CharacterDoc): Resolution {
       list: csc.list,
       casterLevel: casterLevel(csc.progression ?? 'full', c.levels),
       slots,
-      known: csc.kind === 'spontaneous' ? spellsKnownPerLevel(table, c.levels) : undefined,
+      known: csc.kind === 'spontaneous' ? spellsKnownPerLevel(table, c.levels, csc.diminishedKnown) : undefined,
       // Only the arcanist prepares a different number of spells than it can cast.
       ...(spellsPreparedPerLevel(table, c.levels).length
         ? { preparedPerLevel: spellsPreparedPerLevel(table, c.levels) }
@@ -1118,6 +1119,7 @@ export function resolve(doc: CharacterDoc): Resolution {
       dcBase: 10 + mods[csc.ability],
       ...(bonusSlot ? { bonusSlot } : {}),
       ...(csc.diminished ? { diminished: true } : {}),
+      ...(csc.diminishedKnown ? { diminishedKnown: true } : {}),
     }];
   });
   // The primary casting class, kept for the single-caster views that show one number.

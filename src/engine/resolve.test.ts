@@ -4475,6 +4475,85 @@ describe('archetypes — subsystem / choice changes', () => {
   });
 });
 
+describe('archetypes — engine deferrals closed (Crossblooded, Divine Commander)', () => {
+  const sorcerer = (archetype: string | undefined, level: number, bloodlines: string[] = ['draconic']): CharacterDoc => {
+    let d = newCharacter('t-defer-s', 'S');
+    d = withDecision(d, 'ability-base', { str: 8, dex: 14, con: 12, int: 10, wis: 10, cha: 16 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['cha']);
+    d = withDecision(d, 'alignment', 'N');
+    d = withDecision(d, 'class', 'sorcerer');
+    d = withDecision(d, 'class-choices', { bloodline: bloodlines });
+    if (archetype) d = withDecision(d, 'archetype', archetype);
+    return atLevel(d, level);
+  };
+  const warpriest = (archetype: string | undefined, level: number): CharacterDoc => {
+    let d = newCharacter('t-defer-w', 'W');
+    d = withDecision(d, 'ability-base', { str: 15, dex: 12, con: 13, int: 10, wis: 14, cha: 10 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['wis']);
+    d = withDecision(d, 'alignment', 'LG');
+    d = withDecision(d, 'class', 'warpriest');
+    if (archetype) d = withDecision(d, 'archetype', archetype);
+    return atLevel(d, level);
+  };
+  const featsAt = (doc: CharacterDoc, lvl: number) =>
+    resolve(doc).sheet.progression.find((r) => r.level === lvl)?.features ?? [];
+
+  it('Crossblooded knows one fewer spell of every level including cantrips, keeping caster level', () => {
+    const std = resolve(sorcerer(undefined, 5)).sheet.casting.find((b) => b.classId === 'sorcerer')!;
+    const cb = resolve(sorcerer('crossblooded', 5, ['draconic', 'arcane'])).sheet.casting.find((b) => b.classId === 'sorcerer')!;
+    expect(cb.diminishedKnown).toBe(true);
+    expect(std.diminishedKnown).toBeFalsy();
+    expect(cb.casterLevel).toBe(std.casterLevel);
+    // Cantrips (index 0) are reduced too — unlike diminished *slots*.
+    expect(cb.known![0]).toBe(std.known![0] - 1);
+    for (let L = 0; L < std.known!.length; L++) expect(cb.known![L]).toBe(Math.max(0, std.known![L] - 1));
+  });
+
+  it('Crossblooded takes a −2 penalty on Will saves and still casts', () => {
+    const std = resolve(sorcerer(undefined, 5));
+    const cb = resolve(sorcerer('crossblooded', 5, ['draconic', 'arcane']));
+    expect(cb.sheet.stats['save:will'].total).toBe(std.sheet.stats['save:will'].total - 2);
+    expect(cb.sheet.casting.length).toBeGreaterThan(0);
+  });
+
+  it('effectiveClass gives Crossblooded two bloodline picks and the diminished-known flag', () => {
+    const base = C.classById.get('sorcerer')!;
+    const eff = effectiveClass(base, readDecisions(sorcerer('crossblooded', 1, ['draconic', 'arcane'])));
+    expect((eff.choices ?? []).find((c) => c.id === 'bloodline')?.count).toBe(2);
+    expect(eff.spellcasting?.diminishedKnown).toBe(true);
+  });
+
+  it('Divine Commander trades blessings and four bonus feats for a mount and command abilities', () => {
+    const dc = warpriest('divine-commander', 15);
+    // Mount + command line replace blessings and the 3rd/6th/12th/15th bonus feats.
+    expect(featsAt(dc, 1)).toContain('Mount');
+    expect(featsAt(dc, 1)).not.toContain('Blessings');
+    expect(featsAt(dc, 3)).toContain('Battle Tactician');
+    expect(featsAt(dc, 6)).toContain('Blessed Mount');
+    expect(featsAt(dc, 12)).toContain('Greater Battle Tactician');
+    expect(featsAt(dc, 15)).toContain('Bless Army');
+    // The blessings pick slot is gone.
+    expect(resolve(dc).slots.some((s) => s.id === 'blessings')).toBe(false);
+  });
+
+  it('Divine Commander removes exactly the 3rd/6th/12th/15th warpriest bonus feats, keeping 9th & 18th', () => {
+    const std = resolve(warpriest(undefined, 18)).slots.filter((s) => s.step === 'feats' && s.id.startsWith('feat-warpriest')).map((s) => s.id);
+    const dc = resolve(warpriest('divine-commander', 18)).slots.filter((s) => s.step === 'feats' && s.id.startsWith('feat-warpriest')).map((s) => s.id);
+    // Standard warpriest bonus feats at 3/6/9/12/15/18.
+    expect(std).toContain('feat-warpriest-L3');
+    expect(std).toContain('feat-warpriest-L9');
+    // Divine Commander keeps only 9th and 18th.
+    expect(dc).not.toContain('feat-warpriest-L3');
+    expect(dc).not.toContain('feat-warpriest-L6');
+    expect(dc).not.toContain('feat-warpriest-L12');
+    expect(dc).not.toContain('feat-warpriest-L15');
+    expect(dc).toContain('feat-warpriest-L9');
+    expect(dc).toContain('feat-warpriest-L18');
+  });
+});
+
 describe('archetypes — subsystem casters (magus)', () => {
   const magus = (archetype: string | undefined, level: number): CharacterDoc => {
     let d = newCharacter('t-arch5', 'M');

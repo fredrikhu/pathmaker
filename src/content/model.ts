@@ -148,6 +148,11 @@ export interface SpellcastingDef {
   /** Diminished Spellcasting: one fewer slot of each spell level per day (min 0). Set by an archetype
    *  via `spellcastingMod.diminished`; consumed by `spellSlotsPerDay`. Cantrips are unaffected. */
   diminished?: boolean;
+  /** Diminished spells *known*: one fewer spell known of every spell level (min 0), **including
+   *  cantrips** — the Crossblooded sorcerer's drawback. Distinct from `diminished` (slots/day, which
+   *  spares cantrips). Set by an archetype via `spellcastingMod.diminishedKnown`; consumed by
+   *  `spellsKnownPerLevel`. Only meaningful for spontaneous casters. */
+  diminishedKnown?: boolean;
 }
 
 export type ClassChoiceKind =
@@ -216,6 +221,8 @@ export interface ArchetypeDef {
    *  ignored when `spellcasting` replaces or removes casting outright (there is nothing to modify). */
   spellcastingMod?: {
     diminished?: boolean;
+    /** One fewer spell known of every level *including cantrips* (Crossblooded). */
+    diminishedKnown?: boolean;
     ability?: Ability;
     list?: SpellcastingDef['list'];
   };

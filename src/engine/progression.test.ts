@@ -84,6 +84,12 @@ describe('spell slots', () => {
   it('sorcerer known at level 4 = 6 cantrips, 3 first, 1 second', () => {
     expect(spellsKnownPerLevel('spontaneous-full', 4)).toEqual([6, 3, 1]);
   });
+  it('diminished known (Crossblooded) drops one from every level, cantrips included, min 0', () => {
+    // Standard level-4 sorcerer knows [6, 3, 1]; crossblooded knows one fewer of each, cantrips too.
+    expect(spellsKnownPerLevel('spontaneous-full', 4, true)).toEqual([5, 2, 0]);
+    // At level 1 (standard [4, 2]) the reduction floors at 0 for any 0-count level but never below.
+    expect(spellsKnownPerLevel('spontaneous-full', 1, true)).toEqual([3, 1]);
+  });
   it('bard known at level 1 = 4 cantrips, 2 first', () => {
     expect(spellsKnownPerLevel('bard', 1)).toEqual([4, 2]);
   });

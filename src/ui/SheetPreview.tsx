@@ -85,6 +85,7 @@ export function SheetPreview({ id }: { id: string }) {
                 {sheet.casting.length > 1 && <strong>{b.className}: </strong>}
                 Caster level {b.casterLevel}
                 {b.diminished && <> · <span title="One fewer slot of each spell level per day">diminished</span></>}
+                {b.diminishedKnown && <> · <span title="One fewer spell known of each level, including cantrips">−1 known/level</span></>}
                 {b.slots && b.slots.some((n) => n > 0) && <> · slots/day {b.slots.map((n, l) => ({ n, l })).filter((s) => s.n > 0).map(({ n, l }) => `L${l}:${n}`).join('  ')}</>}
               </div>
             ))}

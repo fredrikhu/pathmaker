@@ -594,6 +594,28 @@ export const WITCH_ARCHETYPES: ArchetypeDef[] = [
 
 export const SORCERER_ARCHETYPES: ArchetypeDef[] = [
   {
+    id: 'crossblooded', classId: 'sorcerer', name: 'Crossblooded',
+    desc: 'Heir to two distinct bloodlines whose divergent powers war within — greater reach, at the cost of clarity and focus.',
+    replaces: [],
+    // Two bloodlines instead of one: the class-skill loop and picker both read every bloodline pick,
+    // so raising the count grants both class skills and lets the player record both heritages. Bloodline
+    // powers stay one-per-level (RAW: you pick one of the two at each bloodline-power level), so the
+    // engine's single injected line — the first bloodline's powers — is one legal set of those picks.
+    choices: {
+      remove: ['bloodline'],
+      add: [{ id: 'bloodline', label: 'Bloodlines (choose two)', kind: 'sorcerer-bloodline', count: 2 }],
+    },
+    // Drawback: one fewer spell known of every level *including cantrips*, and −2 on Will saves.
+    spellcastingMod: { diminishedKnown: true },
+    grants: [
+      {
+        level: 1, id: 'crossblooded-divergent', name: 'Divergent Heritage',
+        desc: 'You draw on two bloodlines: gain the class skill and bloodline arcana of both, choose bloodline bonus spells, feats, and powers from either, but always take a −2 penalty on Will saves and know one fewer spell of every level (cantrips included).',
+        effects: [{ target: 'save:will', type: 'untyped', value: -2, note: 'Crossblooded (divergent heritage)' }],
+      },
+    ],
+  },
+  {
     id: 'tattooed-sorcerer', classId: 'sorcerer', name: 'Tattooed Sorcerer',
     desc: 'A sorcerer whose magic is etched in living ink — a familiar that rides as a tattoo, and spells stored in the skin.',
     replaces: ['sorc-eschew', 'sorc-bloodline-feat'],
@@ -626,6 +648,23 @@ export const SORCERER_ARCHETYPES: ArchetypeDef[] = [
 ];
 
 export const WARPRIEST_ARCHETYPES: ArchetypeDef[] = [
+  {
+    id: 'divine-commander', classId: 'warpriest', name: 'Divine Commander',
+    desc: 'A warpriest who leads armies from the saddle — trading personal blessings and bonus feats for a blessed mount and battlefield command.',
+    replaces: ['wp-blessings'],
+    // Mount replaces blessings (the feature and its two-blessing pick). Battle Tactician, Blessed Mount,
+    // Greater Battle Tactician and Bless Army replace the bonus feats at 3rd/6th/12th/15th (9th and 18th
+    // bonus feats are kept).
+    choices: { remove: ['blessings'] },
+    bonusFeatSlots: { remove: [3, 6, 12, 15] },
+    grants: [
+      g(1, 'dc-mount', 'Mount', 'Gain a loyal steed as a druid’s animal companion using your warpriest level as your effective druid level. Replaces blessings.'),
+      g(3, 'dc-battle-tactician', 'Battle Tactician', 'Gain a teamwork feat as a bonus feat; as a standard action, grant it to all allies within 30 feet who can see and hear you for several rounds. Usable 1/day, plus once more at 9th and 15th. Replaces the 3rd-level bonus feat.'),
+      g(6, 'dc-blessed-mount', 'Blessed Mount', 'Your mount gains the celestial, entropic, fiendish, or resolute template matching your deity’s alignment (or spell resistance and energy resistance if your deity is neutral). Replaces the 6th-level bonus feat.'),
+      g(12, 'dc-greater-battle-tactician', 'Greater Battle Tactician', 'Gain a second teamwork feat as a bonus feat you can grant with battle tactician, and using battle tactician becomes a swift action. Replaces the 12th-level bonus feat.'),
+      g(15, 'dc-bless-army', 'Bless Army', 'Expend two uses of fervor during the tactics phase to grant your army a +1 sacred or profane bonus to its OM and DV for one battle. Replaces the 15th-level bonus feat.'),
+    ],
+  },
   {
     id: 'sacred-fist', classId: 'warpriest', name: 'Sacred Fist',
     desc: 'A warrior-monk of the faith who forgoes armor and blessed steel to strike with blessed fists.',
