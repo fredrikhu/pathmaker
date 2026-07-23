@@ -183,6 +183,19 @@ export const ALCHEMIST_ARCHETYPES: ArchetypeDef[] = [
       g(7, 'vivi-torturous-transformation', 'Torturous Transformation', 'Add anthropomorphic animal (2nd), then awaken and baleful polymorph (3rd, at 9th) and regenerate (5th, at 15th) to your formula book, used through lengthy surgical procedures.'),
     ],
   },
+  {
+    id: 'grenadier', classId: 'alchemist', name: 'Grenadier',
+    desc: 'An alchemist who weaponizes everything — coating blades in acid and fire and placing every bomb with a marksman’s care.',
+    replaces: ['alch-brew-potion', 'alch-poison-resistance', 'alch-poison-use', 'alch-swift-poisoning'],
+    proficiencies: { weapons: { add: ['martial'] } },
+    grants: [
+      g(1, 'gren-martial-proficiency', 'Martial Weapon Proficiency', 'Gain proficiency with all martial weapons. Replaces Brew Potion.'),
+      g(2, 'gren-alchemical-weapon', 'Alchemical Weapon', 'As a swift action, apply an alchemical liquid or powder (acid, alchemist’s fire, etc.) to a weapon so its next hit deals that item’s damage. Replaces poison resistance.'),
+      g(2, 'gren-precise-bombs', 'Precise Bombs', 'Exclude a number of squares equal to your Intelligence modifier from your bombs’ splash. Replaces poison use.'),
+      g(6, 'gren-directed-blast', 'Directed Blast', 'Throw a bomb that splashes in a 20-foot cone or line instead of a radius. Replaces swift poisoning.'),
+      g(10, 'gren-staggering-blast', 'Staggering Blast', 'A bomb that scores a critical threat can leave the target staggered. Replaces poison immunity.'),
+    ],
+  },
 ];
 
 export const MAGUS_ARCHETYPES: ArchetypeDef[] = [
@@ -363,6 +376,17 @@ export const CAVALIER_ARCHETYPES: ArchetypeDef[] = [
       g(20, 'gendarme-transfixing-charge', 'Transfixing Charge', 'On a mounted charge, deal triple damage (quadruple with a lance); a confirmed critical deals maximum weapon damage. Replaces supreme charge.'),
     ],
   },
+  {
+    id: 'standard-bearer', classId: 'cavalier', name: 'Standard Bearer',
+    desc: 'A cavalier who leads on foot beneath a rallying banner, steeling allies where the fighting is thickest.',
+    replaces: ['cav-mount', 'cav-banner', 'cav-mighty-charge', 'cav-supreme-charge'],
+    grants: [
+      g(1, 'sb-cav-banner', 'Banner', 'Gain the cavalier banner at 1st level (rather than 5th), its bonuses rising at 5th and every five levels thereafter. Replaces mount.'),
+      g(5, 'sb-cav-mount', 'Mount', 'Gain a loyal combat-trained mount, as the standard cavalier. Replaces banner.'),
+      g(11, 'sb-banner-of-solace', 'Banner of Solace', 'Once per day, wave your banner as a full-round action to grant allies within 60 feet temporary hit points and a morale bonus on damage. Replaces mighty charge.'),
+      g(20, 'sb-awesome-pennon', 'Awesome Pennon', 'While your banner is visible, allies within 60 feet gain a morale bonus on attacks, immunity to fear, and a bonus against mind-affecting effects. Replaces supreme charge.'),
+    ],
+  },
 ];
 
 export const INQUISITOR_ARCHETYPES: ArchetypeDef[] = [
@@ -377,6 +401,20 @@ export const INQUISITOR_ARCHETYPES: ArchetypeDef[] = [
       g(16, 'ss-slayer-talent-16', 'Slayer Talent', 'Select a slayer talent. Replaces third judgment.'),
       g(17, 'ss-slayer-talent-17', 'Slayer Talent', 'Select a slayer talent. Replaces slayer.'),
       g(20, 'ss-slayer-talent-20', 'Slayer Talent', 'Select a slayer talent. Replaces true judgment.'),
+    ],
+  },
+  {
+    id: 'sacred-huntsmaster', classId: 'inquisitor', name: 'Sacred Huntsmaster',
+    desc: 'An inquisitor who hunts the faith’s foes alongside a bonded beast, the two moving as one relentless pack.',
+    replaces: ['inq-judgment', 'inq-solo-tactics', 'inq-second-judgment', 'inq-third-judgment', 'inq-slayer', 'inq-true-judgment'],
+    grants: [
+      g(1, 'sh-animal-companion', 'Animal Companion', 'Gain an animal companion, as a druid of your inquisitor level − 3. Replaces judgment 1/day.'),
+      g(3, 'sh-hunter-tactics', 'Hunter Tactics', 'Automatically grant your teamwork feats to your animal companion. Replaces solo tactics.'),
+      g(4, 'sh-animal-focus', 'Animal Focus', 'Take on the aspect of an animal for a scaling bonus, as a hunter. Replaces the later daily uses of judgment.'),
+      g(8, 'sh-improved-empathic-link', 'Improved Empathic Link', 'Share senses and a deeper bond with your companion. Replaces second judgment.'),
+      g(16, 'sh-raise-companion', 'Raise Animal Companion', 'Return a slain companion to life once per day. Replaces third judgment.'),
+      g(17, 'sh-second-animal-focus', 'Second Animal Focus', 'Apply a second animal focus at once. Replaces slayer.'),
+      g(20, 'sh-greater-empathic-link', 'Greater Empathic Link', 'Your bond with your companion reaches its height. Replaces true judgment.'),
     ],
   },
 ];
@@ -532,6 +570,21 @@ export const INVESTIGATOR_ARCHETYPES: ArchetypeDef[] = [
       g(20, 'emp-master-intellect', 'Master Intellect', 'Apply inspiration to any skill or ability check, including initiative, without spending inspiration points. Replaces true inspiration.'),
     ],
   },
+  {
+    id: 'sleuth', classId: 'investigator', name: 'Sleuth',
+    desc: 'An investigator who trusts luck and daring over alchemy — a two-fisted detective who makes his own breaks.',
+    replaces: ['inv-alchemy', 'inv-swift-alchemy'],
+    spellcasting: null, // a sleuth brews no extracts
+    grants: [
+      g(1, 'sleuth-luck', 'Sleuth’s Luck', 'A pool of luck points equal to your Charisma modifier (minimum 1), refreshed by natural 20s and high inspiration rolls during an investigation. Replaces alchemy.'),
+      g(1, 'sleuth-daring', 'Daring', 'Spend a luck point to add a rolled d6 (exploding on a 6) to an Acrobatics, Climb, Escape Artist, Fly, Ride, or Swim check.'),
+      g(1, 'sleuth-opportunistic-evasion', 'Opportunistic Evasion', 'Spend a luck point after a successful Reflex save to take no damage at all.'),
+      g(1, 'sleuth-initiative', 'Sleuth’s Initiative', '+2 on initiative while you have at least 1 luck point, and draw a weapon during initiative if you have Quick Draw.'),
+      g(4, 'sleuth-make-it-count', 'Make It Count', 'Spend a luck point to apply an investigator talent you don’t know to a studied strike. Replaces swift alchemy.'),
+      g(4, 'sleuth-run-like-hell', 'Run Like Hell', 'Spend a luck point for +20 ft speed for 1 minute and a dodge bonus while moving.'),
+      g(4, 'sleuth-second-chance', 'Second Chance', 'Spend a luck point to reroll an inspiration die or daring die.'),
+    ],
+  },
 ];
 
 export const ORACLE_ARCHETYPES: ArchetypeDef[] = [
@@ -547,6 +600,24 @@ export const ORACLE_ARCHETYPES: ArchetypeDef[] = [
     },
     grants: [
       g(1, 'ws-martial-flexibility', 'Martial Flexibility', 'As a move action, gain the benefit of a combat feat you lack for 1 minute, 3 + ½ your oracle level times per day; at 7th, 11th, and 15th you can borrow two or three feats at once or use faster action types. Replaces the revelations gained at 1st, 7th, 11th, and 15th.'),
+    ],
+  },
+  {
+    id: 'seeker', classId: 'oracle', name: 'Seeker',
+    desc: 'An oracle drawn to lost lore and hidden mechanisms — reading magic like a locksmith reads a tumbler.',
+    replaces: [],
+    // Tinkering grants a few skills in place of the mystery's bonus class skills (the mystery's own
+    // skill grants aren't modelled, so this only adds).
+    classSkills: { add: ['disable-device', 'know-engineering', 'use-magic-device'] },
+    // Seeker Lore / Seeker Magic take the revelations gained at 3rd and 15th.
+    choices: {
+      remove: ['revelation'],
+      add: [{ id: 'revelation', label: 'Revelation', kind: 'oracle-revelation', count: 1, levels: [1, 7, 11, 19] }],
+    },
+    grants: [
+      g(1, 'seeker-tinkering', 'Tinkering', 'Gain Disable Device, Knowledge (engineering), and Use Magic Device as class skills, and disarm magical traps with Disable Device. Replaces the mystery’s bonus class skills.'),
+      g(3, 'seeker-lore', 'Seeker Lore', 'Add half your oracle level to Spellcraft and Use Magic Device, and identify magic items more readily. Replaces the 3rd-level revelation.'),
+      g(15, 'seeker-magic', 'Seeker Magic', 'Apply metamagic to your spells without increasing casting time a few times per day. Replaces the 15th-level revelation.'),
     ],
   },
 ];
@@ -665,6 +736,17 @@ export const GUNSLINGER_ARCHETYPES: ArchetypeDef[] = [
       g(1, 'mm-steady-aim', 'Deed: Steady Aim', 'As a move action, spend 1 grit to increase the range increment of your two-handed firearm by 10 feet for the rest of your turn. Replaces the gunslinger’s dodge deed.'),
       g(3, 'mm-fast-musket', 'Deed: Fast Musket', 'Spend 1 grit to reload a two-handed firearm as if it were a one-handed firearm. Replaces the utility shot deed.'),
       g(5, 'mm-musket-training', 'Musket Training', 'Add your Dexterity modifier to two-handed firearm damage and reduce their misfire value, improving at 9th, 13th, and 17th. Replaces gun training.'),
+    ],
+  },
+  {
+    id: 'pistolero', classId: 'gunslinger', name: 'Pistolero',
+    desc: 'A gunslinger wed to the one-handed pistol — quick, close, and lethal, planting shots where they hurt most.',
+    replaces: ['gun-deed-deadeye', 'gun-deed-startling-shot', 'gun-deed-bleeding-wound', 'gun-gun-training'],
+    grants: [
+      g(1, 'pist-up-close', 'Deed: Up Close and Deadly', 'Spend 1 grit to add 1d6 (rising as you level) precision damage to a one-handed firearm hit within the first range increment. Replaces the deadeye deed.'),
+      g(5, 'pist-pistol-training', 'Pistol Training', 'Add your Dexterity modifier to one-handed firearm damage and reduce their misfire value, improving at 9th, 13th, and 17th. Replaces gun training.'),
+      g(7, 'pist-deadeye', 'Deed: Deadeye', 'Spend grit to resolve a one-handed firearm attack against touch AC beyond the first range increment. Replaces the startling shot deed.'),
+      g(11, 'pist-twin-shot-knockdown', 'Deed: Twin Shot Knockdown', 'Spend grit to fire both barrels or two shots at once and attempt to knock the target prone. Replaces the bleeding wound deed.'),
     ],
   },
 ];

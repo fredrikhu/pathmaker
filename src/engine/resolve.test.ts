@@ -4069,6 +4069,83 @@ describe('archetypes — second archetype per core class', () => {
   });
 });
 
+describe('archetypes — second archetype per base/hybrid class (batch A)', () => {
+  const build = (cls: string, archetype: string | undefined, level: number, choices?: Record<string, string[]>): CharacterDoc => {
+    let d = newCharacter('t-baseA', 'X');
+    d = withDecision(d, 'ability-base', { str: 13, dex: 14, con: 12, int: 14, wis: 13, cha: 13 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['int']);
+    d = withDecision(d, 'alignment', 'N');
+    d = withDecision(d, 'class', cls);
+    if (choices) d = withDecision(d, 'class-choices', choices);
+    if (archetype) d = withDecision(d, 'archetype', archetype);
+    return atLevel(d, level);
+  };
+  const featsAt = (doc: CharacterDoc, lvl: number) =>
+    resolve(doc).sheet.progression.find((r) => r.level === lvl)?.features ?? [];
+
+  it('Alchemist Grenadier gains martial weapons and swaps the poison line for bomb tricks', () => {
+    const g = build('alchemist', 'grenadier', 10);
+    expect(featsAt(g, 2)).toContain('Alchemical Weapon');
+    expect(featsAt(g, 2)).not.toContain('Poison Resistance +2');
+    expect(featsAt(g, 6)).toContain('Directed Blast');
+    const eff = effectiveClass(C.classById.get('alchemist')!, readDecisions(build('alchemist', 'grenadier', 1)));
+    expect(eff.proficiencies.weapons).toContain('martial');
+  });
+
+  it('Cavalier Standard Bearer swaps mount and banner, gaining banner at 1st', () => {
+    const s = build('cavalier', 'standard-bearer', 20);
+    expect(featsAt(s, 1)).toContain('Banner');
+    expect(featsAt(s, 1)).not.toContain('Mount');
+    expect(featsAt(s, 5)).toContain('Mount');           // mount now comes at 5th
+    expect(featsAt(s, 20)).toContain('Awesome Pennon');
+    expect(featsAt(s, 20)).not.toContain('Supreme Charge');
+  });
+
+  it('Gunslinger Pistolero swaps three deeds and gun training for pistol abilities', () => {
+    const p = build('gunslinger', 'pistolero', 11);
+    expect(featsAt(p, 1)).toContain('Deed: Up Close and Deadly');
+    expect(featsAt(p, 1)).not.toContain('Deed: Deadeye'); // moved to 7th
+    expect(featsAt(p, 5)).toContain('Pistol Training');
+    expect(featsAt(p, 5)).not.toContain('Gun Training 1');
+    expect(featsAt(p, 7)).toContain('Deed: Deadeye');
+    expect(featsAt(p, 11)).toContain('Deed: Twin Shot Knockdown');
+  });
+
+  it('Inquisitor Sacred Huntsmaster swaps the judgment line for an animal companion', () => {
+    const s = build('inquisitor', 'sacred-huntsmaster', 8);
+    expect(featsAt(s, 1)).toContain('Animal Companion');
+    expect(featsAt(s, 1)).not.toContain('Judgment 1/day');
+    expect(featsAt(s, 3)).toContain('Hunter Tactics');
+    expect(featsAt(s, 3)).not.toContain('Solo Tactics');
+    expect(featsAt(s, 8)).toContain('Improved Empathic Link');
+    expect(resolve(s).sheet.casting.length).toBeGreaterThan(0);
+  });
+
+  it('Oracle Seeker removes the 3rd/15th revelations and adds tinkering skills', () => {
+    const revSlots = (doc: CharacterDoc) =>
+      resolve(doc).slots.filter((s) => s.step === 'class' && s.id.startsWith('revelation')).map((s) => s.id);
+    const k = build('oracle', 'seeker', 20);
+    expect(featsAt(k, 1)).toContain('Tinkering');
+    const rev = revSlots(k);
+    expect(rev).not.toContain('revelation-L3');
+    expect(rev).not.toContain('revelation-L15');
+    expect(rev).toContain('revelation-L7');
+    expect(resolve(k).sheet.classSkillIds).toContain('disable-device');
+    expect(resolve(k).sheet.casting.length).toBeGreaterThan(0);
+  });
+
+  it('Investigator Sleuth trades alchemy for luck-based deeds and loses extract casting', () => {
+    expect(resolve(build('investigator', undefined, 4)).sheet.casting.length).toBeGreaterThan(0);
+    const s = build('investigator', 'sleuth', 4);
+    expect(featsAt(s, 1)).toContain('Sleuth’s Luck');
+    expect(featsAt(s, 1)).not.toContain('Alchemy');
+    expect(featsAt(s, 4)).toContain('Make It Count');
+    expect(featsAt(s, 4)).not.toContain('Swift Alchemy');
+    expect(resolve(s).sheet.casting.length).toBe(0);
+  });
+});
+
 describe('archetypes — caster classes', () => {
   const build = (cls: string, archetype: string | undefined, level: number): CharacterDoc => {
     let d = newCharacter('t-arch3', 'X');
