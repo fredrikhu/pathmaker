@@ -6,7 +6,7 @@
 // replaces "Armor Training 1–4" replaces that one id and grants its own abilities in their place.
 
 import type { ArchetypeDef, LeveledFeatureDef } from './model';
-import { ROGUE_TALENTS, ROGUE_ADVANCED_TALENTS } from './subsystems';
+import { ROGUE_TALENTS, ROGUE_ADVANCED_TALENTS, MAGUS_ARCANA, WITCH_HEXES } from './subsystems';
 
 const g = (level: number, id: string, name: string, desc: string): LeveledFeatureDef => ({ level, id, name, desc });
 
@@ -139,9 +139,42 @@ export const ALCHEMIST_ARCHETYPES: ArchetypeDef[] = [
   },
 ];
 
+export const MAGUS_ARCHETYPES: ArchetypeDef[] = [
+  {
+    id: 'bladebound', classId: 'magus', name: 'Bladebound',
+    desc: 'A magus bonded to a sentient black blade — an intelligent weapon that shares (and covets) his arcane power.',
+    replaces: ['magus-arcane-pool'],
+    grants: [
+      g(1, 'bladebound-arcane-pool', 'Arcane Pool (black blade)', 'Your arcane pool holds points equal to 1/3 your magus level (minimum 1) + your Intelligence bonus, rather than the standard 1/2 level + Int. Changes the Arcane Pool feature.'),
+      g(3, 'bladebound-black-blade', 'Black Blade', 'You bond with a sentient black blade of a chosen weapon type — an intelligent partner whose Intelligence, Wisdom, Charisma, and ego rise as you level, with its own arcane pool and powers. You cannot take the familiar magus arcana or have a familiar of any kind. Replaces the 3rd-level magus arcana.'),
+    ],
+    // The 3rd-level arcana pick becomes the black blade; the rest remain.
+    choices: {
+      remove: ['magus-arcana'],
+      add: [{ id: 'magus-arcana', label: 'Magus arcana', kind: 'list', count: 1, levels: [6, 9, 12, 15, 18], options: MAGUS_ARCANA }],
+    },
+  },
+  {
+    id: 'hexcrafter', classId: 'magus', name: 'Hexcrafter',
+    desc: 'A magus who bends his arcane pool toward witchcraft — hexing foes and cursing those he strikes.',
+    replaces: ['magus-spell-recall'], // Hex Magus replaces spell recall at 4th
+    grants: [
+      g(1, 'hexcrafter-accursed-strike', 'Accursed Strike', 'You add bestow curse, major curse, and other curse-descriptor spells of 6th level or lower to your magus spell list, and can deliver such spells through Spellstrike even when they are not touch attack spells.'),
+    ],
+    // Hexes may be taken in place of a magus arcana, plus a dedicated Hex Magus pick at 4th.
+    choices: {
+      remove: ['magus-arcana'],
+      add: [
+        { id: 'magus-arcana', label: 'Magus arcana or hex', kind: 'list', count: 1, levels: [3, 6, 9, 12, 15, 18], options: [...MAGUS_ARCANA, ...WITCH_HEXES] },
+        { id: 'hexcrafter-hex-magus', label: 'Hex Magus (witch hex)', kind: 'list', count: 1, levels: [4], options: WITCH_HEXES },
+      ],
+    },
+  },
+];
+
 export const ARCHETYPES: ArchetypeDef[] = [
   ...FIGHTER_ARCHETYPES, ...RANGER_ARCHETYPES, ...ROGUE_ARCHETYPES, ...BARBARIAN_ARCHETYPES, ...PALADIN_ARCHETYPES,
-  ...BARD_ARCHETYPES, ...ALCHEMIST_ARCHETYPES,
+  ...BARD_ARCHETYPES, ...ALCHEMIST_ARCHETYPES, ...MAGUS_ARCHETYPES,
 ];
 export const archetypeById = new Map(ARCHETYPES.map((a) => [a.id, a]));
 export const archetypesForClass = (classId: string): ArchetypeDef[] => ARCHETYPES.filter((a) => a.classId === classId);

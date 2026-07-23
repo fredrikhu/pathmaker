@@ -4,6 +4,7 @@ import { newCharacter, withDecision } from './character';
 import type { CharacterDoc } from './types';
 import { emptyPlayState } from './types';
 import * as C from '../content/index';
+import { MAGUS_ARCANA } from '../content/subsystems';
 
 // Golden characters — numbers hand-computed against the PF1e core rules.
 
@@ -3581,5 +3582,50 @@ describe('archetypes — subsystem / choice changes', () => {
     const ids = (effectiveClass(testClass, readDecisions(doc)).choices ?? []).map((c) => c.id);
     expect(ids).not.toContain('rage-power');
     expect(ids).toContain('test-pick');
+  });
+});
+
+describe('archetypes — subsystem casters (magus)', () => {
+  const magus = (archetype: string | undefined, level: number): CharacterDoc => {
+    let d = newCharacter('t-arch5', 'M');
+    d = withDecision(d, 'ability-base', { str: 14, dex: 14, con: 12, int: 15, wis: 10, cha: 10 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['int']);
+    d = withDecision(d, 'alignment', 'N');
+    d = withDecision(d, 'class', 'magus');
+    if (archetype) d = withDecision(d, 'archetype', archetype);
+    return atLevel(d, level);
+  };
+  const featsAt = (doc: CharacterDoc, lvl: number) =>
+    resolve(doc).sheet.progression.find((r) => r.level === lvl)?.features ?? [];
+  const arcanaSlots = (doc: CharacterDoc) =>
+    resolve(doc).slots.filter((s) => s.step === 'class' && s.id.startsWith('magus-arcana'));
+
+  it('a standard magus gains its first arcana at 3rd and casts', () => {
+    const std = magus(undefined, 20);
+    expect(arcanaSlots(std).map((s) => s.id)).toContain('magus-arcana-L3');
+    expect(resolve(std).sheet.casting.length).toBeGreaterThan(0);
+  });
+
+  it('Bladebound replaces the 3rd-level arcana with the Black Blade', () => {
+    const bb = magus('bladebound', 20);
+    expect(featsAt(bb, 1)).toContain('Arcane Pool (black blade)');
+    expect(featsAt(bb, 1)).not.toContain('Arcane Pool'); // base pool swapped out
+    expect(featsAt(bb, 3)).toContain('Black Blade');
+    const ids = arcanaSlots(bb).map((s) => s.id);
+    expect(ids).not.toContain('magus-arcana-L3'); // 3rd-level arcana is the black blade
+    expect(ids).toContain('magus-arcana-L6');
+    expect(resolve(bb).sheet.casting.length).toBeGreaterThan(0); // still a caster
+  });
+
+  it('Hexcrafter offers witch hexes, a Hex Magus pick, and Accursed Strike', () => {
+    const hc = magus('hexcrafter', 20);
+    expect(featsAt(hc, 1)).toContain('Accursed Strike');
+    expect(featsAt(hc, 4)).not.toContain('Spell Recall'); // replaced by Hex Magus
+    const arcana = arcanaSlots(hc);
+    expect(arcana[0].options.length).toBeGreaterThan(MAGUS_ARCANA.length); // hexes added
+    const hexMagus = resolve(hc).slots.filter((s) => s.id.startsWith('hexcrafter-hex-magus'));
+    expect(hexMagus.length).toBe(1); // one dedicated pick at 4th
+    expect(resolve(hc).sheet.casting.length).toBeGreaterThan(0);
   });
 });

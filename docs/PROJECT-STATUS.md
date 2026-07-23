@@ -9,7 +9,24 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 **Current state** — branch `main`, working tree clean, **567 tests** passing; run
 `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
-**Latest — Archetypes: model extended for subsystem/choice changes.** Archetypes can now add and remove
+**Latest — Archetypes: subsystem casters (Magus).** With the choice-slot model in place, authored the two
+Magus archetypes that reshape the magus-arcana subsystem. **Bladebound** replaces the 3rd-level arcana with
+the **Black Blade** (a sentient bonded weapon) and swaps Arcane Pool for the black-blade pool (1/3 level + Int):
+`replaces: ['magus-arcane-pool']`, grants the black-blade pool at 1 + Black Blade at 3, and re-adds the arcana
+choice at levels 6/9/12/15/18 only (dropping the 3rd-level pick). **Hexcrafter** lets witch hexes stand in for
+magus arcana and adds a dedicated **Hex Magus** hex pick at 4th (replacing `magus-spell-recall`), plus **Accursed
+Strike**: `choices` re-add the arcana slot with `[...MAGUS_ARCANA, ...WITCH_HEXES]` options and a
+`hexcrafter-hex-magus` pick at level 4. Both keep full magus spellcasting. Verified vs d20pfsrd. 3 golden tests
+(standard magus arcana at 3rd + casts; Bladebound → black-blade pool at 1, Black Blade at 3, arcana starts at 6,
+still casts; Hexcrafter → hexes in the arcana list, Hex Magus slot at 4, Accursed Strike, still casts); 617 pass;
+browser-verified the Magus picker shows both archetypes and the Advancement table shows the black-blade pool at
+1 and Black Blade at 3. Archetypes now span Fighter, Ranger, Rogue, Barbarian, Paladin, Bard, Alchemist, Magus
+(12 total). **Kensai deferred** — its Diminished Spellcasting (−1 slot/level) is the still-unmodeled
+partial-casting gap; shipping it would show full slots. **Known cosmetic gap:** the Class step's "level 1
+features" preview reads the base `features1` list, so it doesn't reflect archetype feature swaps (the authoritative
+Advancement/Sheet views do) — pre-existing, affects all archetypes.
+
+**Prior — Archetypes: model extended for subsystem/choice changes.** Archetypes can now add and remove
 class **choice slots** — the whole `ClassChoiceDef` family, which turns out to cover both subsystem picks
 (rage powers, rogue talents, discoveries, arcana, hexes, exploits…) *and* the structural picks (domains,
 school, bloodline, mystery, patron, nature bond), since they're all `ClassDef.choices`. `ArchetypeDef` gained
