@@ -224,6 +224,14 @@ export interface ArchetypeDef {
    *  and `add` grants new ones. To *change* a choice (e.g. two domains → one), remove its id and add a
    *  replacement. */
   choices?: { remove?: string[]; add?: ClassChoiceDef[] };
+  /** Class-skill list changes: skill ids to add to or remove from the class's class-skill list
+   *  (e.g. the Cloistered Cleric adds all Knowledge skills and loses heavy-armor training). */
+  classSkills?: { add?: string[]; remove?: string[] };
+  /** Bonus-feat-slot changes: the class levels (matching `ClassDef.bonusFeats.levels`) to add or
+   *  remove a bonus-feat slot at. Removing every level drops the bonus-feat line entirely; adding to
+   *  a class with no bonus feats creates one. Used by archetypes that trade bonus feats for other
+   *  abilities (e.g. the Sensei loses its feats at 2nd/6th/10th/14th). */
+  bonusFeatSlots?: { add?: number[]; remove?: number[] };
 }
 
 export interface ClassDef {

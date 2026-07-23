@@ -878,6 +878,15 @@ describe('archetypes', () => {
           const stillCasts = a.spellcasting === undefined ? !!c.spellcasting : a.spellcasting !== null;
           expect(stillCasts, `${a.id}: spellcastingMod but no surviving spellcasting`).toBe(true);
         }
+        // Class-skill add/remove must reference real skills; removes must hit a skill the class has.
+        for (const s of a.classSkills?.add ?? []) expect(skillIds.has(s), `${a.id} adds unknown class skill ${s}`).toBe(true);
+        for (const s of a.classSkills?.remove ?? []) expect(c.classSkills.includes(s), `${a.id} removes class skill ${s} the class lacks`).toBe(true);
+        // Bonus-feat-slot removes must hit a real bonus-feat level; both lists stay in 1..20.
+        for (const l of a.bonusFeatSlots?.remove ?? []) expect(c.bonusFeats?.levels.includes(l), `${a.id} removes bonus-feat level ${l} the class lacks`).toBe(true);
+        for (const l of [...(a.bonusFeatSlots?.add ?? []), ...(a.bonusFeatSlots?.remove ?? [])]) {
+          expect(l, `${a.id} bonus-feat level ${l}`).toBeGreaterThanOrEqual(1);
+          expect(l, `${a.id} bonus-feat level ${l}`).toBeLessThanOrEqual(20);
+        }
         for (const g of a.grants) {
           expect(g.level, `${a.id} grant ${g.id} level`).toBeGreaterThanOrEqual(1);
           expect(g.level, `${a.id} grant ${g.id} level`).toBeLessThanOrEqual(20);

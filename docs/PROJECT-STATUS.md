@@ -9,7 +9,25 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 **Current state** — branch `main`, working tree clean, **567 tests** passing; run
 `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
-**Latest — Archetypes: Monk batch (Master of Many Styles, Zen Archer).** Gave the Monk its first archetypes,
+**Latest — Archetypes: class-skill + bonus-feat-slot model (Sensei, Cloistered Cleric).** Closed the last two
+archetype-model gaps. `ArchetypeDef` gained `classSkills?: { add?; remove? }` and `bonusFeatSlots?: { add?;
+remove? }` (class levels). `effectiveClass` applies both onto the effective class; since every consumer already
+reads class skills and bonus-feat slots off `classBreakdown` (which runs `effectiveClass`), no downstream wiring
+was needed — the class-skill set and the feat-slot emission just follow. Demonstrated with two previously-blocked
+archetypes: **Sensei** (Monk) trades its 2nd/6th/10th/14th bonus feats (`bonusFeatSlots.remove`) for Advice
+(bardic-performance-style inspiration), Insightful Strike (Wis-to-hit), and Mystic Wisdom, keeping only the 1st-
+and 18th-level bonus feats; **Cloistered Cleric** adds Knowledge (all) to class skills (`classSkills.add`),
+diminishes non-domain casting (`spellcastingMod.diminished` — the domain slot is a separate, unreduced bonus slot,
+so this is exactly RAW), drops to one domain (`choices`), and loses medium/heavy armor and shields
+(`proficiencies`). Verified vs d20pfsrd. 4 golden tests (Sensei slot removal + features; Cloistered class-skill
+add, one-domain/diminished/armor via `effectiveClass`, and −1 non-domain slots at level 9) + content-integrity
+guards (class-skill/bonus-feat-slot refs valid); 630 pass; browser-verified the Sensei shows 2 bonus-feat slots
+(not 6), the Cloistered sheet shows "diminished" casting, and Knowledge (nature) carries the class-skill marker.
+Archetypes now span Fighter, Ranger, Rogue, Barbarian, Paladin, Bard, Alchemist, Magus, Monk, **Cleric** (17
+total). **The archetype model is now feature-complete**: feature swaps, proficiency, spellcasting
+(replace/remove/diminish + stat/list), choice slots, class skills, and bonus-feat slots.
+
+**Prior — Archetypes: Monk batch (Master of Many Styles, Zen Archer).** Gave the Monk its first archetypes,
 both pure feature swaps (no casting, no new model work). **Master of Many Styles** trades flurry of blows for
 **Fuse Style** (two stances at once; monk bonus feats become style feats) — improving at 8/15 — and perfect
 self for **Perfect Style** (five stances). **Zen Archer** rebuilds the monk around the bow: **Flurry of Blows

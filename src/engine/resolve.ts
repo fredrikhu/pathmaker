@@ -287,7 +287,24 @@ function effectiveClass(klass: C.ClassDef, dec: Decisions): C.ClassDef {
     const removed = new Set(arch.choices.remove ?? []);
     choices = [...(klass.choices ?? []).filter((c) => !removed.has(c.id)), ...(arch.choices.add ?? [])];
   }
-  return { ...klass, features, proficiencies, spellcasting, choices };
+  // Class-skill list: drop removed skills, append added ones (no duplicates).
+  let classSkills = klass.classSkills;
+  if (arch.classSkills) {
+    const removed = new Set(arch.classSkills.remove ?? []);
+    const kept = klass.classSkills.filter((s) => !removed.has(s));
+    classSkills = [...kept, ...(arch.classSkills.add ?? []).filter((s) => !kept.includes(s))];
+  }
+  // Bonus-feat slots: drop removed levels, add new ones. Empty ⇒ no bonus-feat line at all.
+  let bonusFeats = klass.bonusFeats;
+  if (arch.bonusFeatSlots) {
+    const removed = new Set(arch.bonusFeatSlots.remove ?? []);
+    const levels = [...new Set([
+      ...(klass.bonusFeats?.levels ?? []).filter((l) => !removed.has(l)),
+      ...(arch.bonusFeatSlots.add ?? []),
+    ])].sort((a, b) => a - b);
+    bonusFeats = levels.length ? { ...(klass.bonusFeats ?? {}), levels } : undefined;
+  }
+  return { ...klass, features, proficiencies, spellcasting, choices, classSkills, bonusFeats };
 }
 
 function classFeaturesUpTo(klass: C.ClassDef | undefined, level: number, dec?: Decisions): C.LeveledFeatureDef[] {

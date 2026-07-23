@@ -248,11 +248,50 @@ export const MONK_ARCHETYPES: ArchetypeDef[] = [
       g(17, 'zen-ki-focus-bow', 'Ki Focus Bow', 'Treat your bow as a ki focus weapon, delivering your ki-powered abilities through its arrows. Replaces tongue of the sun and moon.'),
     ],
   },
+  {
+    id: 'sensei', classId: 'monk', name: 'Sensei',
+    desc: 'A monastic mentor who leads from insight — inspiring allies and striking with wisdom rather than raw force.',
+    replaces: ['monk-flurry', 'monk-fast-movement', 'monk-improved-evasion', 'monk-evasion'],
+    // Advice/Insightful Strike/Mystic Wisdom take the place of the monk's bonus feats at 2/6/10/14
+    // (the 1st- and 18th-level bonus feats remain).
+    bonusFeatSlots: { remove: [2, 6, 10, 14] },
+    grants: [
+      g(1, 'sensei-advice', 'Advice', 'Direct your allies as a bardic performance using oratory — inspire courage (1st), inspire competence (3rd), inspire greatness (9th), and inspire heroics (15th) — for a number of rounds per day equal to your monk level + your Wisdom modifier. Replaces flurry of blows, fast movement, and improved evasion.'),
+      g(2, 'sensei-insightful-strike', 'Insightful Strike', 'Use your Wisdom modifier in place of Strength or Dexterity on attack rolls and combat maneuver checks with unarmed strikes and monk weapons. Replaces evasion and the 2nd-level bonus feat.'),
+      g(6, 'sensei-mystic-wisdom', 'Mystic Wisdom', 'Spend ki to grant your monk abilities to a nearby ally instead of yourself, widening to several allies at 10th and to advanced abilities at 14th. Replaces the bonus feats gained at 6th, 10th, and 14th level.'),
+    ],
+  },
+];
+
+export const CLERIC_ARCHETYPES: ArchetypeDef[] = [
+  {
+    id: 'cloistered-cleric', classId: 'cleric', name: 'Cloistered Cleric',
+    desc: 'A scholar-priest who trades martial training and a measure of divine power for deep learning and the support of allies.',
+    // Diminished Spellcasting: one fewer non-domain spell of each level. The domain slot is a separate
+    // (unreduced) bonus slot in the engine, so the reduction lands only on the normal slots — exactly RAW.
+    spellcastingMod: { diminished: true },
+    // Adds the remaining Knowledge skills, giving the cleric Knowledge (all) as class skills.
+    classSkills: { add: ['know-dungeoneering', 'know-engineering', 'know-geography', 'know-local', 'know-nature'] },
+    // Light armor only, no shields (RAW also narrows weapons to a short list — not modelled here).
+    proficiencies: { armor: { remove: ['medium', 'heavy', 'shield'] } },
+    replaces: [],
+    grants: [
+      g(1, 'cloistered-breadth-of-knowledge', 'Breadth of Knowledge', 'Add half your cleric level (minimum 1) to all Knowledge checks and make Knowledge checks untrained.'),
+      g(2, 'cloistered-well-read', 'Well-Read', '+2 on checks and saves involving glyphs, runes, scrolls, symbols, and the written word.'),
+      g(3, 'cloistered-verbal-instruction', 'Verbal Instruction', 'Use aid another at 30 feet to help an ally’s skill or ability check, aiding one more ally for every three cleric levels.'),
+      g(4, 'cloistered-scribe-scroll', 'Scribe Scroll', 'Gain Scribe Scroll as a bonus feat.'),
+    ],
+    // One domain instead of two.
+    choices: {
+      remove: ['domains'],
+      add: [{ id: 'domains', label: 'Domain', kind: 'cleric-domains', count: 1 }],
+    },
+  },
 ];
 
 export const ARCHETYPES: ArchetypeDef[] = [
   ...FIGHTER_ARCHETYPES, ...RANGER_ARCHETYPES, ...ROGUE_ARCHETYPES, ...BARBARIAN_ARCHETYPES, ...PALADIN_ARCHETYPES,
-  ...BARD_ARCHETYPES, ...ALCHEMIST_ARCHETYPES, ...MAGUS_ARCHETYPES, ...MONK_ARCHETYPES,
+  ...BARD_ARCHETYPES, ...ALCHEMIST_ARCHETYPES, ...MAGUS_ARCHETYPES, ...MONK_ARCHETYPES, ...CLERIC_ARCHETYPES,
 ];
 export const archetypeById = new Map(ARCHETYPES.map((a) => [a.id, a]));
 export const archetypesForClass = (classId: string): ArchetypeDef[] => ARCHETYPES.filter((a) => a.classId === classId);

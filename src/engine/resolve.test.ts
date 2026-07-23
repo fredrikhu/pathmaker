@@ -3527,6 +3527,8 @@ describe('archetypes — monk (feature-swap only)', () => {
   };
   const featsAt = (doc: CharacterDoc, lvl: number) =>
     resolve(doc).sheet.progression.find((r) => r.level === lvl)?.features ?? [];
+  const monkBonusFeatSlots = (doc: CharacterDoc) =>
+    resolve(doc).slots.filter((s) => s.step === 'feats' && s.id.startsWith('feat-monk')).map((s) => s.id);
 
   it('Master of Many Styles swaps flurry for Fuse Style and perfect self for Perfect Style', () => {
     expect(featsAt(monk(undefined, 20), 1)).toContain('Flurry of Blows');
@@ -3549,6 +3551,65 @@ describe('archetypes — monk (feature-swap only)', () => {
     expect(featsAt(z, 3)).not.toContain('Still Mind');
     expect(featsAt(z, 17)).toContain('Ki Focus Bow');
     expect(featsAt(z, 17)).not.toContain('Tongue of the Sun and Moon');
+  });
+
+  it('Sensei trades its 2nd/6th/10th/14th bonus feats for advisory abilities', () => {
+    const stdSlots = monkBonusFeatSlots(monk(undefined, 20));
+    expect(stdSlots).toContain('feat-monk-L2'); // standard monk has these bonus-feat slots
+    expect(stdSlots).toContain('feat-monk-L6');
+    const s = monk('sensei', 20);
+    const slots = monkBonusFeatSlots(s);
+    expect(slots).toContain('feat-monk');     // 1st-level bonus feat kept
+    expect(slots).toContain('feat-monk-L18'); // 18th kept
+    expect(slots).not.toContain('feat-monk-L2');
+    expect(slots).not.toContain('feat-monk-L6');
+    expect(slots).not.toContain('feat-monk-L10');
+    expect(slots).not.toContain('feat-monk-L14');
+    expect(featsAt(s, 1)).toContain('Advice');
+    expect(featsAt(s, 2)).toContain('Insightful Strike');
+    expect(featsAt(s, 6)).toContain('Mystic Wisdom');
+    expect(featsAt(s, 1)).not.toContain('Flurry of Blows');
+  });
+});
+
+describe('archetypes — class-skill changes (Cloistered Cleric)', () => {
+  const cleric = (archetype: string | undefined, level: number): CharacterDoc => {
+    let d = newCharacter('t-cc', 'C');
+    d = withDecision(d, 'ability-base', { str: 10, dex: 12, con: 12, int: 12, wis: 16, cha: 12 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['wis']);
+    d = withDecision(d, 'alignment', 'N');
+    d = withDecision(d, 'class', 'cleric');
+    if (archetype) d = withDecision(d, 'archetype', archetype);
+    return atLevel(d, level);
+  };
+
+  it('adds Knowledge (all) to class skills; a standard cleric lacks them', () => {
+    expect(resolve(cleric(undefined, 5)).sheet.classSkillIds).not.toContain('know-nature');
+    const cc = resolve(cleric('cloistered-cleric', 5)).sheet.classSkillIds;
+    expect(cc).toContain('know-nature');
+    expect(cc).toContain('know-local');
+    expect(cc).toContain('know-arcana'); // the cleric's original Knowledges remain
+  });
+
+  it('effectiveClass applies the diminished flag, one domain, and light-armor-only', () => {
+    const base = C.classById.get('cleric')!;
+    let d = withDecision(newCharacter('t-cc2', 'C'), 'class', 'cleric');
+    d = withDecision(d, 'archetype', 'cloistered-cleric');
+    const eff = effectiveClass(base, readDecisions(d));
+    expect(eff.spellcasting?.diminished).toBe(true);
+    expect((eff.choices ?? []).find((c) => c.id === 'domains')?.count).toBe(1);
+    expect(eff.proficiencies.armor).toContain('light');
+    expect(eff.proficiencies.armor).not.toContain('medium');
+    expect(eff.proficiencies.armor).not.toContain('shield');
+  });
+
+  it('diminished cuts non-domain slots by one while keeping caster level', () => {
+    const std = resolve(cleric(undefined, 9)).sheet.casting.find((b) => b.classId === 'cleric')!;
+    const cc = resolve(cleric('cloistered-cleric', 9)).sheet.casting.find((b) => b.classId === 'cleric')!;
+    expect(cc.diminished).toBe(true);
+    expect(cc.casterLevel).toBe(std.casterLevel);
+    for (let L = 1; L <= 5; L++) expect(cc.slots![L]).toBe(std.slots![L] - 1);
   });
 });
 
