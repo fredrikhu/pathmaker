@@ -9,7 +9,15 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 **Current state** — branch `main`, working tree clean, **567 tests** passing; run
 `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
-**Latest — Archetypes: third-per-class breadth batch (5 popular Core classes).** With every class at ≥2, brought
+**Latest — Archetypes: third-per-class breadth batch 2 (Base/Hybrid classes).** Gunslinger **Mysterious Stranger**
+(Cha-grit; swaps two deeds + nimble + gun training 1), Brawler **Exemplar** (inspiring performance), Witch
+**Gravewalker** (undead mastery; swaps the 1st/4th/8th hexes), Investigator **Mastermind** (swaps trapfinding/
+swift alchemy + the 9th talent). All verified vs d20pfsrd; choice-slot swaps for the hex/talent lines. **Deferred:
+Warpriest Divine Commander** — it replaces individual bonus-feat slots at 3/6/12/15, which the model can't remove
+piecemeal. 4 golden tests; **689 pass**; browser-verified Gravewalker. (Caught mid-batch: Archaeologist/
+Vivisectionist/Gendarme/Aquatic Druid already existed as those classes' *second* — reverted the dupes.)
+
+**Prior — Archetypes: third-per-class breadth batch (5 popular Core classes).** With every class at ≥2, brought
 the most-played Core classes to a third (matching monk/magus): Fighter **Archer**, Rogue **Scout**, Barbarian
 **Titan Mauler**, Ranger **Guide**, Paladin **Undead Scourge**. All verified vs d20pfsrd; clean feature swaps
 (Archer keeps weapon mastery; the fighter's intermediate weapon/armor-training ranks aren't modelled as separate

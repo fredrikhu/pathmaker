@@ -4184,6 +4184,47 @@ describe('archetypes — second archetype per base/hybrid class (batch A)', () =
     expect(talents).toContain('slayer-talent-L4');
   });
 
+  it('Gunslinger Mysterious Stranger swaps nimble/gun-training and two deeds', () => {
+    const m = build('gunslinger', 'mysterious-stranger', 11);
+    expect(featsAt(m, 1)).toContain('Focused Aim');
+    expect(featsAt(m, 1)).not.toContain('Deed: Quick Clear');
+    expect(featsAt(m, 2)).toContain('Lucky');
+    expect(featsAt(m, 2)).not.toContain('Nimble +1');
+    expect(featsAt(m, 5)).toContain('Stranger’s Fortune');
+    expect(featsAt(m, 11)).not.toContain('Deed: Bleeding Wound');
+  });
+
+  it('Brawler Exemplar swaps unarmed/maneuver line for inspiring performance', () => {
+    const e = build('brawler', 'exemplar', 5);
+    expect(featsAt(e, 1)).toContain('Call to Arms');
+    expect(featsAt(e, 1)).not.toContain('Unarmed Strike');
+    expect(featsAt(e, 3)).toContain('Inspiring Prowess');
+    expect(featsAt(e, 3)).not.toContain('Maneuver Training');
+    expect(featsAt(e, 4)).not.toContain('AC Bonus');
+  });
+
+  it('Witch Gravewalker swaps the 1st/4th/8th hexes for undead mastery', () => {
+    const g = build('witch', 'gravewalker', 10);
+    expect(featsAt(g, 1)).toContain('Aura of Desecration');
+    expect(featsAt(g, 4)).toContain('Bonethrall');
+    expect(featsAt(g, 8)).toContain('Possess Undead');
+    const hexes = resolve(g).slots.filter((x) => x.step === 'class' && x.id.startsWith('hex')).map((x) => x.id);
+    expect(hexes).not.toContain('hex');       // 1st-level hex gone
+    expect(hexes).not.toContain('hex-L4');
+    expect(hexes).not.toContain('hex-L8');
+    expect(hexes).toContain('hex-L6');
+  });
+
+  it('Investigator Mastermind swaps trapfinding/swift alchemy and the 9th talent', () => {
+    const m = build('investigator', 'mastermind', 9);
+    expect(featsAt(m, 1)).toContain('A Quiet Word');
+    expect(featsAt(m, 1)).not.toContain('Trapfinding');
+    expect(featsAt(m, 4)).toContain('Mastermind’s Defense');
+    const talents = resolve(m).slots.filter((x) => x.step === 'class' && x.id.startsWith('investigator-talent')).map((x) => x.id);
+    expect(talents).not.toContain('investigator-talent-L9');
+    expect(talents).toContain('investigator-talent-L7');
+  });
+
   it('Fighter Archer swaps bravery/armor-training/weapon-training for ranged features', () => {
     const a = build('fighter', 'archer', 20);
     expect(featsAt(a, 2)).toContain('Hawkeye');

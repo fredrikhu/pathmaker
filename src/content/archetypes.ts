@@ -6,7 +6,7 @@
 // replaces "Armor Training 1–4" replaces that one id and grants its own abilities in their place.
 
 import type { ArchetypeDef, LeveledFeatureDef } from './model';
-import { ROGUE_TALENTS, ROGUE_ADVANCED_TALENTS, MAGUS_ARCANA, WITCH_HEXES, ARCANIST_EXPLOITS, BARBARIAN_RAGE_POWERS, SLAYER_TALENTS, SLAYER_ADVANCED_TALENTS, SHAMAN_HEXES } from './subsystems';
+import { ROGUE_TALENTS, ROGUE_ADVANCED_TALENTS, MAGUS_ARCANA, WITCH_HEXES, ARCANIST_EXPLOITS, BARBARIAN_RAGE_POWERS, SLAYER_TALENTS, SLAYER_ADVANCED_TALENTS, SHAMAN_HEXES, INVESTIGATOR_TALENTS } from './subsystems';
 
 // The advanced slayer-talent line lets you pick a basic or an advanced talent (mirrors class-features).
 const SLAYER_TALENTS_ALL = [...SLAYER_TALENTS, ...SLAYER_ADVANCED_TALENTS];
@@ -535,6 +535,23 @@ export const WIZARD_ARCHETYPES: ArchetypeDef[] = [
 
 export const WITCH_ARCHETYPES: ArchetypeDef[] = [
   {
+    id: 'gravewalker', classId: 'witch', name: 'Gravewalker',
+    desc: 'A witch whose patron is death itself — she binds the dead as thralls and wears corpses like gloves.',
+    replaces: [],
+    // Aura of Desecration / Bonethrall / Possess Undead take the hexes at 1st, 4th, and 8th; re-add the
+    // rest of the recurring hex line (the 1st-level hex is gone entirely).
+    choices: {
+      remove: ['hex'],
+      add: [{ id: 'hex', label: 'Hex', kind: 'list', count: 1, levels: [2, 6, 10, 12, 14, 16, 18, 20], options: WITCH_HEXES }],
+    },
+    grants: [
+      g(1, 'gw-aura-desecration', 'Aura of Desecration', 'Emit a 20-foot aura that functions as desecrate, strengthening the undead you command. Replaces the 1st-level hex.'),
+      g(3, 'gw-spell-poppet', 'Spell Poppet', 'Your familiar is a small effigy that stores your spells and through which you deliver touch spells. Replaces the witch’s familiar.'),
+      g(4, 'gw-bonethrall', 'Bonethrall', 'Seize control of an undead creature, binding it to your will as a thrall. Replaces the 4th-level hex.'),
+      g(8, 'gw-possess-undead', 'Possess Undead', 'Project your consciousness into an undead you control, acting through its body. Replaces the 8th-level hex.'),
+    ],
+  },
+  {
     id: 'beast-bonded', classId: 'witch', name: 'Beast-Bonded',
     desc: 'A witch whose bond with her familiar runs soul-deep — pouring her hexes into the beast rather than herself.',
     replaces: [],
@@ -639,6 +656,16 @@ export const WARPRIEST_ARCHETYPES: ArchetypeDef[] = [
 
 export const BRAWLER_ARCHETYPES: ArchetypeDef[] = [
   {
+    id: 'exemplar', classId: 'brawler', name: 'Exemplar',
+    desc: 'A brawler who leads by example — her prowess an inspiration that lifts everyone fighting beside her.',
+    replaces: ['brawl-unarmed', 'brawl-close-weapon-mastery', 'brawl-maneuver-training', 'brawl-ac-bonus'],
+    grants: [
+      g(1, 'ex-call-to-arms', 'Call to Arms', 'Gain a scaling bonus with a chosen group of weapons rather than relying on unarmed strikes. Replaces unarmed strike and close weapon mastery.'),
+      g(3, 'ex-inspiring-prowess', 'Inspiring Prowess', 'Use bardic performance — inspire courage (3rd), inspire greatness (11th), and inspire heroics (15th) — with rounds per day based on Charisma. Replaces maneuver training and AC bonus.'),
+      g(5, 'ex-field-instruction', 'Field Instruction', 'As a standard action, grant a teamwork feat to allies within 30 feet, usable more times per day as you level. Replaces brawler’s strike.'),
+    ],
+  },
+  {
     id: 'snakebite-striker', classId: 'brawler', name: 'Snakebite Striker',
     desc: 'A brawler who fights like a gutter-scrapper — reading openings and striking vital spots instead of drilling maneuvers.',
     replaces: ['brawl-martial-flexibility', 'brawl-maneuver-training'],
@@ -663,6 +690,22 @@ export const BRAWLER_ARCHETYPES: ArchetypeDef[] = [
 ];
 
 export const INVESTIGATOR_ARCHETYPES: ArchetypeDef[] = [
+  {
+    id: 'mastermind', classId: 'investigator', name: 'Mastermind',
+    desc: 'An investigator who works through contacts and cunning — pulling strings others never see.',
+    replaces: ['inv-trapfinding', 'inv-trap-sense', 'inv-swift-alchemy'],
+    // Impregnable Mind takes the investigator talent gained at 9th level; re-add the rest of the line.
+    choices: {
+      remove: ['investigator-talent'],
+      add: [{ id: 'investigator-talent', label: 'Investigator talent', kind: 'list', count: 1, levels: [3, 5, 7, 11, 13, 15, 17, 19], options: INVESTIGATOR_TALENTS }],
+    },
+    grants: [
+      g(1, 'mm-inspiration', 'Mastermind’s Inspiration', 'You can use inspiration on Bluff, Diplomacy, Intimidate, Knowledge, and Sense Motive checks without expending a use. Alters inspiration.'),
+      g(1, 'mm-quiet-word', 'A Quiet Word', 'Call on a web of contacts to gather information and pull favors in any settlement. Replaces trapfinding and trap sense.'),
+      g(4, 'mm-defense', 'Mastermind’s Defense', 'Gain a bonus to AC and saves against foes you have studied or identified. Replaces swift alchemy.'),
+      g(9, 'mm-impregnable-mind', 'Impregnable Mind', 'Gain powerful defenses against mind-affecting effects. Replaces the 9th-level investigator talent.'),
+    ],
+  },
   {
     id: 'empiricist', classId: 'investigator', name: 'Empiricist',
     desc: 'An investigator who trusts cold observation over instinct — turning a keen intellect on every problem.',
@@ -918,6 +961,17 @@ export const SHIFTER_ARCHETYPES: ArchetypeDef[] = [
 ];
 
 export const GUNSLINGER_ARCHETYPES: ArchetypeDef[] = [
+  {
+    id: 'mysterious-stranger', classId: 'gunslinger', name: 'Mysterious Stranger',
+    desc: 'A gunslinger who runs on sheer bravado — luck and charm loaded into every chamber.',
+    replaces: ['gun-deed-quick-clear', 'gun-nimble', 'gun-gun-training', 'gun-deed-bleeding-wound'],
+    grants: [
+      g(1, 'ms-focused-aim', 'Focused Aim', 'Your grit is based on Charisma, not Wisdom, and spending a grit point adds half your gunslinger level to a firearm’s damage on your next shot. Replaces the quick clear deed and alters grit.'),
+      g(2, 'ms-lucky', 'Lucky', 'Gain a luck bonus on Will saves that scales as you level. Replaces nimble.'),
+      g(5, 'ms-strangers-fortune', 'Stranger’s Fortune', 'Spend grit to reroll a missed attack or to add your grit to confirming a critical hit. Replaces gun training 1.'),
+      g(11, 'ms-clipping-shot', 'Clipping Shot', 'On a firearm attack that misses, still deal your Dexterity modifier in damage. Replaces the bleeding wound deed.'),
+    ],
+  },
   {
     id: 'musket-master', classId: 'gunslinger', name: 'Musket Master',
     desc: 'A gunslinger devoted to the two-handed musket — reloading with uncanny speed and reaching out to touch distant foes.',
