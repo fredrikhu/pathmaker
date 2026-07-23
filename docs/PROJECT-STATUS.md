@@ -22,9 +22,10 @@ still casts; Hexcrafter → hexes in the arcana list, Hex Magus slot at 4, Accur
 browser-verified the Magus picker shows both archetypes and the Advancement table shows the black-blade pool at
 1 and Black Blade at 3. Archetypes now span Fighter, Ranger, Rogue, Barbarian, Paladin, Bard, Alchemist, Magus
 (12 total). **Kensai deferred** — its Diminished Spellcasting (−1 slot/level) is the still-unmodeled
-partial-casting gap; shipping it would show full slots. **Known cosmetic gap:** the Class step's "level 1
-features" preview reads the base `features1` list, so it doesn't reflect archetype feature swaps (the authoritative
-Advancement/Sheet views do) — pre-existing, affects all archetypes.
+partial-casting gap; shipping it would show full slots. Also fixed the **Class step "level 1 features" preview**
+to run through `effectiveClass` when an archetype is selected, so swapped level-1 features (e.g. Bladebound's
+black-blade Arcane Pool) show there too — previously it read the base `features1` list and ignored the
+archetype. The standard (no-archetype) preview is unchanged.
 
 **Prior — Archetypes: model extended for subsystem/choice changes.** Archetypes can now add and remove
 class **choice slots** — the whole `ClassChoiceDef` family, which turns out to cover both subsystem picks

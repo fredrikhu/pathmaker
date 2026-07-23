@@ -4,6 +4,7 @@ import { CLASSES, classById } from '../../../content/index';
 import type { ChoiceSlot } from '../../../engine/types';
 import { OptionCard, Stepper } from '../bits';
 import type { SlotOption } from '../../../engine/types';
+import { effectiveClass, readDecisions } from '../../../engine/resolve';
 import { useTip } from '../../Tooltip';
 
 export function ClassStep({ ch }: { ch: CharCtl }) {
@@ -28,6 +29,18 @@ export function ClassStep({ ch }: { ch: CharCtl }) {
 
   const favored = doc.decisions['favored-class'] as string | null;
   const fcb = doc.decisions['fcb'] as string | null;
+
+  // Level-1 feature preview. Normally the class's own `features1` copy; when an archetype is
+  // selected on the selected class, derive them through `effectiveClass` so swapped features
+  // (e.g. Bladebound's Arcane Pool) show here too, matching the Advancement/Sheet views.
+  const level1Features = (() => {
+    if (view.id === selectedClass && archetype) {
+      const eff = effectiveClass(view, readDecisions(doc));
+      const lvl1 = (eff.features ?? []).filter((f) => f.level === 1);
+      if (lvl1.length) return lvl1.map((f) => ({ id: f.id, name: f.name, desc: f.desc }));
+    }
+    return view.features1;
+  })();
 
   const toggleChoice = (slot: ChoiceSlot, optId: string) => {
     const cur = classChoices[slot.id] ?? [];
@@ -115,7 +128,7 @@ export function ClassStep({ ch }: { ch: CharCtl }) {
 
         <h6 style={{ margin: '18px 0 8px', color: 'var(--color-neutral-500)' }}>Level 1 features</h6>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxWidth: '92ch' }}>
-          {view.features1.map((f) => (
+          {level1Features.map((f) => (
             <div key={f.id} style={{ fontSize: 13, lineHeight: 1.55 }}><span style={{ fontWeight: 500 }}>{f.name}</span> <span style={{ color: 'var(--color-neutral-400)' }}>— {f.desc}</span></div>
           ))}
         </div>
