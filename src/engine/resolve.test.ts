@@ -3845,6 +3845,78 @@ describe('archetypes — breadth (Oracle, Bloodrager, Swashbuckler)', () => {
   });
 });
 
+describe('archetypes — final classes (Hunter, Summoner, Skald, Shaman, Shifter)', () => {
+  const build = (cls: string, archetype: string | undefined, level: number, choices?: Record<string, string[]>): CharacterDoc => {
+    let d = newCharacter('t-final', 'X');
+    d = withDecision(d, 'ability-base', { str: 13, dex: 13, con: 12, int: 12, wis: 14, cha: 13 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['wis']);
+    d = withDecision(d, 'alignment', 'N');
+    d = withDecision(d, 'class', cls);
+    if (choices) d = withDecision(d, 'class-choices', choices);
+    if (archetype) d = withDecision(d, 'archetype', archetype);
+    return atLevel(d, level);
+  };
+  const featsAt = (doc: CharacterDoc, lvl: number) =>
+    resolve(doc).sheet.progression.find((r) => r.level === lvl)?.features ?? [];
+  const bonusFeatSlots = (doc: CharacterDoc, cls: string) =>
+    resolve(doc).slots.filter((s) => s.step === 'feats' && s.id.startsWith(`feat-${cls}`)).map((s) => s.id);
+
+  it('Hunter Feral Hunter drops the companion line and its 6/9/12/15/18 teamwork feats', () => {
+    const f = build('hunter', 'feral-hunter', 18);
+    expect(featsAt(f, 1)).toContain('Feral Focus');
+    expect(featsAt(f, 1)).not.toContain('Animal Companion');
+    expect(featsAt(f, 4)).toContain('Wild Shape');
+    expect(featsAt(f, 6)).toContain('Summon Pack');
+    const bf = bonusFeatSlots(f, 'hunter');
+    expect(bf).toContain('feat-hunter-L3');   // 3rd teamwork feat kept
+    expect(bf).not.toContain('feat-hunter-L6');
+    expect(bf).not.toContain('feat-hunter-L12');
+    expect(resolve(f).sheet.casting.length).toBeGreaterThan(0);
+  });
+
+  it('Summoner Master Summoner swaps eidolon/summon/shield/bond for summoning abilities', () => {
+    const m = build('summoner', 'master-summoner', 6);
+    expect(featsAt(m, 1)).toContain('Lesser Eidolon');
+    expect(featsAt(m, 1)).toContain('Summoning Mastery');
+    expect(featsAt(m, 1)).not.toContain('Eidolon');
+    expect(featsAt(m, 2)).toContain('Augment Summoning');
+    expect(featsAt(m, 2)).not.toContain('Bond Senses');
+    expect(resolve(m).sheet.casting.length).toBeGreaterThan(0);
+  });
+
+  it('Skald Spell Warrior swaps the song/kenning line for counterspell abilities', () => {
+    const s = build('skald', 'spell-warrior', 20, { 'skald-rage-power': [] });
+    expect(featsAt(s, 1)).toContain('Improved Counterspell');
+    expect(featsAt(s, 1)).toContain('Weapon Song (Enhance Weapons)');
+    expect(featsAt(s, 1)).not.toContain('Raging Song (Inspired Rage)');
+    expect(featsAt(s, 5)).toContain('Greater Counterspell');
+    expect(featsAt(s, 5)).not.toContain('Spell Kenning');
+    expect(featsAt(s, 20)).toContain('Spell Tamper');
+  });
+
+  it('Shaman Speaker for the Past adds lore skills and swaps the familiar/wandering line', () => {
+    expect(resolve(build('shaman', undefined, 5)).sheet.classSkillIds).not.toContain('know-history');
+    const s = build('shaman', 'speaker-for-the-past', 6);
+    expect(resolve(s).sheet.classSkillIds).toContain('know-history');
+    expect(resolve(s).sheet.classSkillIds).toContain('use-magic-device');
+    expect(featsAt(s, 1)).toContain('Mysteries of the Past');
+    expect(featsAt(s, 1)).not.toContain('Spirit Animal');
+    expect(featsAt(s, 4)).toContain('Revelations of the Past');
+    expect(featsAt(s, 4)).not.toContain('Wandering Spirit');
+  });
+
+  it('Shifter Weretouched swaps aspect/empathy/wild shape for lycanthrope features', () => {
+    const w = build('shifter', 'weretouched', 5);
+    expect(featsAt(w, 1)).toContain('Lycanthrope Aspect');
+    expect(featsAt(w, 1)).toContain('Lycanthropic Empathy');
+    expect(featsAt(w, 1)).not.toContain('Shifter Aspect');
+    expect(featsAt(w, 1)).not.toContain('Wild Empathy');
+    expect(featsAt(w, 4)).toContain('Lycanthropic Wild Shape');
+    expect(featsAt(w, 5)).toContain('Lycanthrope Aspect Enhancement');
+  });
+});
+
 describe('archetypes — caster classes', () => {
   const build = (cls: string, archetype: string | undefined, level: number): CharacterDoc => {
     let d = newCharacter('t-arch3', 'X');

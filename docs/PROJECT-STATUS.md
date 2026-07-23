@@ -9,7 +9,24 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 **Current state** — branch `main`, working tree clean, **567 tests** passing; run
 `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
-**Latest — Archetypes: breadth batch (Oracle, Bloodrager, Swashbuckler) + DR-override hook.** Added a
+**Latest — Archetypes: final classes (Hunter, Summoner, Skald, Shaman, Shifter).** First archetypes for five
+more classes, all verified vs d20pfsrd: **Feral Hunter** (drops the animal companion + its teamwork feats at
+6/9/12/15/18 for Feral Focus / Wild Shape / Summon Pack), **Master Summoner** (lesser eidolon + Summoning Mastery
++ Augment Summoning in place of eidolon/summon/shield/bond-senses), **Spell Warrior** (Skald — counterspell
+abilities in place of raging song, spell kenning, dirge of doom, master skald), **Speaker for the Past** (Shaman —
+adds lore class skills via `classSkills.add`, swaps the familiar + wandering spirit/hex for ancestral
+revelations), and **Weretouched** (Shifter — lycanthrope aspect/empathy/wild-shape). 5 golden tests; 648 pass;
+browser-verified all five pickers + Advancement (and Speaker's Knowledge-history class-skill marker). Archetypes
+now span **27 of 29 classes, 34 total**.
+
+**Two classes deferred (subsystem granularity):** **Gunslinger** — its deeds are modelled as grouped features
+(gun-deeds-1 bundles three deeds each), but archetypes (Musket Master, Pistolero, Mysterious Stranger…) swap
+*individual* deeds within those groups, which `replaces` can't reach. **Arcanist** — its archetypes hinge on the
+exploit subsystem (e.g. altering "the exploit gained at 1st level", which isn't a discrete choice slot in our
+model — the exploit choice starts at 3rd) and spell-prep restrictions. Both would need finer-grained
+deed/exploit modelling to author faithfully; noted rather than shipped inaccurately.
+
+**Prior — Archetypes: breadth batch (Oracle, Bloodrager, Swashbuckler) + DR-override hook.** Added a
 `ArchetypeDef.damageReduction?: { levels; bypass } | null` hook: the barbarian/bloodrager DR is a numeric class
 progression (not a feature `replaces` can reach), so an archetype that trades it away sets `null` — `gatherDefenses`
 now consults the active archetype before applying the class DR. First archetypes for three more classes, all

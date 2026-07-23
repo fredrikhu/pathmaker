@@ -485,12 +485,84 @@ export const SWASHBUCKLER_ARCHETYPES: ArchetypeDef[] = [
   },
 ];
 
+export const HUNTER_ARCHETYPES: ArchetypeDef[] = [
+  {
+    id: 'feral-hunter', classId: 'hunter', name: 'Feral Hunter',
+    desc: 'A hunter who becomes the beast rather than keeping one — wearing animal aspects like a second skin.',
+    replaces: ['hunter-animal-companion', 'hunter-precise-companion', 'hunter-tactics', 'hunter-speak-with-master'],
+    // Summon Pack takes the place of the teamwork feats gained at 6th/9th/12th/15th/18th (3rd remains).
+    bonusFeatSlots: { remove: [6, 9, 12, 15, 18] },
+    grants: [
+      g(1, 'fh-feral-focus', 'Feral Focus', 'You gain no animal companion; instead you can apply your animal focus to yourself an unlimited number of times per day, and eventually keep several active at once. Alters animal focus; replaces hunter tactics and speak with master.'),
+      g(3, 'fh-precise-summoned', 'Precise Summoned Animal', 'Apply your Precise Companion teamwork feat to creatures you summon rather than to a companion. Alters precise companion.'),
+      g(4, 'fh-wild-shape', 'Wild Shape', 'Assume animal forms as a druid of your hunter level − 3. Replaces the animal-companion improvements.'),
+      g(6, 'fh-summon-pack', 'Summon Pack', 'Summon a pack of natural creatures that share your active animal focus. Replaces the teamwork feats gained at 6th, 9th, 12th, 15th, and 18th.'),
+    ],
+  },
+];
+
+export const SUMMONER_ARCHETYPES: ArchetypeDef[] = [
+  {
+    id: 'master-summoner', classId: 'summoner', name: 'Master Summoner',
+    desc: 'A conjurer who floods the field with called creatures, keeping a lesser eidolon at their side.',
+    replaces: ['summ-eidolon', 'summ-summon-monster', 'summ-shield-ally', 'summ-bond-senses'],
+    grants: [
+      g(1, 'ms-lesser-eidolon', 'Lesser Eidolon', 'Your eidolon uses half your summoner level (minimum 1) for its Hit Dice, evolution pool, and abilities. Replaces the normal eidolon.'),
+      g(1, 'ms-summoning-mastery', 'Summoning Mastery', 'Cast summon monster as a spell-like ability 5 + your Charisma modifier times per day (its level rising as you advance), and keep several summons active at once. Replaces summon monster and shield ally.'),
+      g(2, 'ms-augment-summoning', 'Augment Summoning', 'Gain Augment Summoning as a bonus feat without meeting its prerequisites. Replaces bond senses.'),
+    ],
+  },
+];
+
+export const SKALD_ARCHETYPES: ArchetypeDef[] = [
+  {
+    id: 'spell-warrior', classId: 'skald', name: 'Spell Warrior',
+    desc: 'A skald whose songs sharpen steel and unravel magic — a battle-mage’s bane at the front line.',
+    replaces: ['skald-scribe-scroll', 'skald-raging-song', 'skald-spell-kenning', 'skald-dirge-of-doom', 'skald-master'],
+    grants: [
+      g(1, 'sw-improved-counterspell', 'Improved Counterspell', 'Counterspell using any spell of the same school (or one level higher), not just the identical spell. Replaces Scribe Scroll.'),
+      g(1, 'sw-weapon-song', 'Weapon Song (Enhance Weapons)', 'Your raging song instead grants your allies’ weapons a scaling enhancement bonus and, later, weapon special abilities. Replaces inspired rage.'),
+      g(5, 'sw-greater-counterspell', 'Greater Counterspell', 'Counterspell as an immediate action, and weaken rather than fully negate a foe’s spell. Replaces spell kenning.'),
+      g(10, 'sw-song-arcane-manipulation', 'Song of Arcane Manipulation', 'A raging song that lets affected allies apply metamagic or dispel magic through your performance. Replaces dirge of doom.'),
+      g(20, 'sw-spell-tamper', 'Spell Tamper', 'Your counterspelling can seize a foe’s spell and turn it back on them. Replaces master skald.'),
+    ],
+  },
+];
+
+export const SHAMAN_ARCHETYPES: ArchetypeDef[] = [
+  {
+    id: 'speaker-for-the-past', classId: 'shaman', name: 'Speaker for the Past',
+    desc: 'A shaman who gives voice to ancestral spirits — trading a familiar bond for the wisdom of ages.',
+    replaces: ['shaman-spirit-animal', 'shaman-wandering-spirit', 'shaman-wandering-hex'],
+    classSkills: { add: ['linguistics', 'know-history', 'know-local', 'perception', 'use-magic-device'] },
+    grants: [
+      g(1, 'sfp-mysteries-of-past', 'Mysteries of the Past', 'You gain no spirit familiar; instead add the Ancestor and Time oracle-mystery spells to your list and gain Linguistics, Knowledge (history), Knowledge (local), Perception, and Use Magic Device as class skills. Replaces the shaman’s familiar.'),
+      g(4, 'sfp-revelations-of-past', 'Revelations of the Past', 'At 4th, 6th, 12th, 14th, and 20th level, select a revelation from the Ancestor or Time mystery, using your shaman level as your oracle level and Wisdom in place of Charisma. Replaces wandering spirit and wandering hex.'),
+    ],
+  },
+];
+
+export const SHIFTER_ARCHETYPES: ArchetypeDef[] = [
+  {
+    id: 'weretouched', classId: 'shifter', name: 'Weretouched',
+    desc: 'A shifter of lycanthropic blood, bound to a single beast whose hybrid form they can assume at will.',
+    replaces: ['shifter-aspect', 'shifter-wild-empathy', 'shifter-wild-shape'],
+    grants: [
+      g(1, 'wt-lycanthrope-aspect', 'Lycanthrope Aspect', 'Choose a single animal aspect at 1st level — the only aspect you can ever gain — and take on lycanthrope traits and its hybrid form. Alters shifter aspect.'),
+      g(1, 'wt-lycanthropic-empathy', 'Lycanthropic Empathy', '+4 to influence animals of your chosen type as a Diplomacy check, but only that type. Replaces wild empathy.'),
+      g(4, 'wt-lycanthropic-wild-shape', 'Lycanthropic Wild Shape', 'Wild shape only into your chosen animal or its hybrid form (+2 Strength, +2 natural armor); your equipment does not merge. Alters wild shape.'),
+      g(5, 'wt-lycanthrope-enhancement', 'Lycanthrope Aspect Enhancement', 'Gain DR equal to half your shifter level (maximum 10) bypassed by silver, and immunity to the curse of lycanthropy. Alters shifter aspect.'),
+    ],
+  },
+];
+
 export const ARCHETYPES: ArchetypeDef[] = [
   ...FIGHTER_ARCHETYPES, ...RANGER_ARCHETYPES, ...ROGUE_ARCHETYPES, ...BARBARIAN_ARCHETYPES, ...PALADIN_ARCHETYPES,
   ...BARD_ARCHETYPES, ...ALCHEMIST_ARCHETYPES, ...MAGUS_ARCHETYPES, ...MONK_ARCHETYPES, ...CLERIC_ARCHETYPES,
   ...CAVALIER_ARCHETYPES, ...INQUISITOR_ARCHETYPES, ...DRUID_ARCHETYPES, ...WIZARD_ARCHETYPES, ...WITCH_ARCHETYPES,
   ...SORCERER_ARCHETYPES, ...WARPRIEST_ARCHETYPES, ...BRAWLER_ARCHETYPES, ...INVESTIGATOR_ARCHETYPES,
   ...ORACLE_ARCHETYPES, ...BLOODRAGER_ARCHETYPES, ...SWASHBUCKLER_ARCHETYPES,
+  ...HUNTER_ARCHETYPES, ...SUMMONER_ARCHETYPES, ...SKALD_ARCHETYPES, ...SHAMAN_ARCHETYPES, ...SHIFTER_ARCHETYPES,
 ];
 export const archetypeById = new Map(ARCHETYPES.map((a) => [a.id, a]));
 export const archetypesForClass = (classId: string): ArchetypeDef[] => ARCHETYPES.filter((a) => a.classId === classId);
