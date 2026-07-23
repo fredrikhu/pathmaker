@@ -1,5 +1,11 @@
 # Scope — the two remaining archetype-engine projects
 
+> **Status update (2026-07-24): Project B is DONE and shipped.** It came in smaller than scoped — Blood
+> Arcanist turned out to need no level remap at all (arcanist level *is* the sorcerer level), so B2
+> reduced to "let an archetype name which source tables it draws". Blood Arcanist and School Savant are
+> both live. Project A (companion creatures) remains open and is unchanged by this.
+
+
 Written 2026-07-24, after the batch-6 archetype work. Companion to
 [PROJECT-STATUS.md](PROJECT-STATUS.md). This scopes what is actually left, corrects an earlier
 mis-statement about it, and recommends an order.

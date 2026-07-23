@@ -182,6 +182,22 @@ export interface EvolutionDef {
   multi?: boolean;
 }
 
+/** The source-power tables the engine can inject from a chosen source (bloodline, school, spirit…).
+ *  Each maps to a content table plus the feature-id prefix used for `suppressSourcePowers`. Classes
+ *  carry these natively; an archetype can grant one to a class that lacks it via `sourceLines`. */
+export type SourceTableId =
+  | 'sorcerer-bloodline-powers'
+  | 'sorcerer-bloodline-spells'
+  | 'bloodrager-bloodline-powers'
+  | 'bloodrager-bloodline-spells'
+  | 'shaman-spirit-abilities'
+  | 'oracle-final-revelations'
+  | 'oracle-curse-abilities'
+  | 'wizard-school-powers'
+  | 'cavalier-order-abilities'
+  | 'shifter-aspect-abilities'
+  | 'witch-patron-spells';
+
 export interface ClassChoiceDef {
   id: string; // slot suffix, e.g. "school"
   label: string;
@@ -246,6 +262,13 @@ export interface ArchetypeDef {
    *  the 1st- and 9th-level bloodline powers (prefixes: 'sorc-bl' sorcerer bloodline powers, 'br-bl'
    *  bloodrager bloodline powers, 'wiz-school' wizard school powers, 'cav-ord' cavalier order, etc.). */
   suppressSourcePowers?: { prefix: string; levels: number[] }[];
+  /** Source-backed power lines this archetype grants to a class that does not natively have them —
+   *  the Blood Arcanist gains sorcerer *bloodline powers* on the arcanist, the School Savant gains
+   *  wizard *school powers*. Pair each entry with a `choices.add` that actually offers the pick.
+   *  Naming only some of a source's tables is meaningful: the Blood Arcanist takes the bloodline
+   *  powers but explicitly not the bonus spells, so it declares only the powers table. The chosen
+   *  source's own class-skill grant is likewise not conferred (that belongs to the native class). */
+  sourceLines?: { choiceId: string; table: SourceTableId }[];
   /** Damage-reduction change. The barbarian/bloodrager DR is a numeric class progression (not a
    *  feature `replaces` can reach), so an archetype that trades it away sets `null` (e.g. Steelblood's
    *  Blood Deflection), or provides a `{ levels, bypass }` table to override it. Omitted ⇒ unchanged. */

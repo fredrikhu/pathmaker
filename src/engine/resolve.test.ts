@@ -4878,6 +4878,59 @@ describe('archetypes — thirds batch 3 (Mouser, Dual-Cursed, Chirurgeon, Mercif
     expect(resolve(wc).slots.some((s) => s.id === 'evolutions')).toBe(true);
   });
 
+  it('Blood Arcanist gains bloodline powers and arcana on the arcanist, but no bonus spells or class skill', () => {
+    const ba = build('arcanist', 'blood-arcanist', 9, { bloodline: ['draconic'] });
+    // Powers arrive at the sorcerer's own levels (arcanist level = sorcerer level).
+    expect(featsAt(ba, 1)).toContain('Claws');
+    expect(featsAt(ba, 9)).toContain('Breath Weapon');
+    // The arcana comes through…
+    expect(featsAt(ba, 1)).toContain('Bloodline Arcana');
+    // …but not the bonus spells the sorcerer would get.
+    expect(featsAt(ba, 3)).not.toContain('Bonus Spell (1st): Mage Armor');
+    expect(featsAt(ba, 5)).not.toContain('Bonus Spell (2nd): Resist Energy');
+    // Exploits at 1/3/9/15 are gone; the rest of the line survives.
+    const ids = resolve(build('arcanist', 'blood-arcanist', 20, { bloodline: ['draconic'] })).slots.map((s) => s.id);
+    expect(ids).toContain('bloodline');
+    expect(ids).not.toContain('exploit');      // the 1st-level pick is replaced
+    expect(ids).not.toContain('exploit-L3');
+    expect(ids).not.toContain('exploit-L9');
+    expect(ids).not.toContain('exploit-L15');
+    expect(ids).toContain('exploit-L5');
+    expect(ids).toContain('exploit-L19');
+    expect(featsAt(build('arcanist', 'blood-arcanist', 20, { bloodline: ['draconic'] }), 20)).not.toContain('Magical Supremacy');
+  });
+
+  it("the bloodline's class skill belongs to the native class, not to a borrowed bloodline", () => {
+    // Celestial grants Heal, which the arcanist does not already have as a class skill.
+    const sorc = effectiveClass(C.classById.get('sorcerer')!, readDecisions(build('sorcerer', undefined, 5, { bloodline: ['celestial'] })));
+    expect(sorc).toBeTruthy();
+    expect(resolve(build('sorcerer', undefined, 5, { bloodline: ['celestial'] })).sheet.classSkillIds).toContain('heal');
+    expect(resolve(build('arcanist', 'blood-arcanist', 5, { bloodline: ['celestial'] })).sheet.classSkillIds).not.toContain('heal');
+  });
+
+  it('School Savant gains wizard school powers and the specialist bonus slot on an arcanist', () => {
+    const ss = build('arcanist', 'school-savant', 8, { school: ['evocation'], opposition: ['necromancy', 'enchantment'] });
+    expect(featsAt(ss, 1)).toContain('Intense Spells');
+    const block = resolve(ss).sheet.casting.find((b) => b.classId === 'arcanist')!;
+    // The one extra prepared spell per level, restricted to the chosen school.
+    expect(block.bonusSlot).toBeTruthy();
+    const ids = resolve(build('arcanist', 'school-savant', 20, { school: ['evocation'] })).slots.map((s) => s.id);
+    expect(ids).toContain('school');
+    expect(ids).toContain('opposition');
+    expect(ids).not.toContain('exploit');      // 1st-level pick replaced
+    expect(ids).not.toContain('exploit-L3');
+    expect(ids).not.toContain('exploit-L7');
+    expect(ids).toContain('exploit-L5');
+    expect(ids).toContain('exploit-L9');
+  });
+
+  it('a plain arcanist gains none of that — the source lines are archetype-granted', () => {
+    const plain = build('arcanist', undefined, 9, { bloodline: ['draconic'], school: ['evocation'] });
+    expect(featsAt(plain, 1)).not.toContain('Claws');
+    expect(featsAt(plain, 1)).not.toContain('Intense Spells');
+    expect(resolve(plain).sheet.casting.find((b) => b.classId === 'arcanist')!.bonusSlot).toBeFalsy();
+  });
+
   it('Merciful Healer is a single-domain cleric with the healing-channel line', () => {
     const eff = effectiveClass(C.classById.get('cleric')!, readDecisions(build('cleric', 'merciful-healer', 1)));
     expect((eff.choices ?? []).find((x) => x.id === 'domains')?.count).toBe(1);

@@ -1254,6 +1254,54 @@ export const GUNSLINGER_ARCHETYPES: ArchetypeDef[] = [
 
 export const ARCANIST_ARCHETYPES: ArchetypeDef[] = [
   {
+    id: 'blood-arcanist', classId: 'arcanist', name: 'Blood Arcanist',
+    desc: 'An arcanist whose innate gift is no rudiment but a full bloodline — sorcerous heritage married to the spellbook.',
+    replaces: ['arc-magical-supremacy'],
+    // Replaces the exploits at 1st, 3rd, 9th and 15th: drop both 'exploit' choices and re-add only the
+    // recurring line without 3/9/15 (the 1st-level pick is not re-added at all).
+    choices: {
+      remove: ['exploit'],
+      add: [
+        { id: 'exploit', label: 'Arcanist exploit', kind: 'list', count: 1, levels: [5, 7, 11, 13, 17, 19], options: ARCANIST_EXPLOITS },
+        { id: 'bloodline', label: 'Bloodline', kind: 'sorcerer-bloodline', count: 1 },
+      ],
+    },
+    // Bloodline powers *and* arcana at arcanist level = sorcerer level, but no bonus spells. Our content
+    // bundles the arcana (1st) into the bonus-spells table alongside the spells (3rd, 5th, … 19th), so
+    // take both tables and suppress exactly the bonus-spell levels. Class skill and bonus feats are not
+    // conferred either: the class skill is gated on natively offering the bloodline pick, and the
+    // arcanist has no bloodline bonus feats to begin with.
+    sourceLines: [
+      { choiceId: 'bloodline', table: 'sorcerer-bloodline-powers' },
+      { choiceId: 'bloodline', table: 'sorcerer-bloodline-spells' },
+    ],
+    suppressSourcePowers: [{ prefix: 'sorc-bl-sp', levels: [3, 5, 7, 9, 11, 13, 15, 17, 19] }],
+    grants: [
+      g(1, 'ba-bloodline', 'Bloodline', 'Choose a sorcerer bloodline. You gain its bloodline arcana and bloodline powers, treating your arcanist level as your sorcerer level — but not its class skill, bonus feats, or bonus spells. You cannot take the bloodline development exploit. Replaces the exploits at 1st, 3rd, 9th, and 15th, and magical supremacy.'),
+    ],
+  },
+  {
+    id: 'school-savant', classId: 'arcanist', name: 'School Savant',
+    desc: 'An arcanist who trades the school-blind flexibility of her kind for a specialist’s focus — more spells prepared, but a narrower shelf to draw from.',
+    replaces: [],
+    // Replaces the exploits at 1st, 3rd and 7th; the 1st-level pick is not re-added.
+    choices: {
+      remove: ['exploit'],
+      add: [
+        { id: 'exploit', label: 'Arcanist exploit', kind: 'list', count: 1, levels: [5, 9, 11, 13, 15, 17, 19], options: ARCANIST_EXPLOITS },
+        { id: 'school', label: 'Arcane School', kind: 'wizard-school', count: 1 },
+        { id: 'opposition', label: 'Opposition Schools', kind: 'wizard-opposition', count: 2 },
+      ],
+    },
+    // Wizard school powers at arcanist level = wizard level. Taking the 'school' choice also earns the
+    // specialist's one extra prepared spell per level, which the engine now grants off the choice
+    // rather than off the wizard class.
+    sourceLines: [{ choiceId: 'school', table: 'wizard-school-powers' }],
+    grants: [
+      g(1, 'ss-school-focus', 'School Focus', 'Choose a school of magic and gain its arcane-school abilities as a wizard of your arcanist level. You may prepare one additional spell per day of each level you can cast, chosen from that school, and must take two opposition schools — preparing a spell from one costs two slots, and crafting an item needing such a spell takes a −4 penalty. You cannot take the school understanding exploit. Replaces the exploits at 1st, 3rd, and 7th.'),
+    ],
+  },
+  {
     id: 'brown-fur-transmuter', classId: 'arcanist', name: 'Brown-Fur Transmuter',
     desc: 'A “brown-fur” — a transmutation specialist who turns herself, and everyone else, into whatever the moment calls for.',
     replaces: ['arc-magical-supremacy'],

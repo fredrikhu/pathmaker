@@ -9,7 +9,23 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 **Current state** — branch `main`, working tree clean, **567 tests** passing; run
 `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
-**Latest — Every class now has ≥3 archetypes.** Arcanist **Brown-Fur Transmuter** (powerful change / share
+**Latest — Project B done: source lines are no longer class-bound (Blood Arcanist + School Savant).** The
+`dec.classId === 'sorcerer'` chain in `sourceFeatures` is replaced by two tables — `SOURCE_TABLES` (named
+source-power table → `{ map, prefix }`) and `CLASS_SOURCE_LINES` (which class draws which line off which choice
+id) — and `ArchetypeDef.sourceLines` lets an archetype grant a source line to a class that lacks it. Two
+couplings went with it: the bloodline's **class skill** is now gated on a class *natively* offering the
+bloodline pick (new `nativelyOffersChoice`), and the **specialist bonus slot** no longer checks for the wizard,
+only for an effective `school` choice. Content: **Blood Arcanist** (bloodline powers + arcana at arcanist level,
+but no bonus spells — our content bundles the arcana into the spells table, so it takes both tables and
+suppresses exactly the bonus-spell levels — replacing the exploits at 1/3/9/15 and magical supremacy) and
+**School Savant** (wizard school powers, school + opposition picks, and the extra restricted prepared spell per
+level; replaces the exploits at 1/3/7). Both verified vs d20pfsrd. 4 golden tests; **718 pass**; tsc + build
+clean, with all 714 pre-existing tests green through the refactor. Browser-verified: the School Savant's play
+tracker shows a **"+ EVOCATION"** restricted slot at every spell level on an *arcanist*, and the Blood Arcanist's
+Advancement shows Claws / Breath Weapon / Bloodline Arcana with **no** Bonus Spell rows and no Magical Supremacy.
+**Only Project A (companion creatures) remains.**
+
+**Prior — Every class now has ≥3 archetypes.** Arcanist **Brown-Fur Transmuter** (powerful change / share
 transmutation take the 3rd and 9th exploits; transmutation supremacy takes magical supremacy — the same
 exploit-line remove-and-re-add the shipped Eldritch Font uses) and Summoner **Wild Caller** (plant eidolon with
 its own four verified base forms replacing biped/quadruped/serpentine, summon nature's ally, fey friend for

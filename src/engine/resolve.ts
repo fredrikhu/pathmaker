@@ -349,18 +349,57 @@ function sourceFeatures(dec: Decisions): C.LeveledFeatureDef[] {
       });
     }
   };
-  if (dec.classId === 'sorcerer') add(C.SORCERER_BLOODLINE_POWERS, 'bloodline', 'sorc-bl');
-  if (dec.classId === 'sorcerer') add(C.SORCERER_BLOODLINE_SPELLS, 'bloodline', 'sorc-bl-sp');
-  if (dec.classId === 'bloodrager') add(C.BLOODRAGER_BLOODLINE_POWERS, 'bloodline', 'br-bl');
-  if (dec.classId === 'bloodrager') add(C.BLOODRAGER_BLOODLINE_SPELLS, 'bloodline', 'br-bl-sp');
-  if (dec.classId === 'shaman') add(C.SHAMAN_SPIRIT_ABILITIES, 'spirit', 'shaman-spirit');
-  if (dec.classId === 'oracle') add(C.ORACLE_FINAL_REVELATIONS, 'mystery', 'oracle-final');
-  if (dec.classId === 'oracle') add(C.ORACLE_CURSE_ABILITIES, 'curse', 'oracle-curse');
-  if (dec.classId === 'wizard') add(C.SCHOOL_POWERS, 'school', 'wiz-school');
-  if (dec.classId === 'cavalier') add(C.CAVALIER_ORDER_ABILITIES, 'order', 'cav-ord');
-  if (dec.classId === 'shifter') add(C.SHIFTER_ASPECT_ABILITIES, 'aspect', 'shifter-asp');
-  if (dec.classId === 'witch') add(C.WITCH_PATRON_SPELLS, 'patron', 'witch-patron');
+  // Lines the class carries natively…
+  for (const line of CLASS_SOURCE_LINES) {
+    if (line.classId !== dec.classId) continue;
+    const t = SOURCE_TABLES[line.table];
+    add(t.map, line.choiceId, t.prefix);
+  }
+  // …plus any an archetype grants to a class that lacks them (Blood Arcanist, School Savant).
+  for (const line of arch?.sourceLines ?? []) {
+    const t = SOURCE_TABLES[line.table];
+    add(t.map, line.choiceId, t.prefix);
+  }
   return out;
+}
+
+/** The source-power tables, by the id content refers to them by. `prefix` is the feature-id prefix
+ *  that `suppressSourcePowers` matches on. */
+const SOURCE_TABLES: Record<C.SourceTableId, { map: Record<string, C.SourceFeature[]>; prefix: string }> = {
+  'sorcerer-bloodline-powers': { map: C.SORCERER_BLOODLINE_POWERS, prefix: 'sorc-bl' },
+  'sorcerer-bloodline-spells': { map: C.SORCERER_BLOODLINE_SPELLS, prefix: 'sorc-bl-sp' },
+  'bloodrager-bloodline-powers': { map: C.BLOODRAGER_BLOODLINE_POWERS, prefix: 'br-bl' },
+  'bloodrager-bloodline-spells': { map: C.BLOODRAGER_BLOODLINE_SPELLS, prefix: 'br-bl-sp' },
+  'shaman-spirit-abilities': { map: C.SHAMAN_SPIRIT_ABILITIES, prefix: 'shaman-spirit' },
+  'oracle-final-revelations': { map: C.ORACLE_FINAL_REVELATIONS, prefix: 'oracle-final' },
+  'oracle-curse-abilities': { map: C.ORACLE_CURSE_ABILITIES, prefix: 'oracle-curse' },
+  'wizard-school-powers': { map: C.SCHOOL_POWERS, prefix: 'wiz-school' },
+  'cavalier-order-abilities': { map: C.CAVALIER_ORDER_ABILITIES, prefix: 'cav-ord' },
+  'shifter-aspect-abilities': { map: C.SHIFTER_ASPECT_ABILITIES, prefix: 'shifter-asp' },
+  'witch-patron-spells': { map: C.WITCH_PATRON_SPELLS, prefix: 'witch-patron' },
+};
+
+/** Which class natively draws which source line, and off which choice id. */
+const CLASS_SOURCE_LINES: { classId: string; choiceId: string; table: C.SourceTableId }[] = [
+  { classId: 'sorcerer', choiceId: 'bloodline', table: 'sorcerer-bloodline-powers' },
+  { classId: 'sorcerer', choiceId: 'bloodline', table: 'sorcerer-bloodline-spells' },
+  { classId: 'bloodrager', choiceId: 'bloodline', table: 'bloodrager-bloodline-powers' },
+  { classId: 'bloodrager', choiceId: 'bloodline', table: 'bloodrager-bloodline-spells' },
+  { classId: 'shaman', choiceId: 'spirit', table: 'shaman-spirit-abilities' },
+  { classId: 'oracle', choiceId: 'mystery', table: 'oracle-final-revelations' },
+  { classId: 'oracle', choiceId: 'curse', table: 'oracle-curse-abilities' },
+  { classId: 'wizard', choiceId: 'school', table: 'wizard-school-powers' },
+  { classId: 'cavalier', choiceId: 'order', table: 'cavalier-order-abilities' },
+  { classId: 'shifter', choiceId: 'aspect', table: 'shifter-aspect-abilities' },
+  { classId: 'witch', choiceId: 'patron', table: 'witch-patron-spells' },
+];
+
+/** True when some class the character actually has levels in offers `choiceId` **natively** (on its
+ *  base definition, not via an archetype). Used for perks that belong to the native class rather than
+ *  to the source itself — a Blood Arcanist gains bloodline powers but not the bloodline's class skill. */
+function nativelyOffersChoice(dec: Decisions, level: number, choiceId: string): boolean {
+  return classBreakdown(dec, level).some((c) =>
+    (C.classById.get(c.klass.id)?.choices ?? []).some((ch) => ch.id === choiceId));
 }
 
 /** Feat ids sitting in a currently-valid slot. Orphaned feats (slot removed by an
@@ -979,10 +1018,14 @@ export function resolve(doc: CharacterDoc): Resolution {
   const acp = armorCheckPenalty(doc);
   // Class skills are the union across every class the character has levels in.
   const classSkillSet = new Set<string>(classes.flatMap((c) => c.klass.classSkills));
-  // Bloodline / trait class-skill grants
-  for (const bl of dec.classChoices['bloodline'] ?? []) {
-    const b = C.bloodlineById.get(bl);
-    if (b) classSkillSet.add(b.classSkill);
+  // Bloodline / trait class-skill grants. The bloodline's class skill belongs to the *native*
+  // bloodline classes (sorcerer, bloodrager) — an archetype that merely borrows the bloodline's
+  // powers does not confer it (RAW: the Blood Arcanist gains no class skill from its bloodline).
+  if (nativelyOffersChoice(dec, level, 'bloodline')) {
+    for (const bl of dec.classChoices['bloodline'] ?? []) {
+      const b = C.bloodlineById.get(bl);
+      if (b) classSkillSet.add(b.classSkill);
+    }
   }
   const racialSkillPerLevel = standard.reduce((n, t) => n + (t.skillRanksPerLevel ?? 0), 0);
   // Skill-rank budget summed over levels 1..N, using the Int modifier as of each level (an
@@ -1098,7 +1141,9 @@ export function resolve(doc: CharacterDoc): Resolution {
     // Archetypes that merely narrow the pick (one domain instead of two) keep the id, so keep the slot.
     const offers = (choiceId: string) => (c.klass.choices ?? []).some((ch) => ch.id === choiceId);
     const hasDomains = c.klass.id === 'cleric' && offers('domains') && (dec.classChoices['domains']?.length ?? 0) > 0;
-    const isSpecialist = c.klass.id === 'wizard' && offers('school') && (dec.classChoices['school']?.length ?? 0) > 0 && !(dec.classChoices['school'] ?? []).includes('universalist');
+    // Not gated on the wizard specifically: the School Savant arcanist takes an arcane school via its
+    // archetype and gets the same one-restricted-spell-per-level slot.
+    const isSpecialist = offers('school') && (dec.classChoices['school']?.length ?? 0) > 0 && !(dec.classChoices['school'] ?? []).includes('universalist');
     let bonusSlot: CastingBlock['bonusSlot'];
     if (hasDomains) {
       const doms = (dec.classChoices['domains'] ?? []).map((id) => C.domainById.get(id)).filter(Boolean) as C.DomainDef[];
