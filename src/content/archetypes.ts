@@ -1096,13 +1096,8 @@ export const SUMMONER_ARCHETYPES: ArchetypeDef[] = [
     choices: {
       remove: ['eidolon-form'],
       add: [{
-        id: 'eidolon-form', label: 'Plant eidolon base form', kind: 'list', count: 1,
-        options: [
-          { id: 'cactus', name: 'Cactus (desert)', desc: 'Medium, speed 30 ft, +2 natural armor. Good Fort and Ref, poor Will. Slam 1d8 and sting 1d4. Str 14, Dex 14, Con 13, Int 7, Wis 10, Cha 11. Free evolutions: limbs (arms), limbs (legs), sting, tail.' },
-          { id: 'conifer', name: 'Conifer (forest, mountain)', desc: 'Medium, speed 30 ft, +2 natural armor. Good Fort and Will, poor Ref. Two claws 1d4. Str 14, Dex 12, Con 15, Int 7, Wis 10, Cha 11. Resist cold 10. Free evolutions: claws, limbs (arms), limbs (legs), resistance (cold).' },
-          { id: 'mushroom', name: 'Mushroom (swamp, underground)', desc: 'Medium, speed 20 ft, +2 natural armor. Good Fort and Ref, poor Will. Bite 1d6 plus poison. Str 14, Dex 14, Con 13, Int 7, Wis 10, Cha 11. Free evolutions: bite, limbs (arms), limbs (legs), poison.' },
-          { id: 'tree', name: 'Tree (forest, jungle, swamp)', desc: 'Medium, speed 20 ft, +4 natural armor. Good Fort and Ref, poor Will. Two slams 1d8. Str 16, Dex 12, Con 13, Int 7, Wis 10, Cha 11. Free evolutions: improved natural armor, limbs (arms), limbs (legs), slam ×2.' },
-        ],
+        id: 'eidolon-form', label: 'Plant eidolon base form', kind: 'companion',
+        companionKind: 'eidolon', companionIds: ['cactus', 'conifer', 'mushroom', 'tree'], count: 1,
       }],
     },
     grants: [

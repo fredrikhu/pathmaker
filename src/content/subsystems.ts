@@ -405,11 +405,7 @@ export const HUNTERS_BOND: Opt[] = [
   opt('bond-with-companions', 'Bond with Companions', 'Grant allies half your favored-enemy bonus for a few rounds.'),
 ];
 
-export const SUMMONER_EIDOLON_FORMS: Opt[] = [
-  opt('biped', 'Biped', 'Two legs, two arms; strong at wielding weapons and reach.'),
-  opt('quadruped', 'Quadruped', 'Four legs; fast and strong, good for mounts and maulers.'),
-  opt('serpentine', 'Serpentine', 'A long body with reach and a grabbing tail.'),
-];
+
 
 /** The eidolon's evolution pool by summoner level (index 0 = level 1 … index 19 = level 20).
  *  Table 2-9: Eidolon Base Statistics, APG — verified against the legacy PRD + d20pfsrd (both agree). */
@@ -475,6 +471,8 @@ export const EIDOLON_EVOLUTIONS: EvolutionDef[] = [
     { forms: ['serpentine'], apply: { special: ['Constrict'] } }),
   ev('energy-attacks', 'Energy Attacks', 2, 'Natural attacks deal +1d6 energy damage of one type.',
     { minLevel: 5, apply: { manual: true } }),
+  ev('flight', 'Flight', 2, 'Wings granting a fly speed equal to base speed (good manoeuvrability at Medium or smaller); +20 ft per extra point, or 2 more points to fly by magic with perfect manoeuvrability.',
+    { minLevel: 5, apply: { speed: { fly: 'base' } } }),
   ev('gore', 'Gore', 2, 'A primary gore attack (1d6, 1d8 if Large).',
     { apply: { attacks: [a('gore', 1, '1d6')] } }),
   ev('grab', 'Grab', 2, 'One attack type gains the grab ability.', { apply: { manual: true } }),

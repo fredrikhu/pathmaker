@@ -184,7 +184,7 @@ export interface EvolutionApply {
   speed?: {
     climb?: 'base' | number;
     swim?: 'base' | number;
-    fly?: number;
+    fly?: 'base' | number;
     burrow?: 'half' | number;
     baseBonus?: number;
   };
@@ -341,6 +341,10 @@ export interface ClassChoiceDef {
   requires?: { choiceId: string; value: string };
   /** For kind: 'companion' — which companion catalogue to offer. */
   companionKind?: CompanionKind;
+  /** For kind: 'companion' — restrict the offer to these creature ids, in place of the whole
+   *  catalogue of that kind. The Wild Caller's plant eidolons replace the four standard base
+   *  forms rather than joining them. */
+  companionIds?: string[];
 }
 
 /** A class archetype: removes some of the base class's features and grants alternates in their

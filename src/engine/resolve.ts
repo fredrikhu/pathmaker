@@ -2428,7 +2428,10 @@ function classChoiceOptions(ch: C.ClassChoiceDef, dec: Decisions, level = 1): Sl
   switch (ch.kind) {
     case 'companion': {
       const kind = ch.companionKind ?? 'animal';
-      return C.companionsOfKind(kind).map((c) => ({
+      const pool = ch.companionIds
+        ? ch.companionIds.map((id) => C.companionById(kind, id)).filter((c): c is C.CompanionDef => !!c)
+        : C.companionsOfKind(kind);
+      return pool.map((c) => ({
         id: c.id,
         name: c.name,
         desc: companionOptionDesc(c),

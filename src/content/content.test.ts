@@ -346,7 +346,7 @@ describe('source-dependent features (bloodline powers, order abilities)', () => 
   });
   it('every eidolon evolution has a unique id, a 1–4 cost, a valid min level, and real forms', () => {
     const ids = new Set<string>();
-    const forms = new Set(C.SUMMONER_EIDOLON_FORMS.map((f) => f.id));
+    const forms = new Set(C.EIDOLON_FORMS.map((f) => f.id));
     for (const e of C.EIDOLON_EVOLUTIONS) {
       expect(ids.has(e.id), `duplicate evolution id ${e.id}`).toBe(false);
       ids.add(e.id);
@@ -358,7 +358,9 @@ describe('source-dependent features (bloodline powers, order abilities)', () => 
       }
       for (const f of e.forms ?? []) expect(forms.has(f), `${e.id} references unknown form ${f}`).toBe(true);
     }
-    expect(C.EIDOLON_EVOLUTIONS.length, 'expected the full APG evolution set').toBe(48);
+    // 49, not 48: Flight was missing until the companion-breadth pass, which is exactly the kind
+    // of gap this count is here to catch.
+    expect(C.EIDOLON_EVOLUTIONS.length, 'expected the full APG evolution set').toBe(49);
   });
   it('the summoner offers an eidolon-evolutions point-buy choice', () => {
     const summ = C.classById.get('summoner');

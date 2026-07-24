@@ -32,6 +32,9 @@ export interface CompanionContext {
 
 const clampLevel = (level: number): number => Math.min(20, Math.max(1, level));
 
+/** Size categories smallest-first, so a change of size can be counted in steps. */
+const SIZE_ORDER: C.CreatureSize[] = ['diminutive', 'tiny', 'small', 'medium', 'large'];
+
 /** Cumulative special abilities: the tables print what is *gained* at each level, so reaching a
  *  level means holding everything listed at or below it. */
 function specialsUpTo(rows: { special: string[] }[], level: number): string[] {
@@ -184,7 +187,7 @@ function evolutionTotals(taken: string[], base: C.CompanionSpeedDef): EvolutionT
   };
   // Deferred until the base land speed is final, because "equal to base speed" has to mean the
   // speed *after* every extra pair of legs has raised it.
-  const derived: { climb?: 'base' | number; swim?: 'base' | number; fly?: number; burrow?: 'half' | number }[] = [];
+  const derived: { climb?: 'base' | number; swim?: 'base' | number; fly?: 'base' | number; burrow?: 'half' | number }[] = [];
 
   for (const id of taken) {
     const evo = C.EIDOLON_EVOLUTIONS.find((e) => e.id === id);
@@ -206,7 +209,7 @@ function evolutionTotals(taken: string[], base: C.CompanionSpeedDef): EvolutionT
   for (const s of derived) {
     if (s.climb) out.speed.climb = Math.max(out.speed.climb ?? 0, s.climb === 'base' ? out.speed.base : s.climb);
     if (s.swim) out.speed.swim = Math.max(out.speed.swim ?? 0, s.swim === 'base' ? out.speed.base : s.swim);
-    if (s.fly) out.speed.fly = Math.max(out.speed.fly ?? 0, s.fly);
+    if (s.fly) out.speed.fly = Math.max(out.speed.fly ?? 0, s.fly === 'base' ? out.speed.base : s.fly);
     if (s.burrow) out.speed.burrow = Math.max(out.speed.burrow ?? 0, s.burrow === 'half' ? Math.floor(out.speed.base / 2) : s.burrow);
   }
   return out;
@@ -235,10 +238,15 @@ function resolveEidolon(
   const spent = taken.reduce((n, id) => n + (C.EIDOLON_EVOLUTIONS.find((e) => e.id === id)?.cost ?? 0), 0);
 
   // Every natural attack an eidolon has comes from an evolution, and each evolution prints its own
-  // Large damage — so growing to Large steps the whole set up, base form included.
+  // damage per size — so growing steps the whole set up, base form included. Counted in categories
+  // rather than as a boolean, because the avian and tauric forms start Small and so climb twice.
   const size = evo.size ?? def.start.size;
-  const grown = size === 'large' && def.start.size !== 'large';
-  const scale = (a: C.CompanionAttackDef) => (grown ? { ...a, damage: naturalAttackDieUp(a.damage) } : a);
+  const steps = SIZE_ORDER.indexOf(size) - SIZE_ORDER.indexOf(def.start.size);
+  const scale = (a: C.CompanionAttackDef) => {
+    let damage = a.damage;
+    for (let i = 0; i < steps; i++) damage = naturalAttackDieUp(damage);
+    return steps > 0 ? { ...a, damage } : a;
+  };
   const attacks = [...def.start.attacks, ...evo.attacks].map(scale);
   const attackCount = attacks.reduce((n, a) => n + a.count, 0);
 
@@ -247,7 +255,7 @@ function resolveEidolon(
     notes.push(`Not folded into the numbers (each needs a choice this sheet doesn't carry): ${evo.manual.join(', ')}.`);
   if (attackCount > row.maxAttacks)
     notes.push(`Over the ${row.maxAttacks}-attack limit for this level.`);
-  if (grown && def.id === 'biped') notes.push('A Large biped also gains 10-foot reach.');
+  if (size === 'large' && def.id === 'biped') notes.push('A Large biped also gains 10-foot reach.');
 
   const block = assemble({
     slotId, kind: 'eidolon', label, name: def.name, className, level: lvl,

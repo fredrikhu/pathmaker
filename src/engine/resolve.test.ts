@@ -4863,8 +4863,11 @@ describe('archetypes — thirds batch 3 (Mouser, Dual-Cursed, Chirurgeon, Mercif
   });
 
   it('Wild Caller swaps the eidolon base forms for plant forms and moves aspect to 18th', () => {
-    const eff = effectiveClass(C.classById.get('summoner')!, readDecisions(build('summoner', 'wild-caller', 1)));
-    const forms = (eff.choices ?? []).find((c) => c.id === 'eidolon-form')?.options?.map((o) => o.id) ?? [];
+    // Assert the *resolved slot*, not the choice definition: the options are generated from the
+    // companion catalogue now, and reading the definition alone once hid a regression where the
+    // plant forms resolved to no companion at all.
+    const slot = resolve(build('summoner', 'wild-caller', 1)).slots.find((sl) => sl.id === 'eidolon-form');
+    const forms = slot?.options.map((o) => o.id) ?? [];
     expect(forms).toEqual(['cactus', 'conifer', 'mushroom', 'tree']);
     expect(forms).not.toContain('biped');
     const wc = build('summoner', 'wild-caller', 18);
@@ -5316,5 +5319,86 @@ describe('companions — the Synthesist wears its eidolon', () => {
     expect(plain.sheet.stats['ability:str'].total).toBe(12);
     expect(plain.sheet.companions[0].fused).toBeFalsy();
     expect(plain.sheet.companions[0].label).toBe('Eidolon');
+  });
+});
+
+describe('companions — breadth batch', () => {
+  it('a Wild Caller resolves a plant eidolon, not an empty companion list', () => {
+    // The regression this test exists for: making eidolon-form a companion pick left the Wild
+    // Caller's plant forms pointing at nothing, so the archetype silently lost its stat block.
+    let d = newCharacter('t-wc', 'Wild Caller');
+    d = withDecision(d, 'ability-base', { str: 12, dex: 12, con: 12, int: 12, wis: 12, cha: 16 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['cha']);
+    d = withDecision(d, 'alignment', 'N');
+    d = withDecision(d, 'class', 'summoner');
+    d = withDecision(d, 'archetype', 'wild-caller');
+    d = withDecision(d, 'class-choices', { 'eidolon-form': ['tree'] });
+    const r = resolve(atLevel(d, 8));
+    const tree = r.sheet.companions[0];
+    expect(tree).toBeTruthy();
+    expect(tree.name).toBe('Tree');
+    // Tree: +4 natural of its own, +6 from the table at summoner 8.
+    expect(tree.naturalArmor).toBe(10);
+    expect(tree.attacks[0].name).toBe('2 slams');
+    // Fort and Ref good, Will poor — the reverse of a biped.
+    expect(tree.fort).toBeGreaterThan(tree.will);
+  });
+
+  it('a Small avian eidolon growing to Large steps its attacks up twice', () => {
+    const small = resolve(companionChar('summoner', 8, { 'eidolon-form': ['avian'] })).sheet.companions[0];
+    expect(small.size).toBe('Small');
+    expect(small.attacks[0].name).toBe('2 claws');
+    expect(small.attacks[0].damage.startsWith('1d3')).toBe(true);
+
+    const large = resolve(companionChar('summoner', 8, { 'eidolon-form': ['avian'], evolutions: ['large'] })).sheet.companions[0];
+    expect(large.size).toBe('Large');
+    // Small → Medium → Large is two steps on the natural-attack ladder: 1d3 → 1d4 → 1d6.
+    expect(large.attacks[0].damage.startsWith('1d6')).toBe(true);
+  });
+
+  it('the Flight evolution grants a fly speed equal to the base speed', () => {
+    const r = resolve(companionChar('summoner', 8, { 'eidolon-form': ['quadruped'], evolutions: ['flight'] }));
+    const eid = r.sheet.companions[0];
+    expect(eid.speed.base).toBe(40);
+    expect(eid.speed.fly).toBe(40);
+  });
+
+  it('an aquatic eidolon swims and has the heaviest hide of the base forms', () => {
+    const eid = resolve(companionChar('summoner', 4, { 'eidolon-form': ['aquatic'] })).sheet.companions[0];
+    expect(eid.speed.swim).toBe(40);
+    expect(eid.naturalArmor).toBe(6);   // 4 form + 2 table at summoner 4
+    expect(eid.evolutions!.free).toContain('gills');
+  });
+
+  it('a tyrannosaurus companion advances at 7th to Large with a grabbing bite', () => {
+    const early = resolve(companionChar('druid', 6, { 'nature-bond': ['animal-companion'], 'animal-companion': ['tyrannosaurus'] })).sheet.companions[0];
+    expect(early.size).toBe('Medium');
+    const late = resolve(companionChar('druid', 7, { 'nature-bond': ['animal-companion'], 'animal-companion': ['tyrannosaurus'] })).sheet.companions[0];
+    expect(late.size).toBe('Large');
+    expect(late.naturalArmor).toBe(11);   // 4 own + 3 advancement + 4 table at 7
+    expect(late.attacks[0].damage.startsWith('2d6')).toBe(true);
+    expect(late.attacks[0].notes).toContain('plus grab');
+  });
+
+  it('a vermin companion carries its poison and mindless tags', () => {
+    const spider = resolve(companionChar('druid', 5, { 'nature-bond': ['animal-companion'], 'animal-companion': ['spider-giant'] })).sheet.companions[0];
+    expect(spider.special).toContain('mindless vermin');
+    expect(spider.special.some((s) => s.includes('poison'))).toBe(true);
+    expect(spider.senses).toContain('tremorsense 30 ft');
+  });
+
+  it('a swim-only companion reports no land speed', () => {
+    const dolphin = resolve(companionChar('druid', 4, { 'nature-bond': ['animal-companion'], 'animal-companion': ['dolphin'] })).sheet.companions[0];
+    expect(dolphin.speed.base).toBe(0);
+    expect(dolphin.speed.swim).toBe(80);
+  });
+
+  it('offers the whole animal catalogue to a druid, and only plant forms to a Wild Caller', () => {
+    const druid = resolve(companionChar('druid', 3, { 'nature-bond': ['animal-companion'] }));
+    const ids = druid.slots.find((s) => s.id === 'animal-companion')!.options.map((o) => o.id);
+    expect(ids.length).toBe(C.ANIMAL_COMPANIONS.length);
+    expect(ids).toContain('wolf');
+    expect(ids).toContain('tyrannosaurus');
   });
 });

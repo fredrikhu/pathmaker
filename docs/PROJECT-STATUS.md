@@ -6,10 +6,31 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 
 ## ▶ Resume here (last session end)
 
-**Current state** — branch `main`, working tree clean, **771 tests** passing; run
+**Current state** — branch `main`, working tree clean, **779 tests** passing; run
 `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
-**Latest — Project A done: companion creatures, and the Synthesist on top of them.** Companions were the
+**Latest — Companion breadth: the catalogue goes 31 → 72 creatures, and a regression is fixed.** With both
+engine projects closed, breadth means content, and the thinnest catalogue was the one that had just shipped.
+Added **25 animal companions** (Bestiary favourites plus the five common vermin), **3 eidolon base forms**
+(aquatic, avian, tauric), **4 plant base forms** for the Wild Caller, and **9 familiars** — all d20pfsrd-verified.
+Also found and fixed the one **APG evolution missing entirely: Flight**, which is exactly what the avian form
+needs for free; the content test pinning the evolution count at 48 had been asserting the gap rather than
+catching it (now 49, with a comment saying why). **A real regression, caught by doing the breadth:** making
+`eidolon-form` a companion pick in the A1–A4 commit left the Wild Caller's plant forms pointing at nothing, so
+that archetype silently resolved **no companion at all**. Fixed by authoring the four plant forms as real
+`CompanionDef`s and adding `ClassChoiceDef.companionIds` to restrict a picker to a named set. The test that
+should have caught it was reading the choice *definition*'s inline options; it now asserts the **resolved
+slot**, which is what a player actually sees. Two supporting engine changes: eidolon attack size-stepping is
+counted in **size categories** rather than as a Large/not-Large boolean (the avian and tauric forms start Small,
+so growing to Large steps twice), and `EvolutionApply.speed.fly` accepts `'base'`. Retired
+`SUMMONER_EIDOLON_FORMS`, which had become dead content that could only drift from the real catalogue — the
+form-validation test now checks against `EIDOLON_FORMS`. 8 golden tests; **779 pass**; tsc + build clean.
+Browser-verified a Wild Caller 8 with a Tree eidolon and Flight: AC 22, 2 slams +10 for 1d8+4, fly 20 ft
+matching its base speed. One authoring convention worth knowing: a mindless creature prints "—" for
+Intelligence and the stat block has no way to say "no score", so mindless vermin are authored at Int 1 and
+carry a `mindless vermin` tag (nothing reads a companion's Intelligence, and a familiar's is set by its table).
+
+**Prior — Project A done: companion creatures, and the Synthesist on top of them.** Companions were the
 last thing in the game with no model at all; they now resolve to real stat blocks. `CompanionDef` +
 `CompanionSourceDef` on `ClassDef` (which slot names the creature, how its effective level derives from the
 class level), a new `ClassChoiceDef.requires` that gates a slot on another slot's value (the druid's Nature
