@@ -344,9 +344,19 @@ function sourceFeatures(dec: Decisions): C.LeveledFeatureDef[] {
     if (choiceRemoved(choiceId)) return;
     const sourceId = dec.classChoices[choiceId]?.[0];
     const drop = arch?.suppressSourcePowers?.find((s) => s.prefix === prefix)?.levels;
+    // Player-decided suppression: a level is dropped only when its per-level choice took the swap
+    // (the Primalist trading a bloodline power for rage powers at that level).
+    const condDrop = new Set<number>();
+    for (const cs of arch?.conditionalSuppress ?? []) {
+      if (cs.prefix !== prefix) continue;
+      for (const lvl of cs.levels) {
+        const key = lvl === 1 ? cs.choiceId : `${cs.choiceId}-L${lvl}`;
+        if ((dec.classChoices[key] ?? []).includes(cs.swapValue)) condDrop.add(lvl);
+      }
+    }
     const list = sourceId ? map[sourceId] : undefined;
     if (list) for (const p of list) {
-      if (drop?.includes(p.level)) continue; // archetype removes this source-granted power
+      if (drop?.includes(p.level) || condDrop.has(p.level)) continue; // archetype removes this source-granted power
       out.push({
         level: p.level, id: `${prefix}-${sourceId}-${p.level}`, name: p.name, desc: p.desc,
         ...(p.grantsFeat ? { grantsFeat: p.grantsFeat } : {}),
@@ -1996,6 +2006,12 @@ function buildSlotsAndIssues(
       // bare key; later grants are suffixed `<id>-L<level>`.
       for (const gLvl of (ch.levels ?? [1])) {
         if (gLvl > entry.levels) continue;
+        // Per-level branch gate: the Primalist's rage-power picks only appear at the levels where
+        // the primal choice took rage powers. Unmet ⇒ no slot, no nag (like `requires`).
+        if (ch.requiresPerLevel) {
+          const key = gLvl === 1 ? ch.requiresPerLevel.choiceId : `${ch.requiresPerLevel.choiceId}-L${gLvl}`;
+          if (!(dec.classChoices[key] ?? []).includes(ch.requiresPerLevel.value)) continue;
+        }
         const slotId = gLvl === 1 ? ch.id : `${ch.id}-L${gLvl}`;
         const selected = dec.classChoices[slotId] ?? [];
         const label = gLvl === 1 ? ch.label : `${ch.label} (level ${gLvl})`;

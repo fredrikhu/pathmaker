@@ -3820,6 +3820,60 @@ describe('archetypes — source-power suppression (Tattooed Sorcerer)', () => {
   });
 });
 
+describe('archetypes — Primalist bloodrager (per-level bloodline/rage-power swap)', () => {
+  const build = (archetype: string | undefined, level: number, choices?: Record<string, string[]>): CharacterDoc => {
+    let d = newCharacter('t-primalist', 'P');
+    d = withDecision(d, 'ability-base', { str: 16, dex: 13, con: 14, int: 10, wis: 12, cha: 13 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['str']);
+    d = withDecision(d, 'alignment', 'CN');
+    d = withDecision(d, 'class', 'bloodrager');
+    d = withDecision(d, 'class-choices', { bloodline: ['arcane'], ...(choices ?? {}) });
+    if (archetype) d = withDecision(d, 'archetype', archetype);
+    return atLevel(d, level);
+  };
+  const featsAt = (doc: CharacterDoc, lvl: number) =>
+    resolve(doc).sheet.progression.find((r) => r.level === lvl)?.features ?? [];
+  const slotIds = (doc: CharacterDoc) => resolve(doc).slots.map((s) => s.id);
+
+  it('keeps every bloodline power by default, and offers no rage-power slot', () => {
+    const p = build('primalist', 8);
+    // No primal choice made ⇒ the bloodline powers stay (the 4th and 8th arcane powers).
+    expect(featsAt(p, 1)).toContain('Disruptive Bloodrage');
+    expect(featsAt(p, 4)).toContain('Arcane Bloodrage');
+    expect(featsAt(p, 8)).toContain('Greater Arcane Bloodrage');
+    expect(slotIds(p)).not.toContain('primal-rage-power-L4');
+    // The primal choice itself is offered at 4 and 8 (a plain bloodrager has neither).
+    expect(slotIds(p)).toContain('primal-choice-L4');
+    expect(slotIds(p)).toContain('primal-choice-L8');
+    expect(slotIds(build(undefined, 8))).not.toContain('primal-choice-L4');
+  });
+
+  it('swaps a level for two rage powers when chosen, leaving other levels untouched', () => {
+    // Take rage powers at 4th, keep the bloodline power at 8th.
+    const p = build('primalist', 8, {
+      'primal-choice-L4': ['rage-powers'], 'primal-choice-L8': ['bloodline'],
+      'primal-rage-power-L4': ['animal-fury', 'guarded-stance'],
+    });
+    // 4th bloodline power gone, its two rage-power slot present…
+    expect(featsAt(p, 4)).not.toContain('Arcane Bloodrage');
+    const rageSlot = resolve(p).slots.find((s) => s.id === 'primal-rage-power-L4');
+    expect(rageSlot?.count).toBe(2);
+    // …while the 8th-level bloodline power is kept because that level chose to.
+    expect(featsAt(p, 8)).toContain('Greater Arcane Bloodrage');
+    expect(slotIds(p)).not.toContain('primal-rage-power-L8');
+    // The 1st-level bloodline power is never swappable.
+    expect(featsAt(p, 1)).toContain('Disruptive Bloodrage');
+  });
+
+  it('a bloodrager without the archetype has no primal choices and its bloodline intact', () => {
+    const b = build(undefined, 8);
+    expect(featsAt(b, 4)).toContain('Arcane Bloodrage');
+    expect(slotIds(b)).not.toContain('primal-choice-L4');
+    expect(slotIds(b)).not.toContain('primal-rage-power-L4');
+  });
+});
+
 describe('archetypes — breadth (Warpriest, Brawler, Investigator)', () => {
   const build = (cls: string, archetype: string | undefined, level: number): CharacterDoc => {
     let d = newCharacter('t-breadth2', 'X');

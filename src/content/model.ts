@@ -339,6 +339,10 @@ export interface ClassChoiceDef {
    *  appears only if Nature Bond took the companion branch, the wizard's familiar only if Arcane
    *  Bond did. An unmet requirement emits nothing and raises no issue; the decision is kept. */
   requires?: { choiceId: string; value: string };
+  /** Like `requires`, but checked per granted level: this choice's slot at level L appears only when
+   *  `<choiceId>-L<L>` holds `value`. The Primalist bloodrager's rage-power picks appear only at the
+   *  levels (4/8/12/16/20) where the primal choice took rage powers rather than a bloodline power. */
+  requiresPerLevel?: { choiceId: string; value: string };
   /** For kind: 'companion' — which companion catalogue to offer. */
   companionKind?: CompanionKind;
   /** For kind: 'companion' — restrict the offer to these creature ids, in place of the whole
@@ -411,6 +415,11 @@ export interface ArchetypeDef {
    *  the 1st- and 9th-level bloodline powers (prefixes: 'sorc-bl' sorcerer bloodline powers, 'br-bl'
    *  bloodrager bloodline powers, 'wiz-school' wizard school powers, 'cav-ord' cavalier order, etc.). */
   suppressSourcePowers?: { prefix: string; levels: number[] }[];
+  /** Conditional source-power suppression: at each listed level, drop the source power only when a
+   *  per-level choice (`<choiceId>-L<level>`) selects `swapValue`. The Primalist bloodrager keeps its
+   *  bloodline power or trades it for rage powers at 4/8/12/16/20 — so the suppression is decided by
+   *  the player's per-level pick, not fixed like `suppressSourcePowers`. */
+  conditionalSuppress?: { prefix: string; levels: number[]; choiceId: string; swapValue: string }[];
   /** Source-backed power lines this archetype grants to a class that does not natively have them —
    *  the Blood Arcanist gains sorcerer *bloodline powers* on the arcanist, the School Savant gains
    *  wizard *school powers*. Pair each entry with a `choices.add` that actually offers the pick.

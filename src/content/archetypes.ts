@@ -1258,6 +1258,29 @@ export const ORACLE_ARCHETYPES: ArchetypeDef[] = [
 
 export const BLOODRAGER_ARCHETYPES: ArchetypeDef[] = [
   {
+    id: 'primalist', classId: 'bloodrager', name: 'Primalist',
+    desc: 'A bloodrager who leavens raw bloodline power with the older, more primal wisdom of the raging tribes.',
+    replaces: [],
+    // Primal Choices: at 4/8/12/16/20 the primalist keeps that level's bloodline power OR takes two
+    // barbarian rage powers instead. The per-level pick decides the swap; the 1st-level bloodline
+    // power is never touched.
+    conditionalSuppress: [{ prefix: 'br-bl', levels: [4, 8, 12, 16, 20], choiceId: 'primal-choice', swapValue: 'rage-powers' }],
+    choices: {
+      add: [
+        { id: 'primal-choice', label: 'Primal choice', kind: 'list', count: 1, levels: [4, 8, 12, 16, 20],
+          options: [
+            { id: 'bloodline', name: 'Keep the bloodline power', desc: 'Gain the bloodline power you would normally receive at this level.' },
+            { id: 'rage-powers', name: 'Take two rage powers', desc: 'Forgo this level’s bloodline power to select two barbarian rage powers instead (your bloodrager level counts as your barbarian level).' },
+          ] },
+        { id: 'primal-rage-power', label: 'Rage power', kind: 'list', count: 2, levels: [4, 8, 12, 16, 20],
+          requiresPerLevel: { choiceId: 'primal-choice', value: 'rage-powers' }, options: BARBARIAN_RAGE_POWERS },
+      ],
+    },
+    grants: [
+      g(1, 'primalist-primal-choices', 'Primal Choices', 'At 4th level and every four levels thereafter, choose to gain your bloodline power for that level or instead select two barbarian rage powers. Rage powers chosen this way work during your bloodrage, using your bloodrager level as your barbarian level; you cannot take a rage power that requires a rage class feature or a specific bloodline, and this ability does not count as the rage power class feature for prerequisites. Alters the bloodline class feature.'),
+    ],
+  },
+  {
     id: 'bloodrider', classId: 'bloodrager', name: 'Bloodrider',
     desc: 'A bloodrager who fights from the saddle, channelling arcane fury straight into a feral mount.',
     replaces: ['br-fast-movement', 'br-uncanny-dodge', 'br-improved-uncanny-dodge'],
