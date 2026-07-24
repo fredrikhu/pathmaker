@@ -6,10 +6,12 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 
 ## ▶ Resume here (last session end)
 
-**Current state** — branch `main`, working tree clean, **821 tests** passing; run
+**Current state** — branch `main`, working tree clean, **824 tests** passing; run
 `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
-**Latest — Spell catalogue: CRB completion batch 2 (levels 3–4), 438 → 494, and a full list audit.**
+**Latest — Spell catalogue: CRB completion batch 3 (levels 5–6), 494 → 566 (555 of 610 CRB spells covered; 55 remain at 7–9).** 73 spells, every field verified on the spell's own d20pfsrd page. The whole-catalogue audit test paid off again: the mass stat-buffs inherit their single-target lists, and it caught two transpositions before commit — cat's grace mass is druid not divine, eagle's splendor mass is divine not druid. Eight spells needed `levelByList` (the bard reaches greater scrying/shout, mass charm monster, irresistible dance and project image ahead of the wizard). 824 tests; browser-verified a level-12 wizard's 6th band and a level-12 druid's 5th/6th bands, with the wizard-8 and druid-7 spells correctly absent from the lower bands.
+
+**Prior — Spell catalogue: CRB completion batch 2 (levels 3–4), 438 → 494, and a full list audit.**
 57 spells authored at levels 3–4, every field read off the spell's own d20pfsrd page and the per-list
 levels off its Level line (eight needed `levelByList`). **Blot was excluded**: d20pfsrd's bard table
 lists it as PZO1110 but its own page credits *Goblins of Golarion*, so the Source column can lie — check
@@ -1140,9 +1142,10 @@ Still open from that audit:
   all — the attack line is built around a damage string, so listing it would print a damage figure
   the weapon does not have. **Feats**: the full **Core Rulebook** catalogue (~173 feats across
   combat/general/skill/spellcasting/metamagic/item-creation) — the whole CRB list is now authored,
-  verified against d20pfsrd; splatbook feats remain out of scope. **Spells**: ~270 across levels 0–9
-  (core-scope) — the **common-spell breadth** pass added the CRB spells players actually reach for at
-  each level and list (cantrips/orisons, the buff line, control, summons, inflict wounds, and more).
+  verified against d20pfsrd; splatbook feats remain out of scope. **Spells**: 566 across levels 0–9,
+  covering 555 of the 610 distinct Core Rulebook spells on the four class lists — the CRB-completion
+  batches are working up by level (0–2, 3–4, 5–6 done; 55 remain at 7–9). Every list membership and
+  per-list level is checked against a committed scrape of the four class lists by `spell-lists.test.ts`.
   The five ability-boost buffs (Cat's Grace … Owl's Wisdom), Longstrider, Heroism/Greater Heroism and
   Good Hope carry computed effects; Shocking Grasp, Sound Burst, Shout, Flame Blade, the inflict-wounds
   line, Call Lightning Storm and False Life carry damage/temp-HP hooks. Still not exhaustive — the
