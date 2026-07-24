@@ -3820,6 +3820,51 @@ describe('archetypes — source-power suppression (Tattooed Sorcerer)', () => {
   });
 });
 
+describe('archetypes — Sage sorcerer (wildblooded arcane: casts on Intelligence)', () => {
+  const build = (archetype: string | undefined, level: number, bloodline: string): CharacterDoc => {
+    let d = newCharacter('t-sage', 'S');
+    // Int 18, Cha 13 — so the casting stat is unambiguous.
+    d = withDecision(d, 'ability-base', { str: 10, dex: 12, con: 12, int: 18, wis: 10, cha: 13 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['int']);
+    d = withDecision(d, 'alignment', 'N');
+    d = withDecision(d, 'class', 'sorcerer');
+    d = withDecision(d, 'class-choices', { bloodline: [bloodline] });
+    if (archetype) d = withDecision(d, 'archetype', archetype);
+    return atLevel(d, level);
+  };
+  const featsAt = (doc: CharacterDoc, lvl: number) =>
+    resolve(doc).sheet.progression.find((r) => r.level === lvl)?.features ?? [];
+  const sorcCasting = (doc: CharacterDoc) => resolve(doc).sheet.casting.find((b) => b.classId === 'sorcerer')!;
+
+  it('casts on Intelligence, where a standard sorcerer casts on Charisma', () => {
+    const std = sorcCasting(build(undefined, 5, 'arcane'));
+    expect(std.ability).toBe('cha');
+    const sage = sorcCasting(build('sage-sorcerer', 5, 'arcane'));
+    expect(sage.ability).toBe('int');
+    // Base DC = 10 + casting-stat modifier. Standard sorcerer: Cha 13 → +1 → 11.
+    // Sage: Int 18 + 2 racial = 20 → +5 → 15.
+    expect(std.dcBase).toBe(11);
+    expect(sage.dcBase).toBe(15);
+  });
+
+  it('keeps the Arcane bloodline powers, spells, class skill, and bonus feats', () => {
+    const sage = build('sage-sorcerer', 3, 'arcane');
+    // Arcane bloodline's 1st- and 3rd-level powers still arrive from the source injection.
+    expect(featsAt(sage, 1)).toContain('Arcane Bond');
+    expect(featsAt(sage, 1)).toContain('Bloodline Arcana (Sage)');
+    // Arcane's class skill (Knowledge: arcana) is still conferred.
+    expect(resolve(sage).sheet.classSkillIds).toContain('know-arcana');
+  });
+
+  it('fixes the bloodline to Arcane — that is the only option offered', () => {
+    const sage = build('sage-sorcerer', 3, 'arcane');
+    const eff = effectiveClass(C.classById.get('sorcerer')!, readDecisions(sage));
+    const bl = (eff.choices ?? []).find((c) => c.id === 'bloodline');
+    expect(bl?.options?.map((o) => o.id)).toEqual(['arcane']);
+  });
+});
+
 describe('archetypes — Primalist bloodrager (per-level bloodline/rage-power swap)', () => {
   const build = (archetype: string | undefined, level: number, choices?: Record<string, string[]>): CharacterDoc => {
     let d = newCharacter('t-primalist', 'P');

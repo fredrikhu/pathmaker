@@ -950,6 +950,24 @@ export const WITCH_ARCHETYPES: ArchetypeDef[] = [
 
 export const SORCERER_ARCHETYPES: ArchetypeDef[] = [
   {
+    id: 'sage-sorcerer', classId: 'sorcerer', name: 'Sage',
+    desc: 'A wildblooded sorcerer whose arcane heritage flows through the intellect rather than force of personality — casting on Intelligence instead of Charisma.',
+    replaces: [],
+    // Wildblooded (Sage) is always a mutation of the Arcane bloodline, so the bloodline pick is fixed
+    // to Arcane; it keeps that bloodline's powers, spells, bonus feats, and class skill unchanged.
+    choices: {
+      remove: ['bloodline'],
+      add: [{ id: 'bloodline', label: 'Bloodline', kind: 'list', count: 1,
+        options: [{ id: 'arcane', name: 'Arcane (Sage)', desc: 'The Sage mutation of the Arcane sorcerer bloodline — its powers and spells, cast on Intelligence.' }] }],
+    },
+    // The Sage arcana replaces the Arcane bloodline's metamagic arcana: Intelligence stands in for
+    // Charisma across the sorcerer's casting (bonus spells, spells known, and save DCs).
+    spellcastingMod: { ability: 'int' },
+    grants: [
+      g(1, 'sage-arcana', 'Bloodline Arcana (Sage)', 'You use your Intelligence rather than your Charisma to determine bonus spells per day, spells known, and the save DCs of your sorcerer spells. Replaces the Arcane bloodline arcana.'),
+    ],
+  },
+  {
     id: 'seeker-sorcerer', classId: 'sorcerer', name: 'Seeker',
     desc: 'A sorcerer obsessed with the genesis of their own power, ransacking ancient texts and obscure ruins for clues to their bloodline.',
     replaces: ['sorc-eschew'],
