@@ -6,10 +6,48 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 
 ## ▶ Resume here (last session end)
 
-**Current state** — branch `main`, working tree clean, **811 tests** passing; run
+**Current state** — branch `main`, working tree clean, **821 tests** passing; run
 `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
-**Latest — The fourth-per-class archetype pass is COMPLETE: 93 → 121 archetypes, every class at four.**
+**Latest — Spell catalogue: CRB completion batch 2 (levels 3–4), 438 → 494, and a full list audit.**
+57 spells authored at levels 3–4, every field read off the spell's own d20pfsrd page and the per-list
+levels off its Level line (eight needed `levelByList`). **Blot was excluded**: d20pfsrd's bard table
+lists it as PZO1110 but its own page credits *Goblins of Golarion*, so the Source column can lie — check
+the spell's own page before trusting it.
+
+**The batch's real result was the audit, not the 57 spells.** Browser-verifying the bard's 3rd-level
+picker showed Prayer and Nondetection, neither of which is a bard spell. Auditing *every* list
+membership in the catalogue against the four CRB class lists then found:
+- **on a list that does not carry them** — Prayer (bard), Nondetection (bard), Incendiary Cloud (druid),
+  Lesser Confusion (arcane), and **Holy Sword**, which sat on `divine` and so appeared on the cleric's
+  4th-level list.
+- **right list, wrong level** — Flame Strike, Death Ward, Control Water, Major Creation, Magic Mouth,
+  Legend Lore.
+- **missing a list they belong to** — 15, including Tongues (cleric 4), Animate Dead and Remove Curse
+  (wizard 4), Dominate Person (bard 4), True Seeing (wizard 6), and the whole mass-cure line on the druid.
+
+Each was confirmed on the spell's own page before changing. **Two tests had pinned the bugs rather than
+the rules** and were corrected — one asserted the druid gets *no* mass cures, when it gets the whole line
+one to two levels later. Same lesson as the Continual Flame SLA test: when a test asserts an absence,
+check it is asserting a rule and not a gap.
+
+**`SpellList` now includes `'paladin'` and `'ranger'`**, making it a superset of the list a class can
+cast from, and the `as C.SpellList` cast in `resolve.ts` that hid the mismatch is gone. This **exposes**
+a gap rather than closing it: those two lists are unauthored, so **paladin and ranger casters resolve to
+almost no spells** (Bless Weapon and Holy Sword are the only entries). Worth its own batch.
+
+**The audit is now a test** — `src/content/spell-lists.test.ts` over `src/content/crb-spell-lists.ts`, a
+committed scrape of the four class list pages (610 spells, `id=<code><level>`). The whole catalogue is
+re-checked on every run instead of only the spells a batch happens to touch, so a future authoring
+mistake fails the suite rather than waiting to be spotted in a picker.
+
+**821 tests**, tsc + build clean. Browser-verified against the SRD: bard 3rd = 30 spells (exact match),
+cleric 3rd = 34 and 4th = 27, druid 3rd = 22 and 4th = 17 — all exact, counting the alignment omnibus
+spells as our four split entries.
+
+**127 CRB spells still missing** (we cover 483 of 610). Next batches work up by level: 5–6, then 7–9.
+
+**Prior — The fourth-per-class archetype pass is COMPLETE: 93 → 121 archetypes, every class at four.**
 Six batches, 28 archetypes, all d20pfsrd-verified feature by feature. Batch 1 (Core): Fighter Polearm Master,
 Rogue Knife Master, Barbarian Armored Hulk, Monk Martial Artist, Bard Magician, Druid Storm Druid. Batch 2:
 Wizard Exploiter Wizard, Ranger Freebooter, Sorcerer Seeker. Batch 3 (base): Alchemist Mindchemist, Witch
