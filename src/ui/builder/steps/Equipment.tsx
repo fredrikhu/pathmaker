@@ -1,7 +1,8 @@
+import type { ReactNode } from 'react';
 import type { CharCtl } from '../../Builder';
-import { WEAPONS, ARMORS, GEAR, weaponById, armorById, anyItemById } from '../../../content/index';
+import { WEAPONS, ARMORS, GEAR, weaponById, armorById, anyItemById, gearById } from '../../../content/index';
 import type { CharacterDoc } from '../../../engine/types';
-import { TermSpan } from '../../Tooltip';
+import { TermSpan, useTip, type TipCard } from '../../Tooltip';
 import { qualityCost, qualityPrefix, strRatingCost, totalBonus, MAX_ENHANCEMENT, MAX_STR_RATING, MAX_TOTAL_BONUS, type ItemQuality } from '../../../engine/items';
 import { propertyPrice } from '../../../engine/resolve';
 import { WEAPON_PROPERTIES, ARMOR_PROPERTIES, WONDROUS_ITEMS, BODY_SLOTS, armorById as armorLookup } from '../../../content/index';
@@ -14,6 +15,49 @@ const propertiesFor = (id: string) => {
     .map((p) => ({ id: p.id, name: p.name, equivalent: p.equivalent, flatCost: p.flatCost, desc: p.desc, restriction: undefined as string | undefined }));
   return WEAPON_PROPERTIES.map((p) => ({ id: p.id, name: p.name, equivalent: p.equivalent, flatCost: undefined as number | undefined, desc: p.desc, restriction: p.restriction }));
 };
+
+/** Medium and heavy armor (and a medium/heavy load) reduce land speed: 30 → 20, 20 → 15.
+ *  Same round-down-to-5(base/3) rule the engine applies; stated here for the tooltip. */
+const speedAfterArmor = (base: number) => base - Math.floor(base / 3 / 5) * 5;
+
+/** A rich tooltip for a shop/owned item: what it actually does, so effects like a breastplate's
+ *  speed penalty are visible without cross-referencing a rulebook. */
+function itemCard(id: string): TipCard | null {
+  const a = armorById.get(id);
+  if (a) {
+    const parts = [`+${a.acBonus} AC`];
+    if (a.maxDex !== null) parts.push(`max Dex +${a.maxDex}`);
+    if (a.acp) parts.push(`check penalty −${Math.abs(a.acp)}`);
+    if (a.asf) parts.push(`${a.asf}% arcane spell failure`);
+    const slows = a.category === 'medium' || a.category === 'heavy';
+    const speed = slows ? ` It slows you: 30 ft → ${speedAfterArmor(30)} ft (a 20-ft base drops to ${speedAfterArmor(20)} ft).` : '';
+    const cap = a.slot === 'shield' ? 'Shield' : `${a.category[0].toUpperCase()}${a.category.slice(1)} armor`;
+    return { kicker: cap, title: a.name, body: `${parts.join(' · ')}.${speed}` };
+  }
+  const w = weaponById.get(id);
+  if (w) {
+    const hands = w.hands === 'ranged' ? 'ranged' : w.hands === 'two' ? 'two-handed' : w.hands === 'light' ? 'light' : 'one-handed';
+    const bits = [`${w.dmg} ${w.dmgType}`, `crit ${w.crit}`];
+    if (w.range) bits.push(`range ${w.range} ft`);
+    return { kicker: `${w.group[0].toUpperCase()}${w.group.slice(1)} · ${hands}`, title: w.name,
+      body: `${bits.join(' · ')}.${w.note ? ` ${w.note}` : ''}` };
+  }
+  const g = gearById.get(id);
+  if (g) return { kicker: 'Gear', title: g.name, body: g.note || 'No mechanical effect on your sheet.' };
+  return null;
+}
+
+/** The item's name, hoverable/clickable to open its effects tooltip. */
+function ItemName({ id, children }: { id: string; children: ReactNode }) {
+  const tip = useTip();
+  const card = itemCard(id);
+  if (!card) return <>{children}</>;
+  return (
+    <span className="term" onMouseEnter={tip.card(card)} onMouseLeave={tip.leave} onClick={tip.card(card)}>
+      {children}
+    </span>
+  );
+}
 
 export function EquipmentStep({ ch }: { ch: CharCtl }) {
   const { doc, resolution } = ch;
@@ -208,7 +252,7 @@ export function EquipmentStep({ ch }: { ch: CharCtl }) {
               <div style={{ fontSize: 11, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--color-accent)', marginBottom: 6 }}>{g.label}</div>
               {g.items.map((it) => (
                 <div key={it.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '7px 4px', borderBottom: '1px solid var(--color-divider)' }}>
-                  <span style={{ flex: 1, fontSize: 13 }}>{it.name} <span className="text-muted" style={{ fontSize: 11 }}>{it.note}</span></span>
+                  <span style={{ flex: 1, fontSize: 13 }}><ItemName id={it.id}>{it.name}</ItemName> <span className="text-muted" style={{ fontSize: 11 }}>{it.note}</span></span>
                   <span className="num" style={{ fontSize: 12, color: 'var(--color-neutral-400)', width: 64, textAlign: 'right' }}>{it.cost} gp</span>
                   <span className="text-muted" style={{ fontSize: 11, width: 44, textAlign: 'right' }}>{it.weight} lb</span>
                   <button className="btn btn-ghost" style={{ fontSize: 11.5 }} disabled={sheet.gold < it.cost} onClick={() => buy(it.id, it.cost)}>{sheet.gold < it.cost ? 'Too costly' : 'Buy'}</button>
@@ -229,7 +273,7 @@ export function EquipmentStep({ ch }: { ch: CharCtl }) {
               return (
                 <div key={id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 8, background: 'var(--color-surface)', flexWrap: 'wrap' }}>
                   <span style={{ flex: 1, fontSize: 13, minWidth: 140 }}>
-                    {qualityPrefix(quality[id])}{item.name} <span className="text-muted" style={{ fontSize: 11 }}>×{q}</span>
+                    {qualityPrefix(quality[id])}<ItemName id={id}>{item.name}</ItemName> <span className="text-muted" style={{ fontSize: 11 }}>×{q}</span>
                   </span>
                   {qualityKind(id) && <QualityPicker id={id} kind={qualityKind(id)!} />}
                   <StrRatingPicker id={id} />

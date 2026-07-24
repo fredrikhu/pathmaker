@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState, ty
 import type { BreakdownLine } from '../engine/types';
 import { DICTIONARY, type Term } from './dictionary';
 
-interface CardContent {
+export interface CardContent {
   kicker: string;
   title: string;
   body?: string;
@@ -10,6 +10,8 @@ interface CardContent {
   annotations?: string[];
   related?: string[];
 }
+/** Public alias for callers that build a card to pass to `tip.card(...)`. */
+export type TipCard = CardContent;
 
 interface TipState {
   content: CardContent;
