@@ -76,6 +76,19 @@ export const FIGHTER_ARCHETYPES: ArchetypeDef[] = [
 
 export const RANGER_ARCHETYPES: ArchetypeDef[] = [
   {
+    id: 'freebooter', classId: 'ranger', name: 'Freebooter',
+    desc: 'A pirate and natural leader who rallies a crew onto a single target rather than studying one kind of foe.',
+    replaces: ['ranger-favored-enemy', 'ranger-hunters-bond', 'ranger-woodland-stride'],
+    // Freebooter's Bond replaces hunter's bond outright, so the companion branch — and the creature
+    // pick hanging off it — goes with it.
+    choices: { remove: ['hunters-bond', 'ranger-companion'] },
+    grants: [
+      g(1, 'fb-freebooters-bane', "Freebooter's Bane", 'As a move action, mark an enemy: you and allies within 30 feet who can see or hear you gain +1 on weapon attack and damage rolls against it, rising by +1 at 5th level and every five levels after. It lasts until the target dies or you mark another. Replaces favored enemy.'),
+      g(4, 'fb-freebooters-bond', "Freebooter's Bond", 'Spend a move action to grant your allies a share of your tactical sense, bonding a crew rather than a beast. Replaces hunter’s bond.'),
+      g(7, 'fb-fast-swimmer', 'Fast Swimmer', 'Gain a swim speed, or a bonus to your existing one — a freebooter is at home over the side. Replaces woodland stride.'),
+    ],
+  },
+  {
     id: 'guide', classId: 'ranger', name: 'Guide',
     desc: 'A ranger who knows one stretch of wild country better than anyone — and gets clients through it alive.',
     replaces: ['ranger-favored-enemy', 'ranger-hunters-bond', 'ranger-evasion', 'ranger-quarry', 'ranger-improved-quarry', 'ranger-improved-evasion'],
@@ -692,6 +705,21 @@ export const DRUID_ARCHETYPES: ArchetypeDef[] = [
 
 export const WIZARD_ARCHETYPES: ArchetypeDef[] = [
   {
+    id: 'exploiter-wizard', classId: 'wizard', name: 'Exploiter Wizard',
+    desc: 'A wizard who forgoes arcane focus and school study for the exploits an arcanist favours — blatant exploitation of arcane magic that traditionalists call cheating.',
+    replaces: ['wizard-arcane-bond', 'wizard-arcane-school'],
+    // Losing arcane bond takes the familiar branch with it; losing the school takes the opposition
+    // schools and the specialist's restricted bonus slot.
+    choices: {
+      remove: ['arcane-bond', 'familiar', 'school', 'opposition'],
+      add: [{ id: 'exploit', label: 'Arcanist exploit', kind: 'list', count: 1, levels: [1, 5, 9, 13, 17], options: ARCANIST_EXPLOITS }],
+    },
+    grants: [
+      g(1, 'ew-arcane-reservoir', 'Arcane Reservoir', "Gain the arcanist's arcane reservoir, using your wizard level as your arcanist level to size it. Replaces arcane bond."),
+      g(1, 'ew-exploiter-exploit', 'Exploiter Exploit', 'At 1st level and every four levels after, gain an arcanist exploit, using your wizard level as your arcanist level for its effects and DCs. Replaces arcane school.'),
+    ],
+  },
+  {
     id: 'spell-sage', classId: 'wizard', name: 'Spell Sage',
     desc: 'A wizard who studies spells themselves rather than any one school — pushing a formula past its limits, and eventually borrowing from other traditions entirely.',
     replaces: ['wizard-arcane-bond', 'wizard-arcane-school'],
@@ -788,6 +816,20 @@ export const WITCH_ARCHETYPES: ArchetypeDef[] = [
 ];
 
 export const SORCERER_ARCHETYPES: ArchetypeDef[] = [
+  {
+    id: 'seeker-sorcerer', classId: 'sorcerer', name: 'Seeker',
+    desc: 'A sorcerer obsessed with the genesis of their own power, ransacking ancient texts and obscure ruins for clues to their bloodline.',
+    replaces: ['sorc-eschew'],
+    // Seeker Lore and Seeker Magic take the bloodline powers at 3rd and 15th — those come from the
+    // chosen bloodline via sourceFeatures, not the class feature list, so they are suppressed.
+    suppressSourcePowers: [{ prefix: 'sorc-bl', levels: [3, 15] }],
+    classSkills: { add: ['disable-device'] },
+    grants: [
+      g(1, 'sk-tinkering', 'Tinkering', 'Disable Device becomes a class skill; add half your sorcerer level (minimum +1) on Perception checks to locate traps and on all Disable Device checks, and you can disarm magical traps. Levels in a class with trapfinding stack with your sorcerer levels for this. Replaces the bonus Eschew Materials feat.'),
+      g(3, 'sk-seeker-lore', 'Seeker Lore', 'Your study of your own bloodline grants mastery of its magic: add your sorcerer level on caster level checks to overcome spell resistance with bloodline spells, and Knowledge (arcana) becomes a class skill. Replaces the 3rd-level bloodline power.'),
+      g(15, 'sk-seeker-magic', 'Seeker Magic', 'Bloodline spells you cast gain the benefit of a metamagic feat you know without increasing their level or casting time, a limited number of times per day. Replaces the 15th-level bloodline power.'),
+    ],
+  },
   {
     id: 'crossblooded', classId: 'sorcerer', name: 'Crossblooded',
     desc: 'Heir to two distinct bloodlines whose divergent powers war within — greater reach, at the cost of clarity and focus.',

@@ -5510,3 +5510,84 @@ describe('archetypes — fourth-per-class batch 1 (Core)', () => {
     expect(r.sheet.pools.map((p) => p.id)).toContain('wild-shape');
   });
 });
+
+describe('archetypes — fourth-per-class batch 2 (Core casters and the ranger)', () => {
+  const build = (cls: string, archetype: string | undefined, level: number, choices?: Record<string, string[]>): CharacterDoc => {
+    let d = newCharacter('t-fourth2', 'X');
+    d = withDecision(d, 'ability-base', { str: 12, dex: 14, con: 12, int: 15, wis: 13, cha: 15 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['int']);
+    d = withDecision(d, 'alignment', 'N');
+    d = withDecision(d, 'class', cls);
+    if (choices) d = withDecision(d, 'class-choices', choices);
+    if (archetype) d = withDecision(d, 'archetype', archetype);
+    return atLevel(d, level);
+  };
+  const featsAt = (doc: CharacterDoc, lvl: number) =>
+    resolve(doc).sheet.progression.find((r) => r.level === lvl)?.features ?? [];
+  const slotIds = (doc: CharacterDoc) => resolve(doc).slots.map((s) => s.id);
+
+  it('Exploiter Wizard trades bond and school for a reservoir and exploits', () => {
+    const ew = build('wizard', 'exploiter-wizard', 17);
+    expect(featsAt(ew, 1)).toContain('Arcane Reservoir');
+    expect(featsAt(ew, 1)).toContain('Exploiter Exploit');
+    expect(featsAt(ew, 1)).not.toContain('Arcane Bond');
+    expect(featsAt(ew, 1)).not.toContain('Arcane School');
+    const ids = slotIds(ew);
+    expect(ids).not.toContain('arcane-bond');
+    expect(ids).not.toContain('school');
+    expect(ids).not.toContain('opposition');
+    expect(ids).toContain('exploit');
+    expect(ids).toContain('exploit-L5');
+    expect(ids).toContain('exploit-L17');
+  });
+
+  it('the reservoir pool follows the granted feature onto a class that has none', () => {
+    // Pools are keyed by class id, so a wizard could not have had one before this.
+    const pools = resolve(build('wizard', 'exploiter-wizard', 10)).sheet.pools;
+    const res = pools.find((p) => p.id === 'reservoir');
+    expect(res).toBeTruthy();
+    expect(res!.max).toBe(8);   // 3 + half of 10, the arcanist's own formula
+    // A plain wizard still has none.
+    expect(resolve(build('wizard', undefined, 10, { school: ['evocation'], opposition: ['necromancy', 'enchantment'] }))
+      .sheet.pools.find((p) => p.id === 'reservoir')).toBeFalsy();
+  });
+
+  it('an Exploiter Wizard has no specialist bonus slot, because it has no school', () => {
+    const block = resolve(build('wizard', 'exploiter-wizard', 9)).sheet.casting.find((b) => b.classId === 'wizard');
+    expect(block).toBeTruthy();
+    expect(block!.bonusSlot).toBeFalsy();
+  });
+
+  it('Freebooter marks a target instead of a favored enemy, and keeps no companion', () => {
+    const fb = build('ranger', 'freebooter', 7);
+    expect(featsAt(fb, 1)).toContain("Freebooter's Bane");
+    expect(featsAt(fb, 1)).not.toContain('Favored Enemy');
+    expect(featsAt(fb, 4)).toContain("Freebooter's Bond");
+    expect(featsAt(fb, 7)).toContain('Fast Swimmer');
+    expect(featsAt(fb, 7)).not.toContain('Woodland Stride');
+    const r = resolve(fb);
+    expect(r.slots.find((s) => s.id === 'hunters-bond-L4')).toBeUndefined();
+    expect(r.sheet.companions).toHaveLength(0);
+    // Favored terrain is untouched — only the enemy line goes.
+    expect(featsAt(fb, 3)).toContain('Favored Terrain');
+  });
+
+  it('Seeker suppresses exactly the 3rd- and 15th-level bloodline powers', () => {
+    const seeker = build('sorcerer', 'seeker-sorcerer', 15, { bloodline: ['draconic'] });
+    const plain = build('sorcerer', undefined, 15, { bloodline: ['draconic'] });
+    expect(featsAt(seeker, 1)).toContain('Tinkering');
+    expect(featsAt(seeker, 1)).not.toContain('Eschew Materials');
+    expect(featsAt(seeker, 3)).toContain('Seeker Lore');
+    expect(featsAt(seeker, 15)).toContain('Seeker Magic');
+    // The draconic bloodline powers at 3 and 15 are gone; the ones at 9 and 20 are not. Counting
+    // features would not show this — Seeker grants its own ability at each of those levels.
+    expect(featsAt(plain, 3)).toContain('Dragon Resistances');
+    expect(featsAt(seeker, 3)).not.toContain('Dragon Resistances');
+    expect(featsAt(plain, 15)).toContain('Wings');
+    expect(featsAt(seeker, 15)).not.toContain('Wings');
+    expect(featsAt(seeker, 9)).toEqual(featsAt(plain, 9));
+    expect(featsAt(seeker, 9)).toContain('Breath Weapon');
+    expect(resolve(seeker).sheet.classSkillIds).toContain('disable-device');
+  });
+});

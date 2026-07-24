@@ -761,6 +761,18 @@ const POOL_FEATURE: Record<string, string> = {
   channel: 'cleric-channel',
 };
 
+/** Pools an archetype *grants* to a class that has none. Keyed by the granted feature's id, so the
+ *  archetype content declares the feature and the pool follows it — the mirror of POOL_FEATURE,
+ *  which takes a pool away when its feature goes. */
+const GRANTED_POOLS: { featureId: string; make: (level: number, mods: Record<Ability, number>) => ResourcePool }[] = [
+  {
+    // The Exploiter Wizard uses its wizard level as its arcanist level, so this is the arcanist's
+    // own reservoir formula unchanged.
+    featureId: 'ew-arcane-reservoir',
+    make: (level) => ({ id: 'reservoir', name: 'Arcane reservoir', max: 3 + Math.floor(level / 2), unit: 'points' }),
+  },
+];
+
 function classPools(klass: C.ClassDef | undefined, level: number, mods: Record<Ability, number>): ResourcePool[] {
   if (!klass) return [];
   const out: ResourcePool[] = [];
@@ -798,6 +810,11 @@ function classPools(klass: C.ClassDef | undefined, level: number, mods: Record<A
     case 'investigator': add('inspiration', 'Inspiration', Math.max(1, half + mods.int), 'points'); break;
     case 'inquisitor': add('judgment', 'Judgment', per3, 'uses'); break;
     case 'cavalier': add('challenge', 'Challenge', per3, 'uses'); break;
+  }
+  for (const g of GRANTED_POOLS) {
+    if (!featureIds.has(g.featureId)) continue;
+    const pool = g.make(level, mods);
+    if (pool.max > 0 && !out.some((p) => p.id === pool.id)) out.push(pool);
   }
   return out;
 }
