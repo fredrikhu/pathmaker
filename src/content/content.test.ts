@@ -694,6 +694,59 @@ describe('spells — CRB completion batch 3 (levels 5–6)', () => {
   });
 });
 
+describe('spells — CRB completion batch 4 (levels 7–9, set complete)', () => {
+  const by = (id: string) => {
+    const s = C.spellById.get(id);
+    expect(s, `spell ${id} missing`).toBeDefined();
+    return s!;
+  };
+
+  it('closes the numbered polymorph and summon ladders at their tops', () => {
+    for (const id of ['elemental-body-ii', 'form-of-the-dragon-ii', 'form-of-the-dragon-iii',
+                      'giant-form-i', 'giant-form-ii', 'plant-shape-iii', 'greater-polymorph',
+                      'summon-monster-vii', 'summon-monster-viii',
+                      'summon-natures-ally-vii', 'summon-natures-ally-ix']) {
+      expect(C.spellById.has(id), `${id} missing`).toBe(true);
+    }
+    // elemental-body-ii filled the gap left between batches 2 (i) and 3 (iii).
+    expect(C.spellLevelOn(by('elemental-body-ii'), 'arcane')).toBe(5);
+    // The summon-nature ladder is druid-only all the way up.
+    expect(by('summon-natures-ally-ix').lists).toEqual(['druid']);
+  });
+
+  it('places the level-differing high spells correctly per list', () => {
+    const cases: [string, [string, number][]][] = [
+      ['antipathy', [['arcane', 8], ['druid', 9]]],
+      ['sympathy', [['arcane', 8], ['druid', 9]]],
+      ['mass-cure-serious-wounds', [['divine', 7], ['druid', 8]]],
+      ['energy-drain', [['arcane', 9], ['divine', 9]]],
+      ['ethereal-jaunt', [['arcane', 7], ['divine', 7]]],
+    ];
+    for (const [id, pairs] of cases) {
+      const s = by(id);
+      for (const [list, lvl] of pairs) expect(C.spellLevelOn(s, list), `${id} on ${list}`).toBe(lvl);
+    }
+  });
+
+  it('covers every Core Rulebook spell except the deliberately excluded Blot', () => {
+    // With this batch the four Core class lists are complete. The one fixture id we do not carry
+    // is blot, which d20pfsrd's bard table sources to PZO1110 but whose own page credits Goblins
+    // of Golarion — so it stays out until splatbook spells are taken on purpose.
+    const norm = (id: string): string => {
+      const v = id.match(/^(greater|lesser|mass)-(.+)$/);
+      if (v) return `${v[2]}-${v[1]}`;
+      return id;
+    };
+    const have = new Set([...C.SPELLS].map((s) => norm(s.id)));
+    have.add('protection-from-chaos-evil-good-law').add('magic-circle-against-chaos-evil-good-law');
+    have.add('dispel-chaos-evil-good-law').add('detect-chaos-evil-good-law');
+    have.add('blindness-deafness').add('orders-wrath');
+    const fixtureIds = C.CRB_SPELL_LISTS.trim().split(';').map((e) => e.split('=')[0]);
+    const uncovered = fixtureIds.filter((id) => !have.has(id));
+    expect(uncovered).toEqual(['blot']);
+  });
+});
+
 describe('weapon proficiency data', () => {
   // Nothing consumed these lists until the proficiency rule existed, so they had drifted: they
   // referenced 'crossbow-light', 'crossbow-heavy' and 'shortsword', none of which are real ids.
