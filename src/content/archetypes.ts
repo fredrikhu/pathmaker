@@ -214,6 +214,24 @@ export const BARBARIAN_ARCHETYPES: ArchetypeDef[] = [
 
 export const PALADIN_ARCHETYPES: ArchetypeDef[] = [
   {
+    id: 'sacred-servant', classId: 'paladin', name: 'Sacred Servant',
+    desc: 'A paladin who dedicates herself wholly to a single deity, rewarded for her devotion with a domain and powerful celestial allies.',
+    // Smite Evil and Aura of Resolve are traded away; the divine bond becomes a fixed holy-symbol
+    // bond (no weapon/mount pick), so the divine-bond choice is removed — which also closes the
+    // mount branch, since the paladin's bonded-mount pick requires divine-bond = mount.
+    replaces: ['paladin-smite', 'paladin-aura-resolve'],
+    choices: {
+      remove: ['divine-bond'],
+      add: [{ id: 'ss-domain', label: 'Domain', kind: 'cleric-domains', count: 1, levels: [4] }],
+    },
+    grants: [
+      g(1, 'ss-smite-evil', 'Smite Evil', 'As the paladin ability, but you gain an additional daily use at 7th level and every six levels thereafter (rather than 4th and every three). Replaces smite evil.'),
+      g(4, 'ss-domain', 'Domain', 'When you gain spells at 4th level, choose one domain your deity grants; your effective cleric level for it is your paladin level − 3. You gain one domain spell slot for each level of paladin spells you can cast, which you must fill with that domain’s spell. Adds a domain.'),
+      g(5, 'ss-divine-bond', 'Divine Bond (holy symbol)', 'Your divine bond binds a celestial spirit to your holy symbol rather than a weapon or mount. Once per day (plus once per four levels beyond 5th), call the spirit for 1 minute per level; it grants one enhancement at 5th and one more per three levels — each spent on +1 caster level to a paladin spell, +1d6 channel energy, +1 to the DC of channelling against undead, or +1 daily use of lay on hands. Replaces divine bond.'),
+      g(8, 'ss-call-celestial-ally', 'Call Celestial Ally', 'Once per week, cast lesser planar ally as a spell-like ability with no material cost (caster level equals your paladin level); this becomes planar ally at 12th and greater planar ally at 16th. Replaces aura of resolve.'),
+    ],
+  },
+  {
     id: 'divine-defender', classId: 'paladin', name: 'Divine Defender',
     desc: 'A paladin who sees herself as the last line between the hordes of evil and the people who should never have to know they exist.',
     replaces: [],
@@ -611,6 +629,23 @@ export const CLERIC_ARCHETYPES: ArchetypeDef[] = [
     },
     grants: [
       g(8, 'crusader-legions-blessing', 'Legion’s Blessing', 'Quickly confer a beneficial touch- or close-range spell you cast to many allies at once. '),
+    ],
+  },
+  {
+    id: 'ecclesitheurge', classId: 'cleric', name: 'Ecclesitheurge',
+    desc: 'A priest who forgoes armor for the protection of faith alone, focusing on the miracles of a single deity and the breadth of that god’s dominion.',
+    // Proficient only with club, dagger, heavy/light crossbow, and quarterstaff, and no armor or
+    // shield at all. We don't model the non-proficiency attack penalty, so the meaningful change is
+    // dropping every armor proficiency; the weapon narrowing is noted in the vow.
+    proficiencies: { armor: { remove: ['light', 'medium', 'heavy', 'shield'] } },
+    // Keeps both domains (Domain Mastery alters how they work rather than cutting one) and full
+    // spellcasting, so nothing is replaced from the feature list.
+    replaces: [],
+    grants: [
+      g(1, 'eccl-vow', "Ecclesitheurge's Vow", 'You vow to be protected by faith alone. While wearing any armor or using a shield you cannot use blessing of the faithful, cleric domain powers, or cast cleric spells. You are proficient only with the club, dagger, heavy and light crossbow, and quarterstaff. Replaces the cleric’s weapon and armor proficiencies.'),
+      g(1, 'eccl-blessing-faithful', 'Blessing of the Faithful', 'As a standard action, bless an ally within close range to grant a +2 sacred (or profane) bonus on attack rolls, skill checks, ability checks, or saving throws, or to AC, until your next turn — expend one use of channel energy to extend it to a number of rounds equal to your channel dice.'),
+      g(1, 'eccl-domain-mastery', 'Domain Mastery', 'When you choose your two domains, designate one primary and one secondary. You may prepare spells from your primary domain’s list in your normal spell slots, and each day may swap your secondary domain’s spell list for another domain your deity grants (keeping your actual secondary domain’s granted powers). Alters the domain ability.'),
+      g(3, 'eccl-bonded-symbol', 'Bonded Holy Symbol', 'You form a bond with a holy symbol that functions as a wizard’s bonded object, but is used to cast your cleric and domain spells and can hold only holy-symbol or neck-slot magic.'),
     ],
   },
 ];

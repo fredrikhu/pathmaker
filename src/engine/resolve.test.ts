@@ -3631,6 +3631,68 @@ describe('archetypes — class-skill changes (Cloistered Cleric)', () => {
   });
 });
 
+describe('archetypes — popular additions (Ecclesitheurge, Sacred Servant)', () => {
+  const cleric = (archetype: string | undefined, level: number, choices?: Record<string, string[]>): CharacterDoc => {
+    let d = newCharacter('t-eccl', 'C');
+    d = withDecision(d, 'ability-base', { str: 10, dex: 12, con: 12, int: 12, wis: 16, cha: 12 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['wis']);
+    d = withDecision(d, 'alignment', 'N');
+    d = withDecision(d, 'deity', 'sarenrae');
+    d = withDecision(d, 'class', 'cleric');
+    if (choices) d = withDecision(d, 'class-choices', choices);
+    if (archetype) d = withDecision(d, 'archetype', archetype);
+    return atLevel(d, level);
+  };
+  const paladin = (archetype: string | undefined, level: number, choices?: Record<string, string[]>): CharacterDoc => {
+    let d = newCharacter('t-ss', 'S');
+    d = withDecision(d, 'ability-base', { str: 15, dex: 12, con: 13, int: 10, wis: 12, cha: 15 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['cha']);
+    d = withDecision(d, 'alignment', 'LG');
+    d = withDecision(d, 'deity', 'sarenrae');
+    d = withDecision(d, 'class', 'paladin');
+    if (choices) d = withDecision(d, 'class-choices', choices);
+    if (archetype) d = withDecision(d, 'archetype', archetype);
+    return atLevel(d, level);
+  };
+  const featsAt = (doc: CharacterDoc, lvl: number) =>
+    resolve(doc).sheet.progression.find((r) => r.level === lvl)?.features ?? [];
+
+  it('Ecclesitheurge drops all armor but keeps both domains and full casting', () => {
+    const eff = effectiveClass(C.classById.get('cleric')!, readDecisions(cleric('ecclesitheurge', 5)));
+    // No armor of any kind, but domains stay at two and spellcasting is untouched.
+    expect(eff.proficiencies.armor).toEqual([]);
+    expect((eff.choices ?? []).find((c) => c.id === 'domains')?.count).toBe(2);
+    expect(eff.spellcasting?.diminished).toBeFalsy();
+    const r = resolve(cleric('ecclesitheurge', 5, { domains: ['fire', 'healing'] }));
+    expect(featsAt(cleric('ecclesitheurge', 5, { domains: ['fire', 'healing'] }), 1)).toContain('Blessing of the Faithful');
+    expect(featsAt(cleric('ecclesitheurge', 5, { domains: ['fire', 'healing'] }), 3)).toContain('Bonded Holy Symbol');
+    // Channel energy survives (Blessing of the Faithful is fuelled by it).
+    expect(r.sheet.pools.map((p) => p.id)).toContain('channel');
+    // A plain cleric keeps medium/heavy armor.
+    expect(effectiveClass(C.classById.get('cleric')!, readDecisions(cleric(undefined, 5))).proficiencies.armor).toContain('heavy');
+  });
+
+  it('Sacred Servant swaps smite and aura of resolve, gains a domain, and loses the mount', () => {
+    const ss = paladin('sacred-servant', 8, { 'ss-domain': ['sun'] });
+    const r = resolve(ss);
+    // A domain pick appears at 4th; the divine-bond pick (and thus the mount) is gone.
+    expect(r.slots.find((s) => s.id === 'ss-domain-L4' || s.id === 'ss-domain')).toBeDefined();
+    expect(r.slots.find((s) => s.id === 'divine-bond')).toBeUndefined();
+    expect(r.sheet.companions).toHaveLength(0);
+    expect(featsAt(ss, 1)).toContain('Smite Evil');
+    expect(featsAt(ss, 5)).toContain('Divine Bond (holy symbol)');
+    expect(featsAt(ss, 8)).toContain('Call Celestial Ally');
+    expect(featsAt(ss, 8)).not.toContain('Aura of Resolve');
+    // Lay on hands is untouched — the celestial spirit spends its uses.
+    expect(r.sheet.pools.map((p) => p.id)).toContain('lay-on-hands');
+    // A standard paladin who bonds a mount still gets a companion.
+    const mounted = paladin(undefined, 8, { 'divine-bond': ['mount'], 'paladin-mount': ['horse'] });
+    expect(resolve(mounted).sheet.companions).toHaveLength(1);
+  });
+});
+
 describe('archetypes — breadth (Cavalier, Inquisitor, Druid)', () => {
   const build = (cls: string, archetype: string | undefined, level: number): CharacterDoc => {
     let d = newCharacter('t-breadth', 'X');
