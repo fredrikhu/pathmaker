@@ -1,8 +1,9 @@
 import type { ClassDef } from './model';
 import {
   CAVALIER_ORDERS, GUNSLINGER_FIREARMS, ORACLE_MYSTERIES, ORACLE_CURSES, WITCH_PATRONS,
-  WITCH_HEXES, SUMMONER_EIDOLON_FORMS, ARCANIST_EXPLOITS, BLOODRAGER_BLOODLINES,
+  WITCH_HEXES, ARCANIST_EXPLOITS, BLOODRAGER_BLOODLINES,
   SHIFTER_ASPECTS, SHAMAN_SPIRITS, EIDOLON_EVOLUTIONS,
+  NATURE_BOND, HUNTERS_BOND,
 } from './subsystems';
 import { CLASS_PROGRESSION } from './class-features';
 import { archetypesForClass } from './archetypes';
@@ -107,6 +108,11 @@ export const CLASSES: ClassDef[] = [
       { id: 'druid-nature-sense', name: 'Nature Sense', desc: '+2 bonus on Knowledge (nature) and Survival checks.', effects: [{ target: 'skill:know-nature', type: 'untyped', value: 2, note: 'Nature Sense' }, { target: 'skill:survival', type: 'untyped', value: 2, note: 'Nature Sense' }] },
       { id: 'druid-wild-empathy', name: 'Wild Empathy', desc: 'Improve the attitude of an animal as though using Diplomacy.' },
     ],
+    choices: [
+      { id: 'nature-bond', label: 'Nature Bond', kind: 'list', count: 1, options: NATURE_BOND },
+      { id: 'animal-companion', label: 'Animal Companion', kind: 'companion', companionKind: 'animal', count: 1, requires: { choiceId: 'nature-bond', value: 'animal-companion' } },
+    ],
+    companions: [{ choiceId: 'animal-companion', kind: 'animal', label: 'Animal Companion' }],
     spellcasting: { kind: 'prepared-list', ability: 'wis', list: 'druid', slots1: [3, 1] },
   },
   {
@@ -133,6 +139,13 @@ export const CLASSES: ClassDef[] = [
       { id: 'paladin-smite', name: 'Smite Evil', desc: 'Once per day, add Cha modifier to attack rolls and paladin level to damage against an evil target.' },
       { id: 'paladin-aura', name: 'Aura of Good / Detect Evil', desc: 'Project a strong aura of good and detect evil at will.' },
     ],
+    // The Divine Bond choice itself lives in CLASS_PROGRESSION (it is gained at 5th); this only
+    // adds the creature pick that the mount branch opens.
+    choices: [
+      { id: 'paladin-mount', label: 'Bonded Mount', kind: 'companion', companionKind: 'animal', count: 1, levels: [5], requires: { choiceId: 'divine-bond', value: 'mount' } },
+    ],
+    // The bonded mount uses the paladin's own level as its effective druid level (verified).
+    companions: [{ choiceId: 'paladin-mount', kind: 'animal', label: 'Bonded Mount', minLevel: 5 }],
     // Divine casting from 4th level (caster level = paladin level − 3); no level-1 spell selection.
     spellcasting: { kind: 'prepared-list', ability: 'cha', list: 'paladin', slots1: [] },
   },
@@ -148,6 +161,12 @@ export const CLASSES: ClassDef[] = [
       { id: 'ranger-track', name: 'Track', desc: 'Add half level (minimum 1) to Survival checks to follow tracks.' },
       { id: 'ranger-wild-empathy', name: 'Wild Empathy', desc: 'Improve the attitude of an animal as though using Diplomacy.' },
     ],
+    choices: [
+      { id: 'hunters-bond', label: "Hunter's Bond", kind: 'list', count: 1, levels: [4], options: HUNTERS_BOND },
+      { id: 'ranger-companion', label: 'Animal Companion', kind: 'companion', companionKind: 'animal', count: 1, levels: [4], requires: { choiceId: 'hunters-bond', value: 'animal-companion' } },
+    ],
+    // The ranger's effective druid level is his ranger level − 3, so the companion starts at 4th.
+    companions: [{ choiceId: 'ranger-companion', kind: 'animal', label: 'Animal Companion', levelOffset: 3, minLevel: 4 }],
     // Divine casting from 4th level (caster level = ranger level − 3); no level-1 spell selection.
     spellcasting: { kind: 'prepared-list', ability: 'wis', list: 'ranger', slots1: [] },
   },
@@ -206,9 +225,11 @@ export const CLASSES: ClassDef[] = [
     ],
     choices: [
       { id: 'arcane-bond', label: 'Arcane Bond', kind: 'arcane-bond', count: 1 },
+      { id: 'familiar', label: 'Familiar', kind: 'companion', companionKind: 'familiar', count: 1, requires: { choiceId: 'arcane-bond', value: 'familiar' } },
       { id: 'school', label: 'Arcane School', kind: 'wizard-school', count: 1 },
       { id: 'opposition', label: 'Opposition Schools', kind: 'wizard-opposition', count: 2 },
     ],
+    companions: [{ choiceId: 'familiar', kind: 'familiar', label: 'Familiar' }],
     spellcasting: { kind: 'prepared-book', ability: 'int', list: 'arcane', slots1: [3, 1], bookPicks1: 'threePlusInt' },
   },
 
@@ -241,7 +262,11 @@ export const CLASSES: ClassDef[] = [
       { id: 'cav-mount', name: 'Mount', desc: 'Gain a mount functioning as a druid’s animal companion.' },
       { id: 'cav-tactician', name: 'Tactician', desc: 'Gain a teamwork feat and can grant it to nearby allies for a few rounds.' },
     ],
-    choices: [{ id: 'order', label: 'Order', kind: 'list', count: 1, options: CAVALIER_ORDERS }],
+    choices: [
+      { id: 'order', label: 'Order', kind: 'list', count: 1, options: CAVALIER_ORDERS },
+      { id: 'mount', label: 'Mount', kind: 'companion', companionKind: 'animal', count: 1 },
+    ],
+    companions: [{ choiceId: 'mount', kind: 'animal', label: 'Mount' }],
   },
   {
     id: 'gunslinger', name: 'Gunslinger', sub: 'Base · d10 · grit & guns',
@@ -330,9 +355,10 @@ export const CLASSES: ClassDef[] = [
       { id: 'sum-summon-monster', name: 'Summon Monster I', desc: 'Cast summon monster I as a spell-like ability 3 + Cha modifier times per day.' },
     ],
     choices: [
-      { id: 'eidolon-form', label: 'Eidolon base form', kind: 'list', count: 1, options: SUMMONER_EIDOLON_FORMS },
+      { id: 'eidolon-form', label: 'Eidolon base form', kind: 'companion', companionKind: 'eidolon', count: 1 },
       { id: 'evolutions', label: 'Eidolon evolutions', kind: 'eidolon-evolutions', count: EIDOLON_EVOLUTIONS.length },
     ],
+    companions: [{ choiceId: 'eidolon-form', kind: 'eidolon', label: 'Eidolon' }],
     spellcasting: { kind: 'spontaneous', ability: 'cha', list: 'arcane', slots1: [999, 1], known1: [4, 2] },
   },
   {
@@ -348,8 +374,10 @@ export const CLASSES: ClassDef[] = [
     ],
     choices: [
       { id: 'patron', label: 'Patron', kind: 'list', count: 1, options: WITCH_PATRONS },
+      { id: 'familiar', label: 'Familiar', kind: 'companion', companionKind: 'familiar', count: 1 },
       { id: 'hex', label: 'Hex', kind: 'list', count: 1, options: WITCH_HEXES },
     ],
+    companions: [{ choiceId: 'familiar', kind: 'familiar', label: "Witch's Familiar" }],
     spellcasting: { kind: 'prepared-book', ability: 'int', list: 'arcane', slots1: [3, 1], bookPicks1: 'threePlusInt' },
   },
   {
@@ -426,6 +454,8 @@ export const CLASSES: ClassDef[] = [
       { id: 'hun-focus', name: 'Animal Focus', desc: 'Take on an animal’s aspect (and grant one to your companion) for minutes per day.' },
       { id: 'hun-nature-training', name: 'Nature Training', desc: 'Count as both druid and ranger for feats and options.' },
     ],
+    choices: [{ id: 'animal-companion', label: 'Animal Companion', kind: 'companion', companionKind: 'animal', count: 1 }],
+    companions: [{ choiceId: 'animal-companion', kind: 'animal', label: 'Animal Companion' }],
     spellcasting: { kind: 'spontaneous', ability: 'wis', list: 'druid', slots1: [999, 1], known1: [4, 2] },
   },
   {
@@ -455,7 +485,11 @@ export const CLASSES: ClassDef[] = [
       { id: 'sha-spirit-magic', name: 'Spirit Magic', desc: 'Spontaneously cast a small set of spells granted by your chosen spirit.' },
       { id: 'sha-orisons', name: 'Orisons', desc: 'Prepare 0-level shaman spells, cast at will.' },
     ],
-    choices: [{ id: 'spirit', label: 'Spirit', kind: 'list', count: 1, options: SHAMAN_SPIRITS }],
+    choices: [
+      { id: 'spirit', label: 'Spirit', kind: 'list', count: 1, options: SHAMAN_SPIRITS },
+      { id: 'spirit-animal', label: 'Spirit Animal', kind: 'companion', companionKind: 'familiar', count: 1 },
+    ],
+    companions: [{ choiceId: 'spirit-animal', kind: 'familiar', label: 'Spirit Animal' }],
     spellcasting: { kind: 'prepared-list', ability: 'wis', list: 'divine', slots1: [3, 1] },
   },
   {

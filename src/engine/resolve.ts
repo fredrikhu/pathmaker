@@ -3,7 +3,8 @@ import type {
   Ability, Alignment, CharacterDoc, ChoiceSlot, Effect, Issue, Resolution,
   Sheet, SlotOption, Stat,
 } from './types';
-import type { AttackLine, BreakdownLine, CastingBlock, ConditionalBonus, DamageReduction, Defenses, EnergyAbsorption, EnergyResistance, GrantedFeat, InventoryItem, PlayState, ProgressionRow, ResourcePool, SpellLikeAbility } from './types';
+import type { AttackLine, BreakdownLine, CastingBlock, CompanionBlock, ConditionalBonus, DamageReduction, Defenses, EnergyAbsorption, EnergyResistance, GrantedFeat, InventoryItem, PlayState, ProgressionRow, ResourcePool, SpellLikeAbility } from './types';
+import { resolveCompanion, type CompanionContext } from './companion';
 import { ABILITIES, abilityMod } from './types';
 import { evalPredicate, explainFailure, type PredicateCtx } from './predicates';
 import { stack, type Contribution } from './stack';
@@ -823,7 +824,8 @@ export function resolve(doc: CharacterDoc): Resolution {
   const unconds = (target: string): Contribution[] =>
     (byTarget.get(target) ?? []).filter((e) => !e.condition).map((e) => ({ type: e.type, value: e.value, note: e.note }));
 
-  const bab = sumBab(classes.map((c) => ({ bab: c.klass.bab, goodSaves: c.klass.goodSaves, levels: c.levels })));
+  const saveInput = classes.map((c) => ({ bab: c.klass.bab, goodSaves: c.klass.goodSaves, levels: c.levels }));
+  const bab = sumBab(saveInput);
   // Parameterised feats (Weapon/Skill/Spell Focus, Exotic Weapon Proficiency), resolved once.
   const featParams = activeFeatParams(doc, dec, level);
   // For prerequisites ("caster level 5th"), a multiclass caster is judged on their best class.
@@ -1283,6 +1285,15 @@ export function resolve(doc: CharacterDoc): Resolution {
     worn: wornItemsWithStatus(doc).map(({ item, active }) =>
       ({ id: item.id, name: item.name, slot: item.slot, cost: item.cost, desc: item.desc, active })),
     ...gatherInnate(dec, level, mods.cha),
+    // A familiar reads most of its block off its master, so this has to come after the character's
+    // own hit points, base attack and base saves are settled.
+    companions: resolveCompanions(dec, level, {
+      masterHp: stats['hp:max']?.total ?? 0,
+      masterBab: bab,
+      masterSaves: {
+        fort: sumSave('fort', saveInput), ref: sumSave('ref', saveInput), will: sumSave('will', saveInput),
+      },
+    }),
     summaryLine,
   };
   return { sheet, slots, issues, steps };
@@ -1916,6 +1927,9 @@ function buildSlotsAndIssues(
     for (const ch of entry.klass.choices ?? []) {
       // Universalist wizard → no opposition slot.
       if (ch.kind === 'wizard-opposition' && (dec.classChoices['school'] ?? []).includes('universalist')) continue;
+      // A branch slot: the druid's companion only exists if Nature Bond took that branch. An unmet
+      // requirement emits nothing and raises no issue — there is no unfilled choice to nag about.
+      if (ch.requires && !choiceHasValue(dec, ch.requires.choiceId, ch.requires.value)) continue;
       const options = classChoiceOptions(ch, dec, entry.levels);
       // A choice may recur across levels (e.g. a talent at 2, 4, 6…). Level-1 grants keep the
       // bare key; later grants are suffixed `<id>-L<level>`.
@@ -2299,8 +2313,89 @@ function evolutionPool(summonerLevel: number): number {
   return C.EIDOLON_EVOLUTION_POOL[i];
 }
 
+/** Every companion creature the character's classes grant, resolved to a stat block. A class only
+ *  produces one once its `minLevel` is reached and the creature has actually been picked — an
+ *  unfilled companion slot already raises its own "choose…" issue, so nothing is emitted here. */
+function resolveCompanions(dec: Decisions, level: number, master: CompanionContext): CompanionBlock[] {
+  const out: CompanionBlock[] = [];
+  for (const entry of classBreakdown(dec, level)) {
+    const klass = effectiveClass(entry.klass, dec);
+    for (const src of klass.companions ?? []) {
+      if (entry.levels < (src.minLevel ?? 1)) continue;
+      // The pick is only real while the slot that offers it is: a wizard who chose a bonded object
+      // may still carry a familiar decision from before, and it must not resurface as a creature.
+      const ch = (klass.choices ?? []).find((c) => c.id === src.choiceId);
+      if (ch?.requires && !choiceHasValue(dec, ch.requires.choiceId, ch.requires.value)) continue;
+      const picked = choiceValue(dec, src.choiceId);
+      if (!picked) continue;
+      const def = C.companionById(src.kind, picked);
+      if (!def) continue;
+      out.push(resolveCompanion({
+        def,
+        slotId: src.choiceId,
+        label: src.label,
+        className: klass.name,
+        // The effective companion level, which is the class's own level less any offset — never
+        // the character level, so a ranger 6 / fighter 4 still has a 3rd-level companion.
+        level: Math.max(1, entry.levels - (src.levelOffset ?? 0)),
+        ...(src.kind === 'eidolon' ? { evolutions: dec.classChoices['evolutions'] ?? [] } : {}),
+        ...(src.kind === 'familiar' ? { context: master } : {}),
+      }));
+    }
+  }
+  return out;
+}
+
+/** A one-line summary for a companion in its picker: enough to choose between a bear and a bird
+ *  without opening the stat block — size, speed, and what it hits with. */
+function companionOptionDesc(c: C.CompanionDef): string {
+  const s = c.start;
+  const speeds = [`${s.speed.base} ft`,
+    ...(s.speed.fly ? [`fly ${s.speed.fly}`] : []),
+    ...(s.speed.climb ? [`climb ${s.speed.climb}`] : []),
+    ...(s.speed.swim ? [`swim ${s.speed.swim}`] : []),
+    ...(s.speed.burrow ? [`burrow ${s.speed.burrow}`] : [])];
+  const atks = s.attacks.length
+    ? s.attacks.map((a) => `${a.count > 1 ? `${a.count} ${a.name}s` : a.name} ${a.damage}`).join(', ')
+    : 'no attack';
+  const head = `${C.SIZE_LABEL[s.size]} · ${speeds.join(', ')} · ${atks}`;
+  if (c.kind === 'familiar' && c.masterBenefit) return `${head} · ${c.masterBenefit}`;
+  if (c.kind === 'eidolon' && c.desc) return `${head} · ${c.desc}`;
+  if (c.advance) return `${head} · advances at ${c.advance.level}th`;
+  return head;
+}
+
+/** Whether a class choice holds a value, at whichever level it was granted. Recurring choices key
+ *  their slots `<id>-L<level>`, so a branch that gates on a level-4 pick (the ranger's Hunter's
+ *  Bond) cannot look the decision up by the bare id alone. */
+function choiceHasValue(dec: Decisions, choiceId: string, value: string): boolean {
+  if ((dec.classChoices[choiceId] ?? []).includes(value)) return true;
+  for (let l = 2; l <= 20; l++) if ((dec.classChoices[`${choiceId}-L${l}`] ?? []).includes(value)) return true;
+  return false;
+}
+
+/** The value a class choice holds, at whichever level it was granted. */
+function choiceValue(dec: Decisions, choiceId: string): string | undefined {
+  const bare = dec.classChoices[choiceId]?.[0];
+  if (bare) return bare;
+  for (let l = 2; l <= 20; l++) {
+    const v = dec.classChoices[`${choiceId}-L${l}`]?.[0];
+    if (v) return v;
+  }
+  return undefined;
+}
+
 function classChoiceOptions(ch: C.ClassChoiceDef, dec: Decisions, level = 1): SlotOption[] {
   switch (ch.kind) {
+    case 'companion': {
+      const kind = ch.companionKind ?? 'animal';
+      return C.companionsOfKind(kind).map((c) => ({
+        id: c.id,
+        name: c.name,
+        desc: companionOptionDesc(c),
+        legal: true,
+      }));
+    }
     case 'wizard-school':
       return C.SCHOOLS.map((s) => ({ id: s.id, name: s.name, desc: s.desc, legal: true }));
     case 'wizard-opposition': {

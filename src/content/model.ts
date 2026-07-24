@@ -164,6 +164,9 @@ export type ClassChoiceKind =
   | 'sorcerer-bloodline'
   | 'oracle-revelation'
   | 'eidolon-evolutions'
+  /** Pick a companion creature from the catalogue; the options are the `CompanionDef`s of the
+   *  matching kind (animal companion species, eidolon base form, familiar animal). */
+  | 'companion'
   | 'list';
 
 /** One eidolon evolution: a point-buy purchase from the summoner's evolution pool. */
@@ -180,6 +183,101 @@ export interface EvolutionDef {
   /** True if the evolution can be selected more than once (each purchase costs `cost` again).
    *  The builder renders these with a stepper; one-shot evolutions get a take/remove toggle. */
   multi?: boolean;
+}
+
+// ---------- Companion creatures (animal companions, eidolons, familiars) ----------
+
+/** Creature sizes a companion can be. Only the range the companion tables reach is modelled —
+ *  no Gargantuan animal companions exist in the material we author. */
+export type CreatureSize = 'diminutive' | 'tiny' | 'small' | 'medium' | 'large';
+
+/** One natural attack line on a companion, as the source table prints it ("2 claws (1d4)").
+ *  `damage` is the die at the creature's *authored* size, so it is restated by an advancement
+ *  entry rather than derived — the printed tables do not step uniformly. */
+export interface CompanionAttackDef {
+  /** Attack name, singular ("bite", "claw", "talon", "hoof", "gore", "slam", "tail slap"). */
+  name: string;
+  /** How many of this attack the creature makes (2 claws). */
+  count: number;
+  damage: string;
+  /** Secondary natural attacks take −5 to hit and add ½ Str (a horse's hooves). Primary otherwise. */
+  secondary?: boolean;
+  /** Rider printed with the attack, e.g. "plus trip", "plus grab", "plus poison". */
+  note?: string;
+}
+
+export interface CompanionSpeedDef {
+  base: number;
+  fly?: number;
+  /** Manoeuvrability printed with a fly speed ("good", "average", "poor"). */
+  flyManeuver?: string;
+  climb?: number;
+  swim?: number;
+  burrow?: number;
+}
+
+/** A companion's printed starting statistics — the block before any level advancement. */
+export interface CompanionStatsDef {
+  size: CreatureSize;
+  speed: CompanionSpeedDef;
+  /** Natural armour bonus printed on the creature itself, before the companion table's. */
+  naturalArmor: number;
+  attacks: CompanionAttackDef[];
+  abilities: Record<Ability, number>;
+  senses?: string[];
+  specialAttacks?: string[];
+  specialQualities?: string[];
+}
+
+/** The one-off advancement an animal companion gets on reaching 4th or 7th effective level.
+ *  `attacks` replaces the list wholesale, because the printed tables restate every attack. */
+export interface CompanionAdvanceDef {
+  /** Effective companion level at which it lands (4 or 7 in all published entries). */
+  level: number;
+  size?: CreatureSize;
+  /** *Added* to the creature's own natural armour, not a replacement. */
+  naturalArmor?: number;
+  attacks?: CompanionAttackDef[];
+  abilityAdj?: Partial<Record<Ability, number>>;
+  specialAttacks?: string[];
+  specialQualities?: string[];
+}
+
+export type CompanionKind = 'animal' | 'eidolon' | 'familiar';
+
+/** A companion creature the character can be given: an animal companion's species, an eidolon's
+ *  base form, or a familiar's animal. All three share the stat-block shape; which advancement
+ *  table drives them comes from `kind`. */
+export interface CompanionDef {
+  id: string;
+  name: string;
+  kind: CompanionKind;
+  desc?: string;
+  start: CompanionStatsDef;
+  /** Animal companions only — eidolons advance by evolution, familiars not at all. */
+  advance?: CompanionAdvanceDef;
+  /** Eidolon base forms only: which saves are good (the rest are poor). */
+  goodSaves?: ('fort' | 'ref' | 'will')[];
+  /** Eidolon base forms only: evolutions the form grants free, costing no pool points. Repeated
+   *  ids mean the form grants that evolution more than once (quadruped's two leg pairs). */
+  freeEvolutions?: string[];
+  /** Familiars only: what the *master* gains for keeping it. */
+  masterBenefit?: string;
+}
+
+/** How a class grants a companion creature: which slot names it, which table drives it, and how
+ *  its effective level derives from the class level. Living on the class (not a feature) keeps it
+ *  reachable from `effectiveClass`, so an archetype can change it with the rest of the class. */
+export interface CompanionSourceDef {
+  /** The class-choice slot that names the creature. */
+  choiceId: string;
+  kind: CompanionKind;
+  /** Card heading, e.g. "Animal Companion", "Eidolon", "Mount". */
+  label: string;
+  /** Effective companion level = class level − `levelOffset` (the ranger's −3). Omitted ⇒ 0. */
+  levelOffset?: number;
+  /** Class level the companion first arrives at (the paladin's mount at 5th). Omitted ⇒ 1. */
+  minLevel?: number;
 }
 
 /** The source-power tables the engine can inject from a chosen source (bloodline, school, spirit…).
@@ -209,6 +307,12 @@ export interface ClassChoiceDef {
   levels?: number[];
   /** For kind: 'list' — the pick-one(-or-more) options, defined inline as data. */
   options?: { id: string; name: string; desc: string }[];
+  /** Only emit this slot when another slot holds a given value — the druid's animal companion
+   *  appears only if Nature Bond took the companion branch, the wizard's familiar only if Arcane
+   *  Bond did. An unmet requirement emits nothing and raises no issue; the decision is kept. */
+  requires?: { choiceId: string; value: string };
+  /** For kind: 'companion' — which companion catalogue to offer. */
+  companionKind?: CompanionKind;
 }
 
 /** A class archetype: removes some of the base class's features and grants alternates in their
@@ -305,6 +409,9 @@ export interface ClassDef {
    *  in the Feats step and folded into the character's feat set for prerequisites. */
   grantedFeats?: { level: number; feat: string; note?: string }[];
   choices?: ClassChoiceDef[];
+  /** Companion creatures this class grants (animal companion, eidolon, familiar, mount). A class
+   *  may grant more than one only in principle; every published class here grants at most one. */
+  companions?: CompanionSourceDef[];
   spellcasting?: SpellcastingDef;
 }
 

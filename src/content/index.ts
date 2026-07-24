@@ -18,6 +18,12 @@ export { ORACLE_REVELATIONS, ORACLE_MYSTERIES, ORACLE_CURSES, BLOODRAGER_BLOODLI
 export type { EvolutionDef } from './model';
 export { SORCERER_BLOODLINE_POWERS, CAVALIER_ORDER_ABILITIES, BLOODRAGER_BLOODLINE_POWERS, SHAMAN_SPIRIT_ABILITIES, ORACLE_FINAL_REVELATIONS, ORACLE_CURSE_ABILITIES, SCHOOL_POWERS, SHIFTER_ASPECT_ABILITIES, WITCH_PATRON_SPELLS, SORCERER_BLOODLINE_SPELLS, BLOODRAGER_BLOODLINE_SPELLS } from './source-features';
 export type { SourceFeature } from './source-features';
+export {
+  COMPANIONS, ANIMAL_COMPANIONS, EIDOLON_FORMS, FAMILIARS, companionById, companionsOfKind,
+  ANIMAL_COMPANION_TABLE, EIDOLON_TABLE, FAMILIAR_TABLE, SIZE_MODIFIERS, SIZE_LABEL,
+  COMPANION_HD_AVERAGE,
+} from './companions';
+export type { AnimalCompanionRow, EidolonRow, FamiliarRow } from './companions';
 export { CONDITIONS, conditionById } from './conditions';
 export { WEAPON_PROPERTIES, weaponPropertyById } from './weapon-properties';
 export type { WeaponPropertyDef } from './weapon-properties';

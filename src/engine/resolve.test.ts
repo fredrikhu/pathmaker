@@ -4940,3 +4940,211 @@ describe('archetypes — thirds batch 3 (Mouser, Dual-Cursed, Chirurgeon, Mercif
     expect(featsAt(mh, 8)).toContain('True Healer');
   });
 });
+
+// ---------- Companion creatures ----------
+// Every number below was hand-computed from Table: Animal Companion Base Statistics, Table:
+// Eidolon Base Statistics and Table: Familiars, plus the creature's own printed stat block.
+
+function companionChar(classId: string, level: number, choices: Record<string, string[]>): CharacterDoc {
+  let d = newCharacter(`t-comp-${classId}`, 'Beastmaster');
+  d = withDecision(d, 'ability-base', { str: 12, dex: 12, con: 12, int: 14, wis: 14, cha: 10 });
+  d = withDecision(d, 'race', 'human');
+  d = withDecision(d, 'floating-bonus', ['wis']);
+  d = withDecision(d, 'alignment', 'N');
+  d = withDecision(d, 'class', classId);
+  d = withDecision(d, 'class-choices', choices);
+  return atLevel(d, level);
+}
+
+describe('companions — druid 7 with a wolf', () => {
+  const r = resolve(companionChar('druid', 7, { 'nature-bond': ['animal-companion'], 'animal-companion': ['wolf'] }));
+  const wolf = r.sheet.companions[0];
+
+  it("resolves one companion at the druid's own level", () => {
+    expect(r.sheet.companions).toHaveLength(1);
+    expect(wolf.name).toBe('Wolf');
+    expect(wolf.level).toBe(7);
+    expect(wolf.hd).toBe(6);
+  });
+
+  it('applies the 7th-level advancement: Large, and Str 13 +8 +2 = 23', () => {
+    expect(wolf.size).toBe('Large');
+    expect(wolf.abilities.str).toBe(23);   // 13 base + 8 advance + 2 table Str/Dex
+    expect(wolf.abilities.dex).toBe(15);   // 15 base − 2 advance + 2 table
+    expect(wolf.abilities.con).toBe(19);   // 15 base + 4 advance
+  });
+
+  it('stacks natural armour from creature, advancement and table: 2 + 2 + 4 = 8', () => {
+    expect(wolf.naturalArmor).toBe(8);
+    expect(wolf.ac).toBe(19);          // 10 − 1 size + 2 Dex + 8 natural
+    expect(wolf.touch).toBe(11);
+    expect(wolf.flatFooted).toBe(17);
+  });
+
+  it('hit points are 6d8 average (27) + 4 Con × 6 HD = 51', () => {
+    expect(wolf.hp).toBe(51);
+  });
+
+  it("saves add the companion's own ability modifiers to the table's base", () => {
+    expect(wolf.fort).toBe(9);   // +5 table + 4 Con
+    expect(wolf.ref).toBe(7);    // +5 table + 2 Dex
+    expect(wolf.will).toBe(3);   // +2 table + 1 Wis
+  });
+
+  it('a lone bite is the sole natural attack: +9 to hit, 1½× Str on damage', () => {
+    expect(wolf.attacks).toHaveLength(1);
+    expect(wolf.attacks[0].name).toBe('bite');
+    expect(wolf.attacks[0].bonus).toBe(9);        // +4 BAB + 6 Str − 1 size
+    expect(wolf.attacks[0].damage).toBe('1d8+9'); // floor(6 × 1.5)
+    expect(wolf.attacks[0].notes).toContain('plus trip');
+  });
+
+  it('carries the cumulative table specials up to 7th, but not the 9th-level ones', () => {
+    expect(wolf.special).toContain('Link');
+    expect(wolf.special).toContain('Evasion');
+    expect(wolf.special).toContain('Devotion');
+    expect(wolf.special).not.toContain('Multiattack');
+    expect(wolf.tricks).toBe(3);
+    expect(wolf.pendingAbilityIncreases).toBe(1);  // the 4th-level one only
+  });
+});
+
+describe('companions — the Nature Bond branch gates the slot', () => {
+  it('offers no companion pick, and resolves none, until Nature Bond takes that branch', () => {
+    const r = resolve(companionChar('druid', 3, {}));
+    expect(r.slots.find((s) => s.id === 'animal-companion')).toBeUndefined();
+    expect(r.sheet.companions).toHaveLength(0);
+  });
+
+  it('offers the pick once the branch is taken', () => {
+    const r = resolve(companionChar('druid', 3, { 'nature-bond': ['animal-companion'] }));
+    const slot = r.slots.find((s) => s.id === 'animal-companion');
+    expect(slot).toBeTruthy();
+    expect(slot!.options.map((o) => o.id)).toContain('wolf');
+    // Picked nothing yet, so still no creature.
+    expect(r.sheet.companions).toHaveLength(0);
+  });
+
+  it('a bear at 3rd has not yet advanced — still Small, still 1d4/1d3', () => {
+    const r = resolve(companionChar('druid', 3, { 'nature-bond': ['animal-companion'], 'animal-companion': ['bear'] }));
+    const bear = r.sheet.companions[0];
+    expect(bear.size).toBe('Small');
+    expect(bear.attacks.map((a) => a.name)).toEqual(['bite', '2 claws']);
+    expect(bear.notes.some((n) => n.includes('Advances at effective level 4'))).toBe(true);
+  });
+});
+
+describe("companions — the ranger's companion runs three levels behind", () => {
+  it('a ranger 7 has a 4th-level companion', () => {
+    const r = resolve(companionChar('ranger', 7, { 'hunters-bond-L4': ['animal-companion'], 'ranger-companion-L4': ['dog'] }));
+    expect(r.sheet.companions).toHaveLength(1);
+    expect(r.sheet.companions[0].level).toBe(4);
+  });
+
+  it('and none at all before 4th', () => {
+    const early = resolve(companionChar('ranger', 3, { 'hunters-bond-L4': ['animal-companion'], 'ranger-companion-L4': ['dog'] }));
+    expect(early.sheet.companions).toHaveLength(0);
+  });
+});
+
+describe('companions — summoner 4 with a biped eidolon', () => {
+  const r = resolve(companionChar('summoner', 4, { 'eidolon-form': ['biped'] }));
+  const eid = r.sheet.companions[0];
+
+  it('uses the eidolon table, not the animal one: 3 HD at 4th, d10 hit dice', () => {
+    expect(eid.kind).toBe('eidolon');
+    expect(eid.hd).toBe(3);
+    expect(eid.hitDie).toBe(10);
+    expect(eid.hp).toBe(19);   // floor(3 × 5.5) = 16, + 1 Con × 3
+  });
+
+  it('good saves come from the base form, not the table', () => {
+    expect(eid.fort).toBe(4);   // +3 good + 1 Con
+    expect(eid.will).toBe(3);   // +3 good + 0 Wis
+    expect(eid.ref).toBe(2);    // +1 poor + 1 Dex
+  });
+
+  it('the table raises both Str and Dex and adds inherent natural armour', () => {
+    expect(eid.abilities.str).toBe(17);   // 16 + 1
+    expect(eid.abilities.dex).toBe(13);   // 12 + 1
+    expect(eid.naturalArmor).toBe(4);     // 2 form + 2 table
+    expect(eid.ac).toBe(15);
+  });
+
+  it('two claws are both primary — no sole-attack bonus', () => {
+    expect(eid.attacks).toHaveLength(1);
+    expect(eid.attacks[0].name).toBe('2 claws');
+    expect(eid.attacks[0].bonus).toBe(6);        // +3 BAB + 3 Str
+    expect(eid.attacks[0].damage).toBe('1d4+3'); // 1× Str, not 1½×
+  });
+
+  it('reports the evolution pool and attack cap for the level', () => {
+    expect(eid.evolutions).toEqual(expect.objectContaining({ budget: 7, maxAttacks: 4, attackCount: 2 }));
+    expect(eid.evolutions!.free).toContain('claws');
+  });
+
+  it('counts points spent against the pool', () => {
+    const spent = resolve(companionChar('summoner', 4, { 'eidolon-form': ['biped'], evolutions: ['bite', 'large'] }));
+    // bite is 1 point, large is 4 — the pool is 7, so 5 spent.
+    expect(spent.sheet.companions[0].evolutions!.spent).toBe(5);
+  });
+});
+
+describe('companions — a wizard 5 raven familiar reads off its master', () => {
+  const wizChoices = { 'arcane-bond': ['familiar'], familiar: ['raven'], school: ['evocation'], opposition: ['necromancy', 'enchantment'] };
+  const r = resolve(companionChar('wizard', 5, wizChoices));
+  const fam = r.sheet.companions[0];
+
+  it("takes half the master's hit points and the master's base attack", () => {
+    expect(fam.hp).toBe(Math.floor(r.sheet.stats['hp:max'].total / 2));
+    expect(fam.bab).toBe(r.sheet.stats['bab'].total);
+  });
+
+  it('sets Intelligence from the familiar table (8 at master level 5)', () => {
+    expect(fam.intelligence).toBe(8);
+    expect(fam.abilities.int).toBe(8);
+  });
+
+  it("takes the better of its own base saves and the master's, then adds its own modifiers", () => {
+    expect(fam.fort).toBe(1);   // own base 2 beats the wizard's 1, plus −1 Con
+    expect(fam.ref).toBe(4);    // own base 2 beats the wizard's 1, plus 2 Dex
+    expect(fam.will).toBe(6);   // the wizard's 4 beats its own 0, plus 2 Wis
+  });
+
+  it("adds the table's natural armour and attacks with the better of Str and Dex", () => {
+    expect(fam.naturalArmor).toBe(3);   // 0 own + 3 at master level 5
+    expect(fam.ac).toBe(17);            // 10 + 2 size + 2 Dex + 3 natural
+    expect(fam.attacks[0].bonus).toBe(fam.bab + 2 + 2);  // Dex beats Str, plus Tiny size
+  });
+
+  it('no familiar at all when Arcane Bond took the bonded-object branch', () => {
+    const obj = resolve(companionChar('wizard', 5, { ...wizChoices, 'arcane-bond': ['bonded-object'] }));
+    expect(obj.sheet.companions).toHaveLength(0);
+    expect(obj.slots.find((s) => s.id === 'familiar')).toBeUndefined();
+  });
+});
+
+describe('companions — classes that always have one', () => {
+  it('a cavalier gets a mount from 1st level', () => {
+    const r = resolve(companionChar('cavalier', 1, { order: ['sword'], mount: ['horse'] }));
+    expect(r.sheet.companions[0].label).toBe('Mount');
+    expect(r.sheet.companions[0].level).toBe(1);
+  });
+
+  it("a hunter's companion matches the hunter's level", () => {
+    const r = resolve(companionChar('hunter', 6, { 'animal-companion': ['cat-big'] }));
+    expect(r.sheet.companions[0].level).toBe(6);
+    // Cat, big advances at 7th, so at 6 it is still Medium.
+    expect(r.sheet.companions[0].size).toBe('Medium');
+  });
+
+  it("a witch's familiar is not gated behind a branch", () => {
+    const r = resolve(companionChar('witch', 3, { patron: ['winter'], hex: ['evil-eye'], familiar: ['cat'] }));
+    expect(r.sheet.companions).toHaveLength(1);
+    expect(r.sheet.companions[0].label).toBe("Witch's Familiar");
+  });
+
+  it('a character with no companion class resolves an empty list', () => {
+    expect(resolve(humanFighter1()).sheet.companions).toEqual([]);
+  });
+});

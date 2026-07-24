@@ -392,6 +392,19 @@ export const SHAMAN_HEXES: Opt[] = [
   opt('witch-hex', 'Witch Hex', 'Select one witch hex, using your Wisdom in place of the witch’s Intelligence.'),
 ];
 
+/** The druid's Nature Bond: a companion or a domain. Only the companion branch opens a further
+ *  slot — druid domains are not modelled, so picking Domain is recorded but grants nothing yet. */
+export const NATURE_BOND: Opt[] = [
+  opt('animal-companion', 'Animal Companion', 'A loyal animal that advances with your druid level.'),
+  opt('domain', 'Domain', 'A cleric domain and its granted powers (domain spells not yet modelled).'),
+];
+
+/** The ranger's Hunter's Bond at 4th level. */
+export const HUNTERS_BOND: Opt[] = [
+  opt('animal-companion', 'Animal Companion', 'A companion advancing at your ranger level − 3.'),
+  opt('bond-with-companions', 'Bond with Companions', 'Grant allies half your favored-enemy bonus for a few rounds.'),
+];
+
 export const SUMMONER_EIDOLON_FORMS: Opt[] = [
   opt('biped', 'Biped', 'Two legs, two arms; strong at wielding weapons and reach.'),
   opt('quadruped', 'Quadruped', 'Four legs; fast and strong, good for mounts and maulers.'),

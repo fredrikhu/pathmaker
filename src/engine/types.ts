@@ -425,6 +425,73 @@ export interface AttackLine {
   notes: string[];
 }
 
+/** One natural-attack line on a companion, already carrying the size and primary/secondary math. */
+export interface CompanionAttackLine {
+  /** Printed name including the count, e.g. "bite" or "2 claws". */
+  name: string;
+  /** Attack bonus for the line (companions get no iteratives — natural attacks never do). */
+  bonus: number;
+  /** Full damage string including the Strength contribution, e.g. "1d6+3". */
+  damage: string;
+  /** Riders and caveats: "plus trip", "secondary", "1½× Str (sole attack)". */
+  notes: string[];
+}
+
+/** A resolved companion creature — an animal companion, an eidolon, or a familiar. Structurally a
+ *  miniature `Sheet`: everything the table renders, already computed, with no rules math left for
+ *  the UI. Kept as its own type rather than a real `Sheet` because a companion has no equipment,
+ *  spells, feats-by-name or skills-by-rank — padding it out to a `Sheet` would be mostly nulls. */
+export interface CompanionBlock {
+  /** The choice slot this companion came from, so the UI can link back to its picker. */
+  slotId: string;
+  kind: 'animal' | 'eidolon' | 'familiar';
+  /** Card heading from the granting class ("Animal Companion", "Eidolon", "Mount"). */
+  label: string;
+  /** The creature's name ("Wolf", "Biped", "Raven"). */
+  name: string;
+  /** Which class grants it, for a multiclass character's card. */
+  className: string;
+  /** Effective companion level driving the advancement table (the ranger's is his level − 3). */
+  level: number;
+  hd: number;
+  /** Hit-die size the HP average came from (d8 animal, d10 outsider). Absent for familiars,
+   *  whose hit points are simply half their master's. */
+  hitDie?: number;
+  size: string;
+  abilities: Record<Ability, number>;
+  mods: Record<Ability, number>;
+  hp: number;
+  ac: number;
+  touch: number;
+  flatFooted: number;
+  naturalArmor: number;
+  fort: number;
+  ref: number;
+  will: number;
+  bab: number;
+  cmb: number;
+  cmd: number;
+  speed: Sheet['speed'];
+  attacks: CompanionAttackLine[];
+  /** Skill ranks the companion has to spend (the table's Skills column). */
+  skillRanks: number;
+  /** Number of feats the companion has (the table's Feats column). */
+  feats: number;
+  /** Animal companions only: bonus tricks known. */
+  tricks?: number;
+  /** Familiars only: the Intelligence the familiar table sets outright. */
+  intelligence?: number;
+  /** Special abilities gained from the advancement table so far (link, evasion, devotion…). */
+  special: string[];
+  senses: string[];
+  /** Ability-score increases the table has granted but nobody has assigned yet (+1 each). */
+  pendingAbilityIncreases: number;
+  /** Eidolons only: the evolution point-buy status and the cap on natural attacks. */
+  evolutions?: { budget: number; spent: number; maxAttacks: number; attackCount: number; free: string[]; taken: string[] };
+  /** Rules caveats not folded into the numbers. */
+  notes: string[];
+}
+
 export interface Sheet {
   level: number;
   stats: Record<string, Stat>;
@@ -479,6 +546,9 @@ export interface Sheet {
   /** Innate spell-like abilities. A per-day `uses` is tracked via `play.usedPools[id]`, so it
    *  clears on Rest like any daily resource; 'at-will' abilities carry no count. */
   spellLikeAbilities: SpellLikeAbility[];
+  /** Resolved companion creatures (animal companion, eidolon, familiar, mount). Empty for the
+   *  character who has none, which is most of them. */
+  companions: CompanionBlock[];
   summaryLine: string; // "LN Human Fighter 1"
 }
 

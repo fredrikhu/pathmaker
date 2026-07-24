@@ -6,6 +6,7 @@ import { fixedHpPerLevel } from '../../../engine/progression';
 import { resolve } from '../../../engine/resolve';
 import { CLASSES, classById, raceById } from '../../../content/index';
 import { useTip } from '../../Tooltip';
+import { CompanionCard } from '../../CompanionCard';
 
 type FcbChoice = 'hp' | 'skill' | 'alt';
 
@@ -276,6 +277,12 @@ export function AdvancementStep({ ch }: { ch: CharCtl }) {
           </tbody>
         </table>
       </div>
+      {sheet.companions.length > 0 && (
+        <div style={{ marginTop: 20 }}>
+          <div className="micro" style={{ marginBottom: 4 }}>Companions</div>
+          {sheet.companions.map((c) => <CompanionCard key={c.slotId} c={c} />)}
+        </div>
+      )}
       {fcbAlt && (
         <div style={{ marginTop: 12, fontSize: 12, color: 'var(--color-neutral-400)', maxWidth: '80ch' }}>
           <span style={{ fontWeight: 500, color: 'var(--color-neutral-300)' }}>Racial favored-class alternative:</span>{' '}

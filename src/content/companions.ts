@@ -1,0 +1,471 @@
+// Companion creatures: the three advancement tables and the creature catalogue behind them.
+//
+// Every number here was read off d20pfsrd (Animal Companions, Eidolons, Familiars, and the
+// Bestiary entries for the eleven Core familiar animals) rather than recalled. The tables are
+// the whole of the rules math; the catalogue entries are the printed stat blocks unchanged, so
+// the engine derives a companion the same way a player would read the two side by side.
+
+import type { Ability } from '../engine/types';
+import type {
+  CompanionAdvanceDef, CompanionAttackDef, CompanionDef, CompanionStatsDef, CreatureSize,
+} from './model';
+
+// ---------- Advancement tables ----------
+
+/** One row of Table: Animal Companion Base Statistics, indexed by effective druid level. */
+export interface AnimalCompanionRow {
+  hd: number;
+  bab: number;
+  fort: number;
+  ref: number;
+  will: number;
+  skills: number;
+  feats: number;
+  /** Natural-armour bonus the table adds on top of the creature's own. */
+  naturalArmor: number;
+  /** Added to *both* Strength and Dexterity. */
+  strDex: number;
+  tricks: number;
+  special: string[];
+}
+
+const acRow = (
+  hd: number, bab: number, fort: number, ref: number, will: number, skills: number, feats: number,
+  naturalArmor: number, strDex: number, tricks: number, special: string[] = [],
+): AnimalCompanionRow => ({ hd, bab, fort, ref, will, skills, feats, naturalArmor, strDex, tricks, special });
+
+/** Table: Animal Companion Base Statistics (Core Rulebook), index 0 = effective druid level 1.
+ *  Verified against d20pfsrd. Note the ability-score increases land at 4/9/14/20 and Multiattack
+ *  at 9th — both differ from the eidolon table, which is why the two are kept separate. */
+export const ANIMAL_COMPANION_TABLE: AnimalCompanionRow[] = [
+  acRow(2, 1, 3, 3, 0, 2, 1, 0, 0, 1, ['Link', 'Share spells']),
+  acRow(3, 2, 3, 3, 1, 3, 2, 0, 0, 1),
+  acRow(3, 2, 3, 3, 1, 3, 2, 2, 1, 2, ['Evasion']),
+  acRow(4, 3, 4, 4, 1, 4, 2, 2, 1, 2, ['Ability score increase']),
+  acRow(5, 3, 4, 4, 1, 5, 3, 2, 1, 2),
+  acRow(6, 4, 5, 5, 2, 6, 3, 4, 2, 3, ['Devotion']),
+  acRow(6, 4, 5, 5, 2, 6, 3, 4, 2, 3),
+  acRow(7, 5, 5, 5, 2, 7, 4, 4, 2, 3),
+  acRow(8, 6, 6, 6, 2, 8, 4, 6, 3, 4, ['Ability score increase', 'Multiattack']),
+  acRow(9, 6, 6, 6, 3, 9, 5, 6, 3, 4),
+  acRow(9, 6, 6, 6, 3, 9, 5, 6, 3, 4),
+  acRow(10, 7, 7, 7, 3, 10, 5, 8, 4, 5),
+  acRow(11, 8, 7, 7, 3, 11, 6, 8, 4, 5),
+  acRow(12, 9, 8, 8, 4, 12, 6, 8, 4, 5, ['Ability score increase']),
+  acRow(12, 9, 8, 8, 4, 12, 6, 10, 5, 6, ['Improved evasion']),
+  acRow(13, 9, 8, 8, 4, 13, 7, 10, 5, 6),
+  acRow(14, 10, 9, 9, 4, 14, 7, 10, 5, 6),
+  acRow(15, 11, 9, 9, 5, 15, 8, 12, 6, 7),
+  acRow(15, 11, 9, 9, 5, 15, 8, 12, 6, 7),
+  acRow(16, 12, 10, 10, 5, 16, 8, 12, 6, 7, ['Ability score increase']),
+];
+
+/** One row of Table: Eidolon Base Statistics, indexed by summoner level. Saves are printed as
+ *  "good"/"poor" rather than per-save, because which saves are good comes from the base form. */
+export interface EidolonRow {
+  hd: number;
+  bab: number;
+  goodSave: number;
+  poorSave: number;
+  skills: number;
+  feats: number;
+  /** Inherent bonus to the eidolon's natural armour. */
+  armor: number;
+  /** Added to *both* Strength and Dexterity. */
+  strDex: number;
+  pool: number;
+  maxAttacks: number;
+  special: string[];
+}
+
+const eRow = (
+  hd: number, bab: number, goodSave: number, poorSave: number, skills: number, feats: number,
+  armor: number, strDex: number, pool: number, maxAttacks: number, special: string[] = [],
+): EidolonRow => ({ hd, bab, goodSave, poorSave, skills, feats, armor, strDex, pool, maxAttacks, special });
+
+/** Table: Eidolon Base Statistics (APG), index 0 = summoner level 1. Verified against d20pfsrd.
+ *  The `pool` column is the same series as `EIDOLON_EVOLUTION_POOL` in subsystems.ts, which the
+ *  evolution point-buy already reads; both are kept because they are consumed in different places. */
+export const EIDOLON_TABLE: EidolonRow[] = [
+  eRow(1, 1, 2, 0, 4, 1, 0, 0, 3, 3, ['Darkvision', 'Link', 'Share spells']),
+  eRow(2, 2, 3, 0, 8, 1, 2, 1, 4, 3, ['Evasion']),
+  eRow(3, 3, 3, 1, 12, 2, 2, 1, 5, 3),
+  eRow(3, 3, 3, 1, 12, 2, 2, 1, 7, 4),
+  eRow(4, 4, 4, 1, 16, 2, 4, 2, 8, 4, ['Ability score increase']),
+  eRow(5, 5, 4, 1, 20, 3, 4, 2, 9, 4, ['Devotion']),
+  eRow(6, 6, 5, 2, 24, 3, 6, 3, 10, 4),
+  eRow(6, 6, 5, 2, 24, 3, 6, 3, 11, 4),
+  eRow(7, 7, 5, 2, 28, 4, 6, 3, 13, 5, ['Multiattack']),
+  eRow(8, 8, 6, 2, 32, 4, 8, 4, 14, 5, ['Ability score increase']),
+  eRow(9, 9, 6, 3, 36, 5, 8, 4, 15, 5),
+  eRow(9, 9, 6, 3, 36, 5, 10, 5, 16, 5),
+  eRow(10, 10, 7, 3, 40, 5, 10, 5, 17, 5),
+  eRow(11, 11, 7, 3, 44, 6, 10, 5, 19, 6, ['Improved evasion']),
+  eRow(12, 12, 8, 4, 48, 6, 12, 6, 20, 6, ['Ability score increase']),
+  eRow(12, 12, 8, 4, 48, 6, 12, 6, 21, 6),
+  eRow(13, 13, 8, 4, 52, 7, 14, 7, 22, 6),
+  eRow(14, 14, 9, 4, 56, 7, 14, 7, 23, 6),
+  eRow(15, 15, 9, 5, 60, 8, 14, 7, 25, 7),
+  eRow(15, 15, 9, 5, 60, 8, 16, 8, 26, 7),
+];
+
+/** One row of Table: Familiars, indexed by master class level. */
+export interface FamiliarRow {
+  /** Natural-armour adjustment the familiar gains from its master's level. */
+  naturalArmor: number;
+  /** The familiar's Intelligence score, which the table sets outright. */
+  int: number;
+  special: string[];
+}
+
+/** Table: Familiars (Core Rulebook), index 0 = master class level 1. The printed table has one row
+ *  per two levels; it is expanded here so lookup is uniform with the other two tables. Abilities
+ *  are cumulative, so only what is *gained* at that level appears. Verified against d20pfsrd. */
+export const FAMILIAR_TABLE: FamiliarRow[] = [
+  { naturalArmor: 1, int: 6, special: ['Alertness', 'Improved evasion', 'Share spells', 'Empathic link'] },
+  { naturalArmor: 1, int: 6, special: [] },
+  { naturalArmor: 2, int: 7, special: ['Deliver touch spells'] },
+  { naturalArmor: 2, int: 7, special: [] },
+  { naturalArmor: 3, int: 8, special: ['Speak with master'] },
+  { naturalArmor: 3, int: 8, special: [] },
+  { naturalArmor: 4, int: 9, special: ['Speak with animals of its kind'] },
+  { naturalArmor: 4, int: 9, special: [] },
+  { naturalArmor: 5, int: 10, special: [] },
+  { naturalArmor: 5, int: 10, special: [] },
+  { naturalArmor: 6, int: 11, special: ['Spell resistance'] },
+  { naturalArmor: 6, int: 11, special: [] },
+  { naturalArmor: 7, int: 12, special: ['Scry on familiar'] },
+  { naturalArmor: 7, int: 12, special: [] },
+  { naturalArmor: 8, int: 13, special: [] },
+  { naturalArmor: 8, int: 13, special: [] },
+  { naturalArmor: 9, int: 14, special: [] },
+  { naturalArmor: 9, int: 14, special: [] },
+  { naturalArmor: 10, int: 15, special: [] },
+  { naturalArmor: 10, int: 15, special: [] },
+];
+
+/** Size modifiers a companion's size contributes: to AC and attack rolls, and (inverted) to CMB
+ *  and CMD. Verified against the Table: Size Modifiers entries these sizes use. */
+export const SIZE_MODIFIERS: Record<CreatureSize, { ac: number; cmb: number }> = {
+  diminutive: { ac: 4, cmb: -4 },
+  tiny: { ac: 2, cmb: -2 },
+  small: { ac: 1, cmb: -1 },
+  medium: { ac: 0, cmb: 0 },
+  large: { ac: -1, cmb: 1 },
+};
+
+export const SIZE_LABEL: Record<CreatureSize, string> = {
+  diminutive: 'Diminutive', tiny: 'Tiny', small: 'Small', medium: 'Medium', large: 'Large',
+};
+
+/** Average hit points per Hit Die, by die size — the Bestiary convention of ½ die + ½, taken
+ *  before the Constitution bonus and floored over the whole total (a 3d8 animal has 13, not 13.5). */
+export const COMPANION_HD_AVERAGE: Record<number, number> = { 8: 4.5, 10: 5.5 };
+
+// ---------- Catalogue helpers ----------
+
+const abil = (str: number, dex: number, con: number, int: number, wis: number, cha: number): Record<Ability, number> =>
+  ({ str, dex, con, int, wis, cha });
+
+const atk = (name: string, count: number, damage: string, extra: Partial<CompanionAttackDef> = {}): CompanionAttackDef =>
+  ({ name, count, damage, ...extra });
+
+const stats = (s: CompanionStatsDef): CompanionStatsDef => s;
+
+const animal = (
+  id: string, name: string, start: CompanionStatsDef, advance: CompanionAdvanceDef,
+): CompanionDef => ({ id, name, kind: 'animal', start, advance });
+
+// ---------- Animal companions (Core Rulebook, PZO1110) ----------
+
+const LOW_SCENT = ['low-light vision', 'scent'];
+
+/** The seventeen Core Rulebook animal companions. Each entry is its printed Starting Statistics
+ *  plus its 4th- or 7th-level advancement, verbatim. A companion whose advancement lands at 7th
+ *  is the stronger pick that starts weaker — the level is part of the data, not a constant. */
+export const ANIMAL_COMPANIONS: CompanionDef[] = [
+  animal('ape', 'Ape',
+    stats({
+      size: 'medium', speed: { base: 30, climb: 30 }, naturalArmor: 1,
+      attacks: [atk('bite', 1, '1d4'), atk('claw', 2, '1d4')],
+      abilities: abil(13, 17, 10, 2, 12, 7), senses: LOW_SCENT,
+    }),
+    { level: 4, size: 'large', naturalArmor: 2, attacks: [atk('bite', 1, '1d6'), atk('claw', 2, '1d6')], abilityAdj: { str: 8, dex: -2, con: 4 } }),
+  animal('badger', 'Badger',
+    stats({
+      size: 'small', speed: { base: 30, burrow: 10, climb: 10 }, naturalArmor: 2,
+      attacks: [atk('bite', 1, '1d4'), atk('claw', 2, '1d3')],
+      abilities: abil(10, 17, 15, 2, 12, 10), senses: LOW_SCENT,
+      specialAttacks: ['rage (as a barbarian, 6 rounds per day)'],
+    }),
+    { level: 4, size: 'medium', attacks: [atk('bite', 1, '1d6'), atk('claw', 2, '1d4')], abilityAdj: { str: 4, dex: -2, con: 2 } }),
+  animal('bear', 'Bear',
+    stats({
+      size: 'small', speed: { base: 40 }, naturalArmor: 2,
+      attacks: [atk('bite', 1, '1d4'), atk('claw', 2, '1d3')],
+      abilities: abil(15, 15, 13, 2, 12, 6), senses: LOW_SCENT,
+    }),
+    { level: 4, size: 'medium', attacks: [atk('bite', 1, '1d6'), atk('claw', 2, '1d4')], abilityAdj: { str: 4, dex: -2, con: 2 } }),
+  animal('bird', 'Bird',
+    stats({
+      size: 'small', speed: { base: 10, fly: 80, flyManeuver: 'average' }, naturalArmor: 1,
+      attacks: [atk('bite', 1, '1d4'), atk('talon', 2, '1d4')],
+      abilities: abil(10, 15, 12, 2, 14, 6), senses: ['low-light vision'],
+    }),
+    { level: 4, abilityAdj: { str: 2, con: 2 } }),
+  animal('boar', 'Boar',
+    stats({
+      size: 'small', speed: { base: 40 }, naturalArmor: 6,
+      attacks: [atk('gore', 1, '1d6')],
+      abilities: abil(13, 12, 15, 2, 13, 4), senses: LOW_SCENT,
+    }),
+    { level: 4, size: 'medium', attacks: [atk('gore', 1, '1d8')], abilityAdj: { str: 4, dex: -2, con: 2 }, specialAttacks: ['ferocity'] }),
+  animal('camel', 'Camel',
+    stats({
+      size: 'large', speed: { base: 50 }, naturalArmor: 1,
+      attacks: [atk('bite', 1, '1d4', { note: 'or spit (ranged touch, sickened 1d4 rounds, 10 ft)' })],
+      abilities: abil(18, 16, 14, 2, 11, 4), senses: LOW_SCENT,
+    }),
+    { level: 4, abilityAdj: { str: 2, con: 2 } }),
+  animal('cat-big', 'Cat, big',
+    stats({
+      size: 'medium', speed: { base: 40 }, naturalArmor: 1,
+      attacks: [atk('bite', 1, '1d6'), atk('claw', 2, '1d4')],
+      abilities: abil(13, 17, 13, 2, 15, 10), senses: LOW_SCENT,
+      specialAttacks: ['rake (1d4)'],
+    }),
+    {
+      level: 7, size: 'large', naturalArmor: 2, attacks: [atk('bite', 1, '1d8'), atk('claw', 2, '1d6')],
+      abilityAdj: { str: 8, dex: -2, con: 4 }, specialAttacks: ['grab', 'pounce', 'rake (1d6)'],
+    }),
+  animal('cat-small', 'Cat, small',
+    stats({
+      size: 'small', speed: { base: 50 }, naturalArmor: 1,
+      attacks: [atk('bite', 1, '1d4', { note: 'plus trip' }), atk('claw', 2, '1d2')],
+      abilities: abil(12, 21, 13, 2, 12, 6), senses: LOW_SCENT,
+    }),
+    {
+      level: 4, size: 'medium', attacks: [atk('bite', 1, '1d6'), atk('claw', 2, '1d3')],
+      abilityAdj: { str: 4, dex: -2, con: 2 }, specialQualities: ['sprint'],
+    }),
+  animal('crocodile', 'Crocodile',
+    stats({
+      size: 'small', speed: { base: 20, swim: 30 }, naturalArmor: 4,
+      attacks: [atk('bite', 1, '1d6', { note: 'plus grab' })],
+      abilities: abil(15, 14, 15, 1, 12, 2), senses: ['low-light vision'],
+      specialQualities: ['hold breath'],
+    }),
+    {
+      level: 4, size: 'medium', attacks: [atk('bite', 1, '1d8', { note: 'or tail slap 1d12' })],
+      abilityAdj: { str: 4, dex: -2, con: 2 }, specialAttacks: ['death roll', 'sprint'],
+    }),
+  animal('deinonychus', 'Deinonychus',
+    stats({
+      size: 'small', speed: { base: 60 }, naturalArmor: 1,
+      attacks: [atk('talon', 2, '1d6'), atk('bite', 1, '1d4')],
+      abilities: abil(11, 17, 17, 2, 12, 14), senses: LOW_SCENT,
+    }),
+    {
+      level: 7, size: 'medium', naturalArmor: 2,
+      attacks: [atk('talon', 2, '1d8'), atk('bite', 1, '1d6'), atk('claw', 2, '1d4')],
+      abilityAdj: { str: 4, dex: -2, con: 2 }, specialAttacks: ['pounce'],
+    }),
+  animal('dog', 'Dog',
+    stats({
+      size: 'small', speed: { base: 40 }, naturalArmor: 2,
+      attacks: [atk('bite', 1, '1d4')],
+      abilities: abil(13, 17, 15, 2, 12, 6), senses: LOW_SCENT,
+    }),
+    { level: 4, size: 'medium', attacks: [atk('bite', 1, '1d6')], abilityAdj: { str: 4, dex: -2, con: 2 } }),
+  animal('horse', 'Horse',
+    stats({
+      size: 'large', speed: { base: 50 }, naturalArmor: 4,
+      attacks: [atk('bite', 1, '1d4'), atk('hoof', 2, '1d6', { secondary: true })],
+      abilities: abil(16, 13, 15, 2, 12, 6), senses: LOW_SCENT,
+    }),
+    { level: 4, abilityAdj: { str: 2, con: 2 }, specialQualities: ['combat trained'] }),
+  animal('pony', 'Pony',
+    stats({
+      size: 'medium', speed: { base: 40 }, naturalArmor: 2,
+      attacks: [atk('hoof', 2, '1d3')],
+      abilities: abil(13, 13, 12, 2, 11, 4), senses: LOW_SCENT,
+    }),
+    { level: 4, abilityAdj: { str: 2, con: 2 }, specialQualities: ['combat trained'] }),
+  animal('shark', 'Shark',
+    stats({
+      size: 'small', speed: { base: 0, swim: 60 }, naturalArmor: 4,
+      attacks: [atk('bite', 1, '1d4')],
+      abilities: abil(13, 15, 15, 1, 12, 2), senses: LOW_SCENT,
+    }),
+    {
+      level: 4, size: 'medium', attacks: [atk('bite', 1, '1d6')],
+      abilityAdj: { str: 4, dex: -2, con: 2 }, specialQualities: ['blindsense 30 ft'],
+    }),
+  animal('snake-constrictor', 'Snake, constrictor',
+    stats({
+      size: 'medium', speed: { base: 20, climb: 20, swim: 20 }, naturalArmor: 2,
+      attacks: [atk('bite', 1, '1d3', { note: 'plus grab' })],
+      abilities: abil(15, 17, 13, 1, 12, 2), senses: LOW_SCENT,
+    }),
+    {
+      level: 4, size: 'large', naturalArmor: 1, attacks: [atk('bite', 1, '1d4')],
+      abilityAdj: { str: 8, dex: -2, con: 4 }, specialAttacks: ['constrict 1d4'],
+    }),
+  animal('snake-viper', 'Snake, viper',
+    stats({
+      size: 'small', speed: { base: 20, climb: 20, swim: 20 }, naturalArmor: 2,
+      attacks: [atk('bite', 1, '1d3', { note: 'plus poison' })],
+      abilities: abil(8, 17, 11, 1, 12, 2), senses: LOW_SCENT,
+    }),
+    { level: 4, size: 'medium', attacks: [atk('bite', 1, '1d4', { note: 'plus poison' })], abilityAdj: { str: 4, dex: -2, con: 2 } }),
+  animal('wolf', 'Wolf',
+    stats({
+      size: 'medium', speed: { base: 50 }, naturalArmor: 2,
+      attacks: [atk('bite', 1, '1d6', { note: 'plus trip' })],
+      abilities: abil(13, 15, 15, 2, 12, 6), senses: LOW_SCENT,
+    }),
+    { level: 7, size: 'large', naturalArmor: 2, attacks: [atk('bite', 1, '1d8', { note: 'plus trip' })], abilityAdj: { str: 8, dex: -2, con: 4 } }),
+];
+
+// ---------- Eidolon base forms (APG) ----------
+
+/** The three APG eidolon base forms. Free evolutions cost no pool points; a repeated id means the
+ *  form grants that evolution twice (the quadruped's two pairs of legs). The aquatic, avian and
+ *  tauric forms from later books are not authored. */
+export const EIDOLON_FORMS: CompanionDef[] = [
+  {
+    id: 'biped', name: 'Biped', kind: 'eidolon',
+    desc: 'Two legs, two arms; strong at wielding weapons and reach.',
+    goodSaves: ['fort', 'will'],
+    freeEvolutions: ['claws', 'limbs', 'limbs'],
+    start: {
+      size: 'medium', speed: { base: 30 }, naturalArmor: 2,
+      attacks: [atk('claw', 2, '1d4')],
+      abilities: abil(16, 12, 13, 7, 10, 11), senses: ['darkvision 60 ft'],
+    },
+  },
+  {
+    id: 'quadruped', name: 'Quadruped', kind: 'eidolon',
+    desc: 'Four legs; fast and strong, good for mounts and maulers.',
+    goodSaves: ['fort', 'ref'],
+    freeEvolutions: ['bite', 'limbs', 'limbs'],
+    start: {
+      size: 'medium', speed: { base: 40 }, naturalArmor: 2,
+      attacks: [atk('bite', 1, '1d6')],
+      abilities: abil(14, 14, 13, 7, 10, 11), senses: ['darkvision 60 ft'],
+    },
+  },
+  {
+    id: 'serpentine', name: 'Serpentine', kind: 'eidolon',
+    desc: 'A long body with reach and a grabbing tail.',
+    goodSaves: ['ref', 'will'],
+    freeEvolutions: ['bite', 'climb', 'reach', 'tail', 'tail-slap'],
+    start: {
+      size: 'medium', speed: { base: 20, climb: 20 }, naturalArmor: 2,
+      attacks: [atk('bite', 1, '1d6'), atk('tail slap', 1, '1d6', { secondary: true })],
+      abilities: abil(12, 16, 13, 7, 10, 11), senses: ['darkvision 60 ft'],
+    },
+  },
+];
+
+// ---------- Familiars (Core Rulebook) ----------
+
+const familiar = (
+  id: string, name: string, start: CompanionStatsDef, masterBenefit: string,
+): CompanionDef => ({ id, name, kind: 'familiar', start, masterBenefit });
+
+/** The eleven Core familiar animals, as their Bestiary stat blocks print them. A familiar keeps
+ *  its own size, speed, senses and damage dice; almost everything else is derived from its master,
+ *  so these blocks are deliberately thin. */
+export const FAMILIARS: CompanionDef[] = [
+  familiar('bat', 'Bat',
+    stats({
+      size: 'diminutive', speed: { base: 5, fly: 40, flyManeuver: 'good' }, naturalArmor: 0,
+      attacks: [atk('bite', 1, '1d3')],
+      abilities: abil(1, 15, 6, 2, 14, 5), senses: ['blindsense 20 ft', 'low-light vision'],
+    }),
+    'Master gains a +3 bonus on Fly checks.'),
+  familiar('cat', 'Cat',
+    stats({
+      size: 'tiny', speed: { base: 30 }, naturalArmor: 0,
+      attacks: [atk('claw', 2, '1d2'), atk('bite', 1, '1d3')],
+      abilities: abil(3, 15, 8, 2, 12, 7), senses: LOW_SCENT,
+    }),
+    'Master gains a +3 bonus on Stealth checks.'),
+  familiar('hawk', 'Hawk',
+    stats({
+      size: 'tiny', speed: { base: 10, fly: 60, flyManeuver: 'average' }, naturalArmor: 0,
+      attacks: [atk('talon', 2, '1d4')],
+      abilities: abil(6, 17, 11, 2, 14, 7), senses: ['low-light vision'],
+    }),
+    'Master gains a +3 bonus on sight-based and opposed Perception checks in bright light.'),
+  familiar('lizard', 'Lizard',
+    stats({
+      size: 'tiny', speed: { base: 20, climb: 20 }, naturalArmor: 0,
+      attacks: [atk('bite', 1, '1d4')],
+      abilities: abil(3, 15, 8, 1, 12, 2), senses: ['low-light vision'],
+    }),
+    'Master gains a +3 bonus on Climb checks.'),
+  familiar('monkey', 'Monkey',
+    stats({
+      size: 'tiny', speed: { base: 30, climb: 30 }, naturalArmor: 0,
+      attacks: [atk('bite', 1, '1d3')],
+      abilities: abil(3, 15, 10, 2, 12, 5), senses: ['low-light vision'],
+    }),
+    'Master gains a +3 bonus on Acrobatics checks.'),
+  familiar('owl', 'Owl',
+    stats({
+      size: 'tiny', speed: { base: 10, fly: 60, flyManeuver: 'average' }, naturalArmor: 0,
+      attacks: [atk('talon', 2, '1d4')],
+      abilities: abil(6, 17, 11, 2, 15, 6), senses: ['low-light vision'],
+    }),
+    'Master gains a +3 bonus on sight-based and opposed Perception checks in shadows or darkness.'),
+  familiar('rat', 'Rat',
+    stats({
+      size: 'tiny', speed: { base: 15, climb: 15, swim: 15 }, naturalArmor: 0,
+      attacks: [atk('bite', 1, '1d3')],
+      abilities: abil(2, 15, 11, 2, 13, 2), senses: LOW_SCENT,
+    }),
+    'Master gains a +2 bonus on Fortitude saves.'),
+  familiar('raven', 'Raven',
+    stats({
+      size: 'tiny', speed: { base: 10, fly: 40, flyManeuver: 'average' }, naturalArmor: 0,
+      attacks: [atk('bite', 1, '1d3')],
+      abilities: abil(2, 15, 8, 2, 15, 7), senses: ['low-light vision'],
+    }),
+    'Master gains a +3 bonus on Appraise checks.'),
+  familiar('toad', 'Toad',
+    stats({
+      size: 'diminutive', speed: { base: 5 }, naturalArmor: 0,
+      attacks: [],
+      abilities: abil(1, 12, 6, 1, 15, 4), senses: LOW_SCENT,
+    }),
+    'Master gains +3 hit points.'),
+  familiar('viper', 'Viper',
+    stats({
+      size: 'tiny', speed: { base: 20, climb: 20, swim: 20 }, naturalArmor: 1,
+      attacks: [atk('bite', 1, '1d2', { note: 'plus poison' })],
+      abilities: abil(4, 17, 8, 1, 13, 2), senses: LOW_SCENT,
+    }),
+    'Master gains a +3 bonus on Bluff checks.'),
+  familiar('weasel', 'Weasel',
+    stats({
+      size: 'tiny', speed: { base: 20, climb: 20 }, naturalArmor: 1,
+      attacks: [atk('bite', 1, '1d3', { note: 'plus attach' })],
+      abilities: abil(3, 15, 10, 2, 12, 5), senses: LOW_SCENT,
+    }),
+    'Master gains a +2 bonus on Reflex saves.'),
+];
+
+export const COMPANIONS: CompanionDef[] = [...ANIMAL_COMPANIONS, ...EIDOLON_FORMS, ...FAMILIARS];
+
+const byId = new Map(COMPANIONS.map((c) => [`${c.kind}:${c.id}`, c]));
+
+/** Companions are keyed by kind *and* id. The three catalogues describe the same animals from
+ *  different angles — a cat is an animal companion at one size and a familiar at another — so ids
+ *  are only unique within a kind, and the kind is always part of the lookup. */
+export const companionById = (kind: CompanionDef['kind'], id: string): CompanionDef | undefined =>
+  byId.get(`${kind}:${id}`);
+
+export const companionsOfKind = (kind: CompanionDef['kind']): CompanionDef[] =>
+  COMPANIONS.filter((c) => c.kind === kind);

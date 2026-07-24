@@ -16,6 +16,7 @@ import { useCharacter } from './useCharacter';
 import { useTip } from './Tooltip';
 import { navigate } from './App';
 import { ThemeToggle } from './ThemeToggle';
+import { CompanionCard } from './CompanionCard';
 
 const SPELL_LEVEL = (l: number) => (l === 0 ? '0' : String(l));
 const attackLabel = (bonuses: number[]) => bonuses.map(fmtMod).join('/');
@@ -1131,6 +1132,9 @@ export function PlaySheet({ id }: { id: string }) {
           </div>
         )}
       </div>
+
+      {/* Companions — a second creature to run at the table, so its block lives right on the mat. */}
+      {sheet.companions.length > 0 && sheet.companions.map((c) => <CompanionCard key={c.slotId} c={c} />)}
 
       {/* Skills (trained) */}
       {trainedSkills.length > 0 && (
