@@ -34,12 +34,10 @@ function srdIdFor(id: string): string {
   return ({ blindness: 'blindness-deafness', 'order-s-wrath': 'orders-wrath' } as Record<string, string>)[id] ?? id;
 }
 
-/** Spells we carry that are on none of the four CRB lists. Both are paladin-only, so they are
- *  absent from the fixture by construction rather than by mistake — and both used to be tagged
- *  'divine', which put Holy Sword on the cleric's 4th-level list. They now carry the 'paladin'
- *  list, which is the only thing on it so far; the paladin and ranger lists are otherwise
- *  unauthored, so those two casters still resolve to an almost empty spell list. */
-const NOT_ON_A_CRB_LIST = new Set(['bless-weapon', 'holy-sword']);
+/** Spells we carry that are on none of the four base CRB lists this fixture covers. All three are
+ *  paladin-only (the paladin and ranger lists are now authored and audited separately in
+ *  content.test.ts), so they are absent from this fixture by construction rather than by mistake. */
+const NOT_ON_A_CRB_LIST = new Set(['bless-weapon', 'holy-sword', 'heal-mount']);
 
 function loadFixture(): Record<string, Partial<Record<SpellList, number>>> {
   const out: Record<string, Partial<Record<SpellList, number>>> = {};

@@ -628,7 +628,8 @@ describe('spells — CRB completion batch 2 (levels 3–4)', () => {
 
   it("gives the druid its own summon line and the cleric's 4th-level staples", () => {
     expect(C.spellLevelOn(by('summon-natures-ally-iii'), 'druid')).toBe(3);
-    expect(by('summon-natures-ally-iii').lists).toEqual(['druid']);
+    // Druid 3, and also ranger 3 since the ranger list was authored — not on arcane or divine.
+    expect(by('summon-natures-ally-iii').lists).toEqual(['druid', 'ranger']);
     for (const id of ['order-s-wrath', 'lesser-planar-ally', 'water-walk', 'helping-hand',
                       'invisibility-purge', 'remove-blindness-deafness']) {
       expect(by(id).lists).toContain('divine');
@@ -744,6 +745,65 @@ describe('spells — CRB completion batch 4 (levels 7–9, set complete)', () =>
     const fixtureIds = C.CRB_SPELL_LISTS.trim().split(';').map((e) => e.split('=')[0]);
     const uncovered = fixtureIds.filter((id) => !have.has(id));
     expect(uncovered).toEqual(['blot']);
+  });
+});
+
+describe('paladin and ranger spell lists', () => {
+  const on = (list: 'paladin' | 'ranger') => C.SPELLS.filter((s) => s.lists.includes(list));
+  const lvl = (id: string, list: string) => C.spellLevelOn(C.spellById.get(id)!, list);
+
+  it('carries the whole paladin list at its own levels', () => {
+    // 43 rows on d20pfsrd's paladin list, but the one alignment row (protection from chaos/evil,
+    // magic circle against chaos/evil, dispel chaos/evil) is two of our split spells each — 45.
+    const pal = on('paladin');
+    expect(pal.length).toBe(45);
+    for (const s of pal) {
+      const l = C.spellLevelOn(s, 'paladin');
+      expect(l >= 1 && l <= 4, `${s.id} at paladin ${l} is out of the 1–4 range`).toBe(true);
+    }
+    // Level shifts off the cleric list: cure light wounds is cleric 1 but paladin 1, neutralize
+    // poison cleric 4 but paladin 4, bless weapon its own paladin 1 (it was mis-set to 2 before).
+    expect(lvl('cure-light-wounds', 'paladin')).toBe(1);
+    expect(lvl('bless-weapon', 'paladin')).toBe(1);
+    expect(lvl('holy-sword', 'paladin')).toBe(4);
+    expect(lvl('heal-mount', 'paladin')).toBe(3);
+    expect(lvl('greater-magic-weapon', 'paladin')).toBe(3);
+    expect(lvl('mark-of-justice', 'paladin')).toBe(4);
+  });
+
+  it('gives the paladin only the chaos and evil alignment spells, not good or law', () => {
+    for (const id of ['protection-from-chaos', 'protection-from-evil', 'magic-circle-against-chaos',
+                      'magic-circle-against-evil', 'dispel-chaos', 'dispel-evil']) {
+      expect(C.spellById.get(id)!.lists, `${id} should be a paladin spell`).toContain('paladin');
+    }
+    for (const id of ['protection-from-good', 'protection-from-law', 'magic-circle-against-good',
+                      'magic-circle-against-law', 'dispel-good', 'dispel-law']) {
+      expect(C.spellById.get(id)!.lists, `${id} should not be a paladin spell`).not.toContain('paladin');
+    }
+  });
+
+  it('carries the whole ranger list at its own levels', () => {
+    const ran = on('ranger');
+    expect(ran.length).toBe(51);
+    for (const s of ran) {
+      const l = C.spellLevelOn(s, 'ranger');
+      expect(l >= 1 && l <= 4, `${s.id} at ranger ${l} is out of the 1–4 range`).toBe(true);
+    }
+    // The ranger runs a level or two behind the druid on shared spells.
+    expect(lvl('cure-light-wounds', 'ranger')).toBe(2); // cleric/druid 1
+    expect(lvl('neutralize-poison', 'ranger')).toBe(3); // druid 3, ranger 3
+    expect(lvl('greater-magic-fang', 'ranger')).toBe(3); // druid 3, but read from the ranger line
+    expect(lvl('summon-natures-ally-iv', 'ranger')).toBe(4);
+    expect(lvl('tree-stride', 'ranger')).toBe(4);
+  });
+
+  it('places a spell that is on both new lists at the right level on each', () => {
+    // Neutralize poison is paladin 4 but ranger 3 — the two lists disagree, which is exactly
+    // what the per-list overlay has to get right.
+    expect(lvl('neutralize-poison', 'paladin')).toBe(4);
+    expect(lvl('neutralize-poison', 'ranger')).toBe(3);
+    expect(lvl('cure-light-wounds', 'paladin')).toBe(1);
+    expect(lvl('cure-light-wounds', 'ranger')).toBe(2);
   });
 });
 

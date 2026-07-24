@@ -435,7 +435,8 @@ export const SPELLS: SpellDef[] = [
   { id: 'geas-quest', name: 'Geas/Quest', level: 6, school: 'Enchantment', lists: ['arcane', 'divine', 'bard'], summary: 'Compel a lengthy task.', cast: '10 minutes', comp: 'V', range: 'Close', dur: 'See text', save: 'None', desc: 'You lay a compulsion on a creature to carry out a service, sickening or weakening it if it refuses.' },
 
   // ---- Glory / plant / strength / sun / travel / weather ----
-  { id: 'bless-weapon', name: 'Bless Weapon', level: 2, school: 'Transmutation', lists: ['paladin'], summary: 'A weapon strikes true against evil.', cast: '1 standard action', comp: 'V', range: 'Touch', dur: '1 min/level', save: 'None', desc: 'A weapon counts as good-aligned, auto-confirms crits against evil foes, and cannot harm the innocent.' },
+  { id: 'bless-weapon', name: 'Bless Weapon', level: 1, school: 'Transmutation', lists: ['paladin'], summary: 'A weapon strikes true against evil.', cast: '1 standard action', comp: 'V', range: 'Touch', dur: '1 min/level', save: 'None', desc: 'A weapon counts as good-aligned, auto-confirms crits against evil foes, and cannot harm the innocent.' },
+  { id: 'heal-mount', name: 'Heal Mount', level: 3, school: 'Conjuration', lists: ['paladin'], summary: 'Fully heal your bonded mount.', cast: '1 standard action', comp: 'V, S', range: 'Touch', dur: 'Instantaneous', save: 'Will negates (harmless)', desc: 'As heal, but only for your paladin’s bonded mount — closing its wounds and lifting most conditions afflicting it.' },
   { id: 'holy-sword', name: 'Holy Sword', level: 4, school: 'Evocation', lists: ['paladin'], summary: 'A weapon becomes holy.', cast: '1 standard action', comp: 'V, S', range: 'Touch', dur: '1 round/level', save: 'None', desc: 'A weapon becomes +5 holy, harming evil creatures and warding you against their spells.' },
   { id: 'plant-growth', name: 'Plant Growth', level: 3, school: 'Transmutation', lists: ['druid'], summary: 'Overgrow an area, or enrich crops.', cast: '1 standard action', comp: 'V, S, DF', range: 'See text', dur: 'Instantaneous', save: 'None', desc: 'You make vegetation grow dense and difficult, or enrich a large area for a better harvest.' },
   { id: 'repel-wood', name: 'Repel Wood', level: 6, school: 'Transmutation', lists: ['druid'], summary: 'Push wooden objects away.', cast: '1 standard action', comp: 'V, S, DF', range: '60 ft', dur: '1 min/level', save: 'None', desc: 'A wave of energy drives all wooden objects and creatures back from you.' },
@@ -793,6 +794,39 @@ const WITCH_LEVELS: Record<string, number> = {
   'clone': 8, 'trap-the-soul': 8, 'sympathy': 8, 'symbol-of-insanity': 8, 'greater-prying-eyes': 8, 'soul-bind': 9,
 };
 
+// The paladin and ranger lists (four spell levels each, 1–4) are drawn almost entirely from the
+// cleric and druid lists, but a paladin/ranger spell usually lands one to three levels higher than
+// it does for a full caster (Cure Light Wounds is cleric 1 but paladin 1 and ranger 2; Neutralize
+// Poison is cleric 4 / druid 3 but paladin 4 / ranger 2). Like WITCH_LEVELS, these map each carried
+// spell to its level on that list; both were parsed from the class's own d20pfsrd spell-list page.
+// The two paladin-only spells (Bless Weapon, Heal Mount, Holy Sword) carry the 'paladin' list inline
+// and so are not repeated here. The alignment spells a paladin gets are the chaos and evil variants
+// only, entered as our split ids.
+const PALADIN_LEVELS: Record<string, number> = {
+  bless: 1, 'bless-water': 1, 'create-water': 1, 'cure-light-wounds': 1, 'detect-poison': 1,
+  'detect-undead': 1, 'divine-favor': 1, 'endure-elements': 1, 'magic-weapon': 1, 'protection-from-chaos': 1,
+  'protection-from-evil': 1, 'read-magic': 1, resistance: 1, 'lesser-restoration': 1, virtue: 1,
+  'bulls-strength': 2, 'delay-poison': 2, 'eagles-splendor': 2, 'owls-wisdom': 2, 'remove-paralysis': 2,
+  'resist-energy': 2, 'shield-other': 2, 'undetectable-alignment': 2, 'zone-of-truth': 2,
+  'cure-moderate-wounds': 3, daylight: 3, 'discern-lies': 3, 'dispel-magic': 3, 'magic-circle-against-chaos': 3,
+  'magic-circle-against-evil': 3, 'greater-magic-weapon': 3, prayer: 3, 'remove-blindness-deafness': 3, 'remove-curse': 3,
+  'break-enchantment': 4, 'cure-serious-wounds': 4, 'death-ward': 4, 'dispel-chaos': 4, 'dispel-evil': 4,
+  'mark-of-justice': 4, 'neutralize-poison': 4, restoration: 4,
+};
+const RANGER_LEVELS: Record<string, number> = {
+  alarm: 1, 'animal-messenger': 1, 'calm-animals': 1, 'charm-animal': 1, 'delay-poison': 1,
+  'detect-animals-or-plants': 1, 'detect-poison': 1, 'detect-snares-and-pits': 1, 'endure-elements': 1, entangle: 1,
+  'hide-from-animals': 1, jump: 1, longstrider: 1, 'magic-fang': 1, 'pass-without-trace': 1,
+  'read-magic': 1, 'resist-energy': 1, 'speak-with-animals': 1, 'summon-natures-ally-i': 1,
+  barkskin: 2, 'bears-endurance': 2, 'cats-grace': 2, 'cure-light-wounds': 2, 'hold-animal': 2,
+  'owls-wisdom': 2, 'protection-from-energy': 2, snare: 2, 'speak-with-plants': 2, 'spike-growth': 2,
+  'summon-natures-ally-ii': 2, 'wind-wall': 2, 'command-plants': 3, 'cure-moderate-wounds': 3, darkvision: 3,
+  'diminish-plants': 3, 'greater-magic-fang': 3, 'neutralize-poison': 3, 'plant-growth': 3, 'reduce-animal': 3,
+  'remove-disease': 3, 'repel-vermin': 3, 'summon-natures-ally-iii': 3, 'tree-shape': 3, 'water-walk': 3,
+  'animal-growth': 4, 'commune-with-nature': 4, 'cure-serious-wounds': 4, 'freedom-of-movement': 4, nondetection: 4,
+  'summon-natures-ally-iv': 4, 'tree-stride': 4,
+};
+
 // Structured effects live beside the prose rather than inline, so this table stays readable and the
 // verified scaling clauses sit together in one file. Attached here so every consumer sees them.
 for (const s of SPELLS) {
@@ -802,10 +836,17 @@ for (const s of SPELLS) {
   if (damage) s.damage = damage;
   const attacker = SPELL_ATTACKERS[s.id];
   if (attacker) s.attacker = attacker;
-  const witchLevel = WITCH_LEVELS[s.id];
-  if (witchLevel !== undefined) {
-    if (!s.lists.includes('witch')) s.lists = [...s.lists, 'witch'];
-    if (witchLevel !== s.level) s.levelByList = { ...s.levelByList, witch: witchLevel };
+  // Overlay the lists that are drawn from other lists rather than authored per spell: witch, and
+  // the paladin/ranger lists (both mostly reuse cleric/druid spells at shifted levels). Each adds
+  // its list tag and, where the level differs from the spell's flat level, a per-list override.
+  for (const [list, level] of [
+    ['witch', WITCH_LEVELS[s.id]],
+    ['paladin', PALADIN_LEVELS[s.id]],
+    ['ranger', RANGER_LEVELS[s.id]],
+  ] as const) {
+    if (level === undefined) continue;
+    if (!s.lists.includes(list)) s.lists = [...s.lists, list];
+    if (level !== s.level) s.levelByList = { ...s.levelByList, [list]: level };
   }
 }
 
