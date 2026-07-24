@@ -6,10 +6,46 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 
 ## ▶ Resume here (last session end)
 
-**Current state** — branch `main`, working tree clean, **791 tests** passing; run
+**Current state** — branch `main`, working tree clean, **811 tests** passing; run
 `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
-**Latest — Archetype breadth: the fourth-per-class pass, batches 1–2 (93 → 102).** Fighter **Polearm
+**Latest — The fourth-per-class archetype pass is COMPLETE: 93 → 121 archetypes, every class at four.**
+Six batches, 28 archetypes, all d20pfsrd-verified feature by feature. Batch 1 (Core): Fighter Polearm Master,
+Rogue Knife Master, Barbarian Armored Hulk, Monk Martial Artist, Bard Magician, Druid Storm Druid. Batch 2:
+Wizard Exploiter Wizard, Ranger Freebooter, Sorcerer Seeker. Batch 3 (base): Alchemist Mindchemist, Witch
+White-Haired Witch, Cavalier Daring Champion, Magus Staff Magus, Gunslinger Bolt Ace. Batch 4 (hybrid):
+Brawler Wild Child, Bloodrager Bloodrider, Slayer Vanguard, Swashbuckler Picaroon. Batch 5: Cleric Divine
+Strategist, Oracle Spirit Guide, Investigator Profiler, Inquisitor Abolisher, Hunter Forester. Batch 6:
+Paladin Divine Defender, Shifter Rageshaper, Skald Herald of the Horn, Warpriest Forgepriest, Shaman Unsworn
+Shaman. **Vampire-hunter stays at 0 by design**; a golden test now asserts the whole invariant.
+
+**Four engine mechanisms were added, all in batches 1–2, and they carried the remaining four batches with no
+further engine work** — which is the useful signal about where the model now stands:
+- **`ArchetypeDef.alignment`** — `null` lifts the class restriction, an array replaces it (Martial Artist may
+  be any alignment; Rageshaper any nonlawful). The merge tests for the key's **presence**, because
+  `?? klass.alignment` would silently ignore an intentional `null`. The Class step's conflict tag reads the
+  effective restriction too.
+- **`POOL_FEATURE`** — a resource pool disappears with its granting feature. Pools are keyed by class id, so a
+  Martial Artist would otherwise still show a Ki pool, and a Divine Strategist a channel pool.
+- **`GRANTED_POOLS`** — the mirror: an archetype can *add* a pool to a class that has none (Exploiter Wizard's
+  arcane reservoir, Daring Champion's panache).
+- **`ArchetypeDef.companions`** — an archetype can grant a companion to a class with no companion model at all
+  (Wild Child, Bloodrider). With this, all four directions exist: a class grants one, an archetype removes one
+  (Storm Druid, Freebooter, Daring Champion, Forester), an archetype grants one, an archetype fuses one
+  (Synthesist).
+
+**811 tests** (31 new across the pass), tsc + build clean throughout. Browser-verified one archetype per batch:
+chaotic-good Martial Artist (no alignment issue, no Ki pool), Exploiter Wizard (reservoir 8/8, no specialist
+slot), Daring Champion (Challenge 4/4 + Panache 3/3, no mount), Wild Child brawler (Large big cat, bite +10),
+Rageshaper (chaotic-evil, no aspect), Divine Strategist (domain slot, no channel, no Resources panel).
+
+**Selection rule that held up across all six batches:** read the class's published list, pick one that is both
+well-known and expressible, verify before authoring — and never assume a class is blocked because its *famous*
+archetype is. The published pool is enormous (rogue 70, fighter 63, monk 50, barbarian 40, cleric 32
+first-party on d20pfsrd), so a fifth-per-class pass needs no invention either; expressibility is the only real
+filter.
+
+**Prior — Archetype breadth: the fourth-per-class pass, batches 1–2 (93 → 102).** Fighter **Polearm
 Master**, Rogue **Knife Master**, Barbarian **Armored Hulk**, Monk **Martial Artist**, Bard **Magician**,
 Druid **Storm Druid**, Wizard **Exploiter Wizard**, Ranger **Freebooter**, Sorcerer **Seeker** — all
 d20pfsrd-verified feature by feature. **Nine of eleven Core classes are now at four**; 19 classes remain at
