@@ -395,6 +395,10 @@ export interface ArchetypeDef {
    *  Artist monk, who may be of any alignment); an array narrows or replaces it. Omit to keep the
    *  class's own. */
   alignment?: Alignment[] | null;
+  /** Companion creatures this archetype grants, replacing the class's own list. A class that grants
+   *  none can gain one this way (the Wild Child brawler's animal companion, the Bloodrider's feral
+   *  mount); the matching pick must be added through `choices.add`. */
+  companions?: CompanionSourceDef[];
   /** The archetype fuses the class's companion into the character rather than leaving it a separate
    *  creature — the Synthesist summoner. The character takes the companion's physical ability
    *  scores and natural armour, and its hit points become temporary hit points. Which companion is

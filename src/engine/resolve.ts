@@ -315,7 +315,8 @@ function effectiveClass(klass: C.ClassDef, dec: Decisions): C.ClassDef {
   // `alignment: null` lifts the restriction outright, so a plain `??` would wrongly fall back to
   // the class's own — the key's presence is what matters, not its truthiness.
   const alignment = 'alignment' in arch ? (arch.alignment ?? undefined) : klass.alignment;
-  return { ...klass, features, proficiencies, spellcasting, choices, classSkills, bonusFeats, alignment };
+  const companions = arch.companions ?? klass.companions;
+  return { ...klass, features, proficiencies, spellcasting, choices, classSkills, bonusFeats, alignment, companions };
 }
 
 function classFeaturesUpTo(klass: C.ClassDef | undefined, level: number, dec?: Decisions): C.LeveledFeatureDef[] {

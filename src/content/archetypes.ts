@@ -987,6 +987,23 @@ export const WARPRIEST_ARCHETYPES: ArchetypeDef[] = [
 
 export const BRAWLER_ARCHETYPES: ArchetypeDef[] = [
   {
+    id: 'wild-child', classId: 'brawler', name: 'Wild Child',
+    desc: 'A brawler raised alongside animals — or by them — who fights beside a sworn animal friend instead of collecting combat feats.',
+    replaces: ['brawl-close-weapon-mastery'],
+    // Every brawler bonus feat goes: 2/8/14/20 pay for the companion, 5/11/17 for the tricks.
+    bonusFeatSlots: { remove: [2, 5, 8, 11, 14, 17, 20] },
+    classSkills: { add: ['heal'] },
+    choices: {
+      add: [{ id: 'animal-companion', label: 'Animal Companion', kind: 'companion', companionKind: 'animal', count: 1 }],
+    },
+    companions: [{ choiceId: 'animal-companion', kind: 'animal', label: 'Animal Companion' }],
+    grants: [
+      g(1, 'wc-animal-companion', 'Animal Companion', 'Bond with any animal available to a druid, using your brawler level as your effective druid level. Replaces the bonus combat feats at 2nd, 8th, 14th and 20th.'),
+      g(5, 'wc-hunters-tricks', "Hunter's Tricks", "Expend a use of martial flexibility to use a skirmisher ranger's hunter trick, choosing a different one each time. No trick that relies on ranged attacks may be chosen. Replaces close weapon mastery."),
+      g(5, 'wc-wild-tricks', 'Wild Tricks', 'Your companion learns a trick matching each maneuver you train in, and you gain further tricks in place of feats. Replaces the bonus combat feats at 5th, 11th and 17th.'),
+    ],
+  },
+  {
     id: 'exemplar', classId: 'brawler', name: 'Exemplar',
     desc: 'A brawler who leads by example — her prowess an inspiration that lifts everyone fighting beside her.',
     replaces: ['brawl-unarmed', 'brawl-close-weapon-mastery', 'brawl-maneuver-training', 'brawl-ac-bonus'],
@@ -1116,6 +1133,22 @@ export const ORACLE_ARCHETYPES: ArchetypeDef[] = [
 
 export const BLOODRAGER_ARCHETYPES: ArchetypeDef[] = [
   {
+    id: 'bloodrider', classId: 'bloodrager', name: 'Bloodrider',
+    desc: 'A bloodrager who fights from the saddle, channelling arcane fury straight into a feral mount.',
+    replaces: ['br-fast-movement', 'br-uncanny-dodge', 'br-improved-uncanny-dodge'],
+    bonusFeatSlots: { remove: [9] },
+    choices: {
+      add: [{ id: 'feral-mount', label: 'Feral Mount', kind: 'companion', companionKind: 'animal', count: 1, levels: [5] }],
+    },
+    // The feral mount uses the bloodrager's level − 4, so it arrives at 5th as a 1st-level companion.
+    companions: [{ choiceId: 'feral-mount', kind: 'animal', label: 'Feral Mount', levelOffset: 4, minLevel: 5 }],
+    grants: [
+      g(1, 'brd-fast-rider', 'Fast Rider', 'Any mount you ride has its speed increased by 10 feet. Replaces fast movement.'),
+      g(5, 'brd-feral-mount', 'Feral Mount', "Gain a feral mount that functions as a druid's animal companion, using your bloodrager level − 4 as your effective druid level. It must be a creature you can ride. While you are bloodraging it gains a +2 morale bonus to Strength. Replaces uncanny dodge and improved uncanny dodge."),
+      g(9, 'brd-blood-bond', 'Blood Bond', 'While bloodraging and mounted, your feral mount shares every immunity and resistance your bloodline powers grant you, and any personal-range spell you cast also affects it. Replaces the 9th-level bloodline feat.'),
+    ],
+  },
+  {
     id: 'metamagic-rager', classId: 'bloodrager', name: 'Metamagic Rager',
     desc: 'A bloodrager who bends his fury into his spellcasting — burning rage rounds to twist a spell mid-cast.',
     replaces: ['br-improved-uncanny-dodge'],
@@ -1151,6 +1184,19 @@ export const BLOODRAGER_ARCHETYPES: ArchetypeDef[] = [
 ];
 
 export const SWASHBUCKLER_ARCHETYPES: ArchetypeDef[] = [
+  {
+    id: 'picaroon', classId: 'swashbuckler', name: 'Picaroon',
+    desc: 'A swashbuckler who closes with a blade in one hand and a pistol in the other, and hits hard with both.',
+    replaces: ['swb-finesse', 'swb-deed-opportune-parry', 'swb-deed-kip-up', 'swb-deed-superior-feint', 'swb-deed-bleeding-wound'],
+    proficiencies: { weapons: { add: ['martial', 'pistol'] } },
+    grants: [
+      g(1, 'pc-melee-shooter', 'Deed: Melee Shooter', 'While wielding both a light or one-handed piercing melee weapon and a one-handed firearm, spend 1 panache as a swift action so your first ranged attack that turn provokes no attacks of opportunity. Replaces opportune parry and riposte.'),
+      g(1, 'pc-picaroons-panache', "Picaroon's Panache", 'You regain panache on a confirmed critical hit or killing blow with a light or one-handed piercing melee weapon *or* a one-handed firearm. Alters panache and replaces swashbuckler finesse.'),
+      g(3, 'pc-quick-clear', 'Deed: Quick Clear', 'Spend 1 panache as a standard action to clear the broken condition from a one-handed firearm you wield, when it came from a misfire. Replaces kip-up.'),
+      g(7, 'pc-gun-feint', 'Deed: Gun Feint', 'With at least 1 panache, feint with a firearm instead of attacking, trading on its fearsome reputation. Replaces superior feint.'),
+      g(11, 'pc-pistol-whip-shot', 'Deed: Close Shot', 'Spend panache to fire into a melee you are part of without the usual penalty. Replaces bleeding wound.'),
+    ],
+  },
   {
     id: 'mouser', classId: 'swashbuckler', name: 'Mouser',
     desc: 'A small, quick duelist who fights from within a giant’s own footprint — darting underfoot to turn size against the enemy.',
@@ -1613,6 +1659,22 @@ export const ARCANIST_ARCHETYPES: ArchetypeDef[] = [
 ];
 
 export const SLAYER_ARCHETYPES: ArchetypeDef[] = [
+  {
+    id: 'vanguard', classId: 'slayer', name: 'Vanguard',
+    desc: 'A battlefield commander who leads allies to bloody victory — scout, officer and tactician rather than lone hunter.',
+    replaces: ['slay-track', 'slay-stalker'],
+    // Tactician and Vanguard's Bond take the 2nd- and 4th-level talents; the rest of the line stays.
+    choices: {
+      remove: ['slayer-talent'],
+      add: [{ id: 'slayer-talent', label: 'Slayer talent', kind: 'list', count: 1, levels: [6, 8], options: SLAYER_TALENTS }],
+    },
+    grants: [
+      g(1, 'vg-lookout', 'Lookout', 'Add half your slayer level (minimum 1) on initiative checks. Replaces track.'),
+      g(2, 'vg-tactician', 'Tactician', 'Gain a teamwork feat you qualify for, and once per day as a standard action grant one of your teamwork feats to all allies within 30 feet who can see and hear you, for 3 rounds plus 1 per two levels. A later slayer talent may instead buy another daily use. Replaces the 2nd-level slayer talent.'),
+      g(4, 'vg-vanguards-bond', "Vanguard's Bond", 'As a move action, grant half your studied target bonus against one current studied target to all allies within 30 feet, for rounds equal to your Intelligence modifier (minimum 1). It does not stack with their own favored enemy or studied target bonuses. Replaces the 4th-level slayer talent.'),
+      g(7, 'vg-ever-ready', 'Ever Ready', 'You are never caught off guard: your readiness in the opening moments of a fight replaces the stalker’s stealth. Replaces stalker.'),
+    ],
+  },
   {
     id: 'stygian-slayer', classId: 'slayer', name: 'Stygian Slayer',
     desc: 'A killer who steps out of the deepest shadow — arriving unseen, doing murder, and dissolving into mist before anyone thinks to look.',

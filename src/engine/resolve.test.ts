@@ -5684,3 +5684,86 @@ describe('archetypes — fourth-per-class batch 3 (base classes)', () => {
     expect(resolve(ba).sheet.pools.map((p) => p.id)).toContain('grit');
   });
 });
+
+describe('archetypes — fourth-per-class batch 4 (hybrid classes)', () => {
+  const build = (cls: string, archetype: string | undefined, level: number, choices?: Record<string, string[]>): CharacterDoc => {
+    let d = newCharacter('t-fourth4', 'X');
+    d = withDecision(d, 'ability-base', { str: 14, dex: 14, con: 12, int: 13, wis: 12, cha: 13 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['str']);
+    d = withDecision(d, 'alignment', 'N');
+    d = withDecision(d, 'class', cls);
+    if (choices) d = withDecision(d, 'class-choices', choices);
+    if (archetype) d = withDecision(d, 'archetype', archetype);
+    return atLevel(d, level);
+  };
+  const featsAt = (doc: CharacterDoc, lvl: number) =>
+    resolve(doc).sheet.progression.find((r) => r.level === lvl)?.features ?? [];
+
+  it('Wild Child gives a companion to a class that has none, paid for with every bonus feat', () => {
+    const wc = build('brawler', 'wild-child', 8, { 'animal-companion': ['wolf'] });
+    const r = resolve(wc);
+    expect(featsAt(wc, 1)).toContain('Animal Companion');
+    expect(r.sheet.companions).toHaveLength(1);
+    // A brawler's companion runs at its own level, so a brawler 8 has an 8th-level wolf.
+    expect(r.sheet.companions[0].level).toBe(8);
+    expect(r.sheet.companions[0].name).toBe('Wolf');
+    // Every brawler bonus feat is spent: the line disappears entirely.
+    const eff = effectiveClass(C.classById.get('brawler')!, readDecisions(wc));
+    expect(eff.bonusFeats).toBeUndefined();
+    expect(r.slots.filter((s) => s.step === 'feats').map((s) => s.id).join(' ')).not.toContain('brawler');
+    expect(r.sheet.classSkillIds).toContain('heal');
+    // A plain brawler has neither companion nor Heal, and keeps its feats.
+    const plain = resolve(build('brawler', undefined, 8));
+    expect(plain.sheet.companions).toHaveLength(0);
+    expect(effectiveClass(C.classById.get('brawler')!, readDecisions(build('brawler', undefined, 8))).bonusFeats).toBeTruthy();
+  });
+
+  it("Bloodrider's feral mount arrives at 5th, four levels behind", () => {
+    const early = resolve(build('bloodrager', 'bloodrider', 4, { bloodline: ['draconic'], 'feral-mount-L5': ['horse'] }));
+    expect(early.sheet.companions).toHaveLength(0);
+    const br = build('bloodrager', 'bloodrider', 12, { bloodline: ['draconic'], 'feral-mount-L5': ['horse'] });
+    const r = resolve(br);
+    expect(r.sheet.companions).toHaveLength(1);
+    expect(r.sheet.companions[0].label).toBe('Feral Mount');
+    expect(r.sheet.companions[0].level).toBe(8);   // bloodrager 12 − 4
+    expect(featsAt(br, 1)).toContain('Fast Rider');
+    expect(featsAt(br, 1)).not.toContain('Fast Movement');
+    expect(featsAt(br, 9)).toContain('Blood Bond');
+    // The 9th-level bloodline feat is gone; the others remain.
+    const levels = effectiveClass(C.classById.get('bloodrager')!, readDecisions(br)).bonusFeats?.levels;
+    expect(levels).toEqual([6, 12, 15, 18]);
+  });
+
+  it('Vanguard takes the 2nd- and 4th-level talents but keeps the rest of the line', () => {
+    const vg = build('slayer', 'vanguard', 10);
+    const ids = resolve(vg).slots.map((s) => s.id);
+    expect(ids).not.toContain('slayer-talent-L2');
+    expect(ids).not.toContain('slayer-talent-L4');
+    expect(ids).toContain('slayer-talent-L6');
+    expect(ids).toContain('slayer-talent-L8');
+    expect(ids).toContain('slayer-adv-talent-L10');
+    expect(featsAt(vg, 1)).toContain('Lookout');
+    expect(featsAt(vg, 1)).not.toContain('Track');
+    expect(featsAt(vg, 7)).toContain('Ever Ready');
+    expect(featsAt(vg, 7)).not.toContain('Stalker');
+    // Studied target and sneak attack are what make it a slayer — untouched.
+    expect(featsAt(vg, 1)).toContain('Studied Target');
+    expect(featsAt(vg, 3)).toContain('Sneak Attack +1d6');
+  });
+
+  it('Picaroon trades four deeds and finesse for firearm work', () => {
+    const pc = build('swashbuckler', 'picaroon', 11);
+    const eff = effectiveClass(C.classById.get('swashbuckler')!, readDecisions(pc));
+    expect(eff.proficiencies.weapons).toContain('pistol');
+    expect(featsAt(pc, 1)).toContain('Deed: Melee Shooter');
+    expect(featsAt(pc, 1)).not.toContain('Deed: Opportune Parry and Riposte');
+    expect(featsAt(pc, 1)).not.toContain('Swashbuckler Finesse');
+    expect(featsAt(pc, 3)).toContain('Deed: Quick Clear');
+    expect(featsAt(pc, 7)).toContain('Deed: Gun Feint');
+    expect(featsAt(pc, 11)).toContain('Deed: Close Shot');
+    // The deeds it keeps, and panache itself, are still there.
+    expect(featsAt(pc, 1)).toContain('Deed: Derring-Do');
+    expect(resolve(pc).sheet.pools.map((p) => p.id)).toContain('panache');
+  });
+});
