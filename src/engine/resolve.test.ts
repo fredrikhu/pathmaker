@@ -1282,12 +1282,17 @@ describe('per-list spell levels', () => {
     expect([at('bestow-curse', 'divine'), at('bestow-curse', 'arcane')]).toEqual([3, 4]);
   });
 
-  it('list memberships: the mass-cure line is not druid, and a domain-only spell stays off the base list', () => {
+  it('list memberships: the mass-cure line reaches the druid late, and a domain-only spell stays off the base list', () => {
     const lists = (id: string) => C.spellById.get(id)!.lists;
-    // Druids get the single-target cure line but none of the mass cures.
-    expect(lists('mass-cure-light-wounds')).not.toContain('druid');
-    expect(lists('mass-cure-critical-wounds')).not.toContain('druid');
-    expect(lists('cure-critical-wounds')).toContain('druid'); // the single-target one they do get
+    // This test used to assert the druid gets *no* mass cures, which was wrong: the druid has
+    // the whole line, just one to two levels later than the cleric. Corrected against the CRB
+    // druid spell list, which spell-lists.test.ts now checks in full.
+    expect(lists('mass-cure-light-wounds')).toContain('druid');
+    expect(C.spellLevelOn(C.spellById.get('mass-cure-light-wounds')!, 'divine')).toBe(5);
+    expect(C.spellLevelOn(C.spellById.get('mass-cure-light-wounds')!, 'druid')).toBe(6);
+    expect(C.spellLevelOn(C.spellById.get('mass-cure-critical-wounds')!, 'divine')).toBe(8);
+    expect(C.spellLevelOn(C.spellById.get('mass-cure-critical-wounds')!, 'druid')).toBe(9);
+    expect(lists('cure-critical-wounds')).toContain('druid'); // the single-target one too
     // Wail of the Banshee is a Death-domain spell, not on the base cleric list — but the domain
     // still reaches it (domain access is by id, independent of the spell's lists).
     expect(lists('wail-of-the-banshee')).not.toContain('divine');

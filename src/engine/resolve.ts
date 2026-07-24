@@ -2127,7 +2127,7 @@ function buildSlotsAndIssues(
   // ---------- SPELLS (per accessible spell level) ----------
   if (klass?.spellcasting && klass.spellcasting.progression !== 'four') {
     const sc = klass.spellcasting;
-    const listSpells = C.SPELLS.filter((s) => s.lists.includes(sc.list as C.SpellList));
+    const listSpells = C.SPELLS.filter((s) => s.lists.includes(sc.list));
     // Filter by the spell's level *on this class's list*, not its flat level — a spell that is bard 2
     // but wizard 3 must appear at the right level for each caster.
     const spellsAt = (lvl: number) => listSpells.filter((s) => C.spellLevelOn(s, sc.list) === lvl);

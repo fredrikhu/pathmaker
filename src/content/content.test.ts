@@ -579,6 +579,69 @@ describe('spells', () => {
   });
 });
 
+describe('spells — CRB completion batch 2 (levels 3–4)', () => {
+  const by = (id: string) => {
+    const s = C.spellById.get(id);
+    expect(s, `spell ${id} missing`).toBeDefined();
+    return s!;
+  };
+
+  it('lands the spells that differ by list at the right level on each one', () => {
+    // These are the whole reason levelByList exists, and each pair was read off the
+    // spell's own Level line rather than inferred from which class list it appeared on.
+    const cases: [string, [string, number][]][] = [
+      ['greater-magic-weapon', [['arcane', 3], ['divine', 4]]],
+      ['contagion', [['divine', 3], ['druid', 3], ['arcane', 4]]],
+      ['poison', [['druid', 3], ['divine', 4]]],
+      ['blight', [['druid', 4], ['arcane', 5]]],
+      ['crushing-despair', [['bard', 3], ['arcane', 4]]],
+      ['lesser-geas', [['bard', 3], ['arcane', 4]]],
+      ['speak-with-plants', [['druid', 3], ['bard', 4]]],
+      // The four-list case: bard gets it a level early, the cleric a level late.
+      ['scrying', [['bard', 3], ['arcane', 4], ['druid', 4], ['divine', 5]]],
+    ];
+    for (const [id, pairs] of cases) {
+      const s = by(id);
+      for (const [list, lvl] of pairs) {
+        expect(C.spellLevelOn(s, list), `${id} on ${list}`).toBe(lvl);
+      }
+    }
+  });
+
+  it('fills the gaps left in the numbered polymorph and variant series', () => {
+    // We carried beast shape III/IV and elemental body IV but not the entries that
+    // unlock them, which made the series unusable from the bottom.
+    for (const id of ['beast-shape-i', 'beast-shape-ii', 'beast-shape-iii']) {
+      expect(C.spellById.has(id), `${id} missing from the beast shape series`).toBe(true);
+    }
+    expect(C.spellLevelOn(by('beast-shape-i'), 'arcane')).toBe(3);
+    expect(C.spellLevelOn(by('beast-shape-ii'), 'arcane')).toBe(4);
+    expect(C.spellLevelOn(by('elemental-body-i'), 'arcane')).toBe(4);
+    // Greater/lesser/mass variants follow the catalogue's prefix convention, not the SRD's
+    // "X, Greater" suffix — a mismatch here silently orphans the spell from every lookup.
+    for (const id of ['greater-magic-fang', 'greater-magic-weapon', 'lesser-geas',
+                      'lesser-globe-of-invulnerability', 'lesser-planar-ally',
+                      'mass-enlarge-person', 'mass-reduce-person']) {
+      expect(C.spellById.has(id), `${id} missing`).toBe(true);
+    }
+  });
+
+  it("gives the druid its own summon line and the cleric's 4th-level staples", () => {
+    expect(C.spellLevelOn(by('summon-natures-ally-iii'), 'druid')).toBe(3);
+    expect(by('summon-natures-ally-iii').lists).toEqual(['druid']);
+    for (const id of ['order-s-wrath', 'lesser-planar-ally', 'water-walk', 'helping-hand',
+                      'invisibility-purge', 'remove-blindness-deafness']) {
+      expect(by(id).lists).toContain('divine');
+    }
+  });
+
+  it('carries no spell that is only on a non-CRB list', () => {
+    // Blot reads as PZO1110 in d20pfsrd's bard table but its own page credits Goblins of
+    // Golarion, so it stays out until we take splatbook spells on purpose.
+    expect(C.spellById.has('blot')).toBe(false);
+  });
+});
+
 describe('weapon proficiency data', () => {
   // Nothing consumed these lists until the proficiency rule existed, so they had drifted: they
   // referenced 'crossbow-light', 'crossbow-heavy' and 'shortsword', none of which are real ids.

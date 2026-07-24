@@ -1,0 +1,119 @@
+// The four Core Rulebook class spell lists as published on d20pfsrd, scraped from the
+// sorcerer/wizard, cleric, druid and bard list pages and filtered to rows whose Source column
+// is PZO1110. One entry per spell: `id=<code><level>,…` where a=sorcerer/wizard, d=cleric,
+// r=druid, b=bard. 610 spells.
+//
+// This is reference data, not content the app renders: spell-lists.test.ts checks every
+// membership and per-list level in SPELLS against it, so an authoring mistake in any batch
+// fails the suite rather than waiting to be noticed in a picker. Regenerate by re-scraping
+// those four pages if the catalogue ever grows past the Core Rulebook.
+export const CRB_SPELL_LISTS =
+  'acid-arrow=a2;acid-fog=a6;acid-splash=a0;aid=d2;air-walk=d4,r4;alarm=a1,b1;align-weapon=d2;alter-self=a2,b2;' +
+  'analyze-dweomer=a6,b6;animal-growth=a5,r5;animal-messenger=b2,r2;animal-shapes=r8;animal-trance=b2,r2;' +
+  'animate-dead=a4,d3;animate-objects=b6,d6;animate-plants=r7;animate-rope=a1,b1;antilife-shell=d6,r6;' +
+  'antimagic-field=a6,d8;antipathy=a8,r9;antiplant-shell=r4;arcane-eye=a4;arcane-lock=a2;arcane-mark=a0;' +
+  'arcane-sight-greater=a7;arcane-sight=a3;astral-projection=a9,d9;atonement=d5,r5;augury=d2;awaken=r5;' +
+  'baleful-polymorph=a5,r5;bane=d1;banishment=a7,d6;barkskin=r2;bears-endurance-mass=a6,d6,r6;bears-endurance=a2,d2,r2;' +
+  'beast-shape-i=a3;beast-shape-ii=a4;beast-shape-iii=a5;beast-shape-iv=a6;bestow-curse=a4,d3;binding=a8;' +
+  'black-tentacles=a4;blade-barrier=d6;blasphemy=d7;bleed=a0,d0;bless-water=d1;bless=d1;blight=a5,r4;' +
+  'blindness-deafness=a2,b2,d3;blink=a3,b3;blot=b3;blur=a2,b2;break-enchantment=a5,b4,d5;breath-of-life=d5;' +
+  'bulls-strength-mass=a6,d6,r6;bulls-strength=a2,d2,r2;burning-hands=a1;call-lightning-storm=r5;call-lightning=r3;' +
+  'calm-animals=r1;calm-emotions=b2,d2;cats-grace-mass=a6,b6,r6;cats-grace=a2,b2,r2;cause-fear=a1,b1,d1;' +
+  'chain-lightning=a6;changestaff=r7;chaos-hammer=d4;charm-animal=r1;charm-monster-mass=a8,b6;charm-monster=a4,b3;' +
+  'charm-person=a1,b1;chill-metal=r2;chill-touch=a1;circle-of-death=a6;clairaudience-clairvoyance=a3,b3;' +
+  'clenched-fist=a8;cloak-of-chaos=d8;clone=a8;cloudkill=a5;color-spray=a1;command-greater=d5;command-plants=r4;' +
+  'command-undead=a2;command=d1;commune-with-nature=r5;commune=d5;comprehend-languages=a1,b1,d1;cone-of-cold=a5;' +
+  'confusion-lesser=b1;confusion=a4,b3;consecrate=d2;contact-other-plane=a5;contagion=a4,d3,r3;contingency=a6;' +
+  'continual-flame=a2,d3;control-plants=r8;control-undead=a7;control-water=a6,d4,r4;control-weather=a7,d7,r7;' +
+  'control-winds=r5;create-food-and-water=d3;create-greater-undead=a8,d8;create-undead=a6,d6;create-water=d0,r0;' +
+  'creeping-doom=r7;crushing-despair=a4,b3;crushing-hand=a9;cure-critical-wounds-mass=d8,r9;' +
+  'cure-critical-wounds=b4,d4,r5;cure-light-wounds-mass=b5,d5,r6;cure-light-wounds=b1,d1,r1;' +
+  'cure-moderate-wounds-mass=b6,d6,r7;cure-moderate-wounds=b2,d2,r3;cure-serious-wounds-mass=d7,r8;' +
+  'cure-serious-wounds=b3,d3,r4;curse-water=d1;dancing-lights=a0,b0;darkness=a2,b2,d2;darkvision=a2;' +
+  'daylight=a3,b3,d3,r3;daze-monster=a2,b2;daze=a0,b0;death-knell=d2;death-ward=d4,r5;deathwatch=d1;deep-slumber=a3,b3;' +
+  'deeper-darkness=d3;delay-poison=b2,d2,r2;delayed-blast-fireball=a7;demand=a8;desecrate=d2;destruction=d7;' +
+  'detect-animals-or-plants=r1;detect-chaos-evil-good-law=d1;detect-magic=a0,b0,d0,r0;detect-poison=a0,d0,r0;' +
+  'detect-scrying=a4,b4;detect-secret-doors=a1,b1;detect-snares-and-pits=r1;detect-thoughts=a2,b2;detect-undead=a1,d1;' +
+  'dictum=d7;dimension-door=a4,b4;dimensional-anchor=a4,d4;dimensional-lock=a8,d8;diminish-plants=r3;discern-lies=d4;' +
+  'discern-location=a8,d8;disguise-self=a1,b1;disintegrate=a6;dismissal=a5,d4;dispel-chaos-evil-good-law=d5;' +
+  'dispel-magic-greater=a6,b5,d6,r6;dispel-magic=a3,b3,d3,r4;displacement=a3,b3;disrupt-undead=a0;disrupting-weapon=d5;' +
+  'divination=d4;divine-favor=d1;divine-power=d4;dominate-animal=r3;dominate-monster=a9;dominate-person=a5,b4;doom=d1;' +
+  'dream=a5,b5;eagles-splendor-mass=a6,b6,d6;eagles-splendor=a2,b2,d2;earthquake=d8,r8;elemental-body-i=a4;' +
+  'elemental-body-ii=a5;elemental-body-iii=a6;elemental-body-iv=a7;elemental-swarm=r9;endure-elements=a1,d1,r1;' +
+  'energy-drain=a9,d9;enervation=a4;enlarge-person-mass=a4;enlarge-person=a1;entangle=r1;enthrall=b2,d2;' +
+  'entropic-shield=d1;erase=a1,b1;ethereal-jaunt=a7,d7;etherealness=a9,d9;expeditious-retreat=a1,b1;explosive-runes=a3;' +
+  'eyebite=a6,b6;fabricate=a5;faerie-fire=r1;false-life=a2;false-vision=a5,b5;fear=a4,b3;feather-fall=a1,b1;' +
+  'feeblemind=a5;find-the-path=b6,d6,r6;find-traps=d2;finger-of-death=a7,r8;fire-seeds=r6;fire-shield=a4;' +
+  'fire-storm=d8,r7;fire-trap=a4,r2;fireball=a3;flame-arrow=a3;flame-blade=r2;flame-strike=d5,r4;flaming-sphere=a2,r2;' +
+  'flare=a0,b0,r0;flesh-to-stone=a6;floating-disk=a1;fly=a3;fog-cloud=a2,r2;forbiddance=d6;forcecage=a7;' +
+  'forceful-hand=a6;foresight=a9,r9;form-of-the-dragon-i=a6;form-of-the-dragon-ii=a7;form-of-the-dragon-iii=a8;' +
+  'foxs-cunning-mass=a6,b6;foxs-cunning=a2,b2;freedom-of-movement=b4,d4,r4;freedom=a9;freezing-sphere=a6;' +
+  'gaseous-form=a3,b3;gate=a9,d9;geas-lesser=a4,b3;geas-quest=a6,b6,d6;gentle-repose=a3,d2;ghost-sound=a0,b0;' +
+  'ghoul-touch=a2;giant-form-i=a7;giant-form-ii=a8;giant-vermin=d4,r4;glibness=b3;glitterdust=a2,b2;' +
+  'globe-of-invulnerability-lesser=a4;globe-of-invulnerability=a6;glyph-of-warding-greater=d6;glyph-of-warding=d3;' +
+  'good-hope=b3;goodberry=r1;grasping-hand=a7;grease=a1,b1;guards-and-wards=a6;guidance=d0,r0;gust-of-wind=a2,r2;' +
+  'hallow=d5,r5;hallucinatory-terrain=a4,b4;halt-undead=a3;harm=d6;haste=a3,b3;heal-mass=d9;heal=d6,r7;heat-metal=r2;' +
+  'helping-hand=d3;heroes-feast=b6,d6;heroism-greater=a6,b5;heroism=a3,b2;hide-from-animals=r1;hide-from-undead=d1;' +
+  'hideous-laughter=a2,b1;hold-animal=r2;hold-monster-mass=a9;hold-monster=a5,b4;hold-person-mass=a7;' +
+  'hold-person=a3,b2,d2;hold-portal=a1;holy-aura=d8;holy-smite=d4;holy-word=d7;horrid-wilting=a8;' +
+  'hypnotic-pattern=a2,b2;hypnotism=a1,b1;ice-storm=a4,r4;identify=a1,b1;illusory-script=a3,b3;illusory-wall=a4;' +
+  'imbue-with-spell-ability=d4;implosion=d9;imprisonment=a9;incendiary-cloud=a8;inflict-critical-wounds-mass=d8;' +
+  'inflict-critical-wounds=d4;inflict-light-wounds-mass=d5;inflict-light-wounds=d1;inflict-moderate-wounds-mass=d6;' +
+  'inflict-moderate-wounds=d2;inflict-serious-wounds-mass=d7;inflict-serious-wounds=d3;insanity=a7;insect-plague=d5,r5;' +
+  'instant-summons=a7;interposing-hand=a5;invisibility-greater=a4,b4;invisibility-mass=a7;invisibility-purge=d3;' +
+  'invisibility-sphere=a3,b3;invisibility=a2,b2;iron-body=a8;ironwood=r6;irresistible-dance=a8,b6;jump=a1,r1;' +
+  'keen-edge=a3;keen-senses=r1;knock=a2;know-direction=b0,r0;legend-lore=a6,b4;levitate=a2;light=a0,b0,d0,r0;' +
+  'lightning-bolt=a3;limited-wish=a7;liveoak=r6;locate-creature=a4,b4;locate-object=a2,b2,d3;longstrider=r1;lullaby=b0;' +
+  'mage-armor=a1;mage-hand=a0,b0;mages-disjunction=a9;mages-faithful-hound=a5;mages-lucubration=a6;' +
+  'mages-magnificent-mansion=a7;mages-private-sanctum=a5;mages-sword=a7;magic-aura=a1,b1;' +
+  'magic-circle-against-chaos-evil-good-law=a3,d3;magic-fang-greater=r3;magic-fang=r1;magic-jar=a5;magic-missile=a1;' +
+  'magic-mouth=a2,b1;magic-stone=d1,r1;magic-vestment=d3;magic-weapon-greater=a3,d4;magic-weapon=a1,d1;' +
+  'major-creation=a5;major-image=a3,b3;make-whole=a2,d2;mark-of-justice=d5;maze=a8;meld-into-stone=d3,r3;' +
+  'mending=a0,b0,d0,r0;message=a0,b0;meteor-swarm=a9;mind-blank=a8;mind-fog=a5,b5;minor-creation=a4;minor-image=a2,b2;' +
+  'miracle=d9;mirage-arcana=a5,b5;mirror-image=a2,b2;misdirection=a2,b2;mislead=a6,b5;mnemonic-enhancer=a4;' +
+  'modify-memory=b4;moment-of-prescience=a8;mount=a1;move-earth=a6,r6;neutralize-poison=b4,d4,r3;nightmare=a5,b5;' +
+  'nondetection=a3;obscure-object=a2,b1,d3;obscuring-mist=a1,d1,r1;open-close=a0,b0;orders-wrath=d4;overland-flight=a5;' +
+  'owls-wisdom-mass=a6,d6,r6;owls-wisdom=a2,d2,r2;pass-without-trace=r1;passwall=a5;permanency=a5;' +
+  'permanent-image=a6,b6;persistent-image=a5,b5;phantasmal-killer=a4;phantom-steed=a3,b3;phantom-trap=a2;phase-door=a7;' +
+  'planar-ally-greater=d8;planar-ally-lesser=d4;planar-ally=d6;planar-binding-greater=a8;planar-binding-lesser=a5;' +
+  'planar-binding=a6;plane-shift=a7,d5;plant-growth=r3;plant-shape-i=a5;plant-shape-ii=a6;plant-shape-iii=a7;' +
+  'poison=d4,r3;polar-ray=a8;polymorph-any-object=a8;polymorph-greater=a7;polymorph=a5;power-word-blind=a7;' +
+  'power-word-kill=a9;power-word-stun=a8;prayer=d3;prestidigitation=a0,b0;prismatic-sphere=a9;prismatic-spray=a7;' +
+  'prismatic-wall=a8;produce-flame=r1;programmed-image=a6,b6;project-image=a7,b6;protection-from-arrows=a2;' +
+  'protection-from-chaos-evil-good-law=a1,d1;protection-from-energy=a3,d3,r3;protection-from-spells=a8;' +
+  'prying-eyes-greater=a8;prying-eyes=a5;purify-food-and-drink=d0,r0;pyrotechnics=a2,b2;quench=r3;rage=a3,b2;' +
+  'rainbow-pattern=a4,b4;raise-dead=d5;ray-of-enfeeblement=a1;ray-of-exhaustion=a3;ray-of-frost=a0;' +
+  'read-magic=a0,b0,d0,r0;reduce-animal=r2;reduce-person-mass=a4;reduce-person=a1;refuge=a9,d7;regenerate=d7,r9;' +
+  'reincarnate=r4;remove-blindness-deafness=d3;remove-curse=a4,b3,d3;remove-disease=d3,r3;remove-fear=b1,d1;' +
+  'remove-paralysis=d2;repel-metal-or-stone=r8;repel-vermin=b4,d4,r4;repel-wood=r6;repulsion=a6,d7;resilient-sphere=a4;' +
+  'resist-energy=a2,d2,r2;resistance=a0,b0,d0,r0;restoration-greater=d7;restoration-lesser=d2,r2;restoration=d4;' +
+  'resurrection=d7;reverse-gravity=a7,r8;righteous-might=d5;rope-trick=a2;rusting-grasp=r4;sanctuary=d1;scare=a2,b2;' +
+  'scintillating-pattern=a8;scorching-ray=a2;screen=a8;scrying-greater=a7,b6,d7,r7;scrying=a4,b3,d5,r4;sculpt-sound=b3;' +
+  'searing-light=d3;secret-chest=a5;secret-page=a3,b3;secure-shelter=a4,b4;see-invisibility=a2,b3;seeming=a5,b5;' +
+  'sending=a5,d4;sepia-snake-sigil=a3,b3;sequester=a7;shades=a9;shadow-conjuration-greater=a7;shadow-conjuration=a4,b4;' +
+  'shadow-evocation-greater=a8;shadow-evocation=a5,b5;shadow-walk=a6,b5;shambler=r9;shapechange=a9,r9;shatter=a2,b2,d2;' +
+  'shield-of-faith=d1;shield-of-law=d8;shield-other=d2;shield=a1;shillelagh=r1;shocking-grasp=a1;shout-greater=a8,b6;' +
+  'shout=a4,b4;shrink-item=a3;silence=b2,d2;silent-image=a1,b1;simulacrum=a7;slay-living=d5;sleep=a1,b1;' +
+  'sleet-storm=a3,r3;slow=a3,b3;snare=r3;soften-earth-and-stone=r2;solid-fog=a4;song-of-discord=b5;soul-bind=a9,d9;' +
+  'sound-burst=b2,d2;speak-with-animals=b3,r1;speak-with-dead=d3;speak-with-plants=b4,r3;spectral-hand=a2;' +
+  'spell-immunity-greater=d8;spell-immunity=d4;spell-resistance=d5;spell-turning=a7;spellstaff=r6;spider-climb=a2,r2;' +
+  'spike-growth=r3;spike-stones=r4;spiritual-weapon=d2;stabilize=d0,r0;statue=a7;status=d2;stinking-cloud=a3;' +
+  'stone-shape=a4,d3,r3;stone-tell=r6;stone-to-flesh=a6;stoneskin=a4,r5;storm-of-vengeance=d9,r9;suggestion-mass=a6,b5;' +
+  'suggestion=a3,b2;summon-instrument=b0;summon-monster-i=a1,b1,d1;summon-monster-ii=a2,b2,d2;' +
+  'summon-monster-iii=a3,b3,d3;summon-monster-iv=a4,b4,d4;summon-monster-ix=a9,d9;summon-monster-v=a5,b5,d5;' +
+  'summon-monster-vi=a6,b6,d6;summon-monster-vii=a7,d7;summon-monster-viii=a8,d8;summon-natures-ally-i=r1;' +
+  'summon-natures-ally-ii=r2;summon-natures-ally-iii=r3;summon-natures-ally-iv=r4;summon-natures-ally-ix=r9;' +
+  'summon-natures-ally-v=r5;summon-natures-ally-vi=r6;summon-natures-ally-vii=r7;summon-natures-ally-viii=r8;' +
+  'summon-swarm=a2,b2,r2;sunbeam=r7;sunburst=a8,r8;symbol-of-death=a8,d8;symbol-of-fear=a6,d6;symbol-of-insanity=a8,d8;' +
+  'symbol-of-pain=a5,d5;symbol-of-persuasion=a6,d6;symbol-of-sleep=a5,d5;symbol-of-stunning=a7,d7;' +
+  'symbol-of-weakness=a7,d7;sympathetic-vibration=b6;sympathy=a8,r9;telekinesis=a5;telekinetic-sphere=a8;' +
+  'telepathic-bond=a5;teleport-greater=a7;teleport-object=a7;teleport=a5;teleportation-circle=a9;temporal-stasis=a8;' +
+  'time-stop=a9;tiny-hut=a3,b3;tongues=a3,b2,d4;touch-of-fatigue=a0;touch-of-idiocy=a2;transformation=a6;' +
+  'transmute-metal-to-wood=r7;transmute-mud-to-rock=a5,r5;transmute-rock-to-mud=a5,r5;transport-via-plants=r6;' +
+  'trap-the-soul=a8;tree-shape=r2;tree-stride=r5;true-resurrection=d9;true-seeing=a6,d5,r7;true-strike=a1;' +
+  'undeath-to-death=a6,d6;undetectable-alignment=b1,d2;unhallow=d5,r5;unholy-aura=d8;unholy-blight=d4;' +
+  'unseen-servant=a1,b1;vampiric-touch=a3;veil=a6,b6;ventriloquism=a1,b1;virtue=d0,r0;vision=a7;wail-of-the-banshee=a9;' +
+  'wall-of-fire=a4,r5;wall-of-force=a5;wall-of-ice=a4;wall-of-iron=a6;wall-of-stone=a5,d5,r6;wall-of-thorns=r5;' +
+  'warp-wood=r2;water-breathing=a3,d3,r3;water-walk=d3;waves-of-exhaustion=a7;waves-of-fatigue=a5;web=a2;weird=a9;' +
+  'whirlwind=r8;whispering-wind=a2,b2;wind-walk=d6,r7;wind-wall=a3,d3,r3;wish=a9;wood-shape=r2;word-of-chaos=d7;' +
+  'word-of-recall=d6,r8;zone-of-silence=b4;zone-of-truth=d2';

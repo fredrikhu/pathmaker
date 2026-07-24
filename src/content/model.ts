@@ -631,7 +631,10 @@ export interface SpellDamageDef {
   note?(casterLevel: number): string;
 }
 
-export type SpellList = 'arcane' | 'bard' | 'divine' | 'druid' | 'witch';
+// Must stay a superset of SpellcastingDef['list'] — the engine filters a caster's spells by
+// `s.lists.includes(sc.list)`, so a list a class can cast from but no spell can be tagged with
+// silently resolves to an empty spellbook.
+export type SpellList = 'arcane' | 'bard' | 'divine' | 'druid' | 'witch' | 'paladin' | 'ranger';
 
 export interface SpellDef {
   id: string;
