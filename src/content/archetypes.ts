@@ -15,6 +15,22 @@ const g = (level: number, id: string, name: string, desc: string): LeveledFeatur
 
 export const FIGHTER_ARCHETYPES: ArchetypeDef[] = [
   {
+    id: 'polearm-master', classId: 'fighter', name: 'Polearm Master',
+    desc: 'Schooled in the ancient wisdom that enemies are best faced at the end of a long striking pole, lashing like a serpent before swords can be brought to bear.',
+    // Steadfast Pike alone replaces all four armor-training steps, which our progression models as
+    // the single `fighter-armor-training` line.
+    replaces: ['fighter-bravery', 'fighter-armor-training', 'fighter-weapon-training', 'fighter-armor-mastery'],
+    grants: [
+      g(2, 'pm-pole-fighting', 'Pole Fighting', 'As an immediate action, shorten your grip on a reach spear or polearm to strike adjacent targets at a −4 penalty until you spend another immediate action to return to a normal grip; the penalty lessens by 1 for every four levels beyond 2nd. Replaces bravery.'),
+      g(3, 'pm-steadfast-pike', 'Steadfast Pike', '+1 on attack rolls with readied attacks and attacks of opportunity made with a spear or polearm, rising by +1 for every four levels beyond 3rd. Replaces armor training 1–4.'),
+      g(5, 'pm-polearm-training', 'Polearm Training', '+1 on attack and damage rolls with spears and polearms, rising by +1 for every four levels beyond 5th. Replaces weapon training 1.'),
+      g(9, 'pm-flexible-flanker', 'Flexible Flanker', 'Choose any square adjacent to you and treat it as your location for determining whom you flank. Replaces weapon training 2.'),
+      g(13, 'pm-sweeping-fend', 'Sweeping Fend', 'Use a spear or polearm to trip or bull rush at range, and shove foes away from your reach. Replaces weapon training 3.'),
+      g(17, 'pm-step-aside', 'Step Aside', 'Step 5 feet as an immediate action when a foe you threaten moves adjacent, gaining a dodge bonus to AC against it. Replaces weapon training 4.'),
+      g(19, 'pm-polearm-parry', 'Polearm Parry', 'Interpose your weapon to give an adjacent ally a bonus to AC against an attacker who is not adjacent to you. Replaces armor mastery.'),
+    ],
+  },
+  {
     id: 'archer', classId: 'fighter', name: 'Archer',
     desc: 'A fighter who has made the bow an extension of the eye — every arrow a considered, killing choice.',
     replaces: ['fighter-bravery', 'fighter-armor-training', 'fighter-weapon-training', 'fighter-armor-mastery'],
@@ -94,6 +110,16 @@ export const RANGER_ARCHETYPES: ArchetypeDef[] = [
 
 export const ROGUE_ARCHETYPES: ArchetypeDef[] = [
   {
+    id: 'knife-master', classId: 'rogue', name: 'Knife Master',
+    desc: 'A trained killer who specialises in the wave and weave of knife fighting — in her hands a dagger is a truly deadly instrument.',
+    replaces: ['rogue-trapfinding', 'rogue-trap-sense'],
+    grants: [
+      g(1, 'km-hidden-blade', 'Hidden Blade', 'Add half your rogue level on Sleight of Hand checks made to conceal a light blade. Replaces trapfinding.'),
+      g(1, 'km-sneak-stab', 'Sneak Stab', 'Sneak attacks with a dagger, kerambit, kukri, punching dagger, starknife, or swordbreaker dagger roll d8s instead of d6s; sneak attacks with every other weapon roll d4s. Supplements sneak attack.'),
+      g(3, 'km-blade-sense', 'Blade Sense', '+1 dodge bonus to AC against attacks made with light blades, rising by +1 every three levels to +6 at 18th. Replaces trap sense.'),
+    ],
+  },
+  {
     id: 'scout', classId: 'rogue', name: 'Scout',
     desc: 'A rogue who turns momentum into a weapon — striking hardest the instant she closes the distance.',
     replaces: ['rogue-uncanny-dodge', 'rogue-improved-uncanny-dodge'],
@@ -123,6 +149,18 @@ export const ROGUE_ARCHETYPES: ArchetypeDef[] = [
 ];
 
 export const BARBARIAN_ARCHETYPES: ArchetypeDef[] = [
+  {
+    id: 'armored-hulk', classId: 'barbarian', name: 'Armored Hulk',
+    desc: 'A barbarian who disdains hides and leather for the heaviest of armors, even those forged by more civilised people, trading speed and instinct for protection and stability.',
+    replaces: ['barb-fast-movement', 'barb-uncanny-dodge', 'barb-trap-sense', 'barb-improved-uncanny-dodge'],
+    proficiencies: { armor: { add: ['heavy'] } },
+    grants: [
+      g(1, 'ah-indomitable-stance', 'Indomitable Stance', '+1 on combat maneuver checks and to CMD for overruns, on Reflex saves against trample, to AC against charges, and on attack and damage rolls against charging creatures. Replaces fast movement.'),
+      g(2, 'ah-armored-swiftness', 'Armored Swiftness', 'Move 5 feet faster than normal in medium or heavy armor, to a maximum of your base speed. Replaces uncanny dodge.'),
+      g(3, 'ah-resilience-of-steel', 'Resilience of Steel', 'While in heavy armor, +1 to AC against critical hit confirmation rolls, rising by +1 every three levels beyond 3rd (maximum +6 at 18th). Replaces trap sense.'),
+      g(5, 'ah-improved-armored-swiftness', 'Improved Armored Swiftness', '+10 feet of land speed in any armor, including heavy, applied before any reduction for load or armor. Replaces improved uncanny dodge.'),
+    ],
+  },
   {
     id: 'titan-mauler', classId: 'barbarian', name: 'Titan Mauler',
     desc: 'A barbarian raised to fell giants — hefting weapons built for creatures far larger than herself.',
@@ -192,6 +230,26 @@ export const PALADIN_ARCHETYPES: ArchetypeDef[] = [
 ];
 
 export const BARD_ARCHETYPES: ArchetypeDef[] = [
+  {
+    id: 'magician', classId: 'bard', name: 'Magician',
+    desc: 'A bard who dabbles in performance but sees it chiefly as a way to tap universal energies and channel them — a spellcaster first, an entertainer second.',
+    replaces: [
+      'bard-inspire-courage', 'bard-dirge-of-doom', 'bard-frightening-tune',
+      'bard-knowledge', 'bard-countersong', 'bard-well-versed',
+      'bard-versatile-performance', 'bard-lore-master', 'bard-jack-of-all-trades',
+    ],
+    grants: [
+      g(1, 'mg-dweomercraft', 'Dweomercraft', 'A performance that grants allies +1 on caster level checks, concentration checks, and attack rolls with spells and spell-like abilities, rising by +1 at 5th level and every six levels after. Replaces inspire courage.'),
+      g(1, 'mg-magical-talent', 'Magical Talent', 'Add half your bard level on Knowledge (arcana), Spellcraft, and Use Magic Device checks. Replaces bardic knowledge.'),
+      g(1, 'mg-improved-counterspell', 'Improved Counterspell', 'Gain Improved Counterspell as a bonus feat. Replaces countersong.'),
+      g(2, 'mg-extended-performance', 'Extended Performance', 'Sacrifice a spell slot as a swift action to make a bardic performance linger 1 extra round per level of the spell after you stop concentrating. Replaces well-versed.'),
+      g(2, 'mg-expanded-repertoire', 'Expanded Repertoire', 'At 2nd level and every four levels after, add one spell of a level you can cast from any arcane class\u2019s list to your spells known. Replaces versatile performance.'),
+      g(5, 'mg-arcane-bond', 'Arcane Bond', 'Gain the wizard\u2019s arcane bond, though never a familiar and never a weapon. Replaces lore master.'),
+      g(8, 'mg-spell-suppression', 'Spell Suppression', 'A performance that lets you counter, as an immediate action, any spell you can identify whose level is no greater than the rounds you have been performing; a success ends the performance. Replaces dirge of doom.'),
+      g(10, 'mg-wand-mastery', 'Wand Mastery', 'Use your Charisma to set the save DC of a wand holding a spell on your list, and from 16th level your own caster level in place of the wand\u2019s. Replaces jack of all trades.'),
+      g(14, 'mg-metamagic-mastery', 'Metamagic Mastery', 'A performance that applies a metamagic feat to a spell without increasing its casting time, though you still expend the higher-level slot and the performance ends. Replaces frightening tune.'),
+    ],
+  },
   {
     id: 'court-bard', classId: 'bard', name: 'Court Bard',
     desc: 'The artist-in-residence of a noble house — a poised proclaimer whose wit cuts sharper than any blade, and whose gossip can start a riot.',
@@ -356,6 +414,28 @@ export const MAGUS_ARCHETYPES: ArchetypeDef[] = [
 ];
 
 export const MONK_ARCHETYPES: ArchetypeDef[] = [
+  {
+    id: 'martial-artist', classId: 'monk', name: 'Martial Artist',
+    desc: 'A master of pure form who pursues martial arts without the monastic traditions — and so never learns to harness ki.',
+    // The archetype's defining trade: everything ki-powered goes, and with it the lawful requirement.
+    alignment: null,
+    replaces: [
+      'monk-still-mind', 'monk-slow-fall', 'monk-ki-pool',
+      'monk-purity-of-body', 'monk-diamond-body', 'monk-perfect-self',
+      'monk-wholeness-of-body', 'monk-timeless-body', 'monk-tongue',
+      'monk-abundant-step', 'monk-diamond-soul', 'monk-empty-body',
+    ],
+    grants: [
+      g(3, 'ma-pain-points', 'Pain Points', '+1 on critical hit confirmation rolls, and +1 to the DC of your Stunning Fist and quivering palm. Replaces still mind.'),
+      g(4, 'ma-martial-arts-master', 'Martial Arts Master', 'Use your monk level to qualify for feats with a fighter level prerequisite, when applied to unarmed strikes or monk weapons. Replaces slow fall.'),
+      g(4, 'ma-exploit-weakness', 'Exploit Weakness', 'As a swift action, make a Wisdom check plus your monk level against 10 + hardness or CR; on a success gain +2 on attack rolls and ignore the target\u2019s DR or hardness until the end of your turn. Replaces ki pool.'),
+      g(5, 'ma-extreme-endurance', 'Extreme Endurance', 'Immunity to fatigue at 5th, exhaustion at 10th, stunning at 15th, and death effects and energy drain at 20th. Replaces purity of body, diamond body and perfect self.'),
+      g(7, 'ma-physical-resistance', 'Physical Resistance', 'Damage reduction that grows with your level, resisting the blows a monk would otherwise mend with ki. Replaces wholeness of body, timeless body, and tongue of the sun and moon.'),
+      g(12, 'ma-bonus-feat', 'Bonus Feat', 'Gain a monk bonus feat. Replaces abundant step.'),
+      g(13, 'ma-defensive-roll', 'Defensive Roll', 'Once per day, roll with a blow that would drop you: a Reflex save halves the damage. Replaces diamond soul.'),
+      g(19, 'ma-greater-defensive-roll', 'Greater Defensive Roll', 'Use defensive roll one more time per day for every level above 15th, though only one may be in effect at a time. Replaces empty body.'),
+    ],
+  },
   {
     id: 'master-of-many-styles', classId: 'monk', name: 'Master of Many Styles',
     desc: 'A collector of fighting styles who fuses several stances at once, seeking a counter for every move.',
@@ -548,6 +628,27 @@ export const INQUISITOR_ARCHETYPES: ArchetypeDef[] = [
 ];
 
 export const DRUID_ARCHETYPES: ArchetypeDef[] = [
+  {
+    id: 'storm-druid', classId: 'druid', name: 'Storm Druid',
+    desc: 'A druid whose eyes have ever been cast to the sky rather than the earth, channelling the rawest and most untamed aspects of nature.',
+    replaces: ['druid-woodland-stride', 'druid-trackless-step', 'druid-venom-immunity', 'druid-thousand-faces'],
+    // A storm druid may not take an animal companion at all: Nature Bond becomes a domain-only
+    // choice, which drops the companion branch (and with it the creature pick that hangs off it).
+    choices: {
+      remove: ['nature-bond', 'animal-companion'],
+      add: [{
+        id: 'nature-bond', label: 'Nature Bond (storm)', kind: 'list', count: 1,
+        options: [{ id: 'domain', name: 'Air or Weather Domain', desc: 'Take the Air or Weather domain, or the Cloud, Storm, or Wind subdomain. A storm druid may not choose an animal companion.' }],
+      }],
+    },
+    grants: [
+      g(2, 'sd-windwalker', 'Windwalker', 'Penalties from natural or magical wind effects are treated as one step less severe. Replaces woodland stride.'),
+      g(3, 'sd-stormvoice', 'Stormvoice', 'Your voice carries over howling wind and thunder: any Perception DC to hear you is reduced by your druid level. Replaces trackless step.'),
+      g(4, 'sd-eyes-of-the-storm', 'Eyes of the Storm', 'See through 10 feet of magical fog, mist, gas, wind, rain or similar weather, ignoring the concealment it grants; +5 feet for every four levels beyond 4th. Replaces resist nature\u2019s lure.'),
+      g(9, 'sd-windlord', 'Windlord', 'Select another domain or subdomain from those your nature bond makes available. Replaces venom immunity.'),
+      g(13, 'sd-storm-lord', 'Storm Lord', 'Unaffected by natural and magical wind, immune to deafness, and +2 on saving throws against sonic effects. Replaces a thousand faces.'),
+    ],
+  },
   {
     id: 'cave-druid', classId: 'druid', name: 'Cave Druid',
     desc: 'A guardian of the lightless world below — at home in crawlspaces and cavern dark, and sworn against the horrors that creep up from deeper still.',

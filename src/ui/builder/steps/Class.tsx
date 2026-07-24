@@ -14,7 +14,12 @@ export function ClassStep({ ch }: { ch: CharCtl }) {
   const [viewId, setViewId] = useState<string>(selectedClass ?? 'fighter');
   const view = classById.get(viewId)!;
   const alignment = doc.decisions['alignment'] as import('../../../engine/types').Alignment | null;
-  const conflict = !!view.alignment && !!alignment && !view.alignment.includes(alignment);
+  // The alignment restriction is the *effective* one for the class actually taken — the Martial
+  // Artist lifts the monk's, so browsing to your own class must not still warn about it.
+  const viewAlignment = viewId === selectedClass
+    ? effectiveClass(view, readDecisions(doc)).alignment
+    : view.alignment;
+  const conflict = !!viewAlignment && !!alignment && !viewAlignment.includes(alignment);
 
   const classChoices = (doc.decisions['class-choices'] as Record<string, string[]>) ?? {};
   const setChoice = (slotId: string, value: string[]) => setDecision('class-choices', { ...classChoices, [slotId]: value });
@@ -94,7 +99,7 @@ export function ClassStep({ ch }: { ch: CharCtl }) {
             {selectedClass === view.id ? '✓ Selected' : 'Select class'}
           </button>
           {conflict && (() => {
-            const open = tip.card({ kicker: 'Would raise an Issue', title: `${view.name} requires ${view.alignment!.join(' / ')}`, body: `Your alignment is ${alignment}. You can still select ${view.name} — the conflict surfaces as an Issue pointing at both slots, and either can change to resolve it.` });
+            const open = tip.card({ kicker: 'Would raise an Issue', title: `${view.name} requires ${viewAlignment!.join(' / ')}`, body: `Your alignment is ${alignment}. You can still select ${view.name} — the conflict surfaces as an Issue pointing at both slots, and either can change to resolve it.` });
             return <span className="warn-tag" onMouseEnter={open} onMouseLeave={tip.leave} onClick={open}>⚠ conflicts with alignment {alignment}</span>;
           })()}
         </div>

@@ -312,7 +312,10 @@ function effectiveClass(klass: C.ClassDef, dec: Decisions): C.ClassDef {
     ])].sort((a, b) => a - b);
     bonusFeats = levels.length ? { ...(klass.bonusFeats ?? {}), levels } : undefined;
   }
-  return { ...klass, features, proficiencies, spellcasting, choices, classSkills, bonusFeats };
+  // `alignment: null` lifts the restriction outright, so a plain `??` would wrongly fall back to
+  // the class's own — the key's presence is what matters, not its truthiness.
+  const alignment = 'alignment' in arch ? (arch.alignment ?? undefined) : klass.alignment;
+  return { ...klass, features, proficiencies, spellcasting, choices, classSkills, bonusFeats, alignment };
 }
 
 function classFeaturesUpTo(klass: C.ClassDef | undefined, level: number, dec?: Decisions): C.LeveledFeatureDef[] {
@@ -747,10 +750,28 @@ function makeStat(id: string, label: string, contribs: Contribution[], condition
 
 /** Class resource pools (rage rounds, ki, channel, grit…) with computed maxima. Verified formulas;
  *  classes with murky/varied pools (oracle, sorcerer, witch, druid wild shape) are omitted for now. */
+/** The class feature each resource pool comes from. A pool is keyed by class, but an archetype can
+ *  take the feature away — a Martial Artist monk has no ki — so any pool named here is emitted only
+ *  while the *effective* class still grants its feature. Pools with no entry are unconditional. */
+const POOL_FEATURE: Record<string, string> = {
+  ki: 'monk-ki-pool',
+  rage: 'barb-rage',
+  'wild-shape': 'druid-wild-shape',
+  performance: 'bard-performance',
+  channel: 'cleric-channel',
+};
+
 function classPools(klass: C.ClassDef | undefined, level: number, mods: Record<Ability, number>): ResourcePool[] {
   if (!klass) return [];
   const out: ResourcePool[] = [];
-  const add = (id: string, name: string, max: number, unit: ResourcePool['unit']) => { if (max > 0) out.push({ id, name, max, unit }); };
+  // `klass` is already the archetype-effective class (classBreakdown applies it), so a feature the
+  // archetype replaced is simply absent here.
+  const featureIds = new Set((klass.features ?? klass.features1.map((f) => ({ ...f, level: 1 }))).map((f) => f.id));
+  const add = (id: string, name: string, max: number, unit: ResourcePool['unit']) => {
+    const needs = POOL_FEATURE[id];
+    if (needs && !featureIds.has(needs)) return;
+    if (max > 0) out.push({ id, name, max, unit });
+  };
   const half = Math.floor(level / 2);
   const per3 = 1 + Math.floor((level - 1) / 3); // 1/day, +1 at 4/7/10/13/16/19
   switch (klass.id) {

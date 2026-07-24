@@ -391,6 +391,10 @@ export interface ArchetypeDef {
    *  a class with no bonus feats creates one. Used by archetypes that trade bonus feats for other
    *  abilities (e.g. the Sensei loses its feats at 2nd/6th/10th/14th). */
   bonusFeatSlots?: { add?: number[]; remove?: number[] };
+  /** Alignment restriction changes. `null` lifts the class's restriction entirely (the Martial
+   *  Artist monk, who may be of any alignment); an array narrows or replaces it. Omit to keep the
+   *  class's own. */
+  alignment?: Alignment[] | null;
   /** The archetype fuses the class's companion into the character rather than leaving it a separate
    *  creature — the Synthesist summoner. The character takes the companion's physical ability
    *  scores and natural armour, and its hit points become temporary hit points. Which companion is

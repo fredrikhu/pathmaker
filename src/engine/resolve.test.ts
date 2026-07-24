@@ -5402,3 +5402,111 @@ describe('companions — breadth batch', () => {
     expect(ids).toContain('tyrannosaurus');
   });
 });
+
+describe('archetypes — fourth-per-class batch 1 (Core)', () => {
+  const build = (cls: string, archetype: string | undefined, level: number, choices?: Record<string, string[]>): CharacterDoc => {
+    let d = newCharacter('t-fourth1', 'X');
+    d = withDecision(d, 'ability-base', { str: 13, dex: 14, con: 12, int: 13, wis: 14, cha: 12 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['dex']);
+    d = withDecision(d, 'alignment', 'N');
+    d = withDecision(d, 'class', cls);
+    if (choices) d = withDecision(d, 'class-choices', choices);
+    if (archetype) d = withDecision(d, 'archetype', archetype);
+    return atLevel(d, level);
+  };
+  const featsAt = (doc: CharacterDoc, lvl: number) =>
+    resolve(doc).sheet.progression.find((r) => r.level === lvl)?.features ?? [];
+
+  it('Polearm Master trades bravery, all armor training and every weapon-training step', () => {
+    const pm = build('fighter', 'polearm-master', 19);
+    expect(featsAt(pm, 2)).toContain('Pole Fighting');
+    expect(featsAt(pm, 2)).not.toContain('Bravery +1');
+    expect(featsAt(pm, 3)).toContain('Steadfast Pike');
+    expect(featsAt(pm, 3)).not.toContain('Armor Training 1');
+    expect(featsAt(pm, 5)).toContain('Polearm Training');
+    expect(featsAt(pm, 19)).toContain('Polearm Parry');
+    expect(featsAt(pm, 19)).not.toContain('Armor Mastery');
+    // Bonus feats are untouched — a polearm master is still a fighter.
+    const eff = effectiveClass(C.classById.get('fighter')!, readDecisions(build('fighter', 'polearm-master', 1)));
+    expect(eff.bonusFeats?.levels).toEqual(C.classById.get('fighter')!.bonusFeats?.levels);
+  });
+
+  it('Knife Master keeps sneak attack but loses trapfinding and trap sense', () => {
+    const km = build('rogue', 'knife-master', 3);
+    expect(featsAt(km, 1)).toContain('Hidden Blade');
+    expect(featsAt(km, 1)).toContain('Sneak Stab');
+    expect(featsAt(km, 1)).toContain('Sneak Attack +1d6');
+    expect(featsAt(km, 1)).not.toContain('Trapfinding');
+    expect(featsAt(km, 3)).toContain('Blade Sense');
+    expect(featsAt(km, 3)).not.toContain('Trap Sense +1');
+  });
+
+  it('Armored Hulk gains heavy armor proficiency and loses fast movement', () => {
+    const eff = effectiveClass(C.classById.get('barbarian')!, readDecisions(build('barbarian', 'armored-hulk', 1)));
+    expect(eff.proficiencies.armor).toContain('heavy');
+    const ah = build('barbarian', 'armored-hulk', 5);
+    expect(featsAt(ah, 1)).toContain('Indomitable Stance');
+    expect(featsAt(ah, 1)).not.toContain('Fast Movement');
+    expect(featsAt(ah, 2)).toContain('Armored Swiftness');
+    expect(featsAt(ah, 5)).toContain('Improved Armored Swiftness');
+    expect(featsAt(ah, 5)).not.toContain('Improved Uncanny Dodge');
+    // It is still a barbarian: rage survives, and so does its pool.
+    expect(resolve(ah).sheet.pools.map((p) => p.id)).toContain('rage');
+  });
+
+  it('Martial Artist may be any alignment and has no ki pool at all', () => {
+    const ma = build('monk', 'martial-artist', 12);
+    expect(featsAt(ma, 4)).toContain('Exploit Weakness');
+    expect(featsAt(ma, 4)).not.toContain('Ki Pool');
+    expect(featsAt(ma, 12)).not.toContain('Abundant Step');
+    // The pool is keyed by class, so this is the check that it follows the feature away.
+    const pools = resolve(ma).sheet.pools.map((p) => p.id);
+    expect(pools).not.toContain('ki');
+    expect(pools).toContain('stunning-fist');
+    // A plain monk of the same level keeps both.
+    expect(resolve(build('monk', undefined, 12)).sheet.pools.map((p) => p.id)).toContain('ki');
+  });
+
+  it('a chaotic Martial Artist raises no alignment issue, but a plain monk does', () => {
+    const chaotic = (arch?: string) => {
+      let d = newCharacter('t-ma', 'Rowan');
+      d = withDecision(d, 'ability-base', { str: 14, dex: 14, con: 12, int: 10, wis: 14, cha: 10 });
+      d = withDecision(d, 'race', 'human');
+      d = withDecision(d, 'floating-bonus', ['wis']);
+      d = withDecision(d, 'alignment', 'CG');
+      d = withDecision(d, 'class', 'monk');
+      if (arch) d = withDecision(d, 'archetype', arch);
+      return resolve(atLevel(d, 5)).issues.filter((i) => i.slot === 'alignment');
+    };
+    expect(chaotic('martial-artist')).toHaveLength(0);
+    expect(chaotic().length).toBeGreaterThan(0);
+  });
+
+  it('Magician swaps the performance line and the lore abilities, keeping the rounds pool', () => {
+    const mg = build('bard', 'magician', 14);
+    expect(featsAt(mg, 1)).toContain('Dweomercraft');
+    expect(featsAt(mg, 1)).not.toContain('Inspire Courage');
+    expect(featsAt(mg, 1)).toContain('Bardic Performance');   // the rounds themselves stay
+    expect(featsAt(mg, 8)).toContain('Spell Suppression');
+    expect(featsAt(mg, 8)).not.toContain('Dirge of Doom');
+    expect(featsAt(mg, 14)).toContain('Metamagic Mastery');
+    expect(featsAt(mg, 10)).not.toContain('Jack of All Trades');
+    expect(resolve(mg).sheet.pools.map((p) => p.id)).toContain('performance');
+  });
+
+  it('Storm Druid cannot take an animal companion at all', () => {
+    const sd = build('druid', 'storm-druid', 13);
+    const r = resolve(sd);
+    const bond = r.slots.find((s) => s.id === 'nature-bond');
+    expect(bond!.options.map((o) => o.id)).toEqual(['domain']);
+    // The companion pick hangs off the companion branch, which no longer exists.
+    expect(r.slots.find((s) => s.id === 'animal-companion')).toBeUndefined();
+    expect(r.sheet.companions).toHaveLength(0);
+    expect(featsAt(sd, 2)).toContain('Windwalker');
+    expect(featsAt(sd, 2)).not.toContain('Woodland Stride');
+    expect(featsAt(sd, 13)).toContain('Storm Lord');
+    // Wild shape is untouched, so its pool survives.
+    expect(r.sheet.pools.map((p) => p.id)).toContain('wild-shape');
+  });
+});
