@@ -138,20 +138,12 @@ export function ClassStep({ ch }: { ch: CharCtl }) {
           ))}
         </div>
 
-        {selectedClass === view.id && classSlots.length > 0 && (
-          <>
-            <h6 style={{ margin: '22px 0 8px', color: 'var(--color-neutral-500)' }}>Class choices</h6>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              {classSlots.map((slot) => (
-                <ChoiceSlotView key={slot.id} slot={slot} onToggle={toggleChoice} onAdd={addOne} onRemove={removeOne} />
-              ))}
-            </div>
-          </>
-        )}
-
+        {/* Favored class comes before the (often long) class-choice list so it stays easy to find. */}
         {selectedClass === view.id && (
           <>
-            <h6 style={{ margin: '22px 0 8px', color: 'var(--color-neutral-500)' }}>Favored class</h6>
+            <h6 style={{ margin: '22px 0 8px', color: 'var(--color-neutral-500)' }}>
+              <span className="term" onMouseEnter={tip.term('favored')} onMouseLeave={tip.leave} onClick={tip.term('favored')}>Favored class</span>
+            </h6>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
               <button className="btn btn-secondary" style={{ fontSize: 12, ...(favored === view.id ? { color: 'var(--color-accent)', borderColor: 'var(--color-accent)' } : {}) }} onClick={() => setDecision('favored-class', view.id)}>
                 {favored === view.id ? '✓ ' : ''}{view.name} is my favored class
@@ -164,6 +156,17 @@ export function ClassStep({ ch }: { ch: CharCtl }) {
                   ))}
                 </div>
               )}
+            </div>
+          </>
+        )}
+
+        {selectedClass === view.id && classSlots.length > 0 && (
+          <>
+            <h6 style={{ margin: '22px 0 8px', color: 'var(--color-neutral-500)' }}>Class choices</h6>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              {classSlots.map((slot) => (
+                <ChoiceSlotView key={slot.id} slot={slot} onToggle={toggleChoice} onAdd={addOne} onRemove={removeOne} />
+              ))}
             </div>
           </>
         )}
