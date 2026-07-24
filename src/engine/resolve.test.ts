@@ -1386,14 +1386,27 @@ describe('senses & innate spell-like abilities', () => {
   });
 
   it('leaves an SLA whose spell we lack unlinked but still caster-levelled', () => {
+    // Undine's hydraulic push is the remaining racial SLA with no catalogue spell. This case used
+    // to be the aasimar lawbringer's Continual Flame, which the CRB spell-completion pass linked.
     let d = newCharacter('t-sla-nolink');
     d = withDecision(d, 'ability-base', { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 14 });
+    d = withDecision(d, 'race', 'undine');
+    d = withDecision(d, 'class', 'fighter');
+    const hp = resolve(d).sheet.spellLikeAbilities.find((a) => a.name === 'Hydraulic Push')!;
+    expect(hp.spellId).toBeUndefined();
+    expect(hp.saveDc).toBeUndefined();
+    expect(hp.casterLevel).toBe(1);
+  });
+
+  it('links Continual Flame now that the spell exists, with no save of its own', () => {
+    let d = newCharacter('t-sla-cf');
+    d = withDecision(d, 'ability-base', { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 14 });
     d = withDecision(d, 'race', 'aasimar');
-    d = withDecision(d, 'heritage', 'lawbringer'); // Continual Flame — not in our catalog
+    d = withDecision(d, 'heritage', 'lawbringer');
     d = withDecision(d, 'class', 'fighter');
     const cf = resolve(d).sheet.spellLikeAbilities.find((a) => a.name === 'Continual Flame')!;
-    expect(cf.spellId).toBeUndefined();
-    expect(cf.saveDc).toBeUndefined();
+    expect(cf.spellId).toBe('continual-flame');
+    expect(cf.saveDc).toBeUndefined();   // the spell allows no save
     expect(cf.casterLevel).toBe(1);
   });
 
