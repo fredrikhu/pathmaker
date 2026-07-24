@@ -642,6 +642,58 @@ describe('spells — CRB completion batch 2 (levels 3–4)', () => {
   });
 });
 
+describe('spells — CRB completion batch 3 (levels 5–6)', () => {
+  const by = (id: string) => {
+    const s = C.spellById.get(id);
+    expect(s, `spell ${id} missing`).toBeDefined();
+    return s!;
+  };
+
+  it('places the divergent 5th–6th level spells at the right level per list', () => {
+    const cases: [string, [string, number][]][] = [
+      // Mass buffs inherit their single-target lists, which is what the wider audit checks;
+      // these pin the level and the fact that cat's grace is druid (not divine) and eagle's
+      // splendor is divine (not druid) — the pair most easily transposed.
+      ['mass-cats-grace', [['arcane', 6], ['bard', 6], ['druid', 6]]],
+      ['mass-eagles-splendor', [['arcane', 6], ['bard', 6], ['divine', 6]]],
+      ['mass-cure-moderate-wounds', [['bard', 6], ['divine', 6], ['druid', 7]]],
+      // Bard reaches the "greater" and mass control spells a level or two ahead of the wizard.
+      ['greater-scrying', [['bard', 6], ['arcane', 7], ['divine', 7], ['druid', 7]]],
+      ['greater-shout', [['bard', 6], ['arcane', 8]]],
+      ['mass-charm-monster', [['bard', 6], ['arcane', 8]]],
+      ['mass-suggestion', [['bard', 5], ['arcane', 6]]],
+      ['irresistible-dance', [['bard', 6], ['arcane', 8]]],
+      ['project-image', [['bard', 6], ['arcane', 7]]],
+      ['wind-walk', [['divine', 6], ['druid', 7]]],
+    ];
+    for (const [id, pairs] of cases) {
+      const s = by(id);
+      for (const [list, lvl] of pairs) expect(C.spellLevelOn(s, list), `${id} on ${list}`).toBe(lvl);
+    }
+  });
+
+  it('completes the numbered polymorph and summon lines through 6th level', () => {
+    for (const id of ['elemental-body-iii', 'plant-shape-i', 'plant-shape-ii', 'beast-shape-iv',
+                      'form-of-the-dragon-i', 'summon-monster-vi', 'summon-natures-ally-v',
+                      'summon-natures-ally-vi']) {
+      expect(C.spellById.has(id), `${id} missing`).toBe(true);
+    }
+    // The three summon-nature lines the druid gained this batch stay druid-only.
+    for (const id of ['summon-natures-ally-v', 'summon-natures-ally-vi']) {
+      expect(by(id).lists).toEqual(['druid']);
+    }
+  });
+
+  it('ties the new witch-list spells to their witch level', () => {
+    // greater-scrying is witch 7 though it is wizard 7 too, and irresistible-dance witch 8;
+    // the ones a level off the wizard prove the map is doing real work.
+    expect(by('symbol-of-pain').lists).toContain('witch');
+    expect(C.spellLevelOn(by('symbol-of-pain'), 'witch')).toBe(5);
+    expect(C.spellLevelOn(by('analyze-dweomer'), 'witch')).toBe(6);
+    expect(C.spellLevelOn(by('greater-scrying'), 'witch')).toBe(7);
+  });
+});
+
 describe('weapon proficiency data', () => {
   // Nothing consumed these lists until the proficiency rule existed, so they had drifted: they
   // referenced 'crossbow-light', 'crossbow-heavy' and 'shortsword', none of which are real ids.
