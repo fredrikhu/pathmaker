@@ -6,10 +6,35 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 
 ## ▶ Resume here (last session end)
 
-**Current state** — branch `main`, working tree clean, **779 tests** passing; run
+**Current state** — branch `main`, working tree clean, **791 tests** passing; run
 `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
-**Latest — Companion breadth: the catalogue goes 31 → 72 creatures, and a regression is fixed.** With both
+**Latest — Archetype breadth: the fourth-per-class pass, batches 1–2 (93 → 102).** Fighter **Polearm
+Master**, Rogue **Knife Master**, Barbarian **Armored Hulk**, Monk **Martial Artist**, Bard **Magician**,
+Druid **Storm Druid**, Wizard **Exploiter Wizard**, Ranger **Freebooter**, Sorcerer **Seeker** — all
+d20pfsrd-verified feature by feature. **Nine of eleven Core classes are now at four**; 19 classes remain at
+three (alchemist, bloodrager, brawler, cavalier, cleric, gunslinger, hunter, inquisitor, investigator, magus,
+oracle, paladin, shaman, shifter, skald, slayer, swashbuckler, warpriest, witch), and vampire-hunter stays at
+0 by design. Three engine gaps surfaced and were closed generically rather than worked around:
+**`ArchetypeDef.alignment`** (the Martial Artist may be any alignment; `null` lifts the class restriction —
+note the check is for the key's *presence*, since `?? klass.alignment` would silently ignore `null`, and the
+Class step's conflict tag now reads the effective restriction too); **`POOL_FEATURE`**, so a pool disappears
+with its feature (a Martial Artist would otherwise still show a Ki pool); and **`GRANTED_POOLS`**, its
+mirror, so an archetype can *add* a pool to a class that has none (the Exploiter Wizard's arcane reservoir —
+pools are keyed by class id, so this was impossible before). Exploiter Wizard is the best exercise yet of the
+accumulated machinery: it drops arcane bond (taking the familiar branch), drops the arcane school (taking
+opposition schools *and* the specialist's restricted bonus slot), and adds a recurring exploit line at
+1/5/9/13/17. Two archetypes needed **no** engine work in areas that would have blocked them a week ago:
+Freebooter removes the ranger's companion outright through the companion-arc `requires` gating, and Seeker
+suppresses exactly the 3rd- and 15th-level bloodline powers through `suppressSourcePowers`. 12 golden tests;
+**791 pass**; tsc + build clean. Browser-verified a chaotic-good Martial Artist 12 (no alignment issue,
+Stunning Fist pool present, Ki pool absent) and an Exploiter Wizard 10 (Arcane reservoir 8/8, no specialist
+slot). **Selection rule for the remaining 19:** read the class's published list, pick one that is both
+well-known and expressible, verify before authoring — and never assume a class is blocked because its
+*famous* archetype is. Testing note: assert on feature *names*, not counts — an archetype usually grants
+something at the same level it takes something away, so counts stay equal (this bit the Seeker test).
+
+**Prior — Companion breadth: the catalogue goes 31 → 72 creatures, and a regression is fixed.** With both
 engine projects closed, breadth means content, and the thinnest catalogue was the one that had just shipped.
 Added **25 animal companions** (Bestiary favourites plus the five common vermin), **3 eidolon base forms**
 (aquatic, avian, tauric), **4 plant base forms** for the Wild Caller, and **9 familiars** — all d20pfsrd-verified.
