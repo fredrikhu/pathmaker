@@ -47,6 +47,20 @@ function itemCard(id: string): TipCard | null {
   return null;
 }
 
+/** A one-line summary of an equipped item's key numbers, for the slot cards at the top. */
+function basicInfo(id: string): string | null {
+  const a = armorById.get(id);
+  if (a) {
+    const bits = [`+${a.acBonus} AC`];
+    if (a.acp) bits.push(`check −${Math.abs(a.acp)}`);
+    if (a.category === 'medium' || a.category === 'heavy') bits.push(`speed 30→${speedAfterArmor(30)}`);
+    return bits.join(' · ');
+  }
+  const w = weaponById.get(id);
+  if (w) return `${w.dmg} ${w.dmgType} · crit ${w.crit}${w.range ? ` · ${w.range} ft` : ''}`;
+  return null;
+}
+
 /** The item's name, hoverable/clickable to open its effects tooltip. */
 function ItemName({ id, children }: { id: string; children: ReactNode }) {
   const tip = useTip();
@@ -236,12 +250,16 @@ export function EquipmentStep({ ch }: { ch: CharCtl }) {
       </div>
 
       <div style={{ display: 'flex', gap: 10, marginBottom: 18, flexWrap: 'wrap' }}>
-        {([['Armor', equipped.armor], ['Main hand', equipped.mainHand], ['Off hand', equipped.offHand]] as const).map(([k, v]) => (
-          <div key={k} className="pick" style={{ padding: '9px 14px', minWidth: 170 }}>
-            <div className="micro">{k}</div>
-            <div style={{ fontSize: 13, fontWeight: 500, marginTop: 2 }}>{slotLabel(v)}</div>
-          </div>
-        ))}
+        {([['Armor', equipped.armor], ['Main hand', equipped.mainHand], ['Off hand', equipped.offHand]] as const).map(([k, v]) => {
+          const info = v ? basicInfo(v) : null;
+          return (
+            <div key={k} className="pick" style={{ padding: '9px 14px', minWidth: 170 }}>
+              <div className="micro">{k}</div>
+              <div style={{ fontSize: 13, fontWeight: 500, marginTop: 2 }}>{v ? <ItemName id={v}>{slotLabel(v)}</ItemName> : slotLabel(v)}</div>
+              {info && <div className="text-muted" style={{ fontSize: 11, marginTop: 2 }}>{info}</div>}
+            </div>
+          );
+        })}
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(420px,1fr) minmax(300px,380px)', gap: 34 }}>

@@ -3,9 +3,32 @@ import type { CharCtl } from '../../Builder';
 import { featById, TRAITS } from '../../../content/index';
 import type { ChoiceSlot, SlotOption } from '../../../engine/types';
 import { WarnTag } from '../bits';
+import { useTip } from '../../Tooltip';
 
 /** Level a feat slot opens at, parsed from its `-L<n>` suffix (bare keys are level 1). */
 const slotLevel = (id: string): number => { const m = id.match(/-L(\d+)$/); return m ? Number(m[1]) : 1; };
+
+/** A feat's name, hoverable/clickable to show what it does and what it requires — so the compact
+ *  chosen-slot chips and the class-granted rows explain themselves without a trip to the picker. */
+function FeatName({ featId, children }: { featId: string; children: React.ReactNode }) {
+  const tip = useTip();
+  const f = featById.get(featId);
+  if (!f) return <>{children}</>;
+  const card = {
+    kicker: f.types.length ? f.types.join(' · ') : 'Feat',
+    title: f.name,
+    body: f.benefit,
+    annotations: f.reqText && f.reqText !== '—' ? [`Requires ${f.reqText}`] : undefined,
+  };
+  // stopPropagation so clicking the name in a slot chip opens the tooltip without also
+  // toggling the chip's "target this slot" click.
+  return (
+    <span className="term" onMouseEnter={tip.card(card)} onMouseLeave={tip.leave}
+      onClick={(e) => { e.stopPropagation(); tip.card(card)(e); }}>
+      {children}
+    </span>
+  );
+}
 
 export function FeatsStep({ ch }: { ch: CharCtl }) {
   const { doc, setDecision, resolution } = ch;
@@ -115,7 +138,7 @@ export function FeatsStep({ ch }: { ch: CharCtl }) {
                   <div className="micro" style={{ marginBottom: 3 }}>{s.label}</div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span style={{ fontSize: 13, fontWeight: 500, color: fid ? 'var(--color-text)' : 'var(--color-neutral-500)' }}>
-                      {fid ? featById.get(fid)?.name : (isTarget ? 'Selecting…' : 'Empty')}
+                      {fid ? <FeatName featId={fid}>{featById.get(fid)?.name}</FeatName> : (isTarget ? 'Selecting…' : 'Empty')}
                       {fid && featParams[s.id] ? <span className="text-muted" style={{ fontWeight: 400 }}> ({paramName(fid, featParams[s.id])})</span> : null}
                     </span>
                     <span style={{ flex: 1 }} />
@@ -146,7 +169,7 @@ export function FeatsStep({ ch }: { ch: CharCtl }) {
               return (
                 <div key={`${g.featId}-${g.level}`} className="pick" style={{ padding: '9px 12px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: 13, fontWeight: 500 }}>{g.name}{g.param?.value ? ` (${paramName(g.featId, g.param.value)})` : ''}{g.choice?.value ? ` (${featById.get(g.choice.value)?.name})` : ''}</span>
+                    <span style={{ fontSize: 13, fontWeight: 500 }}><FeatName featId={g.featId}>{g.name}</FeatName>{g.param?.value ? ` (${paramName(g.featId, g.param.value)})` : ''}{g.choice?.value ? ` (${featById.get(g.choice.value)?.name})` : ''}</span>
                     <span className="tag tag-neutral" style={{ fontSize: 10 }}>bonus · level {g.level}</span>
                   </div>
                   {g.param && (
