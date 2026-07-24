@@ -5767,3 +5767,184 @@ describe('archetypes — fourth-per-class batch 4 (hybrid classes)', () => {
     expect(resolve(pc).sheet.pools.map((p) => p.id)).toContain('panache');
   });
 });
+
+describe('archetypes — fourth-per-class batch 5 (divine and investigative)', () => {
+  const build = (cls: string, archetype: string | undefined, level: number, choices?: Record<string, string[]>): CharacterDoc => {
+    let d = newCharacter('t-fourth5', 'X');
+    d = withDecision(d, 'ability-base', { str: 12, dex: 13, con: 12, int: 14, wis: 15, cha: 13 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['wis']);
+    d = withDecision(d, 'alignment', 'N');
+    d = withDecision(d, 'class', cls);
+    if (choices) d = withDecision(d, 'class-choices', choices);
+    if (archetype) d = withDecision(d, 'archetype', archetype);
+    return atLevel(d, level);
+  };
+  const featsAt = (doc: CharacterDoc, lvl: number) =>
+    resolve(doc).sheet.progression.find((r) => r.level === lvl)?.features ?? [];
+
+  it('Divine Strategist has one domain and no channel — nor its pool', () => {
+    const ds = build('cleric', 'divine-strategist', 8, { domains: ['war'] });
+    const eff = effectiveClass(C.classById.get('cleric')!, readDecisions(ds));
+    expect((eff.choices ?? []).find((c) => c.id === 'domains')?.count).toBe(1);
+    expect(featsAt(ds, 1)).toContain('Master Tactician');
+    expect(featsAt(ds, 1)).not.toContain('Channel Energy 1d6');
+    expect(featsAt(ds, 8)).toContain('Tactical Expertise');
+    // The channel pool follows the feature away — POOL_FEATURE at work.
+    expect(resolve(ds).sheet.pools.map((p) => p.id)).not.toContain('channel');
+    expect(resolve(build('cleric', undefined, 8, { domains: ['war', 'law'] })).sheet.pools.map((p) => p.id)).toContain('channel');
+  });
+
+  it('Spirit Guide keeps the 1st, 11th and 19th revelations and no others', () => {
+    const sg = build('oracle', 'spirit-guide', 19, { mystery: ['battle'] });
+    const ids = resolve(sg).slots.map((s) => s.id);
+    expect(ids).toContain('revelation');
+    expect(ids).toContain('revelation-L11');
+    expect(ids).toContain('revelation-L19');
+    expect(ids).not.toContain('revelation-L3');
+    expect(ids).not.toContain('revelation-L7');
+    expect(ids).not.toContain('revelation-L15');
+    expect(featsAt(sg, 3)).toContain('Bonded Spirit');
+    expect(resolve(sg).sheet.classSkillIds).toContain('know-planes');
+  });
+
+  it('Profiler trades the whole trap and poison line, and the 7th-level talent', () => {
+    const pf = build('investigator', 'profiler', 7);
+    expect(featsAt(pf, 1)).toContain('Expert Profiler');
+    expect(featsAt(pf, 1)).not.toContain('Trapfinding');
+    expect(featsAt(pf, 2)).not.toContain('Poison Lore / Resistance');
+    expect(featsAt(pf, 3)).not.toContain('Trap Sense +1');
+    expect(featsAt(pf, 4)).toContain('Blood Sleuth');
+    expect(featsAt(pf, 4)).not.toContain('Swift Alchemy');
+    const ids = resolve(pf).slots.map((s) => s.id);
+    expect(ids).toContain('investigator-talent-L3');
+    expect(ids).not.toContain('investigator-talent-L7');
+    // Inspiration and studied combat are the class's spine — untouched.
+    expect(featsAt(pf, 4)).toContain('Studied Combat');
+    expect(resolve(pf).sheet.pools.map((p) => p.id)).toContain('inspiration');
+  });
+
+  it('Abolisher swaps the gaze and the alignment sense', () => {
+    const ab = build('inquisitor', 'abolisher', 5);
+    expect(featsAt(ab, 1)).toContain('Revealing Gaze');
+    expect(featsAt(ab, 1)).not.toContain('Stern Gaze');
+    expect(featsAt(ab, 2)).toContain('Expose Aberration');
+    expect(featsAt(ab, 2)).not.toContain('Detect Alignment');
+    // Bane and judgment are altered in text but kept as features.
+    expect(featsAt(ab, 5)).toContain('Bane');
+    expect(resolve(ab).sheet.pools.map((p) => p.id)).toContain('judgment');
+  });
+
+  it('Forester is a hunter with no companion at all', () => {
+    const fo = build('hunter', 'forester', 11);
+    const r = resolve(fo);
+    expect(r.slots.find((s) => s.id === 'animal-companion')).toBeUndefined();
+    expect(r.sheet.companions).toHaveLength(0);
+    expect(featsAt(fo, 1)).toContain('Animal Focus (self only)');
+    expect(featsAt(fo, 1)).not.toContain('Animal Companion');
+    expect(featsAt(fo, 5)).toContain('Favored Terrain');
+    expect(featsAt(fo, 11)).toContain('Breath of Life');
+    expect(featsAt(fo, 11)).not.toContain('Speak with Master');
+    // A plain hunter still has one.
+    expect(resolve(build('hunter', undefined, 11, { 'animal-companion': ['wolf'] })).sheet.companions).toHaveLength(1);
+  });
+});
+
+describe('archetypes — fourth-per-class batch 6 (completing the pass)', () => {
+  const build = (cls: string, archetype: string | undefined, level: number, choices?: Record<string, string[]>): CharacterDoc => {
+    let d = newCharacter('t-fourth6', 'X');
+    d = withDecision(d, 'ability-base', { str: 14, dex: 12, con: 13, int: 12, wis: 14, cha: 14 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['cha']);
+    d = withDecision(d, 'alignment', 'N');
+    d = withDecision(d, 'class', cls);
+    if (choices) d = withDecision(d, 'class-choices', choices);
+    if (archetype) d = withDecision(d, 'archetype', archetype);
+    return atLevel(d, level);
+  };
+  const featsAt = (doc: CharacterDoc, lvl: number) =>
+    resolve(doc).sheet.progression.find((r) => r.level === lvl)?.features ?? [];
+
+  it('Divine Defender trades mercies for a shared aura', () => {
+    // Paladins are Lawful Good only, so this one needs its own alignment.
+    let d = newCharacter('t-dd', 'Seelah');
+    d = withDecision(d, 'ability-base', { str: 15, dex: 12, con: 13, int: 10, wis: 12, cha: 15 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['cha']);
+    d = withDecision(d, 'alignment', 'LG');
+    d = withDecision(d, 'class', 'paladin');
+    d = withDecision(d, 'archetype', 'divine-defender');
+    const dd = atLevel(d, 6);
+    const r = resolve(dd);
+    expect(featsAt(dd, 3)).toContain('Shared Defense');
+    expect(featsAt(dd, 5)).toContain('Divine Bond (armor)');
+    expect(r.slots.find((s) => s.id === 'mercy-L3')).toBeUndefined();
+    // Lay on hands is what pays for it, so the pool must survive.
+    expect(r.sheet.pools.map((p) => p.id)).toContain('lay-on-hands');
+  });
+
+  it('Rageshaper may be chaotic where a shifter may not, and loses its aspect', () => {
+    const chaotic = (arch?: string) => {
+      let d = newCharacter('t-rs', 'Feral');
+      d = withDecision(d, 'ability-base', { str: 16, dex: 14, con: 14, int: 10, wis: 13, cha: 8 });
+      d = withDecision(d, 'race', 'human');
+      d = withDecision(d, 'floating-bonus', ['str']);
+      d = withDecision(d, 'alignment', 'CE');
+      d = withDecision(d, 'class', 'shifter');
+      if (arch) d = withDecision(d, 'archetype', arch);
+      return resolve(atLevel(d, 9));
+    };
+    expect(chaotic('rageshaper').issues.filter((i) => i.slot === 'alignment')).toHaveLength(0);
+    expect(chaotic().issues.filter((i) => i.slot === 'alignment').length).toBeGreaterThan(0);
+    const rs = build('shifter', 'rageshaper', 9);
+    expect(featsAt(rs, 1)).toContain('Devastating Form');
+    expect(featsAt(rs, 1)).not.toContain('Shifter Aspect');
+    expect(featsAt(rs, 4)).not.toContain('Wild Shape');
+    expect(resolve(rs).slots.find((s) => s.id === 'aspect')).toBeUndefined();
+  });
+
+  it('Herald of the Horn bonds a horn in place of Scribe Scroll', () => {
+    const hh = build('skald', 'herald-of-the-horn', 11);
+    expect(featsAt(hh, 1)).toContain('Arcane Bond (horn)');
+    expect(featsAt(hh, 1)).not.toContain('Scribe Scroll');
+    expect(featsAt(hh, 5)).toContain('Rousing Retort');
+    expect(featsAt(hh, 7)).toContain('Horn Call');
+    expect(featsAt(hh, 7)).not.toContain('Lore Master');
+    expect(featsAt(hh, 11)).toContain('Crumbling Blast');
+    // Raging song is the class — untouched, pool and all.
+    expect(resolve(hh).sheet.pools.map((p) => p.id)).toContain('raging-song');
+  });
+
+  it('Forgepriest takes one blessing and spends two bonus feats at the forge', () => {
+    const fp = build('warpriest', 'forgepriest', 6, { blessings: ['war'] });
+    const eff = effectiveClass(C.classById.get('warpriest')!, readDecisions(fp));
+    expect((eff.choices ?? []).find((c) => c.id === 'blessings')?.count).toBe(1);
+    expect(eff.bonusFeats?.levels).toEqual([9, 12, 15, 18]);
+    expect(featsAt(fp, 3)).toContain('Craft Magic Arms and Armor');
+    expect(featsAt(fp, 4)).toContain("Creator's Bond");
+    expect(featsAt(fp, 4)).not.toContain('Channel Energy');
+    // Fervor is the warpriest's engine and stays.
+    expect(resolve(fp).sheet.pools.map((p) => p.id)).toContain('fervor');
+  });
+
+  it('Unsworn Shaman has no sworn spirit to pick', () => {
+    const us = build('shaman', 'unsworn-shaman', 6, { 'spirit-animal': ['raven'] });
+    const r = resolve(us);
+    expect(r.slots.find((s) => s.id === 'spirit')).toBeUndefined();
+    expect(featsAt(us, 1)).toContain('Minor Spirit');
+    expect(featsAt(us, 1)).not.toContain('Spirit');
+    expect(featsAt(us, 4)).toContain('Broader Wandering');
+    // The spirit animal is still a familiar, and still resolves.
+    expect(r.sheet.companions).toHaveLength(1);
+    expect(r.sheet.companions[0].label).toBe('Spirit Animal');
+  });
+
+  it('the fourth-per-class pass is complete: every class has at least four', () => {
+    for (const c of C.CLASSES) {
+      const n = (c.archetypes ?? []).length;
+      // The vampire hunter has no standard published archetypes and stays at zero by design.
+      if (c.id === 'vampire-hunter') { expect(n).toBe(0); continue; }
+      expect(n, `${c.id} has only ${n} archetypes`).toBeGreaterThanOrEqual(4);
+    }
+  });
+});

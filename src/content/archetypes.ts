@@ -13,6 +13,12 @@ const SLAYER_TALENTS_ALL = [...SLAYER_TALENTS, ...SLAYER_ADVANCED_TALENTS];
 
 const g = (level: number, id: string, name: string, desc: string): LeveledFeatureDef => ({ level, id, name, desc });
 
+/** The ten Knowledge skills, for archetypes that hand out the whole family. */
+const KNOW_ALL_SKILLS = [
+  'know-arcana', 'know-dungeoneering', 'know-engineering', 'know-geography', 'know-history',
+  'know-local', 'know-nature', 'know-nobility', 'know-planes', 'know-religion',
+];
+
 export const FIGHTER_ARCHETYPES: ArchetypeDef[] = [
   {
     id: 'polearm-master', classId: 'fighter', name: 'Polearm Master',
@@ -207,6 +213,17 @@ export const BARBARIAN_ARCHETYPES: ArchetypeDef[] = [
 ];
 
 export const PALADIN_ARCHETYPES: ArchetypeDef[] = [
+  {
+    id: 'divine-defender', classId: 'paladin', name: 'Divine Defender',
+    desc: 'A paladin who sees herself as the last line between the hordes of evil and the people who should never have to know they exist.',
+    replaces: [],
+    // Mercies are the price; the divine bond is redirected into armour rather than removed.
+    choices: { remove: ['mercy'] },
+    grants: [
+      g(3, 'dd-shared-defense', 'Shared Defense', 'Spend a use of lay on hands as a standard action to grant all adjacent allies a +1 sacred bonus to AC, CMD and saving throws for rounds equal to your Charisma modifier, rising by +1 at 9th and 15th. At 6th level the range grows to 10 feet and dying allies in it stabilise; at 12th to 15 feet with immunity to bleed; at 18th to 20 feet with a 25% chance to negate any sneak attack or critical hit. Replaces mercy.'),
+      g(5, 'dd-divine-bond-armor', 'Divine Bond (armor)', 'Your divine bond binds a spirit into your armor or shield rather than a weapon or a mount, granting it a +1 enhancement bonus at 5th level and more as you advance. Alters divine bond.'),
+    ],
+  },
   {
     id: 'undead-scourge', classId: 'paladin', name: 'Undead Scourge',
     desc: 'A paladin sworn against the walking dead — every smite a hammer brought down on unlife.',
@@ -527,6 +544,21 @@ export const MONK_ARCHETYPES: ArchetypeDef[] = [
 
 export const CLERIC_ARCHETYPES: ArchetypeDef[] = [
   {
+    id: 'divine-strategist', classId: 'cleric', name: 'Divine Strategist',
+    desc: 'A cleric who reads a battlefield the way others read scripture — never caught unready, and worth more to the party than any burst of healing.',
+    replaces: ['cleric-channel'],
+    // A single domain, and the channel pool goes with the feature.
+    choices: {
+      remove: ['domains'],
+      add: [{ id: 'domains', label: 'Domain', kind: 'cleric-domains', count: 1 }],
+    },
+    grants: [
+      g(1, 'ds-master-tactician', 'Master Tactician', 'You may always act in a surprise round even if you failed to notice your enemies, though you are flat-footed until you act, and you gain a bonus on initiative equal to half your cleric level. Allies who can see and hear you gain a bonus equal to a quarter of it. At 20th your initiative roll is automatically a natural 20. Replaces channel energy.'),
+      g(1, 'ds-caster-support', 'Caster Support', 'Use aid another to assist a divine spellcaster, granting +2 on caster level checks and concentration checks until the start of your next turn, rising by +1 at 4th level and every four levels after (maximum +7). Arcane casters and item users gain half that.'),
+      g(8, 'ds-tactical-expertise', 'Tactical Expertise', 'Add your Intelligence bonus on attack rolls whenever you are flanking or making an attack of opportunity.'),
+    ],
+  },
+  {
     id: 'merciful-healer', classId: 'cleric', name: 'Merciful Healer',
     desc: 'A master of battlefield revivification — one healing domain, positive channeling that cleanses conditions, and safer casting in the thick of the fight.',
     // Must take the Healing domain and gains no second domain (RAW forces the specific domain — we model
@@ -634,6 +666,17 @@ export const CAVALIER_ARCHETYPES: ArchetypeDef[] = [
 ];
 
 export const INQUISITOR_ARCHETYPES: ArchetypeDef[] = [
+  {
+    id: 'abolisher', classId: 'inquisitor', name: 'Abolisher',
+    desc: 'An incorruptible inquisitor who hunts the alien and the unnatural, exposing aberrations for what they are.',
+    replaces: ['inq-stern-gaze', 'inq-detect-alignment'],
+    grants: [
+      g(1, 'ab-sworn-to-purity', 'Sworn to Purity', 'You must select the Air, Animal, Earth, Fire, Plant, Water, or Weather domain. Changing to a deity offering none of them costs you the archetype. Alters domains.'),
+      g(1, 'ab-revealing-gaze', 'Revealing Gaze', 'Gain a morale bonus equal to half your inquisitor level (minimum +1) on opposed Perception checks against Disguise and Stealth, and grant that bonus to all adjacent allies. Replaces stern gaze.'),
+      g(2, 'ab-expose-aberration', 'Expose Aberration', 'Use detect aberration at will, and know on a weapon hit whether the creature is an aberration. From 5th level you may activate bane as an immediate action after hitting an aberration but before damage is rolled. Replaces detect alignment and alters bane.'),
+      g(5, 'ab-escape-corruptions-grasp', "Escape Corruption's Grasp", 'For rounds per day equal to your inquisitor level, ignore impediments to movement as freedom of movement.'),
+    ],
+  },
   {
     id: 'spellbreaker', classId: 'inquisitor', name: 'Spellbreaker',
     desc: 'An inquisitor who has learned to wade through hostile magic — reading a school’s workings well enough to shrug it off, and to foul a caster mid-word.',
@@ -941,6 +984,24 @@ export const SORCERER_ARCHETYPES: ArchetypeDef[] = [
 
 export const WARPRIEST_ARCHETYPES: ArchetypeDef[] = [
   {
+    id: 'forgepriest', classId: 'warpriest', name: 'Forgepriest',
+    desc: 'An armorer of exquisite skill who takes inspiration from their deity to equip the armies of the faithful.',
+    replaces: ['wp-channel'],
+    // One blessing rather than two, and the bonus feats at 3rd and 6th are spent on the forge.
+    choices: {
+      remove: ['blessings'],
+      add: [{ id: 'blessings', label: 'Blessing', kind: 'warpriest-blessings', count: 1 }],
+    },
+    bonusFeatSlots: { remove: [3, 6] },
+    grants: [
+      g(1, 'fp-smiths-spells', "Smith's Spells", 'Add jury rig and shield (1st), heat metal and shatter (2nd), keen edge, quench and versatile weapon (3rd), wreath of blades (4th), fabricate and major creation (5th), and mage’s sword (6th) to your spell list. You select only one blessing. Alters blessings.'),
+      g(2, 'fp-forge-mastery', 'Forge Mastery', 'Add half your warpriest level on all Craft checks to make metal items, armor and weapons. You may also take item creation feats when you gain a bonus feat. Alters bonus feats.'),
+      g(3, 'fp-craft-magic-arms', 'Craft Magic Arms and Armor', 'Gain Craft Magic Arms and Armor as a bonus feat. Replaces the 3rd-level bonus feat.'),
+      g(4, 'fp-creators-bond', "Creator's Bond", 'Your sacred weapon ability extends to armor and shields you have made yourself. Replaces channel energy.'),
+      g(6, 'fp-forge-forged', 'Forge-Forged', 'Gain fire resistance 5, rising to 10 at 13th level. Replaces the 6th-level bonus feat.'),
+    ],
+  },
+  {
     id: 'divine-commander', classId: 'warpriest', name: 'Divine Commander',
     desc: 'A warpriest who leads armies from the saddle — trading personal blessings and bonus feats for a blessed mount and battlefield command.',
     replaces: ['wp-blessings'],
@@ -1039,6 +1100,21 @@ export const BRAWLER_ARCHETYPES: ArchetypeDef[] = [
 
 export const INVESTIGATOR_ARCHETYPES: ArchetypeDef[] = [
   {
+    id: 'profiler', classId: 'investigator', name: 'Profiler',
+    desc: 'An investigator who reads the criminal rather than the crime scene, predicting a quarry from the shape of its mind.',
+    replaces: ['inv-trapfinding', 'inv-poison-lore', 'inv-trap-sense', 'inv-swift-alchemy'],
+    choices: {
+      remove: ['investigator-talent'],
+      add: [{ id: 'investigator-talent', label: 'Investigator talent', kind: 'list', count: 1, levels: [3, 5, 9, 11, 13, 15, 17, 19], options: INVESTIGATOR_TALENTS }],
+    },
+    grants: [
+      g(1, 'pf-expert-profiler', 'Expert Profiler', 'Add half your class level (minimum +1) on Sense Motive checks. From 2nd level you may use inspiration on any Sense Motive check without expending a use. From 3rd level you can predict the movements of a creature familiar to you, tracking it from a place it has been with a Sense Motive check. Replaces trapfinding, poison lore and trap sense.'),
+      g(2, 'pf-divination-analysis', 'Divination Analysis', 'Your study of the mind sharpens your divinations, letting you draw more from each one than the reading alone would give. Replaces poison resistance and poison immunity.'),
+      g(4, 'pf-blood-sleuth', 'Blood Sleuth', 'Read the traces a creature leaves behind as a spell-like ability, following a quarry by what it sheds. Replaces swift alchemy.'),
+      g(7, 'pf-pack-psychology', 'Pack Psychology', 'Turn your read of a group against it, unsettling every member at once. Replaces the 7th-level investigator talent.'),
+    ],
+  },
+  {
     id: 'mastermind', classId: 'investigator', name: 'Mastermind',
     desc: 'An investigator who works through contacts and cunning — pulling strings others never see.',
     replaces: ['inv-trapfinding', 'inv-trap-sense', 'inv-swift-alchemy'],
@@ -1082,6 +1158,20 @@ export const INVESTIGATOR_ARCHETYPES: ArchetypeDef[] = [
 ];
 
 export const ORACLE_ARCHETYPES: ArchetypeDef[] = [
+  {
+    id: 'spirit-guide', classId: 'oracle', name: 'Spirit Guide',
+    desc: 'An oracle who bargains with wandering spirits, borrowing a different one each day in place of the revelations her mystery would grant.',
+    replaces: [],
+    classSkills: { add: [...KNOW_ALL_SKILLS] },
+    // Bonded Spirit takes the revelations at 3rd, 7th and 15th; the rest of the line stays.
+    choices: {
+      remove: ['revelation'],
+      add: [{ id: 'revelation', label: 'Revelation', kind: 'oracle-revelation', count: 1, levels: [1, 11, 19] }],
+    },
+    grants: [
+      g(3, 'sg-bonded-spirit', 'Bonded Spirit', "Each day when you refresh your spells, bond with a spirit as a shaman's wandering spirit and gain one hex from its list, using your oracle level as your shaman level and Charisma in place of Wisdom. At 4th level you add its spirit magic spells to your spells known for the day; at 7th you gain its spirit ability; at 15th its greater spirit ability. You cannot bond with a spirit incompatible with your alignment or mystery. Replaces the revelations at 3rd, 7th and 15th."),
+    ],
+  },
   {
     id: 'dual-cursed', classId: 'oracle', name: 'Dual-Cursed Oracle',
     desc: 'An oracle who bears two curses and, in exchange, twists fate itself — forcing rerolls on friend and foe alike.',
@@ -1240,6 +1330,20 @@ export const SWASHBUCKLER_ARCHETYPES: ArchetypeDef[] = [
 
 export const HUNTER_ARCHETYPES: ArchetypeDef[] = [
   {
+    id: 'forester', classId: 'hunter', name: 'Forester',
+    desc: 'A hunter bound to the land itself rather than to any beast on it — a guardian of the wild who walks alone.',
+    replaces: ['hunter-animal-companion', 'hunter-precise-companion', 'hunter-tactics', 'hunter-speak-with-master'],
+    // No companion at all: the animal focus turns inward instead, as it does when a hunter's
+    // companion dies.
+    choices: { remove: ['animal-companion'] },
+    companions: [],
+    grants: [
+      g(1, 'fo-animal-focus', 'Animal Focus (self only)', "With no animal companion, every aspect this ability grants applies to you, exactly as when a hunter's companion is dead. Alters animal focus."),
+      g(5, 'fo-favored-terrain', 'Favored Terrain', "Gain the ranger's favored terrain, choosing your first at 5th level and another every four levels after, with the bonus in one chosen terrain rising each time. Replaces precise companion and hunter tactics."),
+      g(11, 'fo-breath-of-life', 'Breath of Life', 'Call the land’s vitality back into a fallen ally as a spell-like ability. Replaces speak with master.'),
+    ],
+  },
+  {
     id: 'divine-hunter', classId: 'hunter', name: 'Divine Hunter',
     desc: 'A hunter who answers to a higher power than the wild — her faith flowing into her companion until the beast itself becomes a champion of the god.',
     replaces: ['hunter-tactics'],
@@ -1366,6 +1470,17 @@ export const SUMMONER_ARCHETYPES: ArchetypeDef[] = [
 
 export const SKALD_ARCHETYPES: ArchetypeDef[] = [
   {
+    id: 'herald-of-the-horn', classId: 'skald', name: 'Herald of the Horn',
+    desc: 'A skald whose raging song is sounded through a horn — thunderous blasts that bolster allies or shatter castle walls.',
+    replaces: ['skald-scribe-scroll', 'skald-lore-master'],
+    grants: [
+      g(1, 'hh-arcane-bond', 'Arcane Bond (horn)', "Bond with a horn as an arcane-bloodline sorcerer bonds an object. Like a wand or staff, it must be held in one hand when you cast skald spells. Replaces Scribe Scroll."),
+      g(5, 'hh-rousing-retort', 'Rousing Retort', 'When beginning a raging song, expend 4 rounds of it to grant all allies within 60 feet a new saving throw at +2 against an ongoing enchantment or fear effect. Replaces the first daily use of spell kenning.'),
+      g(7, 'hh-horn-call', 'Horn Call', 'A skald spell with the sonic descriptor cast through the horn has its save DC increased by 1, and by a further 1 at 13th and 19th levels. Replaces lore master.'),
+      g(11, 'hh-crumbling-blast', 'Crumbling Blast', 'Sound the horn to shake structures apart, trading further spell kenning for raw destructive noise. Replaces the second and third daily uses of spell kenning.'),
+    ],
+  },
+  {
     id: 'battle-scion', classId: 'skald', name: 'Battle Scion',
     desc: 'A warrior-poet of noble bearing — as deadly with a blade as with a barbed word, and apt to bind brave followers to a quest.',
     // RAW also replaces "song of the fallen", which our skald progression does not model as its own
@@ -1409,6 +1524,18 @@ export const SKALD_ARCHETYPES: ArchetypeDef[] = [
 ];
 
 export const SHAMAN_ARCHETYPES: ArchetypeDef[] = [
+  {
+    id: 'unsworn-shaman', classId: 'shaman', name: 'Unsworn Shaman',
+    desc: 'A shaman who never binds herself to one spirit, striking a new bargain each day for whatever the circumstances demand.',
+    replaces: ['shaman-spirit-feature'],
+    // No sworn spirit at all — the spirit pick goes, and hexes come from whatever she bonds today.
+    choices: { remove: ['spirit'] },
+    grants: [
+      g(1, 'us-minor-spirit', 'Minor Spirit', 'Each day when you prepare spells, bond with a minor spirit and gain one shaman or witch hex of your choice — never a major or grand hex. From 2nd level you may instead take a hex from one of that day\u2019s wandering spirits. A shaman or witch hex uses your shaman level as your witch level and Wisdom in place of Intelligence. You bond two minor spirits at 4th level and one more every four levels after. Replaces spirit and alters hex.'),
+      g(1, 'us-unsworn-animal', 'Unsworn Spirit Animal', 'Your spirit animal is not tied to any one spirit, shifting its manifestation with each bargain you strike. Alters spirit animal.'),
+      g(4, 'us-broader-wandering', 'Broader Wandering', 'Your wandering spirit is chosen from a wider field, and its hex arrives through your minor spirits instead. Alters wandering spirit and replaces wandering hex.'),
+    ],
+  },
   {
     id: 'spirit-warden', classId: 'shaman', name: 'Spirit Warden',
     desc: 'A shaman who holds that some spirits deserve no reverence at all — and who has made ending them her business.',
@@ -1455,6 +1582,25 @@ export const SHAMAN_ARCHETYPES: ArchetypeDef[] = [
 ];
 
 export const SHIFTER_ARCHETYPES: ArchetypeDef[] = [
+  {
+    id: 'rageshaper', classId: 'shifter', name: 'Rageshaper',
+    desc: 'A shifter who abandons the disciplined aspects for pure wrath, swelling into a living engine of annihilation.',
+    // A rageshaper may be any nonlawful alignment, where a shifter must be partly neutral.
+    alignment: ['NG', 'CG', 'N', 'CN', 'NE', 'CE'],
+    replaces: [
+      'shifter-wild-shape', 'shifter-aspect', 'shifter-defensive-instinct',
+      'shifter-chimeric-aspect', 'shifter-woodland-stride', 'shifter-trackless-step',
+    ],
+    // The aspect pick goes with shifter aspect itself.
+    choices: { remove: ['aspect'] },
+    grants: [
+      g(1, 'rs-devastating-form', 'Devastating Form', "Enter a fury that functions as the barbarian's rage, entering as a full-round action that provokes; at the start of your next turn you also grow one size category larger, breaking armor that cannot accommodate it. Replaces wild shape, shifter aspect and every improvement to it."),
+      g(1, 'rs-terrible-slam', 'Terrible Slam', 'Your claws become a slam attack that ignores 5 points of an object’s hardness. Alters shifter claws.'),
+      g(2, 'rs-devastating-hide', 'Devastating Hide', 'In your devastating form you become difficult to harm, gaining protection that grows with your level. Replaces defensive instinct, chimeric aspect and greater chimeric aspect.'),
+      g(3, 'rs-unstoppable', 'Unstoppable', 'Nothing slows your charge through the wild. Replaces woodland stride.'),
+      g(5, 'rs-no-trace', 'No Trace', 'What you leave behind is wreckage rather than tracks. Replaces trackless step.'),
+    ],
+  },
   {
     id: 'fiendflesh-shifter', classId: 'shifter', name: 'Fiendflesh Shifter',
     desc: 'A shifter who bargained with the Outer Planes instead of the wild — wearing daemon, demon, and devil rather than beast. (RAW requires an evil alignment; not enforced here.)',
