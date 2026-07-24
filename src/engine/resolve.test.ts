@@ -5591,3 +5591,96 @@ describe('archetypes — fourth-per-class batch 2 (Core casters and the ranger)'
     expect(resolve(seeker).sheet.classSkillIds).toContain('disable-device');
   });
 });
+
+describe('archetypes — fourth-per-class batch 3 (base classes)', () => {
+  const build = (cls: string, archetype: string | undefined, level: number, choices?: Record<string, string[]>): CharacterDoc => {
+    let d = newCharacter('t-fourth3', 'X');
+    d = withDecision(d, 'ability-base', { str: 12, dex: 14, con: 12, int: 15, wis: 12, cha: 15 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['cha']);
+    d = withDecision(d, 'alignment', 'N');
+    d = withDecision(d, 'class', cls);
+    if (choices) d = withDecision(d, 'class-choices', choices);
+    if (archetype) d = withDecision(d, 'archetype', archetype);
+    return atLevel(d, level);
+  };
+  const featsAt = (doc: CharacterDoc, lvl: number) =>
+    resolve(doc).sheet.progression.find((r) => r.level === lvl)?.features ?? [];
+
+  it('Mindchemist swaps the mutagen for a cognatogen and poison use for recall', () => {
+    const mc = build('alchemist', 'mindchemist', 3);
+    expect(featsAt(mc, 1)).toContain('Cognatogen');
+    expect(featsAt(mc, 1)).not.toContain('Mutagen');
+    expect(featsAt(mc, 2)).toContain('Perfect Recall');
+    expect(featsAt(mc, 2)).not.toContain('Poison Use');
+    // Poison resistance and bombs are untouched.
+    expect(featsAt(mc, 2)).toContain('Poison Resistance +2');
+    expect(featsAt(mc, 1)).toContain('Bomb 1d6');
+  });
+
+  it('White-Haired Witch loses the 1st-level hex but keeps the recurring line', () => {
+    const whw = build('witch', 'white-haired-witch', 18, { patron: ['winter'], familiar: ['cat'] });
+    const ids = resolve(whw).slots.map((s) => s.id);
+    // The bare `hex` slot is the 1st-level grant; the suffixed ones are the even-level line.
+    expect(ids).not.toContain('hex');
+    expect(ids).toContain('hex-L2');
+    expect(ids).toContain('hex-L18');
+    expect(featsAt(whw, 1)).toContain('White Hair');
+    expect(featsAt(whw, 1)).not.toContain('Hex');
+    expect(featsAt(whw, 10)).not.toContain('Major Hex');
+    expect(featsAt(whw, 18)).not.toContain('Grand Hex');
+    // The familiar is a witch's, untouched by this archetype.
+    expect(resolve(whw).sheet.companions).toHaveLength(1);
+  });
+
+  it('Daring Champion trades the mount for panache, and the pool follows', () => {
+    const dc = build('cavalier', 'daring-champion', 11, { order: ['sword'] });
+    expect(featsAt(dc, 1)).toContain("Champion's Finesse");
+    expect(featsAt(dc, 1)).not.toContain('Mount');
+    expect(featsAt(dc, 3)).toContain('Nimble');
+    expect(featsAt(dc, 4)).toContain('Panache and Deeds');
+    expect(featsAt(dc, 11)).toContain('Advanced Deeds');
+    const r = resolve(dc);
+    expect(r.slots.find((s) => s.id === 'mount')).toBeUndefined();
+    expect(r.sheet.companions).toHaveLength(0);
+    // Cha 17 → +3 panache; challenge survives because the archetype leaves it alone.
+    const pools = Object.fromEntries(r.sheet.pools.map((p) => [p.id, p.max]));
+    expect(pools['panache']).toBe(3);
+    expect(pools['challenge']).toBeGreaterThan(0);
+    // A plain cavalier has a mount and no panache.
+    const plain = resolve(build('cavalier', undefined, 11, { order: ['sword'], mount: ['horse'] }));
+    expect(plain.sheet.pools.find((p) => p.id === 'panache')).toBeFalsy();
+    expect(plain.sheet.companions).toHaveLength(1);
+  });
+
+  it('Staff Magus gives up martial weapons and the armor line', () => {
+    const eff = effectiveClass(C.classById.get('magus')!, readDecisions(build('magus', 'staff-magus', 1)));
+    expect(eff.proficiencies.weapons).not.toContain('martial');
+    expect(eff.proficiencies.weapons).toContain('simple');
+    const sm = build('magus', 'staff-magus', 13);
+    expect(featsAt(sm, 1)).toContain('Quarterstaff Master');
+    expect(featsAt(sm, 7)).toContain('Quarterstaff Defense');
+    expect(featsAt(sm, 7)).not.toContain('Medium Armor');
+    expect(featsAt(sm, 13)).not.toContain('Heavy Armor');
+    expect(featsAt(sm, 10)).toContain('Staff Weapon');
+    expect(featsAt(sm, 10)).not.toContain('Fighter Training');
+    // Spell combat, spellstrike and the arcane pool are what make it a magus — all kept.
+    expect(featsAt(sm, 1)).toContain('Spell Combat');
+    expect(resolve(sm).sheet.pools.map((p) => p.id)).toContain('arcane-pool');
+  });
+
+  it('Bolt Ace swaps seven deeds and gunsmithing for the crossbow line', () => {
+    const ba = build('gunslinger', 'bolt-ace', 15);
+    expect(featsAt(ba, 1)).toContain('Crossbow Maven');
+    expect(featsAt(ba, 1)).not.toContain('Gunsmith');
+    expect(featsAt(ba, 1)).toContain('Deed: Sharp Shoot');
+    expect(featsAt(ba, 1)).not.toContain('Deed: Deadeye');
+    expect(featsAt(ba, 5)).toContain('Crossbow Training');
+    expect(featsAt(ba, 5)).not.toContain('Gun Training 1');
+    expect(featsAt(ba, 11)).toContain('Deed: Inexplicable Reload');
+    expect(featsAt(ba, 15)).toContain('Deed: Pinning Shot');
+    // The deeds it keeps are still there, and so is grit.
+    expect(featsAt(ba, 3)).toContain('Deed: Pistol-Whip');
+    expect(resolve(ba).sheet.pools.map((p) => p.id)).toContain('grit');
+  });
+});

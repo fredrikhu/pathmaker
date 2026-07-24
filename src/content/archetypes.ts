@@ -320,6 +320,15 @@ export const BARD_ARCHETYPES: ArchetypeDef[] = [
 
 export const ALCHEMIST_ARCHETYPES: ArchetypeDef[] = [
   {
+    id: 'mindchemist', classId: 'alchemist', name: 'Mindchemist',
+    desc: 'An alchemist who turns the craft inward and upward — sharpening the mind and the memory at the cost of the body.',
+    replaces: ['alch-mutagen', 'alch-poison-use'],
+    grants: [
+      g(1, 'mc-cognatogen', 'Cognatogen', 'Brew a cognatogen instead of a mutagen: it boosts a mental ability score at the cost of a physical one. You cannot make mutagens unless you take Mutagen as a discovery. Replaces mutagen.'),
+      g(2, 'mc-perfect-recall', 'Perfect Recall', 'Add your Intelligence bonus a second time on every Knowledge check, and on Intelligence checks to remember something. Replaces poison use.'),
+    ],
+  },
+  {
     id: 'chirurgeon', classId: 'alchemist', name: 'Chirurgeon',
     desc: 'An alchemist who studies anatomy to heal — extracts of cure spells flow to any ally, and death itself can be pushed back.',
     // Our alchemist models the whole poison-resistance→immunity line as one feature (alch-poison-resistance),
@@ -359,6 +368,18 @@ export const ALCHEMIST_ARCHETYPES: ArchetypeDef[] = [
 ];
 
 export const MAGUS_ARCHETYPES: ArchetypeDef[] = [
+  {
+    id: 'staff-magus', classId: 'magus', name: 'Staff Magus',
+    desc: 'A lightly armoured magus who uses the quarterstaff as both defence and conduit, and in time learns to wield true arcane staves.',
+    replaces: ['magus-medium-armor', 'magus-heavy-armor', 'magus-fighter-training'],
+    // Simple weapons only — the staff magus gives up martial training for staff work.
+    proficiencies: { weapons: { remove: ['martial'] } },
+    grants: [
+      g(1, 'sm-quarterstaff-master', 'Quarterstaff Master', 'Gain Quarterstaff Master as a bonus feat without meeting its prerequisites, usable in no armor or light armor. Alters the magus weapon and armor proficiencies.'),
+      g(7, 'sm-quarterstaff-defense', 'Quarterstaff Defense', "While wielding a quarterstaff, gain a shield bonus to AC equal to the staff's enhancement bonus, including any from your arcane pool; at 13th level that bonus increases by +3. Replaces medium armor and heavy armor."),
+      g(10, 'sm-staff-weapon', 'Staff Weapon', 'Wield a magic staff as a quarterstaff, drawing on its charges through your arcane pool. Replaces fighter training.'),
+    ],
+  },
   {
     id: 'bladebound', classId: 'magus', name: 'Bladebound',
     desc: 'A magus bonded to a sentient black blade — an intelligent weapon that shares (and covets) his arcane power.',
@@ -564,6 +585,21 @@ export const CLERIC_ARCHETYPES: ArchetypeDef[] = [
 
 export const CAVALIER_ARCHETYPES: ArchetypeDef[] = [
   {
+    id: 'daring-champion', classId: 'cavalier', name: 'Daring Champion',
+    desc: 'A younger, more flamboyant cavalier who trades the warhorse and the heavy plate for a swashbuckler\u2019s footwork and panache.',
+    replaces: ['cav-mount', 'cav-charge', 'cav-expert-trainer', 'cav-mighty-charge', 'cav-supreme-charge'],
+    // No mount at all: the creature pick goes with the feature.
+    choices: { remove: ['mount'] },
+    proficiencies: { armor: { remove: ['heavy'] } },
+    grants: [
+      g(1, 'dc-champions-finesse', "Champion's Finesse", 'Gain the benefit of Weapon Finesse with light or one-handed piercing melee weapons, use Charisma in place of Intelligence for combat feat prerequisites, and count as having Weapon Finesse for meeting requirements. Replaces mount.'),
+      g(3, 'dc-nimble', 'Nimble', '+1 dodge bonus to AC in light or no armor and no more than a light load, rising by +1 for every four levels beyond 3rd (maximum +5 at 19th). Lost whenever you lose your Dexterity bonus to AC. Replaces cavalier\u2019s charge.'),
+      g(4, 'dc-panache-deeds', 'Panache and Deeds', "Gain the swashbuckler's panache, along with the dodging panache, precise strike and swashbuckler initiative deeds. Replaces expert trainer."),
+      g(11, 'dc-advanced-deeds', 'Advanced Deeds', 'Gain the superior feint, targeted strike and swashbuckler\u2019s edge deeds. Replaces mighty charge.'),
+      g(20, 'dc-champions-weapon-mastery', "Champion's Weapon Mastery", 'Your chosen weapon crits more readily and ignores damage reduction. Replaces supreme charge.'),
+    ],
+  },
+  {
     id: 'beast-rider', classId: 'cavalier', name: 'Beast Rider',
     desc: 'A cavalier who spends his life seeking ever more exotic and powerful mounts — riding to war on a dinosaur or a mammoth rather than a warhorse.',
     replaces: ['cav-mount', 'cav-expert-trainer'],
@@ -757,6 +793,25 @@ export const WIZARD_ARCHETYPES: ArchetypeDef[] = [
 ];
 
 export const WITCH_ARCHETYPES: ArchetypeDef[] = [
+  {
+    id: 'white-haired-witch', classId: 'witch', name: 'White-Haired Witch',
+    desc: 'A witch who turns her mysterious power outward into her own prehensile hair, fighting in melee where other witches would hex from afar.',
+    replaces: ['witch-hex-feature', 'witch-major-hex', 'witch-grand-hex'],
+    // White Hair takes the *1st-level* hex only; the hex line at even levels continues. Removing
+    // the shared id drops both, so the recurring line is re-added without its level-1 grant.
+    choices: {
+      remove: ['hex'],
+      add: [{ id: 'hex', label: 'Hex', kind: 'list', count: 1, levels: [2, 4, 6, 8, 10, 12, 14, 16, 18, 20], options: WITCH_HEXES }],
+    },
+    grants: [
+      g(1, 'whw-white-hair', 'White Hair', 'Your hair is a primary natural attack with 5 feet of reach, dealing 1d4 damage (1d3 if Small) plus your Intelligence modifier. On a hit you may grapple as a free action using Intelligence in place of Strength, without becoming grappled yourself. The reach grows by 5 feet at 4th level and every four levels after, to 30 feet at 20th. (The attack line itself is not yet computed — class features cannot carry a natural attack.) Replaces the 1st-level hex.'),
+      g(2, 'whw-constrict', 'Constrict', 'When your hair grapples a foe it can constrict as a swift action, dealing its attack damage again.'),
+      g(4, 'whw-trip', 'Trip', 'A successful hair strike lets you attempt a trip combat maneuver as a swift action.'),
+      g(6, 'whw-pull', 'Pull', 'A successful hair strike lets you attempt to drag the target closer as a swift action.'),
+      g(10, 'whw-greater-white-hair', 'Greater White Hair', 'Your mastery of the hair deepens in place of the major hexes other witches learn. Replaces major hex.'),
+      g(18, 'whw-supreme-white-hair', 'Supreme White Hair', 'The hair reaches its full lethal potential in place of the grand hexes. Replaces grand hex.'),
+    ],
+  },
   {
     id: 'gravewalker', classId: 'witch', name: 'Gravewalker',
     desc: 'A witch whose patron is death itself — she binds the dead as thralls and wears corpses like gloves.',
@@ -1395,6 +1450,28 @@ export const SHIFTER_ARCHETYPES: ArchetypeDef[] = [
 ];
 
 export const GUNSLINGER_ARCHETYPES: ArchetypeDef[] = [
+  {
+    id: 'bolt-ace', classId: 'gunslinger', name: 'Bolt Ace',
+    desc: 'A gunslinger who never soils her hands with powder — every deed performed with a crossbow, in a more hushed manner but with just as much flair.',
+    replaces: [
+      'gun-gunsmith', 'gun-gun-training',
+      'gun-deed-deadeye', 'gun-deed-quick-clear', 'gun-deed-utility-shot',
+      'gun-deed-startling-shot', 'gun-deed-expert-loading', 'gun-deed-lightning-reload',
+      'gun-deed-menacing-shot',
+    ],
+    proficiencies: { weapons: { add: ['light-crossbow', 'heavy-crossbow', 'hand-crossbow'] } },
+    grants: [
+      g(1, 'ba-crossbow-maven', 'Crossbow Maven', 'You are proficient with all crossbows instead of all firearms, and begin play with a masterwork crossbow of your choice. Your grit returns on a critical hit or killing blow with any crossbow. Alters weapon proficiencies and replaces gunsmith.'),
+      g(1, 'ba-sharp-shoot', 'Deed: Sharp Shoot', 'Spend 1 grit to resolve a crossbow attack against touch AC within the first range increment. This cost cannot be reduced. Replaces deadeye.'),
+      g(1, 'ba-vigilant-loading', 'Deed: Vigilant Loading', 'While you have at least 1 grit, loading a crossbow provokes no attacks of opportunity. Replaces quick clear.'),
+      g(3, 'ba-shooters-resolve', "Deed: Shooter's Resolve", 'Spend 1 grit on a standard-action crossbow attack to ignore concealment and cover short of total. Replaces utility shot.'),
+      g(5, 'ba-crossbow-training', 'Crossbow Training', 'Choose one type of crossbow: add your Dexterity modifier to its damage and treat its misfires as one lower, gaining another choice every four levels. Replaces gun training.'),
+      g(7, 'ba-distracting-shot', 'Deed: Distracting Shot', 'Spend 1 grit to deliberately miss a target you could hit; it loses its Dexterity bonus to AC for 1 round. Replaces startling shot.'),
+      g(11, 'ba-vigilant-shooter', 'Deed: Vigilant Shooter', 'Spend 1 grit to fire a crossbow without provoking attacks of opportunity. Replaces expert loading.'),
+      g(11, 'ba-inexplicable-reload', 'Deed: Inexplicable Reload', 'While you have at least 1 grit you begin every round — even a surprise round — with your crossbow loaded, and reloading drops one step in action cost. Replaces lightning reload.'),
+      g(15, 'ba-pinning-shot', 'Deed: Pinning Shot', 'Spend 1 grit to pin a struck target to a wall, an object or the ground, entangling and staggering it until it spends a standard action to free itself. Replaces menacing shot.'),
+    ],
+  },
   {
     id: 'mysterious-stranger', classId: 'gunslinger', name: 'Mysterious Stranger',
     desc: 'A gunslinger who runs on sheer bravado — luck and charm loaded into every chamber.',

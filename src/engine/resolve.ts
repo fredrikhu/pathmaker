@@ -771,6 +771,11 @@ const GRANTED_POOLS: { featureId: string; make: (level: number, mods: Record<Abi
     featureId: 'ew-arcane-reservoir',
     make: (level) => ({ id: 'reservoir', name: 'Arcane reservoir', max: 3 + Math.floor(level / 2), unit: 'points' }),
   },
+  {
+    // The Daring Champion cavalier gains the swashbuckler's panache, on the swashbuckler's formula.
+    featureId: 'dc-panache-deeds',
+    make: (_level, mods) => ({ id: 'panache', name: 'Panache', max: Math.max(1, mods.cha), unit: 'points' }),
+  },
 ];
 
 function classPools(klass: C.ClassDef | undefined, level: number, mods: Record<Ability, number>): ResourcePool[] {
