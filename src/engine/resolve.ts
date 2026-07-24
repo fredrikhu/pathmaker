@@ -796,8 +796,16 @@ export function resolve(doc: CharacterDoc): Resolution {
   const classAt = (l: number) => levelClasses[l - 1];
   // Ability increases above the current target level are suspended, not applied.
   const abilities = finalAbilities(dec, level);
+  // The Synthesist wears his eidolon: he uses its physical ability scores and keeps his own mental
+  // ones. This lands before the modifiers are derived so the swap reaches every stat downstream.
+  const fused = fusedCompanion(dec, level);
+  if (fused) for (const ab of ['str', 'dex', 'con'] as Ability[]) abilities[ab] = fused.abilities[ab];
   const { standard, alternates } = activeRacialTraits(dec);
   const effects = collectEffects(dec, doc, level);
+  // The fused eidolon's natural armour is the synthesist's; it stacks with nothing else natural,
+  // which the usual same-type rule already handles.
+  if (fused && fused.naturalArmor > 0)
+    effects.push({ target: 'ac', type: 'natural-armor', value: fused.naturalArmor, note: `Fused eidolon (${fused.name})` });
   // Apply unconditional ability-score effects (conditions like Fatigued, and future items) to the
   // ability scores before deriving modifiers, so the penalty flows to everything.
   for (const e of effects) {
@@ -847,6 +855,15 @@ export function resolve(doc: CharacterDoc): Resolution {
     const incCount = Object.entries(dec.abilityIncreases)
       .filter(([l, a]) => a === ab && Number(l) <= level).length;
     const heritage = chosenHeritage(dec);
+    // A fused physical score is the eidolon's outright — the summoner's own base, racial bonus and
+    // level-up increases are all set aside, so the breakdown shows the one line that is true.
+    if (fused && (ab === 'str' || ab === 'dex' || ab === 'con')) {
+      stats[`ability:${ab}`] = makeStat(`ability:${ab}`, ab.toUpperCase(), [
+        { type: 'base', value: fused.abilities[ab], note: `Fused eidolon (${fused.name})` },
+        ...unconds(`ability:${ab}`),
+      ]);
+      continue;
+    }
     stats[`ability:${ab}`] = makeStat(`ability:${ab}`, ab.toUpperCase(), [
       { type: 'base', value: dec.abilityBase[ab], note: 'Base' },
       ...(heritage && heritage.abilityMods[ab]
@@ -2313,6 +2330,15 @@ function evolutionPool(summonerLevel: number): number {
   return C.EIDOLON_EVOLUTION_POOL[i];
 }
 
+/** The companion the character's archetype fuses them with, if any — the Synthesist's eidolon.
+ *  It is derived from the base form, the table and the evolutions alone, never from the character's
+ *  own scores, so it can be resolved before the character's abilities are settled and then feed
+ *  them. Returns undefined for everyone else, which is almost everyone. */
+function fusedCompanion(dec: Decisions, level: number): CompanionBlock | undefined {
+  return resolveCompanions(dec, level, { masterHp: 0, masterBab: 0, masterSaves: { fort: 0, ref: 0, will: 0 } })
+    .find((c) => c.fused);
+}
+
 /** Every companion creature the character's classes grant, resolved to a stat block. A class only
  *  produces one once its `minLevel` is reached and the creature has actually been picked — an
  *  unfilled companion slot already raises its own "choose…" issue, so nothing is emitted here. */
@@ -2330,17 +2356,30 @@ function resolveCompanions(dec: Decisions, level: number, master: CompanionConte
       if (!picked) continue;
       const def = C.companionById(src.kind, picked);
       if (!def) continue;
-      out.push(resolveCompanion({
+      const arch = dec.archetype ? entry.klass.archetypes?.find((a) => a.id === dec.archetype) : undefined;
+      const block = resolveCompanion({
         def,
         slotId: src.choiceId,
-        label: src.label,
+        label: arch?.fusedCompanion ? 'Fused Eidolon' : src.label,
         className: klass.name,
         // The effective companion level, which is the class's own level less any offset — never
         // the character level, so a ranger 6 / fighter 4 still has a 3rd-level companion.
         level: Math.max(1, entry.levels - (src.levelOffset ?? 0)),
         ...(src.kind === 'eidolon' ? { evolutions: dec.classChoices['evolutions'] ?? [] } : {}),
         ...(src.kind === 'familiar' ? { context: master } : {}),
-      }));
+      });
+      out.push(arch?.fusedCompanion
+        ? {
+          ...block,
+          fused: true,
+          notes: [
+            'You wear this eidolon: its Strength, Dexterity and Constitution are already your own on the sheet above, as is its natural armour.',
+            'Its hit points are your temporary hit points — when they run out the fusion ends.',
+            "Its base attack bonus and natural attacks are not folded into your attack lines; the eidolon's own numbers are shown here.",
+            ...block.notes,
+          ],
+        }
+        : block);
     }
   }
   return out;

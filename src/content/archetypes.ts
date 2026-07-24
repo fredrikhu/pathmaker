@@ -1035,6 +1035,46 @@ export const HUNTER_ARCHETYPES: ArchetypeDef[] = [
 
 export const SUMMONER_ARCHETYPES: ArchetypeDef[] = [
   {
+    id: 'synthesist', classId: 'summoner', name: 'Synthesist',
+    desc: 'Rather than summon an eidolon to stand beside him, the synthesist wears it — a translucent living armour whose body becomes his own.',
+    // Fused Eidolon replaces the eidolon itself, bond senses and life bond; the remaining swaps are
+    // the class abilities that assumed two separate creatures (Ultimate Magic, verified).
+    replaces: [
+      'summ-eidolon', 'summ-bond-senses', 'summ-life-bond',
+      'summ-life-link', 'summ-shield-ally', 'summ-makers-call', 'summ-transposition',
+      'summ-greater-shield-ally', 'summ-merge-forms',
+    ],
+    fusedCompanion: true,
+    grants: [
+      g(1, 'syn-fused-eidolon', 'Fused Eidolon', "You wear your eidolon. You use its Strength, Dexterity and Constitution and keep your own Intelligence, Wisdom and Charisma; you gain its hit points as temporary hit points, its base attack bonus, its natural armour, its evolutions and its special abilities, and you are limited to its maximum number of natural attacks. You lose the benefit of your armour while fused, and count as both your own type and an outsider, whichever is worse. Replaces eidolon, bond senses and life bond."),
+      g(1, 'syn-fused-link', 'Fused Link', 'When your eidolon-granted temporary hit points would drop to 0, sacrifice any number of your own hit points as a free action to prevent that damage point for point. Replaces life link.'),
+      {
+        level: 4, id: 'syn-shielded-meld', name: 'Shielded Meld',
+        desc: 'While fused, gain a +2 shield bonus to AC and a +2 circumstance bonus on saving throws. Replaces shield ally.',
+        effects: [
+          { target: 'ac', type: 'shield', value: 2, note: 'Shielded Meld' },
+          { target: 'save:fort', type: 'circumstance', value: 2, note: 'Shielded Meld' },
+          { target: 'save:ref', type: 'circumstance', value: 2, note: 'Shielded Meld' },
+          { target: 'save:will', type: 'circumstance', value: 2, note: 'Shielded Meld' },
+        ],
+      },
+      g(6, 'syn-makers-jump', "Maker's Jump", 'Cast dimension door as a spell-like ability at your caster level, affecting only the fused you, once per day at 6th plus once more every six levels after. Replaces maker’s call and transposition.'),
+      {
+        level: 12, id: 'syn-greater-shielded-meld', name: 'Greater Shielded Meld',
+        desc: 'The shielded-meld bonuses rise to a +4 shield bonus to AC and a +4 circumstance bonus on saving throws. Replaces greater shield ally.',
+        // The +2 from Shielded Meld is still in force; shield bonuses do not stack, so the higher
+        // one wins on AC, while the circumstance save bonuses would — hence +2 more, not +4.
+        effects: [
+          { target: 'ac', type: 'shield', value: 4, note: 'Greater Shielded Meld' },
+          { target: 'save:fort', type: 'circumstance', value: 2, note: 'Greater Shielded Meld' },
+          { target: 'save:ref', type: 'circumstance', value: 2, note: 'Greater Shielded Meld' },
+          { target: 'save:will', type: 'circumstance', value: 2, note: 'Greater Shielded Meld' },
+        ],
+      },
+      g(16, 'syn-split-forms', 'Split Forms', 'As a swift action, split into yourself and your eidolon, both keeping the same evolutions, for a number of rounds per day equal to your summoner level. Replaces merge forms.'),
+    ],
+  },
+  {
     id: 'master-summoner', classId: 'summoner', name: 'Master Summoner',
     desc: 'A conjurer who floods the field with called creatures, keeping a lesser eidolon at their side.',
     replaces: ['summ-eidolon', 'summ-summon-monster', 'summ-shield-ally', 'summ-bond-senses'],

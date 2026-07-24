@@ -15,7 +15,7 @@ import * as C from '../content';
 import type { Ability, CompanionAttackLine, CompanionBlock, Sheet } from './types';
 import { abilityMod, ABILITIES } from './types';
 import {
-  naturalAttackPenalty, naturalPowerAttackScale, strengthDamage, type NaturalAttackContext,
+  naturalAttackDieUp, naturalAttackPenalty, naturalPowerAttackScale, strengthDamage, type NaturalAttackContext,
 } from './combat';
 
 /** What a familiar needs to know about the character it is bonded to. Animals and eidolons ignore
@@ -162,9 +162,59 @@ function resolveAnimal(
   return { ...block, tricks: row.tricks, pendingAbilityIncreases: increases };
 }
 
+/** What the bought evolutions add up to. The base form's *free* evolutions are already printed in
+ *  its starting statistics — a biped's two claws are the claws evolution — so they are never
+ *  applied again here; only what the summoner paid points for. */
+interface EvolutionTotals {
+  attacks: C.CompanionAttackDef[];
+  abilities: Partial<Record<Ability, number>>;
+  naturalArmor: number;
+  size?: C.CreatureSize;
+  speed: C.CompanionSpeedDef;
+  senses: string[];
+  special: string[];
+  /** Evolutions whose effect needs a choice this model doesn't carry, named so the card can say
+   *  the block leaves them out rather than implying they're included. */
+  manual: string[];
+}
+
+function evolutionTotals(taken: string[], base: C.CompanionSpeedDef): EvolutionTotals {
+  const out: EvolutionTotals = {
+    attacks: [], abilities: {}, naturalArmor: 0, speed: { ...base }, senses: [], special: [], manual: [],
+  };
+  // Deferred until the base land speed is final, because "equal to base speed" has to mean the
+  // speed *after* every extra pair of legs has raised it.
+  const derived: { climb?: 'base' | number; swim?: 'base' | number; fly?: number; burrow?: 'half' | number }[] = [];
+
+  for (const id of taken) {
+    const evo = C.EIDOLON_EVOLUTIONS.find((e) => e.id === id);
+    const ap = evo?.apply;
+    if (!evo || !ap) continue;
+    if (ap.manual) { out.manual.push(evo.name); continue; }
+    out.attacks.push(...(ap.attacks ?? []));
+    for (const [ab, v] of Object.entries(ap.abilities ?? {})) out.abilities[ab as Ability] = (out.abilities[ab as Ability] ?? 0) + v;
+    out.naturalArmor += ap.naturalArmor ?? 0;
+    if (ap.size) out.size = ap.size;
+    for (const s of ap.senses ?? []) if (!out.senses.includes(s)) out.senses.push(s);
+    for (const s of ap.special ?? []) if (!out.special.includes(s)) out.special.push(s);
+    if (ap.speed) {
+      out.speed.base += ap.speed.baseBonus ?? 0;
+      if (ap.speed.climb || ap.speed.swim || ap.speed.fly || ap.speed.burrow) derived.push(ap.speed);
+    }
+  }
+
+  for (const s of derived) {
+    if (s.climb) out.speed.climb = Math.max(out.speed.climb ?? 0, s.climb === 'base' ? out.speed.base : s.climb);
+    if (s.swim) out.speed.swim = Math.max(out.speed.swim ?? 0, s.swim === 'base' ? out.speed.base : s.swim);
+    if (s.fly) out.speed.fly = Math.max(out.speed.fly ?? 0, s.fly);
+    if (s.burrow) out.speed.burrow = Math.max(out.speed.burrow ?? 0, s.burrow === 'half' ? Math.floor(out.speed.base / 2) : s.burrow);
+  }
+  return out;
+}
+
 /** An eidolon: the same derivation as an animal companion, but its good saves come from the base
- *  form rather than the table, its hit dice are an outsider's d10, and it carries the evolution
- *  point-buy that the summoner spends on it. */
+ *  form rather than the table, its hit dice are an outsider's d10, and it advances by spending an
+ *  evolution pool — so the bought evolutions are folded in before anything is computed. */
 function resolveEidolon(
   def: C.CompanionDef, slotId: string, label: string, className: string, level: number,
   taken: string[],
@@ -172,8 +222,10 @@ function resolveEidolon(
   const lvl = clampLevel(level);
   const row = C.EIDOLON_TABLE[lvl - 1];
   const good = new Set(def.goodSaves ?? []);
+  const evo = evolutionTotals(taken, def.start.speed);
 
   const abilities = { ...def.start.abilities };
+  for (const ab of ABILITIES) abilities[ab] += evo.abilities[ab] ?? 0;
   abilities.str += row.strDex;
   abilities.dex += row.strDex;
 
@@ -181,20 +233,26 @@ function resolveEidolon(
   const increases = C.EIDOLON_TABLE.slice(0, lvl).filter((r) => r.special.includes(ABILITY_INCREASE)).length;
 
   const spent = taken.reduce((n, id) => n + (C.EIDOLON_EVOLUTIONS.find((e) => e.id === id)?.cost ?? 0), 0);
-  const attacks = def.start.attacks;
+
+  // Every natural attack an eidolon has comes from an evolution, and each evolution prints its own
+  // Large damage — so growing to Large steps the whole set up, base form included.
+  const size = evo.size ?? def.start.size;
+  const grown = size === 'large' && def.start.size !== 'large';
+  const scale = (a: C.CompanionAttackDef) => (grown ? { ...a, damage: naturalAttackDieUp(a.damage) } : a);
+  const attacks = [...def.start.attacks, ...evo.attacks].map(scale);
   const attackCount = attacks.reduce((n, a) => n + a.count, 0);
 
-  const notes = [
-    'Free evolutions from the base form cost no points.',
-    `The base form's attacks are shown; evolutions that add attacks are listed but not yet folded into these lines.`,
-  ];
+  const notes = ['Free evolutions from the base form cost no points, and are already in these numbers.'];
+  if (evo.manual.length)
+    notes.push(`Not folded into the numbers (each needs a choice this sheet doesn't carry): ${evo.manual.join(', ')}.`);
   if (attackCount > row.maxAttacks)
     notes.push(`Over the ${row.maxAttacks}-attack limit for this level.`);
+  if (grown && def.id === 'biped') notes.push('A Large biped also gains 10-foot reach.');
 
   const block = assemble({
     slotId, kind: 'eidolon', label, name: def.name, className, level: lvl,
-    hd: row.hd, hitDie: 10, size: def.start.size,
-    naturalArmor: def.start.naturalArmor + row.armor,
+    hd: row.hd, hitDie: 10, size,
+    naturalArmor: def.start.naturalArmor + row.armor + evo.naturalArmor,
     abilities,
     hp: creatureHp(row.hd, 10, abilityMod(abilities.con)),
     bab: row.bab,
@@ -204,9 +262,9 @@ function resolveEidolon(
       will: good.has('will') ? row.goodSave : row.poorSave,
     },
     attacks, attackAbility: 'str',
-    speed: def.start.speed, skillRanks: row.skills, feats: row.feats,
-    special: [...specials.filter((s) => s !== ABILITY_INCREASE), ...(def.start.specialQualities ?? [])],
-    senses: def.start.senses ?? [], notes,
+    speed: evo.speed, skillRanks: row.skills, feats: row.feats,
+    special: [...specials.filter((s) => s !== ABILITY_INCREASE), ...(def.start.specialQualities ?? []), ...evo.special],
+    senses: [...(def.start.senses ?? []), ...evo.senses], notes,
     hasMultiattack: specials.includes('Multiattack'),
   });
   return {

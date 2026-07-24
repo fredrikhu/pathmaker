@@ -6,10 +6,41 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 
 ## ▶ Resume here (last session end)
 
-**Current state** — branch `main`, working tree clean, **567 tests** passing; run
+**Current state** — branch `main`, working tree clean, **771 tests** passing; run
 `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
-**Latest — Project B done: source lines are no longer class-bound (Blood Arcanist + School Savant).** The
+**Latest — Project A done: companion creatures, and the Synthesist on top of them.** Companions were the
+last thing in the game with no model at all; they now resolve to real stat blocks. `CompanionDef` +
+`CompanionSourceDef` on `ClassDef` (which slot names the creature, how its effective level derives from the
+class level), a new `ClassChoiceDef.requires` that gates a slot on another slot's value (the druid's Nature
+Bond, the wizard's Arcane Bond), and `src/content/companions.ts` — three advancement tables and 31 creatures
+(17 Core animal companions, 3 eidolon base forms, 11 Core familiars), every number read off d20pfsrd.
+`src/engine/companion.ts` derives each kind on its own terms: an **animal** off its own hit dice and saves
+with its printed 4th/7th-level advancement; an **eidolon** off good/poor saves named by its base form, d10
+outsider hit dice, and its bought evolutions; a **familiar** off its master's hit points, base attack and
+base saves. Reuses the natural-attack helpers in `combat.ts` rather than restating them. `Sheet.companions`,
+wired for druid, ranger (level − 3, from 4th), hunter, cavalier, paladin (bonded mount from 5th), summoner,
+wizard, witch and shaman; one `CompanionCard` shared by the builder's Advancement step and the play sheet.
+**Evolutions are mechanical** — `EvolutionDef.apply` carries attacks, ability changes, natural armour, size,
+movement, senses and special qualities, and growing to Large steps every natural attack up a die (the base
+form's included, since every eidolon attack comes from an evolution). The ones needing a choice we don't
+model (Improved Damage, Ability Increase, Resistance, Grab…) are marked `manual` and **named on the card as
+not folded in**, rather than silently ignored. **Synthesist** ships on top: `ArchetypeDef.fusedCompanion`
+makes the eidolon's Strength/Dexterity/Constitution the summoner's own (mental scores kept), its natural
+armour his, its hit points his temporary hit points, with Shielded Meld / Greater Shielded Meld as real
+effects. 53 golden tests; **771 pass**; tsc + build clean. Two real bugs found and fixed on the way: a stale
+companion decision on an *untaken* branch still produced a creature (the same leak shape as the batch-6
+source fix), and the displayed ability score diverged from the modifier the rest of the sheet used under
+fusion. Browser-verified all four shapes against hand-computed numbers — druid 7 wolf (Large, 51 hp, AC 19,
+bite +9 for 1d8+9 at 1½× Str), summoner 8 serpentine eidolon (AC 22, bite +8 / tail slap +3 secondary),
+wizard 9 owl familiar (32 hp = half the master's, Will +8 off the master's base), and a Large-evolution
+Synthesist (Str 27 / Con 17 on the character, AC 23, Fort +7). Two content errors caught by verifying rather
+than recalling: the sting and wing-buffet evolutions are 1d4, not 1d6, and the owl familiar grants Perception
+in darkness, not Stealth. **Both scoped engine projects are now closed; no archetype-model or companion gaps
+remain.** Not modelled, deliberately: the eidolon's base attack and natural attacks are shown on its card but
+not folded into the fused synthesist's own attack lines, and the fused character keeps its own size.
+
+**Prior — Project B done: source lines are no longer class-bound (Blood Arcanist + School Savant).** The
 `dec.classId === 'sorcerer'` chain in `sourceFeatures` is replaced by two tables — `SOURCE_TABLES` (named
 source-power table → `{ map, prefix }`) and `CLASS_SOURCE_LINES` (which class draws which line off which choice
 id) — and `ArchetypeDef.sourceLines` lets an archetype grant a source line to a class that lacks it. Two
@@ -25,7 +56,7 @@ tracker shows a **"+ EVOCATION"** restricted slot at every spell level on an *ar
 Advancement shows Claws / Breath Weapon / Bloodline Arcana with **no** Bonus Spell rows and no Magical Supremacy.
 **Only Project A (companion creatures) remains.**
 
-**Prior — Every class now has ≥3 archetypes.** Arcanist **Brown-Fur Transmuter** (powerful change / share
+**Earlier — Every class now has ≥3 archetypes.** Arcanist **Brown-Fur Transmuter** (powerful change / share
 transmutation take the 3rd and 9th exploits; transmutation supremacy takes magical supremacy — the same
 exploit-line remove-and-re-add the shipped Eldritch Font uses) and Summoner **Wild Caller** (plant eidolon with
 its own four verified base forms replacing biped/quadruped/serpentine, summon nature's ally, fey friend for

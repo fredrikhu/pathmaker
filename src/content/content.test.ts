@@ -998,4 +998,13 @@ describe('companion creatures', () => {
       }
     }
   });
+
+  it('an archetype can only fuse a companion its class actually grants', () => {
+    for (const c of C.CLASSES) {
+      for (const arch of c.archetypes ?? []) {
+        if (!arch.fusedCompanion) continue;
+        expect((c.companions ?? []).length, `${c.id}/${arch.id}: fuses a companion the class does not grant`).toBeGreaterThan(0);
+      }
+    }
+  });
 });

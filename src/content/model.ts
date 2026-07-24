@@ -169,6 +169,32 @@ export type ClassChoiceKind =
   | 'companion'
   | 'list';
 
+/** What an evolution actually changes on the eidolon's stat block. Only the evolutions whose
+ *  effect is unambiguous carry one — an evolution that says "select one natural attack" or "choose
+ *  an energy type" needs a choice this model does not offer, and is marked `manual` instead so the
+ *  sheet can say the numbers don't include it rather than quietly pretending they do. */
+export interface EvolutionApply {
+  /** Natural attacks granted, at Medium size; the engine scales them if the eidolon is Large. */
+  attacks?: CompanionAttackDef[];
+  abilities?: Partial<Record<Ability, number>>;
+  naturalArmor?: number;
+  size?: CreatureSize;
+  /** Movement gained. `'base'` means "equal to base land speed", `'half'` half of it, a number
+   *  that many feet. `baseBonus` raises the land speed itself (each pair of legs, +10 ft). */
+  speed?: {
+    climb?: 'base' | number;
+    swim?: 'base' | number;
+    fly?: number;
+    burrow?: 'half' | number;
+    baseBonus?: number;
+  };
+  senses?: string[];
+  special?: string[];
+  /** The evolution needs a choice the model doesn't carry (which attack, which energy type), so
+   *  its effect is listed for the player rather than folded into the block. */
+  manual?: boolean;
+}
+
 /** One eidolon evolution: a point-buy purchase from the summoner's evolution pool. */
 export interface EvolutionDef {
   id: string;
@@ -183,6 +209,8 @@ export interface EvolutionDef {
   /** True if the evolution can be selected more than once (each purchase costs `cost` again).
    *  The builder renders these with a stepper; one-shot evolutions get a take/remove toggle. */
   multi?: boolean;
+  /** The mechanical change it makes, when that change is unambiguous. */
+  apply?: EvolutionApply;
 }
 
 // ---------- Companion creatures (animal companions, eidolons, familiars) ----------
@@ -359,6 +387,11 @@ export interface ArchetypeDef {
    *  a class with no bonus feats creates one. Used by archetypes that trade bonus feats for other
    *  abilities (e.g. the Sensei loses its feats at 2nd/6th/10th/14th). */
   bonusFeatSlots?: { add?: number[]; remove?: number[] };
+  /** The archetype fuses the class's companion into the character rather than leaving it a separate
+   *  creature — the Synthesist summoner. The character takes the companion's physical ability
+   *  scores and natural armour, and its hit points become temporary hit points. Which companion is
+   *  fused comes from the class's own `companions` entry, so the two cannot disagree. */
+  fusedCompanion?: boolean;
   /** Suppress specific source-granted powers (bloodline powers, order abilities, school powers…) that
    *  the archetype removes. These come from a *chosen source* via the engine's `sourceFeatures`, not
    *  the class's own feature list, so `replaces` can't reach them. Keyed by the engine prefix and the

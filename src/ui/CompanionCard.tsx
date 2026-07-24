@@ -22,9 +22,9 @@ function Stat({ label, value, hint }: { label: string; value: string; hint?: str
 
 export function CompanionCard({ c }: { c: CompanionBlock }) {
   // The class's own name for the companion leads; the kind is only added when it says something
-  // more ("Mount · Animal companion"), never when it just repeats the label.
+  // more ("Mount · Animal companion"), never when the label already contains it ("Fused Eidolon").
   const kind = KIND_KICKER[c.kind];
-  const kicker = c.label.toLowerCase() === kind.toLowerCase() ? c.label : `${c.label} · ${kind}`;
+  const kicker = c.label.toLowerCase().includes(kind.toLowerCase()) ? c.label : `${c.label} · ${kind}`;
   const evo = c.evolutions;
 
   return (

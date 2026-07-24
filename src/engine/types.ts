@@ -488,6 +488,10 @@ export interface CompanionBlock {
   pendingAbilityIncreases: number;
   /** Eidolons only: the evolution point-buy status and the cap on natural attacks. */
   evolutions?: { budget: number; spent: number; maxAttacks: number; attackCount: number; free: string[]; taken: string[] };
+  /** True when the character *is* this creature rather than standing beside it (the Synthesist's
+   *  fused eidolon): its physical ability scores, natural armour and hit points have already been
+   *  folded into the character's own stats, and `hp` here is the character's temporary hit points. */
+  fused?: boolean;
   /** Rules caveats not folded into the numbers. */
   notes: string[];
 }

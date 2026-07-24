@@ -1,9 +1,20 @@
 # Scope — the two remaining archetype-engine projects
 
-> **Status update (2026-07-24): Project B is DONE and shipped.** It came in smaller than scoped — Blood
-> Arcanist turned out to need no level remap at all (arcanist level *is* the sorcerer level), so B2
-> reduced to "let an archetype name which source tables it draws". Blood Arcanist and School Savant are
-> both live. Project A (companion creatures) remains open and is unchanged by this.
+> **Status update (2026-07-24): both projects are DONE. This document is now history.**
+>
+> **Project B** came in smaller than scoped — Blood Arcanist turned out to need no level remap at all
+> (arcanist level *is* the sorcerer level), so B2 reduced to "let an archetype name which source tables
+> it draws". Blood Arcanist and School Savant are both live.
+>
+> **Project A** was done in full rather than as "Companion Lite": A1–A6 all shipped, including the
+> mechanical evolutions (A5) that the breakdown below called the long pole, and Synthesist (A6). Two
+> things turned out differently in the doing. A5 was smaller than feared, because most evolutions reduce
+> to a handful of shapes (an attack, an ability change, a movement mode, a named quality) — the ones that
+> genuinely need a player choice are flagged `manual` and named on the card as *not folded in*, rather
+> than approximated. And A2 did not become a second resolve pipeline: it is one file ending in a shared
+> `assemble()`, reusing `combat.ts` rather than restating it, as hoped. Familiars, which the breakdown
+> below never mentions, were added as a third kind and were the cheapest of the three — almost every
+> number on a familiar is its master's.
 
 
 Written 2026-07-24, after the batch-6 archetype work. Companion to

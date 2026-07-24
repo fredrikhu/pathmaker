@@ -76,6 +76,19 @@ export function naturalAttackDamageDie(mediumDie: string, size: 'small' | 'mediu
   return size === 'small' ? (DAMAGE_STEP_DOWN[mediumDie] ?? mediumDie) : mediumDie;
 }
 
+/** Medium → Large for a *natural* attack, the ladder the eidolon evolutions print entry by entry
+ *  (claws 1d4 → 1d6, bite 1d6 → 1d8, slam 1d8 → 2d6). Not the inverse of the step-down table:
+ *  the weapon table's 1d10 has no place on the natural-attack ladder. */
+const NATURAL_STEP_UP: Record<string, string> = {
+  '1': '1d2', '1d2': '1d3', '1d3': '1d4', '1d4': '1d6', '1d6': '1d8', '1d8': '2d6', '2d6': '3d6',
+};
+
+/** A natural attack's damage die one size category up. Anything off the ladder is left alone
+ *  rather than guessed at. */
+export function naturalAttackDieUp(die: string): string {
+  return NATURAL_STEP_UP[die] ?? die;
+}
+
 /** A manufactured weapon's damage dice at the wielder's size. Weapons are sized to their owner, so a
  *  Small creature's weapon steps once down the weapon damage table (2d6 → 1d8, 2d4 → 1d6, 1d8 → 1d6).
  *  Double weapons ("1d6/1d6") size each end independently. Medium weapons are authored as-is. */

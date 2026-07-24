@@ -5148,3 +5148,173 @@ describe('companions — classes that always have one', () => {
     expect(resolve(humanFighter1()).sheet.companions).toEqual([]);
   });
 });
+
+describe('companions — evolutions change the eidolon block', () => {
+  // Summoner 8, biped: Large (4) + bite (1) + improved natural armour (1) = 6 of an 11-point pool.
+  const r = resolve(companionChar('summoner', 8, {
+    'eidolon-form': ['biped'],
+    evolutions: ['large', 'bite', 'improved-natural-armor'],
+  }));
+  const eid = r.sheet.companions[0];
+
+  it('Large changes the size and the ability scores', () => {
+    expect(eid.size).toBe('Large');
+    expect(eid.abilities.str).toBe(27);   // 16 form + 8 Large + 3 table
+    expect(eid.abilities.dex).toBe(13);   // 12 form − 2 Large + 3 table
+    expect(eid.abilities.con).toBe(17);   // 13 form + 4 Large
+  });
+
+  it('stacks natural armour from form, table and both armour evolutions', () => {
+    expect(eid.naturalArmor).toBe(12);   // 2 form + 6 table + 2 Large + 2 improved
+    expect(eid.ac).toBe(22);             // 10 − 1 size + 1 Dex + 12 natural
+    expect(eid.touch).toBe(10);
+  });
+
+  it('every natural attack steps up a die at Large — the base form\'s included', () => {
+    const byName = Object.fromEntries(eid.attacks.map((a) => [a.name, a]));
+    expect(byName['2 claws'].damage).toBe('1d6+8');   // 1d4 at Medium
+    expect(byName['bite'].damage).toBe('1d8+8');      // 1d6 at Medium
+    // Three attacks now, so none of them is the sole attack that would earn 1½× Str.
+    expect(byName['bite'].bonus).toBe(13);            // +6 BAB + 8 Str − 1 size
+    expect(eid.evolutions!.attackCount).toBe(3);
+  });
+
+  it('charges 6 points and notes the Large biped\'s reach', () => {
+    expect(eid.evolutions!.spent).toBe(6);
+    expect(eid.evolutions!.budget).toBe(11);
+    expect(eid.notes.some((n) => n.includes('10-foot reach'))).toBe(true);
+  });
+
+  it('hit points follow the raised Constitution', () => {
+    expect(eid.hp).toBe(51);   // floor(6 × 5.5) = 33, + 3 Con × 6 HD
+  });
+});
+
+describe('companions — evolution movement and the choices we do not model', () => {
+  it('an extra pair of legs raises base speed first, so climb matches the raised speed', () => {
+    const r = resolve(companionChar('summoner', 6, {
+      'eidolon-form': ['quadruped'],
+      evolutions: ['limbs', 'climb'],
+    }));
+    const eid = r.sheet.companions[0];
+    expect(eid.speed.base).toBe(50);    // 40 form + 10 for the extra legs
+    expect(eid.speed.climb).toBe(50);   // "equal to its base speed", after the increase
+  });
+
+  it('burrow is half the base speed', () => {
+    const r = resolve(companionChar('summoner', 10, { 'eidolon-form': ['quadruped'], evolutions: ['burrow'] }));
+    expect(r.sheet.companions[0].speed.burrow).toBe(20);
+  });
+
+  it('folds in senses and special qualities', () => {
+    const r = resolve(companionChar('summoner', 8, { 'eidolon-form': ['quadruped'], evolutions: ['scent', 'pounce'] }));
+    const eid = r.sheet.companions[0];
+    expect(eid.senses).toContain('scent');
+    expect(eid.special).toContain('Pounce');
+  });
+
+  it('names the evolutions it cannot fold in, and changes nothing for them', () => {
+    const plain = resolve(companionChar('summoner', 8, { 'eidolon-form': ['biped'] })).sheet.companions[0];
+    const r = resolve(companionChar('summoner', 8, {
+      'eidolon-form': ['biped'],
+      evolutions: ['improved-damage', 'ability-increase'],
+    }));
+    const eid = r.sheet.companions[0];
+    expect(eid.attacks[0].damage).toBe(plain.attacks[0].damage);
+    expect(eid.abilities.str).toBe(plain.abilities.str);
+    const note = eid.notes.find((n) => n.includes('Not folded into the numbers'));
+    expect(note).toBeTruthy();
+    expect(note).toContain('Improved Damage');
+    expect(note).toContain('Ability Increase');
+    // Still charged for, because the eidolon really does have them.
+    expect(eid.evolutions!.spent).toBe(3);
+  });
+
+  it('warns when the evolutions push it past the level\'s attack limit', () => {
+    // Summoner 3 allows 3 attacks; a serpentine already has two, and these add three more.
+    const r = resolve(companionChar('summoner', 3, {
+      'eidolon-form': ['serpentine'],
+      evolutions: ['sting', 'tentacle', 'gore'],
+    }));
+    const eid = r.sheet.companions[0];
+    expect(eid.evolutions!.attackCount).toBe(5);
+    expect(eid.notes.some((n) => n.includes('3-attack limit'))).toBe(true);
+  });
+});
+
+describe('companions — the Synthesist wears its eidolon', () => {
+  function synthesist(level: number, evolutions: string[] = []): CharacterDoc {
+    let d = newCharacter('t-synth', 'Ilyra Fused');
+    // Deliberately feeble physical scores, so anything the eidolon supplies is unmistakable.
+    d = withDecision(d, 'ability-base', { str: 8, dex: 8, con: 8, int: 12, wis: 12, cha: 16 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['cha']);
+    d = withDecision(d, 'alignment', 'N');
+    d = withDecision(d, 'class', 'summoner');
+    d = withDecision(d, 'archetype', 'synthesist');
+    d = withDecision(d, 'class-choices', { 'eidolon-form': ['biped'], evolutions });
+    return atLevel(d, level);
+  }
+  const r = resolve(synthesist(8));
+  const s = r.sheet.stats;
+  const eid = r.sheet.companions[0];
+
+  it('takes the eidolon\'s physical scores and keeps its own mental ones', () => {
+    // Biped 16/12/13, plus the table's +3 to Strength and Dexterity at summoner 8.
+    expect(s['ability:str'].total).toBe(19);
+    expect(s['ability:dex'].total).toBe(15);
+    expect(s['ability:con'].total).toBe(13);
+    // Mental scores are the summoner's own, untouched.
+    expect(s['ability:int'].total).toBe(12);
+    expect(s['ability:cha'].total).toBe(18);   // 16 + 2 human
+  });
+
+  it('wears the eidolon\'s natural armour, and Shielded Meld on top', () => {
+    // 10 + 2 Dex + 8 natural (2 form + 6 table) + 2 shield from Shielded Meld.
+    expect(s['ac'].total).toBe(22);
+    expect(s['ac'].lines.some((l) => l.label.includes('Fused eidolon'))).toBe(true);
+    expect(s['ac'].lines.some((l) => l.label === 'Shielded Meld')).toBe(true);
+  });
+
+  it('applies Shielded Meld\'s circumstance bonus to every save', () => {
+    for (const sv of ['fort', 'ref', 'will']) {
+      expect(s[`save:${sv}`].lines.some((l) => l.label === 'Shielded Meld'), sv).toBe(true);
+    }
+  });
+
+  it('the eidolon is marked fused and its hit points are called temporary', () => {
+    expect(eid.fused).toBe(true);
+    expect(eid.label).toBe('Fused Eidolon');
+    expect(eid.notes.some((n) => n.includes('temporary hit points'))).toBe(true);
+    expect(eid.notes.some((n) => n.includes('not folded into your attack lines'))).toBe(true);
+  });
+
+  it('swaps out every ability that assumed two separate creatures', () => {
+    const names = r.sheet.progression.flatMap((p) => p.features);
+    expect(names).toContain('Fused Eidolon');
+    expect(names).toContain('Fused Link');
+    expect(names).toContain('Shielded Meld');
+    expect(names).toContain("Maker's Jump");
+    expect(names).not.toContain('Eidolon');
+    expect(names).not.toContain('Life Link');
+    expect(names).not.toContain('Bond Senses');
+    expect(names).not.toContain('Shield Ally');
+    expect(names).not.toContain("Maker's Call");
+  });
+
+  it('evolutions the eidolon buys reach the synthesist, because they are his scores now', () => {
+    const large = resolve(synthesist(8, ['large']));
+    // Large gives the eidolon +8 Str / +4 Con / −2 Dex and +2 more natural armour.
+    expect(large.sheet.stats['ability:str'].total).toBe(27);
+    expect(large.sheet.stats['ability:con'].total).toBe(17);
+    expect(large.sheet.stats['ability:dex'].total).toBe(13);
+    expect(large.sheet.companions[0].naturalArmor).toBe(10);
+  });
+
+  it('a plain summoner keeps its own scores and a separate eidolon', () => {
+    const plain = resolve(companionChar('summoner', 8, { 'eidolon-form': ['biped'] }));
+    expect(plain.sheet.stats['ability:str'].total).toBe(12);
+    expect(plain.sheet.companions[0].fused).toBeFalsy();
+    expect(plain.sheet.companions[0].label).toBe('Eidolon');
+  });
+});
