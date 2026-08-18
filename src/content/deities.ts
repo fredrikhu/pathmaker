@@ -7,6 +7,7 @@ export const DEITIES: DeityDef[] = [
   { id: 'desna', name: 'Desna', alignment: 'CG', domains: ['chaos', 'good', 'liberation', 'luck', 'travel'], portfolio: 'Dreams, stars, travelers, luck' },
   { id: 'erastil', name: 'Erastil', alignment: 'LG', domains: ['animal', 'community', 'good', 'law', 'plant'], portfolio: 'Farming, hunting, family' },
   { id: 'gorum', name: 'Gorum', alignment: 'CN', domains: ['chaos', 'destruction', 'glory', 'strength', 'war'], portfolio: 'Strength, battle, weapons' },
+  { id: 'groetus', name: 'Groetus', alignment: 'CN', domains: ['chaos', 'darkness', 'destruction', 'madness', 'void'], portfolio: 'The End Times, empty places, ruins' },
   { id: 'gozreh', name: 'Gozreh', alignment: 'N', domains: ['air', 'animal', 'plant', 'water', 'weather'], portfolio: 'Nature, weather, the sea' },
   { id: 'iomedae', name: 'Iomedae', alignment: 'LG', domains: ['glory', 'good', 'law', 'sun', 'war'], portfolio: 'Valor, rulership, justice, honor' },
   { id: 'irori', name: 'Irori', alignment: 'LN', domains: ['healing', 'knowledge', 'law', 'rune', 'strength'], portfolio: 'History, knowledge, self-perfection' },
@@ -19,6 +20,7 @@ export const DEITIES: DeityDef[] = [
   { id: 'shelyn', name: 'Shelyn', alignment: 'NG', domains: ['air', 'charm', 'good', 'luck', 'protection'], portfolio: 'Beauty, art, love, music' },
   { id: 'torag', name: 'Torag', alignment: 'LG', domains: ['artifice', 'earth', 'good', 'law', 'protection'], portfolio: 'Forge, protection, strategy' },
   { id: 'urgathoa', name: 'Urgathoa', alignment: 'NE', domains: ['death', 'evil', 'magic', 'strength', 'war'], portfolio: 'Gluttony, disease, undeath' },
+  { id: 'ydersius', name: 'Ydersius', alignment: 'CE', domains: ['chaos', 'evil', 'nobility', 'scalykind', 'war'], portfolio: 'Serpentfolk, the Headless King' },
   { id: 'zon-kuthon', name: 'Zon-Kuthon', alignment: 'LE', domains: ['darkness', 'death', 'destruction', 'evil', 'law'], portfolio: 'Envy, pain, darkness, loss' },
 ];
 
@@ -57,10 +59,12 @@ const DOMAIN_POWERS: Record<string, ReturnType<typeof p>[]> = {
   protection: [p('Resistant Touch', 1, 'Touch an ally to grant it your resistance bonus for 1 minute; 3 + Wis/day.'), p('Aura of Protection', 8, '30-ft aura grants allies +1 deflection AC and energy resistance 5 (scaling); cleric level rounds/day.')],
   repose: [p('Gentle Rest', 1, 'Touch staggers a living creature for 1 round, or puts it to sleep if already staggered; 3 + Wis/day.'), p('Ward Against Death', 8, '30-ft aura grants immunity to death effects and energy drain; cleric level rounds/day.')],
   rune: [p('Blast Rune', 1, 'Create a rune in an adjacent square dealing 1d6 +1 per two cleric levels; 3 + Wis/day.'), p('Spell Rune', 8, 'Attach a spell you cast to a blast rune so it also affects the triggering creature.')],
+  scalykind: [p('Venomous Stare', 1, 'Gaze attack within 30 ft: 1d6 nonlethal +1 per two levels and fascinated for 1 round on a failed Will save; 3 + Wis/day.'), p('Serpent Companion', 4, 'Gain a viper or constrictor snake companion at an effective druid level of your cleric level - 2.')],
   strength: [p('Strength Surge', 1, 'Touch grants an enhancement bonus to melee attacks and Str checks for 1 round; 3 + Wis/day.'), p('Might of the Gods', 8, 'Add your cleric level as an enhancement bonus to Strength checks; cleric level rounds/day.')],
   sun: [p("Sun's Blessing", 1, 'Add your cleric level to positive-energy channel damage against undead, ignoring their channel resistance.'), p('Nimbus of Light', 8, '30-ft daylight sphere damages undead for your cleric level each round and dispels darkness; cleric level rounds/day.')],
   travel: [p('Agile Feet', 1, 'Ignore difficult terrain for 1 round as a free action; 3 + Wis/day.'), p('Dimensional Hop', 8, 'Teleport up to 10 ft per cleric level per day as a move action, in 5-ft increments.')],
   trickery: [p('Copycat', 1, 'Create a single mirror image lasting cleric level rounds; 3 + Wis/day.'), p("Master's Illusion", 8, 'Veil-like illusion disguises you and allies within 30 ft; ½ character level rounds/day.')],
+  void: [p('Guarded Mind', 1, '+2 insight bonus on saving throws against mind-affecting effects.'), p('Part the Veil', 8, 'When a single-target spell of yours forces a failed Will save, the target is also confused for rounds equal to the spell level; 1/2 class level per day.')],
   war: [p('Battle Rage', 1, 'Touch grants a melee damage bonus equal to ½ your cleric level (min +1) for 1 round; 3 + Wis/day.'), p('Weapon Master', 8, 'Activate one combat feat you qualify for as a swift action; cleric level rounds/day.')],
   water: [p('Icicle', 1, 'Ranged touch attack for 1d6 cold +1 per two cleric levels; 3 + Wis/day.'), p('Cold Resistance', 6, 'Resist cold 10, rising to 20 at 12th and immunity at 20th.')],
   weather: [p('Storm Burst', 1, 'Ranged touch attack for 1d6 nonlethal +1 per two cleric levels; 3 + Wis/day.'), p('Lightning Lord', 8, 'Call down bolts of lightning (as call lightning); cleric level bolts/day.')],
@@ -98,10 +102,12 @@ const DOMAIN_SPELLS: Record<string, (string | null)[]> = {
   protection:['sanctuary',           'shield-other',     'protection-from-energy',    'spell-immunity',       'spell-resistance',  'antimagic-field',     'repulsion',       'mind-blank',      'prismatic-sphere'],
   repose:    ['deathwatch',          'gentle-repose',    'speak-with-dead',           'death-ward',           'slay-living',       'undeath-to-death',    'destruction',     'waves-of-exhaustion', 'wail-of-the-banshee'],
   rune:      ['erase',               'secret-page',      'glyph-of-warding',          'explosive-runes',      'lesser-planar-binding', 'greater-glyph-of-warding', 'instant-summons', 'symbol-of-death', 'teleportation-circle'],
+  scalykind: ['magic-fang',           'animal-trance',    'greater-magic-fang',        'poison',               'animal-growth',     'eyebite',             'creeping-doom',   'animal-shapes',   'shapechange'],
   strength:  ['enlarge-person',      'bulls-strength',   'magic-vestment',            'spell-immunity',       'righteous-might',   'stoneskin',           'grasping-hand',   'clenched-fist',   'crushing-hand'],
   sun:       ['endure-elements',     'heat-metal',       'searing-light',             'fire-shield',          'flame-strike',      'fire-seeds',          'sunbeam',         'sunburst',        'prismatic-sphere'],
   travel:    ['longstrider',         'locate-object',    'fly',                       'dimension-door',       'teleport',          'find-the-path',       'greater-teleport', 'phase-door',     'astral-projection'],
   trickery:  ['disguise-self',       'invisibility',     'nondetection',              'confusion',            'false-vision',      'mislead',             'screen',          'mass-invisibility', 'time-stop'],
+  void:      ['feather-fall',         'levitate',         'fly',                       'lesser-planar-binding', 'overland-flight',  'planar-binding',      'reverse-gravity', 'greater-planar-binding', 'interplanetary-teleport'],
   war:       ['magic-weapon',        'spiritual-weapon', 'magic-vestment',            'divine-power',         'flame-strike',      'blade-barrier',       'power-word-blind', 'power-word-stun', 'power-word-kill'],
   water:     ['obscuring-mist',      'fog-cloud',        'water-breathing',           'control-water',        'ice-storm',         'cone-of-cold',        'elemental-body-iv', 'horrid-wilting', 'elemental-swarm'],
   weather:   ['obscuring-mist',      'fog-cloud',        'call-lightning',            'sleet-storm',          'ice-storm',         'control-winds',       'control-weather', 'whirlwind',       'storm-of-vengeance'],
@@ -120,6 +126,12 @@ export const domainById = new Map(DOMAINS.map((d) => [d.id, d]));
 // Warpriest blessings (verified against d20pfsrd's blessing list). Keyed by the matching domain id;
 // a warpriest chooses blessings from those granted by the deity's domains. Minor power = 1st level,
 // major power = 10th; both draw on the shared blessing pool (3 + ½ warpriest level uses/day).
+//
+// The blessing list is NOT a subset of the domain list and must not be built from it:
+//   - Scalykind and Void are domains added here with them (Ydersius and Groetus grant them);
+//   - Curse is a *subdomain* of Luck, reached through the `parent` field below;
+//   - Godfist has no domain and no deity — it belongs to the Godclaw, a five-god Hellknight
+//     faith rather than a god, so no catalogued deity grants it.
 export const BLESSINGS: BlessingDef[] = [
   { id: 'air', name: 'Air', minor: 'A weapon ignores ranged range penalties for 1 min.', major: 'Grant an ally fly 60 ft (with bonus charge damage) for 1 min.' },
   { id: 'animal', name: 'Animal', minor: 'Grant an ally claws/bite (1d6/1d4) for 1 min.', major: "Summon a battle companion (summon nature's ally V) for 1 min." },
@@ -127,6 +139,9 @@ export const BLESSINGS: BlessingDef[] = [
   { id: 'chaos', name: 'Chaos', minor: 'Weapon gains the chaotic property (+1d6 vs lawful) for 1 min.', major: 'Summon a chaotic creature (summon monster IV) for 1 min.' },
   { id: 'charm', name: 'Charm', minor: 'Give an ally a sanctuary effect for 1 min.', major: 'Aura lets you issue a swift-action command spell within 30 ft for 1 min.' },
   { id: 'community', name: 'Community', minor: "An ally's aid another bonus rises to +4 for 1 min.", major: 'Allies gain +2 insight on attacks that match yours for 1 min.' },
+  // Curse is a *subdomain* of Luck, not a domain of its own, so it is granted to a warpriest
+  // whose deity grants Luck (Desna, Calistria). `parent` is what carries that.
+  { id: 'curse', name: 'Curse', parent: 'luck', minor: 'Hexing Attack: a touched weapon curses its next target with -2 on attacks, saves, skill or ability checks (your choice) for 1 min.', major: 'Retributive Curse: curse an adjacent foe that crits or deals precision damage to you, for 1 hour.' },
   { id: 'darkness', name: 'Darkness', minor: 'Grant an ally 20% concealment in combat for 1 min.', major: 'Blind one foe within 30 ft (blindness/deafness) for 1 min.' },
   { id: 'death', name: 'Death', minor: 'Gain +4 Disguise/Intimidate and +2 saves vs disease and mind-affecting for 1 min.', major: 'Melee touch inflicts a temporary negative level for 1 min.' },
   { id: 'destruction', name: 'Destruction', minor: 'Grant an ally a morale bonus to weapon damage equal to half your level for 1 min.', major: 'A foe gets +4 to confirm crits and 50% to negate crits against them for 1 min.' },
@@ -134,6 +149,7 @@ export const BLESSINGS: BlessingDef[] = [
   { id: 'evil', name: 'Evil', minor: 'Weapon deals +1d6 vs good and counts as evil for 1 min.', major: 'Summon an evil creature (summon monster IV) for 1 min.' },
   { id: 'fire', name: 'Fire', minor: 'Weapon deals +1d4 fire for 1 min.', major: 'Wreath an ally in a warm fire shield for 1 min.' },
   { id: 'glory', name: 'Glory', minor: 'Give an ally a sanctuary effect for 1 min.', major: 'Swift-action demoralize a damaged foe using your level.' },
+  { id: 'godfist', name: 'Godfist', minor: 'Command Obedience: touch an ally to grant a new save against each enchantment effect on her.', major: 'Tactical Readiness: allies within 30 ft each take one free action (shed flat-footed, 5-ft step, draw, ready a shield, or +1 dodge AC).' },
   { id: 'good', name: 'Good', minor: 'Weapon deals +1d6 vs evil and counts as good for 1 min.', major: 'Summon a good creature (summon monster IV) for 1 min.' },
   { id: 'healing', name: 'Healing', minor: 'Empower a cure spell (+50% healing) as a swift action.', major: 'Touch an ally to grant fast healing 3 for 1 min.' },
   { id: 'knowledge', name: 'Knowledge', minor: "Touch attack reveals a creature's abilities (as a Knowledge check of 15 + level + Wis).", major: 'Gain +2 insight against a known opponent for 1 min.' },
@@ -147,10 +163,12 @@ export const BLESSINGS: BlessingDef[] = [
   { id: 'protection', name: 'Protection', minor: 'Gain +1 sacred bonus to AC and saves for 1 min.', major: '30-ft aura grants resistance 10 to acid/cold/electricity/fire/sonic for 1 min.' },
   { id: 'repose', name: 'Repose', minor: 'Touch staggers a living creature for 1 round (or sleeps it if already staggered).', major: 'When you channel to heal, also damage undead for half the amount.' },
   { id: 'rune', name: 'Rune', minor: 'Create an invisible blast rune (1d6 + ½ level) in an adjacent square.', major: 'Store a spell in a weapon (as spell storing) for up to 10 min.' },
+  { id: 'scalykind', name: 'Scalykind', minor: 'Scaly Touch: grant an ally +1 natural armor (+1 more per 5 levels, max +5) for 1 min.', major: 'Serpent Fang: gain a venomous bite (1d4, plus 1d2 Con damage per round for 4 rounds) for 1 min.' },
   { id: 'strength', name: 'Strength', minor: 'Gain a ½-level enhancement bonus on melee attacks and Str checks for 1 round.', major: 'Ignore armor penalties and add Str to saves vs entangle/stagger/paralysis for 1 min.' },
   { id: 'sun', name: 'Sun', minor: 'Blind a foe for 1 round (dazzled if it saves).', major: 'Grant a weapon flaming or undead-bane for 1 min.' },
   { id: 'travel', name: 'Travel', minor: 'Ignore difficult terrain for 1 round.', major: 'Teleport up to 20 ft as a move action.' },
   { id: 'trickery', name: 'Trickery', minor: 'Create an illusory double (as mirror image) for several rounds.', major: 'Become invisible (as greater invisibility) for 1 round.' },
+  { id: 'void', name: 'Void', minor: 'Airless Touch: a melee touch leaves a foe unable to speak, cast with verbal components or use a breath weapon for 1 round (staggered on a failed Fort save).', major: 'Deny Gravity: touch an ally to grant fly 40 ft (average) for 1 min.' },
   { id: 'war', name: 'War', minor: 'Grant an ally +10 ft speed, +1 dodge AC, +1 insight to attack, or +1 luck on saves for 1 min.', major: 'Your melee attacks gain vicious and +4 insight to confirm crits for 1 min.' },
   { id: 'water', name: 'Water', minor: 'Weapon deals +1d4 cold for 1 min.', major: 'Wreath an ally in a chill fire shield for 1 min.' },
   { id: 'weather', name: 'Weather', minor: 'Weapon deals +1d4 electricity for 1 min.', major: 'Surround yourself with a wind wall (plus feather fall and clear ranged attacks) for 1 min.' },

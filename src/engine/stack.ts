@@ -28,7 +28,7 @@ export function stack(contribs: Contribution[]): Stacked {
     if (c.value === 0) continue;
     if (STACKING_TYPES.has(c.type) || c.value < 0) {
       total += c.value;
-      lines.push({ label: c.note, value: c.value });
+      lines.push({ label: c.note, value: c.value, type: c.type });
     } else {
       const prev = bestOfType.get(c.type);
       if (!prev || c.value > prev.value) bestOfType.set(c.type, c);
@@ -36,7 +36,7 @@ export function stack(contribs: Contribution[]): Stacked {
   }
   for (const c of bestOfType.values()) {
     total += c.value;
-    lines.push({ label: c.note, value: c.value });
+    lines.push({ label: c.note, value: c.value, type: c.type });
   }
   return { total, lines };
 }

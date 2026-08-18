@@ -79,6 +79,16 @@ export function EquipmentStep({ ch }: { ch: CharCtl }) {
   const purchases = doc.purchases;
   const equipped = doc.equipped;
 
+  // Gold earned at the table. Kept as a string while focused so a half-typed "-" or "" does not
+  // snap back to 0 under the cursor; only finite values reach the document.
+  const bonusGold = Number(doc.decisions['bonus-gold'] ?? 0) || 0;
+  const setBonusGold = (raw: string) => {
+    const t = raw.trim();
+    if (t === '' || t === '-') return ch.setDecision('bonus-gold', 0);
+    const n = Number(t);
+    if (Number.isFinite(n)) ch.setDecision('bonus-gold', Math.round(n * 100) / 100);
+  };
+
   const buy = (id: string, cost: number) => {
     if (sheet.gold < cost) return;
     ch.patch((d) => ({ ...d, goldSpent: Math.round((d.goldSpent + cost) * 100) / 100, purchases: { ...d.purchases, [id]: (d.purchases[id] ?? 0) + 1 } }));
@@ -240,6 +250,14 @@ export function EquipmentStep({ ch }: { ch: CharCtl }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 26, marginBottom: 16, flexWrap: 'wrap' }}>
         <h3 style={{ fontSize: 21, margin: 0 }}>Equipment</h3>
         <span style={{ fontSize: 13 }}>Gold <strong className="num" style={{ color: sheet.gold < 0 ? 'var(--err)' : 'var(--color-accent-300)' }}>{sheet.gold} gp</strong></span>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 11.5, color: 'var(--color-neutral-400)' }}
+          title="Treasure gained at the table, added to your wealth by level. Negative for gold spent or lost away from the shop.">
+          Earned in play
+          <input className="input" type="number" step="1" value={bonusGold === 0 ? '' : bonusGold}
+            placeholder="0" onChange={(e) => setBonusGold(e.target.value)}
+            style={{ width: 96, fontSize: 12, padding: '3px 7px', textAlign: 'right' }} />
+          <span>gp</span>
+        </label>
         <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
           <TermSpan id="encumbrance"><span style={{ fontSize: 11.5, color: 'var(--color-neutral-400)' }}>Load</span></TermSpan>
           <div style={{ width: 130, height: 5, borderRadius: 3, background: 'var(--color-neutral-800)', overflow: 'hidden' }}>

@@ -106,15 +106,10 @@ button.inspect {
   color: var(--color-neutral-500);
 }
 
-/* Print rendition of the sheet route. */
+/* Print rendition of the sheet route. The page margin matches the on-screen page padding in
+   sheet.css (9mm), so the printed content box is the same 192mm the layout is built against. */
 @media print {
   body { background: #fff !important; color: var(--ink) !important; }
   .no-print { display: none !important; }
-  .print-page {
-    box-shadow: none !important;
-    margin: 0 !important;
-    width: auto !important;
-    min-height: auto !important;
-  }
-  @page { size: A4; margin: 12mm; }
+  @page { size: A4; margin: 9mm; }
 }

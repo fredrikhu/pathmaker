@@ -1,0 +1,223 @@
+/* ---------------------------------------------------------------------------
+   Official-layout character sheet (two pages, portrait).
+
+   A trace of the Paizo Pathfinder RPG character sheet's structure: black
+   notched banners, small-caps serif captions under boxed values, formula rows
+   where a total is followed by its named addends. The layout is reproduced;
+   none of Paizo's artwork is — the masthead carries this app's own wordmark.
+
+   Everything here is scoped under `.pf-sheet` so it cannot leak into the app
+   chrome, and every colour is a literal (not a theme token): the sheet is ink
+   on paper in both themes and on the printer.
+   --------------------------------------------------------------------------- */
+
+.pf-sheet {
+  --pf-ink: #000;
+  --pf-rule: #000;
+  --pf-fill: #f3f0e9;      /* the faint tint Paizo uses inside grouped boxes */
+  --pf-quiet: #555;        /* captions */
+  color: var(--pf-ink);
+  font-family: "IM Fell English", Georgia, "Times New Roman", serif;
+  font-size: 10.5px;
+  line-height: 1.25;
+}
+
+/* ---- Page ---- */
+.pf-page {
+  position: relative;
+  width: 210mm;
+  min-height: 297mm;
+  padding: 9mm 9mm 7mm;
+  margin: 0 auto 18px;
+  background: #fff;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---- Banner: black bar, Cinzel caps, notched right point ---- */
+.pf-banner {
+  background: var(--pf-ink);
+  color: #fff;
+  font-family: "Cinzel", Georgia, serif;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  padding: 2.5px 16px 2.5px 8px;
+  line-height: 1.3;
+  clip-path: polygon(0 0, calc(100% - 7px) 0, 100% 50%, calc(100% - 7px) 100%, 0 100%);
+}
+/* Both ends angled — the sheet's wider section headers (Skills, Base Attack Bonus). */
+.pf-banner--arrow {
+  padding-left: 16px;
+  clip-path: polygon(7px 0, calc(100% - 7px) 0, 100% 50%, calc(100% - 7px) 100%, 7px 100%, 0 50%);
+}
+/* Squared-off, for the tight chips beside a value box (AC, TOUCH, FLAT-FOOTED). */
+.pf-chip {
+  background: var(--pf-ink);
+  color: #fff;
+  font-family: "Cinzel", Georgia, serif;
+  font-weight: 700;
+  text-transform: uppercase;
+  text-align: center;
+  padding: 2px 3px;
+  line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.pf-chip small {
+  display: block;
+  font-size: 4.6px;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  opacity: 0.85;
+}
+
+/* ---- Captions ----
+   Not Cinzel: at 5px under a 22px box, a display serif cannot fit a word like "DEFLECTION" and
+   breaks it mid-word. Arial Narrow is listed first and helps where it is installed, but it is
+   NOT relied on — the box widths below are sized against plain Arial, which is everywhere. */
+.pf-cap {
+  font-family: "Arial Narrow", "Liberation Sans Narrow", Arial, Helvetica, sans-serif;
+  font-size: 5.6px;
+  line-height: 1.15;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--pf-quiet);
+  text-align: center;
+  /* A caption never overlaps its neighbour: it wraps between words first, and only breaks
+     inside a word when a single word is wider than the box it names. */
+  overflow-wrap: break-word;
+}
+.pf-cap--l { text-align: left; }
+
+/* ---- Boxes: a bordered cell holding a computed value ---- */
+.pf-box {
+  border: 0.75px solid var(--pf-rule);
+  min-height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: "Cinzel", Georgia, serif;
+  font-weight: 700;
+  font-size: 11.5px;
+  padding: 0 2px;
+  background: #fff;
+}
+.pf-box--lg { min-height: 24px; font-size: 14.5px; }
+.pf-box--sm { min-height: 14px; font-size: 9.5px; font-weight: 400; }
+/* An addend the character has none of. Paizo leaves it blank; so do we, rather
+   than printing a 0 that reads as a value someone entered. */
+.pf-box--empty { color: transparent; }
+/* Boxes the player fills in at the table (current HP, temp modifiers, XP). */
+.pf-box--blank { background: #fff; }
+
+.pf-op {
+  font-family: "Cinzel", Georgia, serif;
+  font-weight: 700;
+  font-size: 10.5px;
+  align-self: center;
+  padding: 0 1px;
+}
+
+/* A caption sitting under its box. */
+.pf-cell { display: flex; flex-direction: column; gap: 0.5px; min-width: 0; }
+/* Two caption lines' worth, so a row of boxes stays aligned when one caption wraps. */
+.pf-cell > .pf-cap { min-height: 13px; font-size: 4.9px; letter-spacing: 0; }
+
+/* ---- Ruled write-in lines ---- */
+.pf-rules { display: flex; flex-direction: column; }
+.pf-rules > div {
+  border-bottom: 0.75px solid var(--pf-rule);
+  min-height: 15px;
+  font-size: 10px;
+  line-height: 15px;
+  padding: 0 2px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+/* Field lines in the masthead: caption above, rule under the value. */
+.pf-field { border-bottom: 0.75px solid var(--pf-rule); min-height: 16px; display: flex; align-items: flex-end; }
+.pf-field > span { font-size: 10.5px; padding: 0 0 0.5px 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ---- Tables ---- */
+/* Fixed layout: the declared column widths are honoured and a long item name is clipped,
+   rather than auto-layout widening the whole table past its column. */
+.pf-table { width: 100%; table-layout: fixed; border-collapse: collapse; }
+.pf-table th, .pf-table td { border: 0.75px solid var(--pf-rule); padding: 0.5px 3px; height: 15.5px; }
+.pf-table th {
+  font-family: "Arial Narrow", "Liberation Sans Narrow", Arial, Helvetica, sans-serif;
+  font-size: 5.6px;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--pf-quiet);
+  text-align: center;
+  height: auto;
+  min-height: 11px;
+  padding: 1px 2px;
+  overflow-wrap: break-word;
+}
+.pf-table td { font-size: 9.5px; }
+.pf-table .num { text-align: center; font-family: "Cinzel", Georgia, serif; font-weight: 700; font-size: 9.5px; }
+
+/* ---- Skill rows ---- */
+.pf-skill {
+  display: grid;
+  grid-template-columns: 8px 1fr 27px 7px 18px 20px 7px 21px 7px 23px;
+  align-items: center;
+  column-gap: 2px;
+  height: 17.5px;
+  font-size: 9.8px;
+}
+.pf-skill .pf-tick {
+  width: 7px; height: 7px;
+  border: 0.75px solid var(--pf-rule);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 6px; line-height: 1;
+}
+.pf-skill .pf-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant: small-caps; }
+.pf-skill .pf-val { border-bottom: 0.75px solid var(--pf-rule); text-align: center; font-family: "Cinzel", Georgia, serif; font-weight: 700; font-size: 9.8px; height: 14px; }
+.pf-skill .pf-abbr { font-size: 7.5px; text-align: center; letter-spacing: 0.02em; text-transform: uppercase; }
+.pf-skill--untrained { color: #6a6a6a; }
+
+/* ---- Checkbox strip (spell slots used, per level) ---- */
+.pf-ticks { display: flex; gap: 1.5px; }
+.pf-ticks i { width: 7px; height: 7px; border: 0.75px solid var(--pf-rule); display: block; }
+
+.pf-hr { border: 0; border-top: 0.75px solid var(--pf-rule); margin: 0; }
+
+/* A two-up box whose divider must land in the same place on the heading row and on the value
+   row below it. `flex: 1` will not do it: with a zero flex-basis the browser adds each child's
+   padding on top of its share, so the padded cell comes out wider and the split drifts. An
+   explicit half-width in the border box is exact regardless of what padding each cell carries. */
+.pf-split { display: flex; border: 0.75px solid var(--pf-rule); }
+.pf-split > * { flex: none; width: 50%; min-width: 0; box-sizing: border-box; }
+.pf-split > :first-child { border-right: 0.75px solid var(--pf-rule); }
+
+.pf-foot {
+  margin-top: auto;
+  padding-top: 3px;
+  font-size: 6.5px;
+  color: var(--pf-quiet);
+  display: flex;
+  justify-content: space-between;
+}
+
+/* ---- Print ---- */
+@media print {
+  /* The @page margin (9mm, set in app.css) replaces the on-screen padding, so the content box
+     stays exactly 192mm wide — the width every fixed column below is measured against. Leaving
+     the 297mm min-height in place would overflow the printable area and emit a blank page. */
+  .pf-page {
+    box-shadow: none;
+    margin: 0;
+    padding: 0;
+    width: 192mm;
+    min-height: 0;
+    break-after: page;
+  }
+  .pf-page:last-child { break-after: auto; }
+}

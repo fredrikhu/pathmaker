@@ -552,6 +552,22 @@ describe('deities and bloodlines', () => {
       expect(b!.major.length, `blessing ${d.id}: empty major power`).toBeGreaterThan(0);
     }
   });
+  // The full published list, from d20pfsrd's warpriest blessings index. Four of these — curse,
+  // godfist, scalykind and void — have no cleric domain, so the domain-driven check above cannot
+  // catch their absence; the list went out with them missing once already.
+  it('carries every published warpriest blessing', () => {
+    const published = [
+      'air', 'animal', 'artifice', 'chaos', 'charm', 'community', 'curse', 'darkness', 'death',
+      'destruction', 'earth', 'evil', 'fire', 'glory', 'godfist', 'good', 'healing', 'knowledge',
+      'law', 'liberation', 'luck', 'madness', 'magic', 'nobility', 'plant', 'protection', 'repose',
+      'rune', 'scalykind', 'strength', 'sun', 'travel', 'trickery', 'void', 'war', 'water', 'weather',
+    ];
+    expect(C.BLESSINGS.map((b) => b.id).sort()).toEqual([...published].sort());
+    for (const b of C.BLESSINGS) {
+      expect(b.minor.length, `blessing ${b.id}: empty minor power`).toBeGreaterThan(0);
+      expect(b.major.length, `blessing ${b.id}: empty major power`).toBeGreaterThan(0);
+    }
+  });
 });
 
 describe('spells', () => {

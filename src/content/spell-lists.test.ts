@@ -37,7 +37,9 @@ function srdIdFor(id: string): string {
 /** Spells we carry that are on none of the four base CRB lists this fixture covers. All three are
  *  paladin-only (the paladin and ranger lists are now authored and audited separately in
  *  content.test.ts), so they are absent from this fixture by construction rather than by mistake. */
-const NOT_ON_A_CRB_LIST = new Set(['bless-weapon', 'holy-sword', 'heal-mount']);
+// Spells we carry that predate or postdate the Core Rulebook lists. `interplanetary-teleport`
+// is the Void domain's 9th-level spell (Inner Sea Gods), carried only so that domain is complete.
+const NOT_ON_A_CRB_LIST = new Set(['bless-weapon', 'holy-sword', 'heal-mount', 'interplanetary-teleport']);
 
 function loadFixture(): Record<string, Partial<Record<SpellList, number>>> {
   const out: Record<string, Partial<Record<SpellList, number>>> = {};

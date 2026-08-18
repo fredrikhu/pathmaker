@@ -695,6 +695,9 @@ export interface DomainDef {
 export interface BlessingDef {
   id: string;
   name: string;
+  /** Set when this blessing belongs to a *subdomain* rather than a domain of its own: the id of
+   *  the parent domain that grants it. A warpriest whose deity grants the parent may take it. */
+  parent?: string;
   minor: string;
   major: string;
 }

@@ -70,6 +70,9 @@ interface Decisions {
   traits: string[];
   drawback: string | null;
   skillRanks: Record<string, number>;
+  /** Treasure gained (or lost) after the build, once the character has been played. Held apart
+   *  from the wealth-by-level baseline so raising the level still recomputes that baseline. */
+  bonusGold: number;
   languages: string[];
   spellPicks: Record<number, string[]>; // spell level -> chosen spell ids
   hpRolls: Record<number, number>; // level -> hp gained (levels >= 2)
@@ -100,6 +103,8 @@ function readDecisions(doc: CharacterDoc): Decisions {
     traits: get<string[]>('traits', []),
     drawback: get<string | null>('drawback', null),
     skillRanks: get<Record<string, number>>('skill-ranks', {}),
+    // A hand-typed field, so a stray value must not poison the gold figure downstream.
+    bonusGold: (() => { const n = Number(get<number>('bonus-gold', 0)); return Number.isFinite(n) ? n : 0; })(),
     languages: get<string[]>('languages', []),
     // Per spell level. Legacy value was a flat array of 1st-level picks — migrate to { 1: [...] }.
     spellPicks: (() => {
@@ -1182,6 +1187,9 @@ export function resolve(doc: CharacterDoc): Resolution {
     if (t?.bonusGold) startGold = t.bonusGold;
   }
   startGold = klass ? startingWealth(level, startGold) : startGold;
+  // Treasure from play sits outside the by-level baseline: it survives a level change, and a
+  // negative figure covers gold spent or lost away from the shop.
+  startGold += dec.bonusGold;
   // Masterwork/magic upgrades are a declarative property of an owned item rather than a purchase
   // transaction, so their cost is derived here — toggling an enhancement off refunds it.
   const qualitySpend = Object.entries(itemQuality(doc)).reduce((sum, [id, q]) => {
@@ -2521,13 +2529,22 @@ function classChoiceOptions(ch: C.ClassChoiceDef, dec: Decisions, level = 1): Sl
       const noun = isBlessing ? 'blessing' : 'domain';
       const deity = dec.deityId ? C.deityById.get(dec.deityId) : undefined;
       const allowed = deity && deity.id !== 'none' ? new Set(deity.domains) : null;
-      return C.DOMAINS.map((d) => {
-        const bless = isBlessing ? C.blessingById.get(d.id) : undefined;
-        const desc = bless ? `Minor (1st): ${bless.minor}  ·  Major (10th): ${bless.major}` : d.desc;
+      // Blessings come from the blessing catalogue, not the domain list. Curse, Godfist,
+      // Scalykind and Void are blessings with no cleric domain behind them, so building this
+      // from DOMAINS would drop them from the picker entirely.
+      const rows = isBlessing
+        ? C.BLESSINGS.map((b) => ({
+            id: b.id, name: b.name, parent: b.parent,
+            desc: `Minor (1st): ${b.minor}  ·  Major (10th): ${b.major}`,
+          }))
+        : C.DOMAINS.map((d) => ({ id: d.id, name: d.name, parent: undefined as string | undefined, desc: d.desc }));
+      return rows.map((r) => {
+        // A subdomain blessing rides on its parent domain: a deity granting Luck grants Curse.
+        const granted = !allowed || allowed.has(r.id) || (r.parent !== undefined && allowed.has(r.parent));
         return {
-          id: d.id, name: d.name, desc,
-          legal: allowed ? allowed.has(d.id) : true,
-          whyNot: allowed && !allowed.has(d.id) ? `${deity!.name} does not grant the ${d.name} ${noun}` : undefined,
+          id: r.id, name: r.name, desc: r.desc,
+          legal: granted,
+          whyNot: granted ? undefined : `${deity!.name} does not grant the ${r.name} ${noun}`,
         };
       });
     }

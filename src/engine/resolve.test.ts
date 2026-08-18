@@ -463,6 +463,51 @@ describe('warpriest: deity-filtered blessings, ¾ BAB, no creation spells step',
     expect(war.whyNot).toMatch(/blessing/); // uses blessing wording, not domain
   });
 
+  // Built from BLESSINGS, not DOMAINS: Godfist is a blessing with no cleric domain behind it, and
+  // a domain-driven picker dropped it entirely.
+  it('lists every published blessing, domain-backed or not', () => {
+    const slot = r.slots.find((sl) => sl.id === 'blessings')!;
+    const ids = slot.options.map((o) => o.id);
+    expect(ids).toHaveLength(C.BLESSINGS.length);
+    for (const id of ['curse', 'godfist', 'scalykind', 'void']) {
+      expect(ids, `blessing ${id} missing from the picker`).toContain(id);
+      // Sarenrae grants none of the four, so they show up explained rather than silently absent.
+      expect(slot.options.find((o) => o.id === id)!.legal).toBe(false);
+    }
+  });
+
+  function warpriestOf(deity: string): CharacterDoc {
+    let d = warpriest();
+    d = withDecision(d, 'alignment', 'CN');
+    return withDecision(d, 'deity', deity);
+  }
+  const blessingsOf = (deity: string) =>
+    resolve(warpriestOf(deity)).slots.find((sl) => sl.id === 'blessings')!.options;
+
+  it('grants the Void blessing to a warpriest of Groetus and Scalykind to one of Ydersius', () => {
+    expect(blessingsOf('groetus').find((o) => o.id === 'void')!.legal).toBe(true);
+    expect(blessingsOf('groetus').find((o) => o.id === 'scalykind')!.legal).toBe(false);
+    expect(blessingsOf('ydersius').find((o) => o.id === 'scalykind')!.legal).toBe(true);
+    expect(blessingsOf('ydersius').find((o) => o.id === 'void')!.legal).toBe(false);
+  });
+
+  // Curse is a subdomain of Luck, so a Luck deity grants it even though no deity lists "curse".
+  it('grants the Curse blessing through its parent Luck domain', () => {
+    for (const luckGod of ['desna', 'calistria']) {
+      expect(blessingsOf(luckGod).find((o) => o.id === 'curse')!.legal, luckGod).toBe(true);
+    }
+    // Not a blanket pass: a deity without Luck still cannot take it.
+    expect(blessingsOf('gorum').find((o) => o.id === 'curse')!.legal).toBe(false);
+  });
+
+  // Known gap, asserted so it is visible rather than forgotten: the Godfist blessing belongs to
+  // the Godclaw, a five-god Hellknight faith, not to any single deity in the catalogue.
+  it('leaves Godfist ungranted by every catalogued deity', () => {
+    const granting = C.DEITIES.filter((d) => d.id !== 'none')
+      .filter((d) => blessingsOf(d.id).find((o) => o.id === 'godfist')!.legal);
+    expect(granting.map((d) => d.id)).toEqual([]);
+  });
+
   it('has no creation-time spells step (prepared-list caster)', () => {
     expect(r.steps).not.toContain('spells');
   });
@@ -1611,6 +1656,34 @@ describe('starting wealth by level', () => {
   it('subtracts what has been spent', () => {
     expect(resolve(warpriestAt(3, { goldSpent: 500 })).sheet.gold).toBe(2500);
   });
+
+  // Treasure won at the table, for a character that has been played since it was built.
+  const played = (level: number, bonus: unknown, extra?: Partial<CharacterDoc>) =>
+    resolve(withDecision(warpriestAt(level, extra), 'bonus-gold', bonus)).sheet.gold;
+
+  it('adds gold earned in play on top of wealth by level', () => {
+    expect(played(3, 1500)).toBe(4500);
+    expect(played(1, 25)).toBe(200);                            // 1st level keeps the class roll
+    expect(played(3, 1500, { goldSpent: 500 })).toBe(4000);
+  });
+
+  it('takes a negative figure for gold spent or lost away from the shop', () => {
+    expect(played(3, -1000)).toBe(2000);
+  });
+
+  // It survives a level change: the by-level baseline recomputes, the winnings ride along.
+  it('keeps earned gold when the level changes', () => {
+    expect(played(3, 1500)).toBe(4500);
+    expect(played(4, 1500)).toBe(7500);
+  });
+
+  // The field is hand-typed, so junk must not turn the whole purse into NaN.
+  it('ignores a non-numeric or absent figure rather than poisoning the total', () => {
+    for (const junk of [undefined, null, '', 'lots', NaN]) {
+      expect(played(3, junk), String(junk)).toBe(3000);
+    }
+    expect(played(3, '250')).toBe(3250); // a numeric string still counts
+  });
 });
 
 describe('1st-level hit points', () => {
@@ -2045,24 +2118,24 @@ describe('Skill Focus folds into the named skill', () => {
     const withFocus = skill(rogue({ 'feat-1': 'perception' }, { perception: 1 }), 'perception');
     const without = skill(rogue({}, { perception: 1 }), 'perception');
     expect(withFocus.total - without.total).toBe(3);
-    expect(withFocus.lines).toContainEqual({ label: 'Skill Focus', value: 3 });
+    expect(withFocus.lines).toContainEqual(expect.objectContaining({ label: 'Skill Focus', value: 3 }));
   });
 
   it('leaves other skills alone', () => {
     const d = rogue({ 'feat-1': 'perception' }, { perception: 1, stealth: 1 });
-    expect(skill(d, 'stealth').lines).not.toContainEqual({ label: 'Skill Focus', value: 3 });
+    expect(skill(d, 'stealth').lines).not.toContainEqual(expect.objectContaining({ label: 'Skill Focus', value: 3 }));
   });
 
   it('rises to +6 at 10 ranks', () => {
     const at9 = skill(rogue({ 'feat-1': 'perception' }, { perception: 9 }), 'perception');
     const at10 = skill(rogue({ 'feat-1': 'perception' }, { perception: 10 }), 'perception');
-    expect(at9.lines).toContainEqual({ label: 'Skill Focus', value: 3 });
-    expect(at10.lines).toContainEqual({ label: 'Skill Focus', value: 6 });
+    expect(at9.lines).toContainEqual(expect.objectContaining({ label: 'Skill Focus', value: 3 }));
+    expect(at10.lines).toContainEqual(expect.objectContaining({ label: 'Skill Focus', value: 6 }));
   });
 
   it('grants nothing while the skill is unpicked', () => {
     expect(skill(rogue({}, { perception: 1 }), 'perception').lines)
-      .not.toContainEqual({ label: 'Skill Focus', value: 3 });
+      .not.toContainEqual(expect.objectContaining({ label: 'Skill Focus', value: 3 }));
   });
 });
 
@@ -2084,7 +2157,7 @@ describe('Spell Focus and the spell save DC', () => {
   it('exposes a base DC of 10 + the casting modifier', () => {
     const dc = resolve(wizard()).sheet.stats['spell:dc'];
     expect(dc.total).toBe(13); // 10 + 3 Int
-    expect(dc.lines).toContainEqual({ label: 'INT modifier', value: 3 });
+    expect(dc.lines).toContainEqual(expect.objectContaining({ label: 'INT modifier', value: 3 }));
   });
 
   it('lists a Spell Focus school bonus separately from the base DC', () => {
@@ -2183,7 +2256,7 @@ describe('masterwork and magic enhancement', () => {
     const plain = resolve(armed({})).sheet.stats['ac'].total;
     const magic = resolve(armed({ 'chain-shirt': { masterwork: true, enhancement: 2 } })).sheet.stats['ac'];
     expect(magic.total - plain).toBe(2);
-    expect(magic.lines).toContainEqual({ label: 'Chain shirt +2', value: 2 });
+    expect(magic.lines).toContainEqual(expect.objectContaining({ label: 'Chain shirt +2', value: 2 }));
   });
 
   it('masterwork armour reduces the armour check penalty by 1', () => {
@@ -2346,7 +2419,7 @@ describe('armour and shield special abilities', () => {
     const base = s(armoured(plusOne), 'stealth').total;
     const shadow = s(armoured({ 'chain-shirt': { masterwork: true, enhancement: 1, properties: ['shadow'] } }), 'stealth');
     expect(shadow.total - base).toBe(5);
-    expect(shadow.lines).toContainEqual({ label: 'Shadow armour', value: 5 });
+    expect(shadow.lines).toContainEqual(expect.objectContaining({ label: 'Shadow armour', value: 5 }));
   });
 
   it('slick adds a competence bonus to Escape Artist and leaves Stealth alone', () => {
@@ -3061,7 +3134,7 @@ describe('worn magic items', () => {
   it('cloak of resistance adds to every save', () => {
     const d = worn(['cloak-resistance-3']);
     for (const s of ['save:fort', 'save:ref', 'save:will']) {
-      expect(st(d, s).lines).toContainEqual({ label: 'Cloak of resistance +3', value: 3 });
+      expect(st(d, s).lines).toContainEqual(expect.objectContaining({ label: 'Cloak of resistance +3', value: 3 }));
     }
   });
 

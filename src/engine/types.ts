@@ -218,6 +218,10 @@ export const normalizePlayState = (p: PlayState | undefined): PlayState => ({ ..
 export interface BreakdownLine {
   label: string;
   value: number;
+  /** The bonus type this line came from. Carried through so a renderer that has to sort a total
+   *  into named columns — the official sheet's AC and save rows — can do it without parsing
+   *  labels. Absent only on lines assembled outside `stack()`. */
+  type?: BonusType;
 }
 
 export interface Stat {
