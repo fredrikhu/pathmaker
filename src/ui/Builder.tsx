@@ -68,6 +68,17 @@ export function Builder({ id }: { id: string }) {
           })}
         </div>
         <span style={{ flex: 1 }} />
+        {/* Phone-only (display:none until mobile.css flips it): the issues panel sits at the
+            bottom of the stacked layout there, so the docked header carries a badge to it. */}
+        {resolution.issues.length > 0 && (
+          <button className="issues-badge"
+            onClick={() => document.querySelector('.issues-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+            style={{ display: 'none', alignItems: 'center', gap: 5, fontSize: 11, padding: '4px 11px', borderRadius: 999,
+              border: 'none', cursor: 'pointer', fontFamily: 'inherit', background: 'var(--warn-bg)',
+              color: resolution.issues.some((i) => i.severity === 'error') ? 'var(--err)' : 'var(--warn-fg)' }}>
+            ⚠ {resolution.issues.length} to resolve
+          </button>
+        )}
         <ThemeToggle />
         <button className="btn btn-secondary" style={{ fontSize: 12 }} disabled={!ch.canUndo} onClick={ch.undo} title="Undo (Ctrl+Z)">↩ Undo</button>
         <span className="text-muted" style={{ fontSize: 11 }}>Saved</span>

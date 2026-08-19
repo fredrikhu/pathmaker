@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import type { CharCtl } from '../../Builder';
 import { WEAPONS, ARMORS, GEAR, weaponById, armorById, anyItemById, gearById } from '../../../content/index';
 import type { CharacterDoc } from '../../../engine/types';
@@ -78,6 +78,21 @@ export function EquipmentStep({ ch }: { ch: CharCtl }) {
   const sheet = resolution.sheet;
   const purchases = doc.purchases;
   const equipped = doc.equipped;
+
+  // Phone-only Shop / Owned & worn panels (the .equip-grid scroll-snap carousel in mobile.css).
+  // The tabs both drive the swipe and track it, so they stay in sync either way. On desktop the
+  // grid never scrolls, so no scroll events fire and the tabs stay display:none.
+  const splitRef = useRef<HTMLDivElement>(null);
+  const [panel, setPanel] = useState(0);
+  const snapTo = (i: number) => {
+    const el = splitRef.current;
+    if (el) el.scrollTo({ left: i === 0 ? 0 : el.scrollWidth - el.clientWidth, behavior: 'smooth' });
+  };
+  const trackPanel = (e: React.UIEvent<HTMLDivElement>) => {
+    const el = e.currentTarget;
+    const max = el.scrollWidth - el.clientWidth;
+    if (max > 40) setPanel(el.scrollLeft > max / 2 ? 1 : 0);
+  };
 
   // Gold earned at the table. Kept as a string while focused so a half-typed "-" or "" does not
   // snap back to 0 under the cursor; only finite values reach the document.
@@ -280,7 +295,15 @@ export function EquipmentStep({ ch }: { ch: CharCtl }) {
         })}
       </div>
 
-      <div className="equip-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(420px,1fr) minmax(300px,380px)', gap: 34 }}>
+      <div className="equip-tabs" style={{ display: 'none', gap: 6, marginBottom: 12 }}>
+        {(['Shop', 'Owned & worn'] as const).map((label, i) => (
+          <button key={label} className="btn btn-secondary" onClick={() => snapTo(i)}
+            style={{ fontSize: 12, ...(panel === i ? { color: 'var(--color-accent)', borderColor: 'var(--color-accent)' } : {}) }}>{label}</button>
+        ))}
+      </div>
+
+      <div className="equip-grid" ref={splitRef} onScroll={trackPanel}
+        style={{ display: 'grid', gridTemplateColumns: 'minmax(420px,1fr) minmax(300px,380px)', gap: 34 }}>
         <div>
           <h6 style={{ margin: '0 0 10px', color: 'var(--color-neutral-500)' }}>Shop</h6>
           {groups.map((g) => (

@@ -66,8 +66,24 @@
   .abilities-col { min-width: 100% !important; }
   .seg-control { flex-wrap: wrap; }
 
-  /* Shop + owned lists go single column (the desktop template has a 420px floor). */
-  .equip-grid { grid-template-columns: minmax(0, 1fr) !important; gap: 22px !important; }
+  /* Equipment: Shop and Owned & worn become the same swipe-snap panels as Class/Race,
+     driven (and tracked) by the .equip-tabs segmented control above them. */
+  .equip-grid {
+    display: flex !important;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    gap: 24px !important;
+    overscroll-behavior-x: contain;
+  }
+  .equip-grid > * {
+    flex: 0 0 100%;
+    min-width: 0;
+    scroll-snap-align: start;
+  }
+  .equip-tabs { display: flex !important; }
+
+  /* The issues panel is at the bottom of the stacked builder — the header badge jumps to it. */
+  .issues-badge { display: inline-flex !important; }
 
   /* — Roster — */
   .roster-root { padding: 0 12px !important; }
