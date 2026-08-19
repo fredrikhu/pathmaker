@@ -66,7 +66,7 @@ export function StatStrip({ sheet }: { sheet: Sheet }) {
         );
       })()}
       <span style={{ flex: 1 }} />
-      <div style={{ alignSelf: 'center', fontSize: 11, color: 'var(--color-neutral-500)', whiteSpace: 'nowrap', paddingLeft: 12 }}>
+      <div className="strip-hint" style={{ alignSelf: 'center', fontSize: 11, color: 'var(--color-neutral-500)', whiteSpace: 'nowrap', paddingLeft: 12 }}>
         hover a number for its breakdown · click to pin · dotted terms explain the rules
       </div>
     </div>

@@ -40,7 +40,7 @@ export function SheetPreview({ id }: { id: string }) {
         </div>
       </div>
 
-      <div style={{ maxWidth: 900, margin: '0 auto', padding: '0 24px 60px' }}>
+      <div className="sheet-body" style={{ maxWidth: 900, margin: '0 auto', padding: '0 24px 60px' }}>
         <h1 style={{ fontSize: 32, marginBottom: 2 }}>{doc.name}</h1>
         <p className="text-muted" style={{ fontSize: 14 }}>{sheet.summaryLine} · Speed {speedLabel(sheet.speed)}</p>
 

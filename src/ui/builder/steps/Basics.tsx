@@ -133,10 +133,10 @@ export function BasicsStep({ ch }: { ch: CharCtl }) {
         </div>
       </div>
 
-      <div style={{ flex: 1, minWidth: 620 }}>
+      <div className="abilities-col" style={{ flex: 1, minWidth: 620 }}>
         <h3 style={{ fontSize: 21, margin: '0 0 12px' }}><TermSpan id="ability">Ability scores</TermSpan></h3>
         <div style={{ display: 'flex', alignItems: 'center', gap: 18, margin: '0 0 14px', flexWrap: 'wrap' }}>
-          <div style={{ display: 'inline-flex', border: '1px solid var(--color-divider)', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
+          <div className="seg-control" style={{ display: 'inline-flex', border: '1px solid var(--color-divider)', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
             {METHODS.map((m) => (
               <button key={m.id} onClick={() => setMethod(m.id)}
                 style={{ padding: '7px 12px', fontSize: 13, cursor: 'pointer', background: 'transparent', border: 'none', borderLeft: '1px solid var(--color-divider)', color: method === m.id ? 'var(--color-accent)' : 'var(--color-text)', boxShadow: method === m.id ? 'inset 0 0 0 1px var(--color-accent)' : 'none', fontFamily: 'inherit' }}>
@@ -160,6 +160,7 @@ export function BasicsStep({ ch }: { ch: CharCtl }) {
           {method === 'manual' && <span className="text-muted" style={{ fontSize: 12 }}>Manual entry — no pool, range 3–18.</span>}
         </div>
 
+        <div className="table-scroll">
         <div style={{ display: 'grid', gridTemplateColumns: '150px 130px 60px 110px 60px 50px', gap: 8, padding: '0 4px 7px' }} className="micro">
           <span>Ability</span><span>Base</span><span>Cost</span><span><TermSpan id="racial">Racial</TermSpan></span><span>Score</span><span><TermSpan id="mod">Mod</TermSpan></span>
         </div>
@@ -193,6 +194,7 @@ export function BasicsStep({ ch }: { ch: CharCtl }) {
             </div>
           );
         })}
+        </div>
         <p className="text-muted" style={{ fontSize: 11.5, marginTop: 12, maxWidth: 560 }}>
           {race?.abilityMods === 'choice'
             ? `${race.name}s gain +2 to ${dualTalent ? 'two abilities' : 'one ability'} — click a racial cell to move it. `

@@ -1,0 +1,87 @@
+/* Phone layout (≤760px). Every rule lives inside this media query, so desktop rendering is
+   untouched. The components style themselves inline; the hook classes referenced here are
+   inert on desktop, and !important is how a stylesheet rule beats an inline style. */
+@media (max-width: 760px) {
+  html { -webkit-text-size-adjust: 100%; }
+
+  /* iOS Safari zooms the page when a focused field's font is under 16px. */
+  .input, select.input { font-size: 16px !important; }
+
+  /* — Builder — */
+  /* Small-viewport unit: 100vh overshoots under mobile browser chrome. */
+  .builder-root { height: 100dvh !important; }
+  .builder-header { padding: 8px 12px !important; gap: 10px !important; row-gap: 4px !important; }
+  /* Step tabs become a full-width, horizontally scrollable rail. */
+  .builder-steps {
+    order: 9;
+    width: 100%;
+    margin-left: 0 !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto;
+  }
+  .builder-steps button { white-space: nowrap; }
+  /* Stack the work area over the issues panel; one shared vertical scroll. */
+  .builder-main { display: block !important; overflow-y: auto; }
+  .builder-content { padding: 14px 12px 28px !important; overflow: visible !important; }
+  .issues-panel { border-left: none !important; border-top: 1px solid var(--color-divider); }
+
+  /* Hover hint is meaningless on touch. */
+  .strip-hint { display: none; }
+
+  /* Fixed-track tables (abilities, skills) side-scroll inside their own wrapper
+     instead of widening the page. The width cap keeps a flex-column ancestor from
+     sizing to the table's intrinsic width (24px = the content pane's padding). */
+  .table-scroll { overflow-x: auto; max-width: calc(100vw - 24px); }
+
+  /* Class/Race master-detail: the two panes become full-width panels in a horizontal
+     scroll-snap carousel — swipe (or tap a card / the back button) to move between the
+     list and the description. Desktop keeps the side-by-side split untouched. */
+  .split-step {
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    gap: 24px !important;
+    overscroll-behavior-x: contain; /* a swipe past the edge must not trigger browser back */
+  }
+  .split-list {
+    flex: 0 0 100% !important;
+    width: auto !important;
+    scroll-snap-align: start;
+  }
+  .split-detail {
+    flex: 0 0 100% !important;
+    scroll-snap-align: start;
+    /* neutralize the desktop scrollbar-bleed trick (padding 26 / margin −26) */
+    padding-right: 0 !important;
+    margin-right: 0 !important;
+  }
+  /* Each list row hints that it opens a detail panel. */
+  .split-list .pick.is-clickable::after {
+    content: '›';
+    color: var(--color-neutral-500);
+    font-size: 16px;
+  }
+
+  /* Ability-scores column: the desktop 620px floor becomes "full row", which still forces
+     the flex-wrap onto its own line but at phone width. The method picker wraps. */
+  .abilities-col { min-width: 100% !important; }
+  .seg-control { flex-wrap: wrap; }
+
+  /* Shop + owned lists go single column (the desktop template has a 420px floor). */
+  .equip-grid { grid-template-columns: minmax(0, 1fr) !important; gap: 22px !important; }
+
+  /* — Roster — */
+  .roster-root { padding: 0 12px !important; }
+  .roster-grid { grid-template-columns: 1fr !important; }
+
+  /* — Play sheet & sheet preview — */
+  .play-root { padding: 12px 12px 48px !important; }
+  .sheet-body { padding: 0 12px 48px !important; }
+
+  /* Print rendition keeps its fixed page width; just spend less on the dark mat. */
+  .pf-sheet { padding: 8px !important; }
+}
+
+/* Mobile-only controls (the split-panel back button) don't exist on desktop. */
+@media (min-width: 761px) {
+  .split-back { display: none !important; }
+}

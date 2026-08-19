@@ -46,6 +46,7 @@ export function SkillsStep({ ch }: { ch: CharCtl }) {
         </label>
         <span className="text-muted" style={{ fontSize: 11.5 }}>● = <TermSpan id="classskill">class skill</TermSpan> · ▲ = <TermSpan id="acp">armor check penalty</TermSpan></span>
       </div>
+      <div className="table-scroll">
       <div style={{ display: 'grid', gridTemplateColumns: '260px 56px 140px 70px 70px 1fr', gap: 8, padding: '0 4px 7px' }} className="micro">
         <span>Skill</span><span>Abil</span><span><TermSpan id="rank">Ranks</TermSpan></span><span></span><span>Total</span><span></span>
       </div>
@@ -68,6 +69,7 @@ export function SkillsStep({ ch }: { ch: CharCtl }) {
           </div>
         );
       })}
+      </div>
       <p className="text-muted" style={{ fontSize: 11.5, marginTop: 12 }}>Max ranks per skill = character level ({sheet.level}). Click any total for its breakdown.</p>
     </div>
   );

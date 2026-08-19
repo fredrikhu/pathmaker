@@ -1,6 +1,26 @@
 import type { SlotOption } from '../../engine/types';
 import { useTip } from '../Tooltip';
 
+/* Master-detail split (Class, Race): on phones the two panes are full-width panels in a
+   horizontal scroll-snap container (.split-step, styles in mobile.css). These helpers slide
+   between them; on desktop the container never scrolls horizontally, so both are no-ops. */
+
+/** Slide to the detail panel (and bring the step's top into view) after a list tap. */
+export function revealSplitDetail(e: React.MouseEvent): void {
+  const root = (e.currentTarget as HTMLElement).closest('.split-step') as HTMLElement | null;
+  // The snap style only exists under mobile.css's media query — the reliable "is phone" test
+  // (scrollWidth overshoots clientWidth on desktop too, from the −26px scrollbar bleed).
+  if (!root || getComputedStyle(root).scrollSnapType === 'none') return;
+  root.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  root.scrollTo({ left: root.scrollWidth - root.clientWidth, behavior: 'smooth' });
+}
+
+/** Slide back to the list panel (the mobile-only back button). */
+export function showSplitList(e: React.MouseEvent): void {
+  const root = (e.currentTarget as HTMLElement).closest('.split-step') as HTMLElement | null;
+  root?.scrollTo({ left: 0, behavior: 'smooth' });
+}
+
 /** Warning tag: would-invalidate consequences or a persistent caution (opposition school). */
 export function WarnTag({ option }: { option: SlotOption }) {
   const tip = useTip();

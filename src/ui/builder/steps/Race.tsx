@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { CharCtl } from '../../Builder';
 import { RACES, raceById } from '../../../content/index';
-import { OptionCard } from '../bits';
+import { OptionCard, revealSplitDetail, showSplitList } from '../bits';
 import { useTip } from '../../Tooltip';
 
 export function RaceStep({ ch }: { ch: CharCtl }) {
@@ -34,13 +34,13 @@ export function RaceStep({ ch }: { ch: CharCtl }) {
   };
 
   return (
-    <div style={{ display: 'flex', gap: 28, height: '100%' }}>
-      <div style={{ flex: 'none', width: 280, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+    <div className="split-step" style={{ display: 'flex', gap: 28, height: '100%' }}>
+      <div className="split-list" style={{ flex: 'none', width: 280, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
         <h3 style={{ fontSize: 21, margin: '0 0 12px' }}>Race</h3>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 7, overflowY: 'auto', minHeight: 0, paddingRight: 6 }}>
           {RACES.map((r) => (
             <div key={r.id} role="button" tabIndex={0}
-              onClick={() => setViewId(r.id)}
+              onClick={(e) => { setViewId(r.id); revealSplitDetail(e); }}
               onDoubleClick={() => selectRace(r.id)}
               onKeyDown={(e) => { if (e.key === 'Enter') { setViewId(r.id); selectRace(r.id); } else if (e.key === ' ') { e.preventDefault(); setViewId(r.id); } }}
               title="Click to preview · double-click or Enter to select"
@@ -58,8 +58,9 @@ export function RaceStep({ ch }: { ch: CharCtl }) {
 
       {/* Negative right margin pulls the scroll container into the Builder column's 26px padding so
           its scrollbar sits flush with the pane edge (see Class.tsx). */}
-      <div style={{ padding: '4px 26px 4px 0', marginRight: -26, flex: 1, minWidth: 0, overflowY: 'auto', minHeight: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 6 }}>
+      <div className="split-detail" style={{ padding: '4px 26px 4px 0', marginRight: -26, flex: 1, minWidth: 0, overflowY: 'auto', minHeight: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 6, flexWrap: 'wrap' }}>
+          <button className="btn btn-ghost split-back" style={{ fontSize: 12 }} onClick={showSplitList}>‹ All races</button>
           <h3 style={{ fontSize: 24, margin: 0 }}>{view.name}</h3>
           <button className="btn btn-primary" style={{ fontSize: 12 }} onClick={() => selectRace(view.id)}>
             {selectedRace === view.id ? '✓ Selected' : 'Select race'}

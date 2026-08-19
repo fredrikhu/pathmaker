@@ -358,7 +358,7 @@ export function PlaySheet({ id }: { id: string }) {
   const hpColor = currentHp <= 0 ? 'var(--err)' : currentHp <= maxHp / 4 ? 'var(--warn-fg)' : 'var(--color-accent-300)';
 
   return (
-    <div style={{ minHeight: '100vh', maxWidth: 920, margin: '0 auto', padding: '16px 24px 60px' }}>
+    <div className="play-root" style={{ minHeight: '100vh', maxWidth: 920, margin: '0 auto', padding: '16px 24px 60px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', marginBottom: 18 }}>
         <button className="btn btn-ghost" style={{ fontSize: 12 }} onClick={() => navigate({ name: 'roster' })}>← Roster</button>
         <div>

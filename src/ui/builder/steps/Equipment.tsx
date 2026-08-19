@@ -280,7 +280,7 @@ export function EquipmentStep({ ch }: { ch: CharCtl }) {
         })}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(420px,1fr) minmax(300px,380px)', gap: 34 }}>
+      <div className="equip-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(420px,1fr) minmax(300px,380px)', gap: 34 }}>
         <div>
           <h6 style={{ margin: '0 0 10px', color: 'var(--color-neutral-500)' }}>Shop</h6>
           {groups.map((g) => (

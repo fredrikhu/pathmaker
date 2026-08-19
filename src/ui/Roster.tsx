@@ -58,7 +58,7 @@ export function Roster() {
   const storageNote = 'Characters live in this browser. Export to back them up or move them between devices.';
 
   return (
-    <div style={{ minHeight: '100vh', padding: '0 24px' }}>
+    <div className="roster-root" style={{ minHeight: '100vh', padding: '0 24px' }}>
       <header style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '18px 4px', flexWrap: 'wrap' }}>
         <span style={{ fontSize: 11, letterSpacing: '.16em', textTransform: 'uppercase', color: 'var(--color-accent)' }}>Pathmaker</span>
         <span className="text-muted" style={{ fontSize: 13 }}>Pathfinder 1e character forge</span>
@@ -87,7 +87,7 @@ export function Roster() {
         </div>
       ) : (
         <>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 14, paddingBottom: 24 }}>
+          <div className="roster-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 14, paddingBottom: 24 }}>
             {entries.map((e) => {
               const { summary, issues } = summarize(e.id);
               return (

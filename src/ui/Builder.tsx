@@ -44,8 +44,8 @@ export function Builder({ id }: { id: string }) {
   const goto = (s: string) => setStep(s);
 
   return (
-    <div style={{ height: '100vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', fontSize: 14 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '10px 20px', flexWrap: 'wrap' }}>
+    <div className="builder-root" style={{ height: '100vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', fontSize: 14 }}>
+      <div className="builder-header" style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '10px 20px', flexWrap: 'wrap' }}>
         <button onClick={() => navigate({ name: 'roster' })} style={{ fontSize: 10, letterSpacing: '.14em', textTransform: 'uppercase', color: 'var(--color-accent)', background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>Pathmaker</button>
         <span style={{ fontWeight: 500, fontSize: 15 }}>{doc.name} <span className="text-muted" style={{ fontSize: 12, fontWeight: 400 }}>· {resolution.sheet.summaryLine || 'new character'}</span></span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }} title="Character level">
@@ -56,7 +56,7 @@ export function Builder({ id }: { id: string }) {
           <button className="stepper" style={{ width: 24, height: 24 }} disabled={doc.level >= 20}
             onClick={() => ch.patch((d) => ({ ...d, updatedAt: new Date().toISOString(), level: Math.min(20, d.level + 1) }))}>+</button>
         </div>
-        <div style={{ display: 'flex', gap: 2, marginLeft: 16, flexWrap: 'wrap' }}>
+        <div className="builder-steps" style={{ display: 'flex', gap: 2, marginLeft: 16, flexWrap: 'wrap' }}>
           {steps.map((s) => {
             const gg = glyph(s);
             return (
@@ -77,8 +77,8 @@ export function Builder({ id }: { id: string }) {
 
       <StatStrip sheet={resolution.sheet} />
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', flex: 1, alignItems: 'stretch', minHeight: 0 }}>
-        <div style={{ padding: '20px 26px 40px', minWidth: 0, minHeight: 0, overflowX: 'auto', overflowY: 'auto' }}>
+      <div className="builder-main" style={{ display: 'grid', gridTemplateColumns: '1fr 300px', flex: 1, alignItems: 'stretch', minHeight: 0 }}>
+        <div className="builder-content" style={{ padding: '20px 26px 40px', minWidth: 0, minHeight: 0, overflowX: 'auto', overflowY: 'auto' }}>
           {activeStep === 'basics' && <BasicsStep ch={ch} />}
           {activeStep === 'race' && <RaceStep ch={ch} />}
           {activeStep === 'class' && <ClassStep ch={ch} />}
