@@ -2,13 +2,14 @@ import { useState } from 'react';
 import type { CharCtl } from '../../Builder';
 import { CLASSES, classById } from '../../../content/index';
 import type { ChoiceSlot } from '../../../engine/types';
-import { OptionCard, Stepper, revealSplitDetail, showSplitList } from '../bits';
+import { OptionCard, Stepper, revealSplitDetail, showSplitList, useSnapPanels } from '../bits';
 import type { SlotOption } from '../../../engine/types';
 import { effectiveClass, readDecisions } from '../../../engine/resolve';
 import { useTip } from '../../Tooltip';
 
 export function ClassStep({ ch }: { ch: CharCtl }) {
   const tip = useTip();
+  const snap = useSnapPanels();
   const { doc, setDecision, resolution } = ch;
   const selectedClass = doc.decisions['class'] as string | null;
   const [viewId, setViewId] = useState<string>(selectedClass ?? 'fighter');
@@ -68,8 +69,8 @@ export function ClassStep({ ch }: { ch: CharCtl }) {
   };
 
   return (
-    <div className="split-step" style={{ display: 'flex', gap: 28, height: '100%' }}>
-      <div className="split-list" style={{ flex: 'none', width: 280, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+    <div className="split-step" onScroll={snap.onScroll} style={{ display: 'flex', gap: 28, height: '100%' }}>
+      <div className={`split-list${snap.panelClass(0)}`} style={{ flex: 'none', width: 280, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
         <h3 style={{ fontSize: 21, margin: '0 0 12px' }}>Class</h3>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, overflowY: 'auto', minHeight: 0, paddingRight: 6 }}>
           {CLASSES.map((c) => (
@@ -92,7 +93,7 @@ export function ClassStep({ ch }: { ch: CharCtl }) {
 
       {/* Negative right margin pulls the scroll container into the Builder column's 26px padding so
           its scrollbar sits flush with the pane edge, matching the steps that scroll as a whole. */}
-      <div className="split-detail" style={{ padding: '4px 26px 4px 0', marginRight: -26, flex: 1, minWidth: 0, overflowY: 'auto', minHeight: 0 }}>
+      <div className={`split-detail${snap.panelClass(1)}`} style={{ padding: '4px 26px 4px 0', marginRight: -26, flex: 1, minWidth: 0, overflowY: 'auto', minHeight: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 6, flexWrap: 'wrap' }}>
           <button className="btn btn-ghost split-back" style={{ fontSize: 12 }} onClick={showSplitList}>‹ All classes</button>
           <h3 style={{ fontSize: 24, margin: 0 }}>{view.name}</h3>

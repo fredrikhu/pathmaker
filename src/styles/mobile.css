@@ -54,6 +54,17 @@
     padding-right: 0 !important;
     margin-right: 0 !important;
   }
+  /* A carousel's height is the max of its panels — while it rests on one panel, the other
+     collapses (useSnapPanels in builder/bits.tsx) so the page height matches the visible
+     panel alone. The panel keeps its width, so scroll/snap positions are unaffected. */
+  .snap-collapsed {
+    height: 0 !important;
+    min-height: 0 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    overflow: hidden !important;
+  }
+
   /* Each list row hints that it opens a detail panel. */
   .split-list .pick.is-clickable::after {
     content: '›';

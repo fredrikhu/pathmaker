@@ -1,4 +1,4 @@
-import { useRef, useState, type ReactNode } from 'react';
+import { useRef, type ReactNode } from 'react';
 import type { CharCtl } from '../../Builder';
 import { WEAPONS, ARMORS, GEAR, weaponById, armorById, anyItemById, gearById } from '../../../content/index';
 import type { CharacterDoc } from '../../../engine/types';
@@ -6,6 +6,7 @@ import { TermSpan, useTip, type TipCard } from '../../Tooltip';
 import { qualityCost, qualityPrefix, strRatingCost, totalBonus, MAX_ENHANCEMENT, MAX_STR_RATING, MAX_TOTAL_BONUS, type ItemQuality } from '../../../engine/items';
 import { propertyPrice } from '../../../engine/resolve';
 import { WEAPON_PROPERTIES, ARMOR_PROPERTIES, WONDROUS_ITEMS, BODY_SLOTS, armorById as armorLookup } from '../../../content/index';
+import { useSnapPanels } from '../bits';
 
 /** Abilities offered for an item: weapon abilities on weapons, and the matching
  *  armour/shield list on armour — a shield can't take Shadow, and armour can't take Bashing. */
@@ -83,15 +84,10 @@ export function EquipmentStep({ ch }: { ch: CharCtl }) {
   // The tabs both drive the swipe and track it, so they stay in sync either way. On desktop the
   // grid never scrolls, so no scroll events fire and the tabs stay display:none.
   const splitRef = useRef<HTMLDivElement>(null);
-  const [panel, setPanel] = useState(0);
+  const snap = useSnapPanels();
   const snapTo = (i: number) => {
     const el = splitRef.current;
     if (el) el.scrollTo({ left: i === 0 ? 0 : el.scrollWidth - el.clientWidth, behavior: 'smooth' });
-  };
-  const trackPanel = (e: React.UIEvent<HTMLDivElement>) => {
-    const el = e.currentTarget;
-    const max = el.scrollWidth - el.clientWidth;
-    if (max > 40) setPanel(el.scrollLeft > max / 2 ? 1 : 0);
   };
 
   // Gold earned at the table. Kept as a string while focused so a half-typed "-" or "" does not
@@ -298,13 +294,13 @@ export function EquipmentStep({ ch }: { ch: CharCtl }) {
       <div className="equip-tabs" style={{ display: 'none', gap: 6, marginBottom: 12 }}>
         {(['Shop', 'Owned & worn'] as const).map((label, i) => (
           <button key={label} className="btn btn-secondary" onClick={() => snapTo(i)}
-            style={{ fontSize: 12, ...(panel === i ? { color: 'var(--color-accent)', borderColor: 'var(--color-accent)' } : {}) }}>{label}</button>
+            style={{ fontSize: 12, ...(snap.active === i ? { color: 'var(--color-accent)', borderColor: 'var(--color-accent)' } : {}) }}>{label}</button>
         ))}
       </div>
 
-      <div className="equip-grid" ref={splitRef} onScroll={trackPanel}
+      <div className="equip-grid" ref={splitRef} onScroll={snap.onScroll}
         style={{ display: 'grid', gridTemplateColumns: 'minmax(420px,1fr) minmax(300px,380px)', gap: 34 }}>
-        <div>
+        <div className={snap.panelClass(0) || undefined}>
           <h6 style={{ margin: '0 0 10px', color: 'var(--color-neutral-500)' }}>Shop</h6>
           {groups.map((g) => (
             <div key={g.label} style={{ marginBottom: 16 }}>
@@ -320,7 +316,7 @@ export function EquipmentStep({ ch }: { ch: CharCtl }) {
             </div>
           ))}
         </div>
-        <div>
+        <div className={snap.panelClass(1) || undefined}>
           <h6 style={{ margin: '0 0 10px', color: 'var(--color-neutral-500)' }}>Owned</h6>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {owned.length === 0 && <span className="text-muted" style={{ fontSize: 12.5 }}>Nothing purchased yet.</span>}

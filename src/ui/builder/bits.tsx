@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { SlotOption } from '../../engine/types';
 import { useTip } from '../Tooltip';
 
@@ -19,6 +20,37 @@ export function revealSplitDetail(e: React.MouseEvent): void {
 export function showSplitList(e: React.MouseEvent): void {
   const root = (e.currentTarget as HTMLElement).closest('.split-step') as HTMLElement | null;
   root?.scrollTo({ left: 0, behavior: 'smooth' });
+}
+
+/** Tracks which panel a two-panel snap carousel rests on. The container's height is the max
+ *  of its panels, so once the carousel settles, the hidden panel gets `.snap-collapsed`
+ *  (zero height under mobile.css) and the page height matches the visible panel alone.
+ *  During the swipe itself both panels stay expanded so no blank content shows mid-drag.
+ *  Desktop never scrolls these containers, so no events fire and the class stays inert. */
+export function useSnapPanels(): {
+  active: number;
+  onScroll: (e: React.UIEvent<HTMLElement>) => void;
+  panelClass: (i: number) => string;
+} {
+  // Position-based, not timer-based: collapsing a panel makes the browser re-evaluate the snap
+  // and fire more scroll events, so "quiet for N ms" never comes. Resting exactly on a snap
+  // point (0 or max) is stable under those re-fires. The functional bail-out keeps re-renders
+  // to the boundary crossings (~3 per swipe).
+  const [state, setState] = useState({ active: 0, rest: true });
+  const onScroll = (e: React.UIEvent<HTMLElement>) => {
+    const el = e.currentTarget;
+    const max = el.scrollWidth - el.clientWidth;
+    if (max < 40) return; // desktop-sized overshoot (scrollbar bleed), not a carousel
+    const x = el.scrollLeft;
+    const rest = x < 2 || x > max - 2;
+    const active = x > max / 2 ? 1 : 0;
+    setState((s) => (s.active === active && s.rest === rest ? s : { active, rest }));
+  };
+  return {
+    active: state.active,
+    onScroll,
+    panelClass: (i) => (state.rest && i !== state.active ? ' snap-collapsed' : ''),
+  };
 }
 
 /** Warning tag: would-invalidate consequences or a persistent caution (opposition school). */
