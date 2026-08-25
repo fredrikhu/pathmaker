@@ -7,6 +7,7 @@ import { navigate } from './App';
 import { StatValue } from './StatValue';
 import { ThemeToggle } from './ThemeToggle';
 import { OfficialSheet } from './OfficialSheet';
+import { spellStatLine } from './spellInfo';
 
 export function SheetPreview({ id }: { id: string }) {
   const doc = loadCharacter(id);
@@ -91,7 +92,19 @@ export function SheetPreview({ id }: { id: string }) {
               </div>
             ))}
             <div className="text-muted" style={{ fontSize: 12, marginBottom: 4 }}>Cantrips and 1st-level selections</div>
-            {spells.length ? spells.map((s) => <div key={s} style={{ fontSize: 13, lineHeight: 1.7 }}>{spellById.get(s)?.name} <span className="text-muted">· {spellById.get(s)?.school}</span></div>) : <span className="text-muted">No spells chosen.</span>}
+            {/* Each chosen spell carries what it does, so the sheet answers "what did I take?"
+                without a trip back to the builder. */}
+            {spells.length ? spells.map((s) => {
+              const sp = spellById.get(s);
+              if (!sp) return null;
+              return (
+                <div key={s} style={{ marginBottom: 7 }}>
+                  <div style={{ fontSize: 13, lineHeight: 1.5 }}>{sp.name} <span className="text-muted">· {sp.school}</span></div>
+                  <div style={{ fontSize: 12, lineHeight: 1.5, color: 'var(--color-neutral-400)' }}>{sp.summary}</div>
+                  <div className="text-muted" style={{ fontSize: 11 }}>{spellStatLine(sp)}</div>
+                </div>
+              );
+            }) : <span className="text-muted">No spells chosen.</span>}
           </Section>
         )}
 

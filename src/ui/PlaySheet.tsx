@@ -14,6 +14,8 @@ import { spendAction, resetActions, COMMON_ACTIONS, type ActionCost } from '../e
 import { CONDITIONS, conditionById, SPELLS, spellById, spellLevelOn, classById, skillById, METAMAGIC, effectiveSpellLevel, dcSpellLevel, type MetamagicDef } from '../content/index';
 import { useCharacter } from './useCharacter';
 import { useTip } from './Tooltip';
+import { spellCard, spellLevelLabel, spellStatLine } from './spellInfo';
+import type { SpellDef } from '../content/model';
 import { navigate } from './App';
 import { ThemeToggle } from './ThemeToggle';
 import { CompanionCard } from './CompanionCard';
@@ -928,6 +930,9 @@ export function PlaySheet({ id }: { id: string }) {
                                 </button>
                               )}
                               </div>
+                              {/* The dropdown carries only the name, so what the spell actually does
+                                  sits under it — hover or tap for the full text. */}
+                              {sp && <SpellBlurb sp={sp} kicker="Prepared spell" level={baseLvl} />}
                               {/* Metamagic chips: toggle the feats you own onto this prepared spell. A
                                   lower-level spell raised to this slot's level "fits"; over it warns. */}
                               {ownedMeta.length > 0 && filled && (
@@ -972,7 +977,8 @@ export function PlaySheet({ id }: { id: string }) {
                         const sp = cur ? spellById.get(cur) : undefined;
                         const dmg = sp ? spellDamageAt(sp, block.casterLevel) : null;
                         return (
-                          <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <div style={{ marginTop: 8 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                             <span className="micro" style={{ minWidth: 62, color: 'var(--color-accent-300)' }} title={`Bonus ${bs.kind} slot — restricted to a ${bs.kind === 'domain' ? 'domain' : bs.school} spell`}>+ {bs.label}</span>
                             <select className="input" style={{ flex: 1, maxWidth: 240, padding: '4px 6px', fontSize: 12, opacity: casted ? 0.5 : 1, textDecoration: casted ? 'line-through' : 'none' }}
                               value={cur} onChange={(e) => setPreparedBonus(cls, level, e.target.value)}>
@@ -992,6 +998,8 @@ export function PlaySheet({ id }: { id: string }) {
                               }}>
                               {casted ? '↺' : 'cast'}
                             </button>
+                          </div>
+                          {sp && <SpellBlurb sp={sp} kicker="Bonus slot" level={csList ? spellLevelOn(sp, csList) : null} indent={68} />}
                           </div>
                         );
                       })()}
@@ -1176,11 +1184,7 @@ export function PlaySheet({ id }: { id: string }) {
                 // When the SLA names a spell we have, its name opens the spell's card and we show the
                 // computed caster level and (for spells with a save) the DC.
                 const sp = sla.spellId ? spellById.get(sla.spellId) : undefined;
-                const open = sp ? tip.card({
-                  kicker: 'Spell-like ability', title: sp.name,
-                  body: `${sp.summary} · ${sp.range} · ${sp.dur}${sp.save && !/^none$/i.test(sp.save) ? ` · ${sp.save}` : ''}`,
-                  annotations: [sp.desc],
-                }) : undefined;
+                const open = sp ? tip.card(spellCard(sp, 'Spell-like ability')) : undefined;
                 return (
                   <div key={sla.id} style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                     <span className={sp ? 'term' : undefined} style={{ minWidth: 150, fontSize: 13, fontWeight: 500, cursor: sp ? 'pointer' : undefined }}
@@ -1304,6 +1308,27 @@ function MetamagicSpontaneousTool({ block, ownedMeta, usedAt, spend, rollDamageF
           Spend slot
         </button>
       </div>
+      {sp && <SpellBlurb sp={sp} kicker="Spell" level={base} />}
+    </div>
+  );
+}
+
+/** The description that follows a spell wherever it is chosen from a dropdown: its one-line
+ *  summary and stat line, with the full rules text a hover (or tap) away. */
+function SpellBlurb({ sp, kicker, level, indent = 2 }: {
+  sp: SpellDef;
+  kicker: string;
+  level?: number | null;
+  indent?: number;
+}) {
+  const tip = useTip();
+  const open = tip.card(spellCard(sp, kicker, level != null ? spellLevelLabel(level) : undefined));
+  return (
+    <div onMouseEnter={open} onMouseLeave={tip.leave} onClick={open}
+      style={{ fontSize: 11, lineHeight: 1.45, color: 'var(--color-neutral-400)', paddingLeft: indent, marginTop: 3, cursor: 'pointer' }}>
+      {sp.summary}
+      <span className="text-muted"> · {spellStatLine(sp)} · </span>
+      <span className="term">full text</span>
     </div>
   );
 }

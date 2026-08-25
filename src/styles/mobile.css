@@ -45,11 +45,17 @@
   .split-list {
     flex: 0 0 100% !important;
     width: auto !important;
+    /* A desktop min-width (the spell list's 420px reading column) would widen the panel past
+       the viewport and break the snap. */
+    min-width: 0 !important;
     scroll-snap-align: start;
   }
   .split-detail {
     flex: 0 0 100% !important;
     scroll-snap-align: start;
+    /* Sticky is a desktop affordance (the detail stays put while the list scrolls); inside a
+       horizontal carousel it has nothing useful to stick to. */
+    position: static !important;
     /* neutralize the desktop scrollbar-bleed trick (padding 26 / margin −26) */
     padding-right: 0 !important;
     margin-right: 0 !important;

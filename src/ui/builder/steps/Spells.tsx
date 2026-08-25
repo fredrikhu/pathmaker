@@ -3,9 +3,12 @@ import type { CharCtl } from '../../Builder';
 import { spellById, SPELLS, classById, spellLevelOn } from '../../../content/index';
 import { effectiveClass, readDecisions } from '../../../engine/resolve';
 import { TermSpan } from '../../Tooltip';
+import { revealSplitDetail, showSplitList, useSnapPanels } from '../bits';
+import { spellStatLine, spellLevelLabel } from '../../spellInfo';
 
 export function SpellsStep({ ch }: { ch: CharCtl }) {
   const { doc, setDecision, resolution } = ch;
+  const snap = useSnapPanels();
   const classId = doc.decisions['class'] as string | null;
   const klass = classId ? classById.get(classId) : undefined;
   const slots = resolution.slots.filter((s) => s.step === 'spells' && s.id.startsWith('spell-picks-L'));
@@ -15,6 +18,9 @@ export function SpellsStep({ ch }: { ch: CharCtl }) {
   const [schoolFilter, setSchool] = useState<string>('all');
   const [query, setQuery] = useState('');
   const [viewId, setViewId] = useState<string | null>(null);
+  // "Chosen" collects what you already took, with the same description text as the list, so the
+  // picks stay readable after the fact without hunting for them among hundreds of rows.
+  const [showChosen, setShowChosen] = useState(true);
 
   if (!klass?.spellcasting || slots.length === 0) return <div style={{ padding: 8 }}>No spell selection for this class.</div>;
 
@@ -53,11 +59,27 @@ export function SpellsStep({ ch }: { ch: CharCtl }) {
     })
     .sort((a, b) => lvlOf(a) - lvlOf(b) || a.name.localeCompare(b.name));
 
+  // Everything taken, in list order, for the recap panel. A cantrip level the class simply knows
+  // in full ("in book") is not a choice, so it stays out of the recap.
+  const chosen = accessibleLevels
+    .filter((L) => !slotForLevel(L)?.auto)
+    .flatMap((L) => pickedAt(L).map((id) => spellById.get(id)).filter(Boolean) as (typeof SPELLS)[number][]);
+
+  // A prepared-book caster writes spells into a book; everyone else knows them outright.
+  const isBook = klass.spellcasting.kind === 'prepared-book';
+  const addLabel = isBook ? 'Add to spellbook' : 'Add to spells known';
+  const takenWord = isBook ? 'In book' : 'Known';
+
   const view = viewId ? spellById.get(viewId) : null;
+  const viewPicked = !!view && allPicked.has(view.id);
+  const viewLevel = view ? lvlOf(view) : 0;
+  const viewAuto = view ? slotForLevel(viewLevel)?.auto : false;
+
+  const open = (id: string) => (e: React.MouseEvent) => { setViewId(id); revealSplitDetail(e); };
 
   return (
-    <div style={{ display: 'flex', gap: 24 }}>
-      <div style={{ flex: 1, minWidth: 420 }}>
+    <div className="split-step" onScroll={snap.onScroll} style={{ display: 'flex', gap: 24 }}>
+      <div className={`split-list${snap.panelClass(0)}`} style={{ flex: 1, minWidth: 420 }}>
         <h3 style={{ fontSize: 21, margin: '0 0 12px' }}>Spells</h3>
 
         {/* Per-level slot summary cards */}
@@ -76,6 +98,37 @@ export function SpellsStep({ ch }: { ch: CharCtl }) {
             );
           })}
         </div>
+
+        {/* What you've taken so far, described. Collapsible because it grows with every level. */}
+        {chosen.length > 0 && (
+          <div style={{ marginBottom: 16 }}>
+            <button className="btn btn-ghost" style={{ fontSize: 11.5, padding: '3px 0' }} onClick={() => setShowChosen((v) => !v)}>
+              {showChosen ? '▾' : '▸'} Chosen spells ({chosen.length})
+            </button>
+            {showChosen && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 5, marginTop: 6 }}>
+                {chosen.map((sp) => (
+                  <div key={sp.id} onClick={open(sp.id)}
+                    className={`pick is-clickable${viewId === sp.id ? ' is-sel' : ' is-marked'}`}
+                    style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '8px 12px' }}>
+                    <span className="num" style={{ width: 16, fontSize: 13, color: 'var(--color-neutral-500)', flex: 'none', marginTop: 1 }}>{lvlOf(sp)}</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: 13.5, fontWeight: 500 }}>{sp.name}</span>
+                        <span className="tag tag-neutral" style={{ fontSize: 10 }}>{sp.school}</span>
+                        {opposedNames.has(sp.name) && <span className="warn-tag">⚠ opposed — double slot</span>}
+                      </div>
+                      <div style={{ fontSize: 12, lineHeight: 1.5, color: 'var(--color-neutral-400)', marginTop: 2 }}>{sp.summary}</div>
+                      <div className="text-muted" style={{ fontSize: 11, marginTop: 2 }}>{spellStatLine(sp)}</div>
+                    </div>
+                    <button className="btn btn-ghost" style={{ fontSize: 11.5, flex: 'none' }}
+                      onClick={(e) => { e.stopPropagation(); toggle(sp.id, lvlOf(sp)); }}>Remove</button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Filters */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10, flexWrap: 'wrap' }}>
@@ -102,17 +155,20 @@ export function SpellsStep({ ch }: { ch: CharCtl }) {
             const auto = slot?.auto;
             const full = isFull(spLevel);
             return (
-              <div key={sp.id} onClick={() => setViewId(sp.id)}
+              <div key={sp.id} onClick={open(sp.id)}
                 className={`pick is-clickable${viewId === sp.id ? ' is-sel' : isPicked ? ' is-marked' : ''}`}
-                style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px' }}>
-                <span className="num" style={{ width: 16, fontSize: 13, color: 'var(--color-neutral-500)', flex: 'none' }}>{spLevel}</span>
+                style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '8px 12px' }}>
+                <span className="num" style={{ width: 16, fontSize: 13, color: 'var(--color-neutral-500)', flex: 'none', marginTop: 1 }}>{spLevel}</span>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                     <span style={{ fontSize: 13.5, fontWeight: 500 }}>{sp.name}</span>
                     <span className="tag tag-neutral" style={{ fontSize: 10 }}>{sp.school}</span>
                     {opposedNames.has(sp.name) && <span className="warn-tag">⚠ opposed — double slot</span>}
                   </div>
-                  <div className="text-muted" style={{ fontSize: 11.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sp.summary}</div>
+                  {/* Two lines of the summary, not one clipped line: the point of the row is to say
+                      what the spell does before you commit a slot to it. */}
+                  <div style={{ fontSize: 12, lineHeight: 1.5, color: 'var(--color-neutral-400)', marginTop: 2, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{sp.summary}</div>
+                  <div className="text-muted" style={{ fontSize: 11, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{spellStatLine(sp)}</div>
                 </div>
                 {auto ? <span className="text-muted" style={{ fontSize: 11, flex: 'none' }}>in book</span>
                   : <button className="btn btn-ghost" style={{ fontSize: 11.5, flex: 'none' }} disabled={!allPicked.has(sp.id) && full}
@@ -128,15 +184,17 @@ export function SpellsStep({ ch }: { ch: CharCtl }) {
       </div>
 
       {/* Detail pane */}
-      <div style={{ flex: 'none', width: 340, position: 'sticky', top: 12, alignSelf: 'flex-start' }}>
+      <div className={`split-detail${snap.panelClass(1)}`} style={{ flex: 'none', width: 340, position: 'sticky', top: 12, alignSelf: 'flex-start' }}>
+        <button className="btn btn-ghost split-back" style={{ fontSize: 12, marginBottom: 8 }} onClick={showSplitList}>‹ All spells</button>
         {view ? (
           <div style={{ background: 'var(--color-surface)', borderRadius: 10, padding: 16 }}>
             <div style={{ fontSize: 17, fontWeight: 500 }}>{view.name}</div>
             <div style={{ display: 'flex', gap: 6, margin: '6px 0 10px', flexWrap: 'wrap' }}>
               <span className="tag tag-neutral" style={{ fontSize: 10 }}>{view.school}</span>
-              <span className="tag tag-neutral" style={{ fontSize: 10 }}>{lvlOf(view) === 0 ? '0 (cantrip)' : `level ${lvlOf(view)}`}</span>
+              <span className="tag tag-neutral" style={{ fontSize: 10 }}>{viewLevel === 0 ? '0 (cantrip)' : `level ${viewLevel}`}</span>
               {opposedNames.has(view.name) && <span className="warn-tag">opposed school</span>}
             </div>
+            <div style={{ fontSize: 12.5, lineHeight: 1.55, color: 'var(--color-neutral-400)', marginBottom: 10 }}>{view.summary}</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '4px 12px', fontSize: 12, marginBottom: 10 }}>
               <span className="text-muted">Casting</span><span>{view.cast}</span>
               <span className="text-muted"><TermSpan id="components">Components</TermSpan></span><span>{view.comp}</span>
@@ -145,6 +203,16 @@ export function SpellsStep({ ch }: { ch: CharCtl }) {
               <span className="text-muted">Save / SR</span><span>{view.save}</span>
             </div>
             <div style={{ fontSize: 13, lineHeight: 1.7, color: 'var(--color-neutral-300)' }}>{view.desc}</div>
+            {/* Take it without leaving the description — the whole reason to read it is to decide. */}
+            {viewAuto ? (
+              <div className="text-muted" style={{ fontSize: 11.5, marginTop: 12 }}>Already in your spellbook.</div>
+            ) : (
+              <button className="btn btn-ghost" style={{ fontSize: 12, marginTop: 12 }}
+                disabled={!viewPicked && isFull(viewLevel)}
+                onClick={() => toggle(view.id, viewLevel)}>
+                {viewPicked ? `✓ ${takenWord} — remove` : isFull(viewLevel) ? `No ${spellLevelLabel(viewLevel)} picks left` : addLabel}
+              </button>
+            )}
           </div>
         ) : (
           <div style={{ background: 'var(--color-surface)', borderRadius: 10, padding: 16, fontSize: 12.5, color: 'var(--color-neutral-500)' }}>Select a spell to read its full description.</div>
