@@ -5,6 +5,7 @@ import { useCharacter } from './useCharacter';
 import { navigate } from './App';
 import { StatStrip } from './builder/StatStrip';
 import { ThemeToggle } from './ThemeToggle';
+import { SyncBadge } from './account';
 import { IssuesPanel } from './builder/IssuesPanel';
 import { BasicsStep } from './builder/steps/Basics';
 import { RaceStep } from './builder/steps/Race';
@@ -81,7 +82,7 @@ export function Builder({ id }: { id: string }) {
         )}
         <ThemeToggle />
         <button className="btn btn-secondary" style={{ fontSize: 12 }} disabled={!ch.canUndo} onClick={ch.undo} title="Undo (Ctrl+Z)">↩ Undo</button>
-        <span className="text-muted" style={{ fontSize: 11 }}>Saved</span>
+        <SyncBadge />
         <button className="btn btn-secondary" style={{ fontSize: 12 }} onClick={() => navigate({ name: 'sheet', id })}>Sheet preview</button>
         <button className="btn btn-primary" style={{ fontSize: 12 }} onClick={() => navigate({ name: 'play', id })}>▶ Play</button>
       </div>

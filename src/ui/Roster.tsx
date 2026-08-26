@@ -7,6 +7,8 @@ import {
 } from '../storage/store';
 import { navigate } from './App';
 import { ThemeToggle } from './ThemeToggle';
+import { AccountBadge, useAccount } from './account';
+import { MigrationDialog } from './MigrationDialog';
 
 function summarize(id: string): { summary: string; issues: number } {
   const doc = loadCharacter(id);
@@ -26,6 +28,7 @@ function relTime(iso: string): string {
 }
 
 export function Roster() {
+  const { account, offline } = useAccount();
   const [entries, setEntries] = useState<RosterEntry[]>(loadIndex());
   const [confirmDelete, setConfirmDelete] = useState<RosterEntry | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
@@ -55,7 +58,12 @@ export function Roster() {
     }
   };
 
-  const storageNote = 'Characters live in this browser. Export to back them up or move them between devices.';
+  // What the note says has to be true, and it is not the same sentence in all three states.
+  const storageNote = account
+    ? `Characters are saved to your account (${account.displayName}) and follow you to any device you sign in on.`
+    : offline
+      ? 'The character service is unreachable, so characters are being kept in this browser only. Export to be safe.'
+      : 'Characters live in this browser. Sign in with Discord to keep them on your account instead — or export to move them by hand.';
 
   return (
     <div className="roster-root" style={{ minHeight: '100vh', padding: '0 24px' }}>
@@ -63,6 +71,7 @@ export function Roster() {
         <span style={{ fontSize: 11, letterSpacing: '.16em', textTransform: 'uppercase', color: 'var(--color-accent)' }}>Pathmaker</span>
         <span className="text-muted" style={{ fontSize: 13 }}>Pathfinder 1e character forge</span>
         <span style={{ flex: 1 }} />
+        <AccountBadge />
         <ThemeToggle />
         <button className="btn btn-secondary" onClick={() => fileInput.current?.click()}>Import JSON</button>
         <button className="btn btn-primary" onClick={create}>+ New character</button>
@@ -127,11 +136,15 @@ export function Roster() {
         </>
       )}
 
+      <MigrationDialog onDone={refresh} />
+
       {confirmDelete && (
         <div className="dialog-backdrop" onClick={() => setConfirmDelete(null)}>
           <div className="dialog" onClick={(e) => e.stopPropagation()}>
             <div className="dialog-title">Delete “{confirmDelete.name}”?</div>
-            <div className="dialog-body">This permanently removes the character from this browser. There is no undo.</div>
+            <div className="dialog-body">{account
+              ? 'This permanently removes the character from your account, on every device. There is no undo.'
+              : 'This permanently removes the character from this browser. There is no undo.'}</div>
             <div className="dialog-actions" style={{ justifyContent: 'space-between' }}>
               <button className="btn btn-ghost" onClick={() => { const d = loadCharacter(confirmDelete.id); if (d) exportCharacter(d); }}>Export first</button>
               <div style={{ display: 'flex', gap: 8 }}>

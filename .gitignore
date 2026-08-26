@@ -40,3 +40,9 @@ coverage
 .env
 .env.local
 .env.*.local
+
+# API service
+server/.env.dev
+server/dev.db*
+server/dist/
+server/node_modules/

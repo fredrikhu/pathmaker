@@ -1,7 +1,8 @@
 # Pathmaker
 
-A Pathfinder 1st Edition character creator and interactive play sheet. Client-only web
-app, TypeScript + Vite + React, persistence via `localStorage`.
+A Pathfinder 1st Edition character creator and interactive play sheet. TypeScript + Vite +
+React, with an optional account: sign in with Discord and your characters live on the server and
+follow you between devices; stay signed out and everything still works, kept in `localStorage`.
 
 ## Running
 
@@ -11,6 +12,10 @@ npm run dev      # dev server at http://localhost:5173
 npm test         # engine unit tests (Vitest)
 npm run build    # typecheck + production build
 ```
+
+The API is a separate package in [`server/`](server/README.md) — Fastify + SQLite, Node 24+. It
+is not needed to work on the app: signed out, the browser is the whole store. To run it, see
+[server/README.md](server/README.md); `npm run dev` proxies `/api` to it.
 
 ## Architecture
 
@@ -24,6 +29,13 @@ Three strictly separated layers (see [docs/DESIGN.md](docs/DESIGN.md)):
   hand-computed golden characters (`resolve.test.ts`).
 - **`src/ui/`** — React. Performs **zero rules math** — it renders the three view models and
   dispatches decisions. Built to the Nocturne design system from the design handoffs.
+- **`src/storage/`** — where a character lives. `cache.ts` is a synchronous localStorage mirror
+  (per-account namespaces, plus the anonymous one), `sync.ts` is the debounced write-through
+  queue to the API, and `store.ts` is the surface every screen calls. Reads stay synchronous, so
+  no screen carries a loading state; signed in, the server is the source of truth and the cache
+  is refilled from it at boot.
+- **`server/`** — the API. Stores characters as opaque JSON; it knows no rules, so adding
+  content never means deploying it.
 
 Key behaviours: nothing locks (changing an early choice never destroys a later one — conflicts
 surface as non-blocking Issues); a two-tier option model (**hard-illegal** disabled vs.

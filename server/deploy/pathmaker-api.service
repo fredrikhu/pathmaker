@@ -1,0 +1,30 @@
+[Unit]
+Description=Pathmaker character API
+After=network.target
+
+[Service]
+Type=simple
+User=pathmaker
+Group=pathmaker
+WorkingDirectory=/opt/pathmaker-api
+EnvironmentFile=/etc/pathmaker/api.env
+ExecStart=/usr/bin/node dist/index.js
+Restart=on-failure
+RestartSec=2
+
+# The service reads its code and writes exactly one directory; nothing else on the box is
+# reachable from it.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/pathmaker
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=true
+LockPersonality=true
+
+[Install]
+WantedBy=multi-user.target
