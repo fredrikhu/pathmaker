@@ -66,6 +66,56 @@ export const DEITY_SYMBOL_DETAIL: Record<string, string> = {
   urgathoa: 'the skull sits on the back of the fly',
 };
 
+/** What a race looks like, for a generator that has never heard of it.
+ *
+ *  An image model knows "elf" and "dwarf". It does not know wayang, nagaji, vishkanya or samsaran,
+ *  and handed one of those names it draws a human and hopes. Each line here is condensed from that
+ *  race's Archives of Nethys entry (d20pfsrd for the two whose AoN pages would not load), and is
+ *  restricted to what is *visible* — build, colouring, and the features that make the race itself
+ *  recognisable. Temperament, culture and homeland are elsewhere on the sheet and are not things a
+ *  portrait can show.
+ *
+ *  The staples of fantasy — human, dwarf, elf, halfling, half-elf, half-orc — are absent on
+ *  purpose: a generator renders them correctly from the name alone, and a line describing an elf
+ *  as slender with pointed ears is pure dilution. Gnome is here despite being a staple, because
+ *  Golarion's gnomes are not the generic ones: the vivid hair is the whole point of them. */
+export const RACE_LOOK: Record<string, string> = {
+  aasimar: 'human but for one celestial trait — hair with a metallic sheen, jewel-toned eyes, lustrous skin, sometimes a faint golden halo',
+  android: 'built to pass for human, betrayed on a close look by a metallic sheen in the eyes and biological, tattoo-like circuitry tracing the skin',
+  catfolk: 'feline humanoid in soft fine fur, with slit pupils, rounded catlike ears, a sleek slender tail and small retractable claws',
+  changeling: 'always female, tall and slender, abnormally pale, hair usually dark, and often with mismatched eyes of two different colours',
+  dhampir: 'statuesque and unnervingly beautiful, pale, with over-pronounced features and elongated incisors',
+  drow: 'elf-slender with long pointed ears, skin from coal black to dusky purple, white or silver hair, and pupilless eyes of solid white or red',
+  duergar: 'grey-skinned dwarves, bearded but bald, with cold lightless eyes',
+  fetchling: 'unnaturally lithe humans drained of colour — skin anywhere from stark white through grey to black, white or pale grey hair, and pupilless eyes glowing yellow or greenish-yellow',
+  gillman: 'passes for human but for the gills on the neck and vividly purple eyes; pearly, peach or sandy skin, hair dark or sea-coloured',
+  gnoll: 'hyena-headed, around seven and a half feet tall, in dirty yellow or reddish-brown fur, standing digitigrade on hyena-like feet',
+  gnome: 'barely three feet tall, with hair in vivid natural colour — fiery orange, spring green, deep red or purple — and oversized mouths and eyes',
+  goblin: 'barely three feet tall, with an oversized hairless head, massive ears, a huge mouth of jagged teeth and beady red eyes; skin green, grey, blue, black or pale white',
+  grippli: 'frog-like humanoid barely two feet tall, in mottled green-and-brown skin',
+  hobgoblin: 'muscular and almost apelike — long arms, thick torso, short legs — with grey-green to mossy green skin, fiery orange or red eyes, wholly hairless, and sharply pointed ears',
+  ifrit: 'fire-touched: pointed ears, red or mottled horns at the brow, and hair that flickers and waves as though it were aflame',
+  kitsune: 'a fox shapechanger, appearing either as a slender, striking human or as an anthropomorphic fox',
+  kobold: 'small reptilian humanoid with scales of black, green, blue, red or white, small horns and a tail',
+  lizardfolk: 'six to seven feet of reptilian humanoid in grey, green or brown scales, with a short toothy snout and a thick heavy tail; some have dorsal spikes or brightly coloured frills',
+  merfolk: 'the upper body of a graceful humanoid above the long tail of a great fish, its scales iridescent in ocean greens and blues',
+  nagaji: 'ophidian humanoid whose scaled skin carries the patterning of true nagas, with a forked tongue and lidless, unblinking eyes',
+  orc: 'powerfully built and taller than a human with far more muscle — dull green skin, coarse dark hair, beady red eyes and protruding tusks',
+  oread: 'earth-touched: solidly built, skin and hair in stony black, brown, grey or white, and sometimes gemstone eyes or hair like crystalline spikes',
+  ratfolk: 'small rodent-featured humanoid around four feet tall, often robed, wearing small metal rings in the ears and tail',
+  samsaran: 'pale blue skin, dark hair, and solid white eyes with neither pupil nor iris',
+  strix: 'winged humanoid with black skin and broad functional wings',
+  suli: 'tall and strikingly beautiful, with eyes that glow or shift colour with the element they are attuned to, and sometimes bronze-toned skin',
+  svirfneblin: 'a deep gnome — small, wiry, with slate-grey skin',
+  sylph: 'air-touched: pale and thin to the point of appearing delicate, with complex blue markings swirling across the skin',
+  tengu: 'wingless avian humanoid with a crow-like beak, humanoid hands and clawed feet; plumage usually jet black, sometimes brown or blue-black',
+  tiefling: 'fiend-blooded and no two alike — some combination of horns, a barbed tail, fangs, small wings, claws or oddly coloured eyes',
+  undine: 'water-touched: skin from pale turquoise through deep blue to sea green, with fin-like ears and webbed hands and feet',
+  vanara: 'monkey-like humanoid in a thin coat of soft chestnut, ivory or gold fur, with a long prehensile tail and hand-like feet',
+  vishkanya: 'graceful humanoid whose supple skin is covered in tiny scales, often light green, with serpentine eyes of burnished gold',
+  wayang: 'small and extremely gaunt, skin the colour of deep shadow, often marked with raised white dots in ornate spirals and geometric patterns',
+};
+
 /** How a category of armour reads at a glance. The catalogue's own item names ("Full plate",
  *  "Studded leather") are already concrete enough for a generator; this only adds the silhouette,
  *  which is what actually changes a portrait's composition. */

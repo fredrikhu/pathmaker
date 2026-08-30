@@ -3,7 +3,8 @@ import { resolve } from './resolve';
 import { characterFacts, characterPortrait, type PortraitFormat } from './portrait';
 import { newCharacter, withDecision } from './character';
 import { DEITIES } from '../content/deities';
-import { DEITY_SYMBOL } from '../content/iconography';
+import { DEITY_SYMBOL, RACE_LOOK } from '../content/iconography';
+import { RACES } from '../content/races';
 import type { CharacterDoc } from './types';
 
 const facts = (d: CharacterDoc) => characterFacts(d, resolve(d));
@@ -156,6 +157,47 @@ describe('every deity has an authored holy symbol', () => {
 
   it('gives "(None)" no symbol, since atheism has no iconography', () => {
     expect(DEITY_SYMBOL['none']).toBeUndefined();
+  });
+});
+
+describe('race appearance', () => {
+  // Six staples are excluded on purpose — a generator draws them right from the name, and
+  // describing an elf as slender with pointed ears is dilution. Listing them here rather than
+  // allowing any gap means a race added later forces a decision instead of silently getting none.
+  const DELIBERATELY_PLAIN = new Set(['human', 'dwarf', 'elf', 'halfling', 'half-elf', 'half-orc']);
+
+  it('covers every race that is not a fantasy staple', () => {
+    const missing = RACES
+      .filter((r) => !RACE_LOOK[r.id] && !DELIBERATELY_PLAIN.has(r.id))
+      .map((r) => r.id);
+    expect(missing).toEqual([]);
+  });
+
+  it('names no race the catalogue does not have', () => {
+    const ids = new Set(RACES.map((r) => r.id));
+    expect(Object.keys(RACE_LOOK).filter((id) => !ids.has(id))).toEqual([]);
+  });
+
+  it('describes only what is visible, never temperament or culture', () => {
+    // A portrait cannot show that a race is "shy and elusive"; a line that says so is wasted.
+    const banned = /\b(shy|proud|distrust|culture|tribe|society|believe|worship|temperament)\b/i;
+    expect(Object.entries(RACE_LOOK).filter(([, v]) => banned.test(v)).map(([k]) => k)).toEqual([]);
+  });
+
+  it('puts the race description into both prompts', () => {
+    const tengu = withDecision(fighter(), 'race', 'tengu');
+    expect(facts(tengu)).toContain('crow-like beak');
+    expect(characterPortrait(tengu, resolve(tengu), 'image')).toContain('## What a Tengu looks like');
+  });
+
+  it('says nothing extra for a human', () => {
+    expect(characterPortrait(fighter(), resolve(fighter()), 'image')).not.toContain('looks like');
+    expect(facts(fighter())).toContain('Race: Human\n');
+  });
+
+  it('keeps Golarion gnomes distinct from the generic kind', () => {
+    const gnome = withDecision(fighter(), 'race', 'gnome');
+    expect(facts(gnome)).toContain('vivid natural colour');
   });
 });
 

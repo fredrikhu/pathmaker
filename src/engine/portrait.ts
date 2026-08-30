@@ -21,7 +21,7 @@ import { readDecisions } from './resolve';
 import { fingerprint, type BuildFingerprint, type Gap, type OffenseStyle, type CombatRole, type PartyRole, type Strength } from './fingerprint';
 import * as C from '../content/index';
 import { filledDescription, readDescription } from './description';
-import { ARMOR_SILHOUETTE, DEITY_SYMBOL, DEITY_SYMBOL_DETAIL } from '../content/iconography';
+import { ARMOR_SILHOUETTE, DEITY_SYMBOL, DEITY_SYMBOL_DETAIL, RACE_LOOK } from '../content/iconography';
 
 /** `prompt` is ready to paste and includes the instructions; `data` is the character block alone,
  *  for a player who already has a prompt they like. */
@@ -267,7 +267,7 @@ export function characterFacts(doc: CharacterDoc, res: Resolution): string {
   blocks.push(['## Who they are',
     line('Name', doc.name),
     line('Alignment', dec.alignment ? ALIGNMENT_NAME[dec.alignment] ?? dec.alignment : null),
-    line('Race', race?.name),
+    line('Race', race ? (RACE_LOOK[race.id] ? `${race.name} — ${RACE_LOOK[race.id]}` : race.name) : null),
     line('Class', klass ? `${klass.name} ${fp.level}${arch ? ` (${arch.name})` : ''}` : null),
     line('Deity', dec.deityId ? C.deityById.get(dec.deityId)?.name : 'none recorded'),
     line('Size', race?.size === 'small' ? 'Small' : race ? 'Medium' : null),
@@ -367,6 +367,9 @@ function imagePrompt(doc: CharacterDoc, res: Resolution): string {
     'Create a single character portrait for a high-fantasy tabletop roleplaying game (Pathfinder, set in Golarion).',
     `## Subject\n${subject || 'An adventurer'}${d.gender ? `, ${d.gender}` : ''}.${d.pronouns ? ` Pronouns ${d.pronouns}.` : ''}${homeland ? ` ${homeland}` : ''}`,
   ];
+  // Before the player's own choices: this is the baseline the generator is most likely to get
+  // wrong, and their choices are refinements on top of it.
+  if (race && RACE_LOOK[race.id]) parts.push(`## What a ${race.name} looks like\n${RACE_LOOK[race.id]}.`);
   if (appearance.length) parts.push(`## Appearance the player has already decided\n${appearance.map((a) => `- ${a}`).join('\n')}`);
 
   const silhouette = ARMOR_SILHOUETTE[fp.defense.posture];
