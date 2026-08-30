@@ -2,6 +2,7 @@ import type { CharCtl } from '../../Builder';
 import { ABILITIES, ALIGNMENTS, abilityMod, fmtMod, type Ability, type Alignment } from '../../../engine/types';
 import { raceById, deityById, DEITIES, classById } from '../../../content/index';
 import { TermSpan, useTip } from '../../Tooltip';
+import { DESCRIPTION_FIELDS, readDescription, withDescriptionField } from '../../../engine/description';
 
 const POINT_BUY_COST: Record<number, number> = { 7: -4, 8: -2, 9: -1, 10: 0, 11: 1, 12: 2, 13: 3, 14: 5, 15: 7, 16: 10, 17: 13, 18: 17 };
 const POINT_BUY_TOTAL: Record<string, number> = { pb15: 15, pb20: 20, pb25: 25 };
@@ -30,6 +31,7 @@ export function BasicsStep({ ch }: { ch: CharCtl }) {
   const alignment = doc.decisions['alignment'] as Alignment | null;
   const deityId = (doc.decisions['deity'] as string | null) ?? 'none';
   const classId = doc.decisions['class'] as string | null;
+  const description = readDescription(doc);
   const klass = classId ? classById.get(classId) : undefined;
 
   const spent = ABILITIES.reduce((a, ab) => a + (POINT_BUY_COST[base[ab]] ?? 0), 0);
@@ -130,6 +132,36 @@ export function BasicsStep({ ch }: { ch: CharCtl }) {
               return <div style={{ fontSize: 11, color: 'var(--warn-fg)', marginTop: 6 }}>⚠ {d.name} ({d.alignment}) is more than one step from {alignment}.</div>;
             return null;
           })()}
+        </div>
+
+        {/* Nothing here reaches the engine — Pathfinder attaches no rules to any of it. It is
+            stored so the printed sheet can fill the fields it already lays out, and so the
+            backstory export knows the character's pronouns rather than guessing. */}
+        <div className="field">
+          <label>Description</label>
+          <div className="text-muted" style={{ fontSize: 11.5, lineHeight: 1.5, marginBottom: 8 }}>
+            Optional, and none of it changes a single number. It fills the printed sheet and the
+            backstory prompt.
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8 }}>
+            {DESCRIPTION_FIELDS.map((f) => (
+              <div key={f.key}>
+                <div className="micro" style={{ marginBottom: 3 }}>{f.label}</div>
+                <input
+                  className="input"
+                  style={{ width: '100%' }}
+                  value={description[f.key]}
+                  list={f.suggestions ? `desc-${f.key}` : undefined}
+                  onChange={(e) => ch.patch((d) => withDescriptionField(d, f.key, e.target.value))}
+                />
+                {f.suggestions && (
+                  <datalist id={`desc-${f.key}`}>
+                    {f.suggestions.map((s) => <option key={s} value={s} />)}
+                  </datalist>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 

@@ -13,6 +13,7 @@
 import type { CharacterDoc, Sheet, Stat, BreakdownLine, Ability } from '../engine/types';
 import { ABILITIES, abilityMod, fmtMod } from '../engine/types';
 import { resolve } from '../engine/resolve';
+import { readDescription } from '../engine/description';
 import { SKILLS, raceById, deityById, featById, spellById, armorById } from '../content/index';
 import '../styles/sheet.css';
 
@@ -136,6 +137,8 @@ export function OfficialSheet({ doc, onExit }: { doc: CharacterDoc; onExit: () =
 // =========================================================================== page 1
 
 function PageOne({ doc, sheet }: { doc: CharacterDoc; sheet: Sheet }) {
+  // The form has always laid these fields out; until now nothing could fill them.
+  const desc = readDescription(doc);
   const dec = doc.decisions;
   const race = raceById.get((dec['race'] as string) ?? '');
   const deity = deityById.get((dec['deity'] as string) ?? '');
@@ -183,22 +186,22 @@ function PageOne({ doc, sheet }: { doc: CharacterDoc; sheet: Sheet }) {
           <div style={{ display: 'flex', gap: 6 }}>
             <Field cap="Character Name" v={doc.name} flex={3.2} />
             <Field cap="Alignment" v={alignment} flex={1.3} />
-            <Field cap="Player" flex={1.8} />
+            <Field cap="Player" v={desc.player} flex={1.8} />
           </div>
           <div style={{ display: 'flex', gap: 6 }}>
             <Field cap="Character Level" v={classLine} flex={3.2} />
             <Field cap="Deity" v={deity?.name} flex={1.6} />
-            <Field cap="Homeland" flex={1.5} />
+            <Field cap="Homeland" v={desc.homeland} flex={1.5} />
           </div>
           <div style={{ display: 'flex', gap: 6 }}>
             <Field cap="Race" v={race?.name} flex={2.4} />
             <Field cap="Size" v={race ? race.size.charAt(0).toUpperCase() + race.size.slice(1) : ''} flex={1.1} />
-            <Field cap="Gender" flex={1.1} />
-            <Field cap="Age" flex={0.8} />
-            <Field cap="Height" flex={1} />
-            <Field cap="Weight" flex={1} />
-            <Field cap="Hair" flex={1} />
-            <Field cap="Eyes" flex={1} />
+            <Field cap="Gender" v={desc.gender} flex={1.1} />
+            <Field cap="Age" v={desc.age} flex={0.8} />
+            <Field cap="Height" v={desc.height} flex={1} />
+            <Field cap="Weight" v={desc.weight} flex={1} />
+            <Field cap="Hair" v={desc.hair} flex={1} />
+            <Field cap="Eyes" v={desc.eyes} flex={1} />
           </div>
         </div>
       </div>

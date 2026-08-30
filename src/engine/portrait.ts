@@ -20,6 +20,7 @@ import { abilityMod, fmtMod, speedLabel } from './types';
 import { readDecisions } from './resolve';
 import { fingerprint, type BuildFingerprint, type Gap, type OffenseStyle, type CombatRole, type PartyRole, type Strength } from './fingerprint';
 import * as C from '../content/index';
+import { filledDescription, readDescription } from './description';
 
 /** `prompt` is ready to paste and includes the instructions; `data` is the character block alone,
  *  for a player who already has a prompt they like. */
@@ -104,7 +105,14 @@ const CHARACTERFUL_GAPS: Gap[] = [
   'no-ranged-option', 'no-melee-option',
 ];
 
-const INSTRUCTIONS = `You are helping a player flesh out a tabletop roleplaying character for Pathfinder 1st Edition. Their character sheet is below.
+/** The pronoun line has to change with the sheet. Telling a model "no pronouns are recorded" when
+ *  the player has just written "she/her" is worse than saying nothing — it invites the model to
+ *  override a choice the player already made. */
+const pronounRule = (pronouns: string): string => pronouns
+  ? `- The character's pronouns are ${pronouns}. Use them throughout.`
+  : '- The sheet records no gender or pronouns. Use they/them unless the player tells you otherwise.';
+
+const instructions = (pronouns: string): string => `You are helping a player flesh out a tabletop roleplaying character for Pathfinder 1st Edition. Their character sheet is below.
 
 Write:
 1. **Appearance** — what someone notices on first meeting them, in a short paragraph.
@@ -115,8 +123,8 @@ Write:
 How to use the sheet:
 
 - Everything in it is already true. Do not contradict it, and do not quietly drop a detail that is awkward to explain.
-- Where the sheet is silent — age, family, homeland, names of other people, what happened to them — invent freely. That is most of the story and it is yours to write.
-- The sheet records no gender or pronouns. Use they/them unless the player tells you otherwise.
+- Where the sheet is silent — family, names of other people, what happened to them — invent freely. That is most of the story and it is yours to write.
+${pronounRule(pronouns)}
 - The specifics are the character. A dumped ability score, one heavily trained skill on someone who has few, a chosen deity, an odd piece of equipment: explain those rather than writing around them. The "Threads worth pulling" section at the end lists the ones the sheet itself finds notable.
 - Mechanical terms are Pathfinder 1e. Translate them into things a person in the world would notice — "Intimidate +10" is someone people step back from, not a number anyone mentions.
 - Do not invent rules, levels, items or abilities the character does not have.`;
@@ -233,6 +241,13 @@ export function characterFacts(doc: CharacterDoc, res: Resolution): string {
     line('Languages', dec.languages.length ? dec.languages.join(', ') : null),
   ].filter(Boolean).join('\n'));
 
+  // Private fields (the player's real name) are dropped: this text is about to be pasted into
+  // someone else's service, and nobody asked for that to carry a real person's name.
+  const described = filledDescription(doc, false);
+  if (described.length) {
+    blocks.push(`## Description\n${described.map((d) => `${d.label}: ${d.value}`).join('\n')}`);
+  }
+
   blocks.push(`## Abilities\n${abilities}`);
 
   blocks.push(`## How they operate\n${shapeLines(fp).map((l) => `- ${l}`).join('\n')}`);
@@ -258,5 +273,5 @@ export function characterFacts(doc: CharacterDoc, res: Resolution): string {
 export function characterPortrait(doc: CharacterDoc, res: Resolution, format: PortraitFormat = 'prompt'): string {
   const facts = characterFacts(doc, res);
   if (format === 'data') return facts;
-  return `${INSTRUCTIONS}\n\n---\n\n# Character sheet\n\n${facts}`;
+  return `${instructions(readDescription(doc).pronouns)}\n\n---\n\n# Character sheet\n\n${facts}`;
 }
