@@ -46,13 +46,17 @@ export function PortraitDialog({ doc, resolution, onClose }: {
         <div className="dialog-title">Describe {doc.name} with an AI</div>
         <div className="dialog-body" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <p style={{ margin: 0, fontSize: 13, lineHeight: 1.6 }}>
-            Pathmaker does not talk to an AI itself. Copy this and paste it into whichever assistant you
-            use to get a backstory, an appearance and a set of mannerisms back. Edit it first if you
-            already know things about this character that the sheet does not.
+            Pathmaker does not talk to an AI itself. Copy this and paste it into whichever assistant
+            you use. Edit it first if you already know things about this character that the sheet does not.
+          </p>
+          <p className="text-muted" style={{ margin: 0, fontSize: 12, lineHeight: 1.55 }}>
+            {format === 'prompt' && 'Backstory — asks a writing model for an appearance, a history, mannerisms and motivations.'}
+            {format === 'image' && 'Portrait — written for an image generator. Only the things that are actually visible, plus what it must not invent: the holy symbol, and equipment the character does not carry.'}
+            {format === 'data' && 'Data only — the character block with no instructions, for a prompt you already have.'}
           </p>
 
           <div className="seg" style={{ alignSelf: 'flex-start' }}>
-            {([['prompt', 'Full prompt'], ['data', 'Character data only']] as const).map(([id, label]) => (
+            {([['prompt', 'Backstory'], ['image', 'Portrait'], ['data', 'Data only']] as const).map(([id, label]) => (
               <label key={id} className="seg-opt">
                 <input type="radio" name="portrait-format" hidden checked={format === id} onChange={() => setFormat(id)} />
                 {label}

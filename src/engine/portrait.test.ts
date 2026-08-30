@@ -1,11 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import { resolve } from './resolve';
-import { characterFacts, characterPortrait } from './portrait';
+import { characterFacts, characterPortrait, type PortraitFormat } from './portrait';
 import { newCharacter, withDecision } from './character';
+import { DEITIES } from '../content/deities';
+import { DEITY_SYMBOL } from '../content/iconography';
 import type { CharacterDoc } from './types';
 
 const facts = (d: CharacterDoc) => characterFacts(d, resolve(d));
-const portrait = (d: CharacterDoc, f?: 'prompt' | 'data') => characterPortrait(d, resolve(d), f);
+const portrait = (d: CharacterDoc, f?: PortraitFormat) => characterPortrait(d, resolve(d), f);
 
 function fighter(level = 6): CharacterDoc {
   let d = newCharacter('t-por-fighter', 'Valeria');
@@ -136,6 +138,90 @@ describe('the two formats', () => {
 
   it('does not assume the character\'s gender', () => {
     expect(portrait(fighter())).toContain('they/them');
+  });
+});
+
+describe('every deity has an authored holy symbol', () => {
+  // The whole point of the iconography table is that a named god with no described symbol gets
+  // drawn as a generic amulet. A deity added later without an entry would silently do that again.
+  it('covers the full pantheon', () => {
+    const missing = DEITIES.filter((d) => d.id !== 'none' && !DEITY_SYMBOL[d.id]).map((d) => d.id);
+    expect(missing).toEqual([]);
+  });
+
+  it('names no deity the catalogue does not have', () => {
+    const ids = new Set(DEITIES.map((d) => d.id));
+    expect(Object.keys(DEITY_SYMBOL).filter((id) => !ids.has(id))).toEqual([]);
+  });
+
+  it('gives "(None)" no symbol, since atheism has no iconography', () => {
+    expect(DEITY_SYMBOL['none']).toBeUndefined();
+  });
+});
+
+describe('the portrait prompt', () => {
+  function devout(): CharacterDoc {
+    let d = withDecision(fighter(), 'alignment', 'LG');
+    d = withDecision(d, 'deity', 'iomedae');
+    return { ...d, purchases: { ...d.purchases, javelin: 3, 'rations-trail': 5 } };
+  }
+  const img = (d: CharacterDoc) => portrait(d, 'image');
+
+  it('describes the holy symbol rather than only naming the god', () => {
+    const p = img(devout());
+    expect(p).toContain('a sword and sun');
+    expect(p).toContain('Use that and no other religious emblem');
+  });
+
+  it('never forbids a shape the required symbol contains', () => {
+    // "Do not draw a sunburst" next to "the symbol is a sword and sun" is a contradiction, and it
+    // was in the first draft.
+    expect(img(devout())).not.toMatch(/Do not substitute[^\n]*sunburst/);
+  });
+
+  it('separates what is worn from what is in a pack', () => {
+    const p = img(devout());
+    expect(p).toContain('Armour: Full plate');
+    expect(p).toContain('Main hand: Greatsword');
+    // A weapon can hang off a person; trail rations cannot.
+    expect(p).toContain('Javelin ×3');
+    expect(p).not.toContain('Rations');
+  });
+
+  it('keeps the equipment instruction consistent with the optional list', () => {
+    expect(img(devout())).not.toContain('and nothing else');
+  });
+
+  it('does not tell a generator that a human is not a human', () => {
+    expect(img(fighter())).not.toContain('Their race is Human');
+  });
+
+  it('does name a race a generator would default away from', () => {
+    const elf = withDecision(wizard(), 'race', 'elf');
+    expect(img(elf)).toContain('Their race is Elf');
+  });
+
+  it('says nothing about faith for a character with no deity', () => {
+    const p = img(fighter());
+    expect(p).not.toContain('## Faith');
+    expect(p).not.toContain('holy symbol');
+  });
+
+  it('tells the generator not to draw the character sheet itself', () => {
+    expect(img(fighter())).toContain('Do not render text, numbers, dice');
+  });
+
+  it('leaves everything the sheet does not decide open', () => {
+    expect(img(fighter())).toContain('## Left to you');
+  });
+
+  it('stays free of template holes across build shapes', () => {
+    for (const d of [fighter(), wizard(), fighter(1), newCharacter('t-por-img-blank', 'Nobody')]) {
+      const p = img(d);
+      expect(p).not.toMatch(/\bundefined\b/);
+      expect(p).not.toMatch(/\bNaN\b/);
+      expect(p).not.toContain('[object Object]');
+    }
   });
 });
 

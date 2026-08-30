@@ -15,16 +15,17 @@
 //      archetype, a deity — those are where a character's story actually lives, and a model will
 //      skate past them unless they are put in front of it.
 
-import type { Ability, CharacterDoc, Resolution } from './types';
+import type { Ability, CharacterDoc, Resolution, Sheet } from './types';
 import { abilityMod, fmtMod, speedLabel } from './types';
 import { readDecisions } from './resolve';
 import { fingerprint, type BuildFingerprint, type Gap, type OffenseStyle, type CombatRole, type PartyRole, type Strength } from './fingerprint';
 import * as C from '../content/index';
 import { filledDescription, readDescription } from './description';
+import { ARMOR_SILHOUETTE, DEITY_SYMBOL } from '../content/iconography';
 
 /** `prompt` is ready to paste and includes the instructions; `data` is the character block alone,
  *  for a player who already has a prompt they like. */
-export type PortraitFormat = 'prompt' | 'data';
+export type PortraitFormat = 'prompt' | 'data' | 'image';
 
 const ALIGNMENT_NAME: Record<string, string> = {
   LG: 'Lawful Good', NG: 'Neutral Good', CG: 'Chaotic Good',
@@ -179,7 +180,10 @@ function threads(fp: BuildFingerprint, doc: CharacterDoc, res: Resolution): stri
 
   if (dec.deityId) {
     const deity = C.deityById.get(dec.deityId);
-    if (deity) out.push(`They worship ${deity.name} (${ALIGNMENT_NAME[deity.alignment] ?? deity.alignment}), whose concerns are ${deity.portfolio}. How devout they are is not recorded.`);
+    if (deity) {
+      const symbol = DEITY_SYMBOL[deity.id];
+      out.push(`They worship ${deity.name} (${ALIGNMENT_NAME[deity.alignment] ?? deity.alignment}), whose concerns are ${deity.portfolio}.${symbol ? ` The holy symbol of ${deity.name} is ${symbol}.` : ''} How devout they are is not recorded.`);
+    }
   }
 
   for (const g of fp.gaps) {
@@ -192,6 +196,31 @@ function threads(fp: BuildFingerprint, doc: CharacterDoc, res: Resolution): stri
 
   if (res.sheet.senses.length) out.push(`They can ${res.sheet.senses.join(', ')}.`);
   return out;
+}
+
+const SLOT_LABEL: Record<string, string> = {
+  armor: 'Armour', shield: 'Shield', main: 'Main hand', off: 'Off hand',
+};
+
+/** What is actually on the character's body, in the order a picture reads it. Quality and named
+ *  properties are kept — a flaming keen longsword is a different object to draw than a longsword. */
+function wornAndWielded(sheet: Sheet): { slot: string; name: string }[] {
+  const order = ['armor', 'shield', 'main', 'off'];
+  return sheet.inventory
+    .filter((i) => i.equipped)
+    .sort((a, b) => order.indexOf(a.equipped!) - order.indexOf(b.equipped!))
+    .map((i) => ({
+      slot: SLOT_LABEL[i.equipped!] ?? i.equipped!,
+      name: i.properties?.length ? `${i.name} (${i.properties.join(', ')})` : i.name,
+    }));
+}
+
+/** Everything else on the sheet, which a portrait may or may not show. */
+function alsoCarried(sheet: Sheet): string {
+  return sheet.inventory
+    .filter((i) => !i.equipped && i.qty > 0)
+    .map((i) => `${i.name}${i.qty > 1 ? ` ×${i.qty}` : ''}`)
+    .join(', ');
 }
 
 /** The character block: everything the sheet has settled, as compact labelled text. */
@@ -224,9 +253,6 @@ export function characterFacts(doc: CharacterDoc, res: Resolution): string {
       return names.length ? `  ${lvl === '0' ? 'Cantrips' : `Level ${lvl}`}: ${names.join(', ')}` : null;
     })
     .filter(Boolean).join('\n');
-
-  const gear = Object.entries(doc.purchases).filter(([, q]) => q > 0)
-    .map(([id, q]) => `${C.anyItemById(id)?.name ?? id}${q > 1 ? ` ×${q}` : ''}`).join(', ');
 
   const blocks: string[] = [];
 
@@ -261,7 +287,14 @@ export function characterFacts(doc: CharacterDoc, res: Resolution): string {
   if (feats) blocks.push(`## Feats\n${feats}`);
   if (traits) blocks.push(`## Traits (these are backstory the player already chose)\n${traits}`);
   if (spellsByLevel) blocks.push(`## Spells chosen\n${spellsByLevel}`);
-  if (gear) blocks.push(`## Equipment\n${gear}`);
+
+  // Split, because a picture only ever shows the first list. Everything a character owns went
+  // into one heap before, so three javelins in a backpack read as prominently as the greatsword
+  // in their hands.
+  const worn = wornAndWielded(sheet);
+  if (worn.length) blocks.push(`## Worn and wielded\n${worn.map((w) => `${w.slot}: ${w.name}`).join('\n')}`);
+  const stowed = alsoCarried(sheet);
+  if (stowed) blocks.push(`## Also carried (not necessarily visible)\n${stowed}`);
 
   const th = threads(fp, doc, res);
   if (th.length) blocks.push(`## Threads worth pulling\n${th.map((t) => `- ${t}`).join('\n')}`);
@@ -269,8 +302,89 @@ export function characterFacts(doc: CharacterDoc, res: Resolution): string {
   return blocks.join('\n\n');
 }
 
-/** The full text to hand to a language model. */
+/** A prompt for an image generator rather than a writer.
+ *
+ *  This is a different document, not the backstory prompt with pictures asked for. An image model
+ *  needs the few things that are actually visible — silhouette, what is held, what is worn, the
+ *  emblem on the shield — and is actively hurt by the rest of the sheet, which it will try to
+ *  render as symbols floating in the frame. It also needs to be told what *not* to invent: the
+ *  failure that prompted this was a generated portrait giving a character the wrong god's
+ *  iconography, which happens by default when the deity is named and never described. */
+function imagePrompt(doc: CharacterDoc, res: Resolution): string {
+  const sheet = res.sheet;
+  const dec = readDecisions(doc);
+  const fp = fingerprint(doc, res);
+  const d = readDescription(doc);
+  const race = dec.raceId ? C.raceById.get(dec.raceId) : undefined;
+  const klass = C.classById.get(fp.primaryClassId);
+  const deity = dec.deityId ? C.deityById.get(dec.deityId) : undefined;
+  const symbol = deity ? DEITY_SYMBOL[deity.id] : undefined;
+
+  const subject = [
+    race?.size === 'small' ? 'Small' : race ? 'Medium' : null,
+    race?.name,
+    klass ? `${klass.name}${fp.archetypeId ? ` (${klass.archetypes?.find((a) => a.id === fp.archetypeId)?.name ?? ''})` : ''}` : null,
+  ].filter(Boolean).join(' ');
+
+  // Gender, pronouns and homeland are already in the Subject line; repeating them here reads to a
+  // model as emphasis and tends to come back as text stamped on the image.
+  const saidAbove = new Set(['Gender', 'Pronouns', 'Homeland']);
+  const appearance = filledDescription(doc, false)
+    .filter((f) => !saidAbove.has(f.label))
+    .map((f) => `${f.label}: ${f.value}`);
+  const homeland = d.homeland ? `From ${d.homeland}.` : null;
+
+  const worn = wornAndWielded(sheet);
+  const mustGetRight: string[] = [];
+  if (symbol && deity) {
+    // Naming forbidden emblems by shape backfires: "no sunburst" contradicts Iomedae, whose symbol
+    // is a sword and sun. Say it once, generically, and let the required symbol do the work.
+    mustGetRight.push(`The holy symbol is **${symbol}** — the symbol of ${deity.name}. Use that and no other religious emblem.`);
+  }
+  mustGetRight.push(worn.length
+    ? 'Only the equipment listed above may appear. Do not add weapons, shields or armour that is on neither list.'
+    : 'No armour or weapons are recorded. Do not invent a full panoply — dress them plainly.');
+  // Only worth saying for a race a generator is likely to default to a human, which is every race
+  // except the one it would default to.
+  if (race && race.id !== 'human') {
+    // "They are Elf" needs an article and "a Elf" needs a vowel check; naming the field sidesteps
+    // both and stays correct for every entry in the roster.
+    mustGetRight.push(`Their race is ${race.name}. Render that race's distinctive features rather than a human in costume.`);
+  }
+  mustGetRight.push('Ability scores, hit points and other game numbers are not visible things. Do not render text, numbers, dice, stat blocks or a character sheet in the image.');
+
+  const parts: string[] = [
+    'Create a single character portrait for a high-fantasy tabletop roleplaying game (Pathfinder, set in Golarion).',
+    `## Subject\n${subject || 'An adventurer'}${d.gender ? `, ${d.gender}` : ''}.${d.pronouns ? ` Pronouns ${d.pronouns}.` : ''}${homeland ? ` ${homeland}` : ''}`,
+  ];
+  if (appearance.length) parts.push(`## Appearance the player has already decided\n${appearance.map((a) => `- ${a}`).join('\n')}`);
+
+  const silhouette = ARMOR_SILHOUETTE[fp.defense.posture];
+  parts.push(`## Worn and wielded\n${worn.length ? worn.map((w) => `- ${w.slot}: ${w.name}`).join('\n') : '- Nothing recorded'}\n- Overall silhouette: ${silhouette}`);
+
+  if (deity) {
+    parts.push(`## Faith\nThey worship ${deity.name}, a deity of ${deity.portfolio.toLowerCase()}.${symbol ? ` ${deity.name}'s holy symbol is ${symbol}. If a symbol appears anywhere — pendant, shield, banner, tabard, pommel — it must be this one.` : ''}`);
+  }
+
+  // Weapons on the sheet but not in hand are frequently visible on a person — a quiver, a slung
+  // bow, javelins at the back. Everything else they own is in a pack and is not worth drawing.
+  const carriedWeapons = sheet.inventory
+    .filter((i) => !i.equipped && i.kind === 'weapon' && i.qty > 0)
+    .map((i) => `${i.name}${i.qty > 1 ? ` ×${i.qty}` : ''}`);
+  if (carriedWeapons.length) {
+    parts.push(`## Also carried, optional to show\n${carriedWeapons.map((w) => `- ${w}`).join('\n')}`);
+  }
+
+  parts.push(`## Bearing\n${fp.combatRoles.map((r) => `- They ${ROLE_LABEL[r]}.`).join('\n')}`);
+  parts.push(`## Get these right\n${mustGetRight.map((m) => `- ${m}`).join('\n')}`);
+  parts.push('## Left to you\nAnything not stated above — face, age, expression, pose, lighting, background and palette. Where this sheet is silent, choose something that fits the rest.');
+
+  return parts.join('\n\n');
+}
+
+/** The full text to hand to a model. */
 export function characterPortrait(doc: CharacterDoc, res: Resolution, format: PortraitFormat = 'prompt'): string {
+  if (format === 'image') return imagePrompt(doc, res);
   const facts = characterFacts(doc, res);
   if (format === 'data') return facts;
   return `${instructions(readDescription(doc).pronouns)}\n\n---\n\n# Character sheet\n\n${facts}`;
