@@ -8,11 +8,13 @@ import { StatValue } from './StatValue';
 import { ThemeToggle } from './ThemeToggle';
 import { OfficialSheet } from './OfficialSheet';
 import { PlaystylePanel } from './PlaystylePanel';
+import { PortraitDialog } from './PortraitDialog';
 import { spellStatLine } from './spellInfo';
 
 export function SheetPreview({ id }: { id: string }) {
   const doc = loadCharacter(id);
   const [mode, setMode] = useState<'screen' | 'print'>('screen');
+  const [portrait, setPortrait] = useState(false);
   if (!doc) return <div style={{ padding: 40 }}>Character not found. <button className="btn btn-ghost" onClick={() => navigate({ name: 'roster' })}>Back to roster</button></div>;
   const r = resolve(doc);
   const sheet = r.sheet;
@@ -33,6 +35,7 @@ export function SheetPreview({ id }: { id: string }) {
       <div className="no-print" style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '12px 24px' }}>
         <button onClick={() => navigate({ name: 'builder', id })} className="btn btn-ghost" style={{ fontSize: 12 }}>← Back to builder</button>
         <button onClick={() => navigate({ name: 'play', id })} className="btn btn-primary" style={{ fontSize: 12 }}>▶ Play</button>
+        <button onClick={() => setPortrait(true)} className="btn btn-ghost" style={{ fontSize: 12 }}>Backstory prompt</button>
         <span style={{ flex: 1 }} />
         <ThemeToggle />
         <div style={{ display: 'inline-flex', border: '1px solid var(--color-divider)', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
@@ -118,6 +121,8 @@ export function SheetPreview({ id }: { id: string }) {
           <div className="text-muted" style={{ fontSize: 11.5, marginTop: 8 }}>Load {sheet.load.current} lb ({sheet.load.label}) · {sheet.gold} gp remaining</div>
         </Section>
       </div>
+
+      {portrait && doc && <PortraitDialog doc={doc} resolution={r} onClose={() => setPortrait(false)} />}
     </div>
   );
 }
