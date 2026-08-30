@@ -116,6 +116,15 @@ describe('feat themes need a cluster, not a single pickup', () => {
     const d = withDecision(fighter(), 'feats', { 'feat-1': 'dodge', 'feat-human': 'mobility' });
     expect(fp(d).featThemes).toContain('mobility');
   });
+
+  it('does not read a wizard\'s free Scribe Scroll as an interest in crafting', () => {
+    expect(fp(wizard()).featThemes).not.toContain('crafting');
+  });
+
+  it('claims crafting once a crafting feat is actually chosen', () => {
+    const d = withDecision(wizard(), 'feats', { 'feat-1': 'craft-wondrous-item' });
+    expect(fp(d).featThemes).toContain('crafting');
+  });
 });
 
 describe('casting shape', () => {
@@ -194,6 +203,16 @@ describe('gaps are structural, never a verdict on the numbers', () => {
   it('counts a blasting spell list as a ranged option', () => {
     const d = withDecision(wizard(), 'spell-picks', { 1: ['magic-missile'] });
     expect(fp(d).gaps).not.toContain('no-ranged-option');
+  });
+
+  it('counts a control spell as a ranged option too — reach is not the same as damage', () => {
+    const d = withDecision(wizard(), 'spell-picks', { 1: ['grease'], 2: ['web'] });
+    expect(fp(d).gaps).not.toContain('no-ranged-option');
+  });
+
+  it('still flags a caster whose whole list is touch and personal', () => {
+    const d = withDecision(wizard(), 'spell-picks', { 1: ['mage-armor'], 3: ['vampiric-touch'] });
+    expect(fp(d).gaps).toContain('no-ranged-option');
   });
 
   it('flags a build leaning on four or more abilities', () => {

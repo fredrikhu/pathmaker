@@ -165,7 +165,9 @@ const FEAT_THEMES: { theme: FeatTheme; min: number; feats: string[] }[] = [
   { theme: 'shield', min: 1, feats: ['shield-focus', 'greater-shield-focus', 'improved-shield-bash', 'shield-master', 'shield-slam'] },
   { theme: 'mounted', min: 1, feats: ['mounted-combat', 'ride-by-attack', 'spirited-charge', 'trample', 'unseat', 'mounted-archery'] },
   { theme: 'channel', min: 1, feats: ['extra-channel', 'improved-channel', 'selective-channeling', 'channel-smite', 'alignment-channel', 'elemental-channel', 'command-undead', 'turn-undead'] },
-  { theme: 'crafting', min: 1, feats: ['brew-potion', 'craft-magic-arms-and-armor', 'craft-rod', 'craft-staff', 'craft-wand', 'craft-wondrous-item', 'forge-ring', 'scribe-scroll', 'master-craftsman'] },
+  // Two, because every wizard is handed Scribe Scroll for free and one granted feat is not an
+  // investment in anything.
+  { theme: 'crafting', min: 2, feats: ['brew-potion', 'craft-magic-arms-and-armor', 'craft-rod', 'craft-staff', 'craft-wand', 'craft-wondrous-item', 'forge-ring', 'scribe-scroll', 'master-craftsman'] },
   { theme: 'skill', min: 2, feats: ['skill-focus', 'acrobatic', 'alertness', 'animal-affinity', 'athletic', 'deceitful', 'deft-hands', 'magical-aptitude', 'persuasive', 'self-sufficient', 'stealthy'] },
 ];
 
@@ -313,10 +315,15 @@ export function fingerprint(doc: CharacterDoc, res: Resolution): BuildFingerprin
   const weakSave = saves[highest] - saves[lowest] >= 4 ? lowest : null;
 
   // --- casting ------------------------------------------------------------------------------
+  const picks = Object.values(dec.spellPicks).flat()
+    .map((id) => C.spellById.get(id)).filter((s): s is SpellDef => !!s);
+  // A spell that reaches past arm's length is a way to act on something you cannot walk to, whether
+  // or not it does damage — a Web at the far end of a room is an answer, and calling that "no
+  // ranged option" would be plainly wrong to anyone reading it.
+  const hasRangedSpell = casting0 !== undefined && picks.some((sp) => !/^(personal|touch)/i.test(sp.range));
+
   let casting: CastingShape | null = null;
   if (casting0) {
-    const picks = Object.values(dec.spellPicks).flat()
-      .map((id) => C.spellById.get(id)).filter((s): s is SpellDef => !!s);
     const leans = tally(picks.map(spellLean));
     const slots = casting0.slots ?? [];
     let top = 0;
@@ -396,8 +403,7 @@ export function fingerprint(doc: CharacterDoc, res: Resolution): BuildFingerprin
   // --- gaps ---------------------------------------------------------------------------------
   const gaps: Gap[] = [];
   if (weakSave) gaps.push(`weak-${weakSave}` as Gap);
-  const rangedSpell = casting?.leanMix.includes('blaster') ?? false;
-  if (!hasRanged && !rangedSpell) gaps.push('no-ranged-option');
+  if (!hasRanged && !hasRangedSpell) gaps.push('no-ranged-option');
   if (!hasMelee && hasRanged) gaps.push('no-melee-option');
   if (!heals) gaps.push('no-healing');
   if (!trainedSet.has('disable-device')) gaps.push('no-trapfinder');
