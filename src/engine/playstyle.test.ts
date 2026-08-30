@@ -70,6 +70,13 @@ describe('house style: prose describes intent, the sheet states facts', () => {
     expect(nounPhrases.filter((t) => /^[A-Z]/.test(t.trim()))).toEqual([]);
   });
 
+  it('opens every style clause with a verb, so it continues the sentence rather than restarting it', () => {
+    // "You are three characters in one, a single weapon in one hand" reads as a second noun phrase
+    // hung off the first. A clause beginning with an article always does.
+    const clauses = Object.values(STYLE_TEXT).map((s) => s.clause);
+    expect(clauses.filter((c) => /^(a|an|the)\s/i.test(c))).toEqual([]);
+  });
+
   it('has no stub paragraphs', () => {
     expect(prose.filter((t) => t.trim().length < 40)).toEqual([]);
   });
@@ -128,12 +135,12 @@ describe('assembly rules', () => {
     d = withDecision(d, 'race', 'human');
     d = withDecision(d, 'alignment', 'NG');
     d = withDecision(d, 'class', 'druid');
-    d = withDecision(d, 'class-choices', { 'druid-nature-bond': ['animal-companion'] });
-    const b = brief({ ...d, level: 5 });
-    const job = b.sections.find((s) => s.id === 'job')!.body.join(' ');
-    if (fingerprint({ ...d, level: 5 }, resolve({ ...d, level: 5 })).combatRoles.includes('commander')) {
-      expect(job).toContain('two turns every round');
-    }
+    // Two decisions, not one: the nature bond picks companion-over-domain, then the companion
+    // slot picks the creature. Only the second actually puts a body on the field.
+    d = withDecision(d, 'class-choices', { 'nature-bond': ['animal-companion'], 'animal-companion': ['bear'] });
+    const doc = { ...d, level: 5 };
+    expect(fingerprint(doc, resolve(doc)).combatRoles).toContain('commander');
+    expect(brief(doc).sections.find((s) => s.id === 'job')!.body.join(' ')).toContain('second body on the field');
   });
 
   it('says so plainly when nobody covers the non-combat half of a session', () => {

@@ -7,6 +7,7 @@ import { navigate } from './App';
 import { StatValue } from './StatValue';
 import { ThemeToggle } from './ThemeToggle';
 import { OfficialSheet } from './OfficialSheet';
+import { PlaystylePanel } from './PlaystylePanel';
 import { spellStatLine } from './spellInfo';
 
 export function SheetPreview({ id }: { id: string }) {
@@ -63,6 +64,10 @@ export function SheetPreview({ id }: { id: string }) {
           <Block title="Saves" rows={[['Fortitude', 'save:fort', 'mod'], ['Reflex', 'save:ref', 'mod'], ['Will', 'save:will', 'mod']]} sheet={sheet} />
           <Block title="Offense" rows={[['BAB', 'bab', 'mod'], ['Melee', 'attack:melee', 'mod'], ['Ranged', 'attack:ranged', 'mod'], ['CMB', 'cmb', 'mod'], ['CMD', 'cmd', 'plain'], ['Initiative', 'init', 'mod']]} sheet={sheet} />
         </div>
+
+        {/* Placed after the numbers rather than before them: the sheet is a reference first, and
+            the brief reads better once you have seen what it is describing. */}
+        <PlaystylePanel doc={doc} resolution={r} />
 
         <Section title="Skills">
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>

@@ -119,6 +119,14 @@ function betweenSection(fp: BuildFingerprint): BriefSection | null {
   return { id: 'between', title: 'Between fights', body };
 }
 
+/** The class anchor alone, capitalised — a roster card has room for a phrase, not a sentence.
+ *  Empty when the class is not chosen yet, so a caller can leave the line out entirely rather
+ *  than print a placeholder. */
+export function identityChip(fp: BuildFingerprint): string {
+  const identity = CLASS_PLAYSTYLE[fp.primaryClassId]?.identity;
+  return identity ? identity.charAt(0).toUpperCase() + identity.slice(1) : '';
+}
+
 /** Build the brief. Pure: the same fingerprint always produces the same text. */
 export function playstyleBrief(fp: BuildFingerprint): PlaystyleBrief {
   const sections = [jobSection(fp), roundSection(fp), edgeSection(fp), riskSection(fp), betweenSection(fp)]

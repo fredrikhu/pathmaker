@@ -167,11 +167,11 @@ export const STYLE_TEXT: Record<OffenseStyle, StyleText> = {
     round: 'Your best round is a full attack from a standing position, so the fight you want is one where you reached the enemy last round and can stand still this one. Closing the distance and swinging in the same turn costs you every attack after the first, which is why moving is expensive for you and why getting into position early matters more than it does for anyone else.',
   },
   'sword-and-board': {
-    clause: 'a weapon in one hand and a shield in the other',
+    clause: 'fighting with a weapon in one hand and a shield in the other',
     round: 'You trade damage for staying upright, which means your job is to be the one the enemy attacks. Stand where you block a path rather than where you can reach the most enemies, and accept that your damage is lower than the two-handed builds — you are buying the party the rounds it needs.',
   },
   'two-weapon': {
-    clause: 'a weapon in each hand',
+    clause: 'fighting with a weapon in each hand',
     round: 'Everything you do depends on getting a full attack, and you lose more than anyone else when you have to move. Your extra attacks come with penalties, so you want them landing often: anything that raises your attack bonus or lowers the enemy\'s defences is worth more to you than raw damage.',
   },
   archery: {
@@ -183,7 +183,7 @@ export const STYLE_TEXT: Record<OffenseStyle, StyleText> = {
     round: 'You cover the awkward middle range where an archer is fine and a melee character is stranded, and you keep working when something closes on you. The constraint is supply and the action it takes to draw — that is the thing to solve, and once solved you are unusually flexible.',
   },
   'one-handed': {
-    clause: 'a single weapon in one hand',
+    clause: 'fighting one-handed with your other hand free',
     round: 'One hand on the weapon and one hand free is the most flexible way to fight: you can hold a shield later, drink a potion now, or grab something mid-fight. It is a deliberate middle: less damage than gripping with both hands, more freedom than either alternative.',
   },
   natural: {

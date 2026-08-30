@@ -1,6 +1,8 @@
 import { useRef, useState } from 'react';
 import { newCharacter } from '../engine/character';
 import { resolve } from '../engine/resolve';
+import { fingerprint } from '../engine/fingerprint';
+import { identityChip } from '../engine/playstyle';
 import {
   deleteCharacter, exportCharacter, importCharacter, loadCharacter, loadIndex,
   saveCharacter, uid, type RosterEntry,
@@ -10,11 +12,17 @@ import { ThemeToggle } from './ThemeToggle';
 import { AccountBadge, useAccount } from './account';
 import { MigrationDialog } from './MigrationDialog';
 
-function summarize(id: string): { summary: string; issues: number } {
+function summarize(id: string): { summary: string; identity: string; issues: number } {
   const doc = loadCharacter(id);
-  if (!doc) return { summary: '—', issues: 0 };
+  if (!doc) return { summary: '—', identity: '', issues: 0 };
   const r = resolve(doc);
-  return { summary: r.sheet.summaryLine || 'New character', issues: r.issues.filter((i) => i.severity === 'error').length };
+  return {
+    summary: r.sheet.summaryLine || 'New character',
+    // A phrase, not the brief's full sentence — a card has one line to spare, and it is empty
+    // until a class is chosen rather than showing a placeholder.
+    identity: identityChip(fingerprint(doc, r)),
+    issues: r.issues.filter((i) => i.severity === 'error').length,
+  };
 }
 
 function relTime(iso: string): string {
@@ -98,7 +106,7 @@ export function Roster() {
         <>
           <div className="roster-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 14, paddingBottom: 24 }}>
             {entries.map((e) => {
-              const { summary, issues } = summarize(e.id);
+              const { summary, identity, issues } = summarize(e.id);
               return (
                 <div key={e.id} className="mat-panel" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
@@ -108,6 +116,9 @@ export function Roster() {
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 16, fontWeight: 500 }}>{e.name}</div>
                       <div className="text-muted" style={{ fontSize: 12.5 }}>{summary}</div>
+                      {identity && (
+                        <div style={{ fontSize: 11.5, color: 'var(--color-accent-300)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{identity}</div>
+                      )}
                       <div className="text-muted" style={{ fontSize: 11 }}>Edited {relTime(e.updatedAt)}</div>
                     </div>
                     {issues > 0 ? (
