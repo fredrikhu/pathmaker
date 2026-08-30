@@ -21,7 +21,7 @@ import { readDecisions } from './resolve';
 import { fingerprint, type BuildFingerprint, type Gap, type OffenseStyle, type CombatRole, type PartyRole, type Strength } from './fingerprint';
 import * as C from '../content/index';
 import { filledDescription, readDescription } from './description';
-import { ARMOR_SILHOUETTE, DEITY_SYMBOL } from '../content/iconography';
+import { ARMOR_SILHOUETTE, DEITY_SYMBOL, DEITY_SYMBOL_DETAIL } from '../content/iconography';
 
 /** `prompt` is ready to paste and includes the instructions; `data` is the character block alone,
  *  for a player who already has a prompt they like. */
@@ -130,6 +130,15 @@ ${pronounRule(pronouns)}
 - Mechanical terms are Pathfinder 1e. Translate them into things a person in the world would notice — "Intimidate +10" is someone people step back from, not a number anyone mentions.
 - Do not invent rules, levels, items or abilities the character does not have.`;
 
+/** The holy symbol as one sentence, with its clarifying clause when the terse form has one.
+ *  Returns '' for a deity with no symbol on file, so callers can splice it in unconditionally. */
+function describeSymbol(deityId: string, lead: string): string {
+  const symbol = DEITY_SYMBOL[deityId];
+  if (!symbol) return '';
+  const detail = DEITY_SYMBOL_DETAIL[deityId];
+  return ` ${lead}${symbol}${detail ? ` — ${detail}` : ''}.`;
+}
+
 const line = (label: string, value: string | number | null | undefined): string | null =>
   value === null || value === undefined || value === '' ? null : `${label}: ${value}`;
 
@@ -181,8 +190,7 @@ function threads(fp: BuildFingerprint, doc: CharacterDoc, res: Resolution): stri
   if (dec.deityId) {
     const deity = C.deityById.get(dec.deityId);
     if (deity) {
-      const symbol = DEITY_SYMBOL[deity.id];
-      out.push(`They worship ${deity.name} (${ALIGNMENT_NAME[deity.alignment] ?? deity.alignment}), whose concerns are ${deity.portfolio}.${symbol ? ` The holy symbol of ${deity.name} is ${symbol}.` : ''} How devout they are is not recorded.`);
+      out.push(`They worship ${deity.name} (${ALIGNMENT_NAME[deity.alignment] ?? deity.alignment}), whose concerns are ${deity.portfolio}.${describeSymbol(deity.id, `The holy symbol of ${deity.name} is `)} How devout they are is not recorded.`);
     }
   }
 
@@ -339,7 +347,9 @@ function imagePrompt(doc: CharacterDoc, res: Resolution): string {
   if (symbol && deity) {
     // Naming forbidden emblems by shape backfires: "no sunburst" contradicts Iomedae, whose symbol
     // is a sword and sun. Say it once, generically, and let the required symbol do the work.
-    mustGetRight.push(`The holy symbol is **${symbol}** — the symbol of ${deity.name}. Use that and no other religious emblem.`);
+    // Names the symbol but not its detail: the full description is under Faith, and repeating it
+    // here is the same over-emphasis that got gender stamped onto the image as text.
+    mustGetRight.push(`The holy symbol is **${symbol}**, exactly as described under Faith. Use that emblem and no other.`);
   }
   mustGetRight.push(worn.length
     ? 'Only the equipment listed above may appear. Do not add weapons, shields or armour that is on neither list.'
@@ -363,7 +373,7 @@ function imagePrompt(doc: CharacterDoc, res: Resolution): string {
   parts.push(`## Worn and wielded\n${worn.length ? worn.map((w) => `- ${w.slot}: ${w.name}`).join('\n') : '- Nothing recorded'}\n- Overall silhouette: ${silhouette}`);
 
   if (deity) {
-    parts.push(`## Faith\nThey worship ${deity.name}, a deity of ${deity.portfolio.toLowerCase()}.${symbol ? ` ${deity.name}'s holy symbol is ${symbol}. If a symbol appears anywhere — pendant, shield, banner, tabard, pommel — it must be this one.` : ''}`);
+    parts.push(`## Faith\nThey worship ${deity.name}, a deity of ${deity.portfolio.toLowerCase()}.${describeSymbol(deity.id, `${deity.name}'s holy symbol is `)}${symbol ? ' If a symbol appears anywhere — pendant, shield, banner, tabard, pommel — it must be this one.' : ''}`);
   }
 
   // Weapons on the sheet but not in hand are frequently visible on a person — a quiver, a slung

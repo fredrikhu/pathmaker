@@ -38,6 +38,34 @@ export const DEITY_SYMBOL: Record<string, string> = {
   'zon-kuthon': 'a human skull with chains hanging like streaming tears from its eye sockets',
 };
 
+/** A clarifying clause for the symbols whose one-line description leaves a generator guessing.
+ *
+ *  Held separately from `DEITY_SYMBOL` because the two are sourced differently, and the difference
+ *  matters. The line above is the rules text, verbatim. These are drawn from how the symbol is
+ *  actually depicted in published art and setting material, and are the softer of the two — so
+ *  they only appear where the terse line is genuinely ambiguous and the clarification is
+ *  well attested. A symbol that reads unambiguously gets no entry.
+ *
+ *  Nothing here is a guess at an unstated fact. Abadar's key is often drawn pointing downward, for
+ *  instance, and there is no entry for it: the rules text does not say so, and the one secondary
+ *  source that did could not be corroborated. Only one of these ever reaches a prompt — a
+ *  character has one god — so the cost of the table is nil and the cost of a wrong line is a
+ *  picture drawn wrong with confidence.
+ *
+ *  Sacred and favoured colours were considered and left out. The sources for them disagreed badly
+ *  enough to attribute one deity's symbol to another, and a wrong colour is the same failure as a
+ *  wrong emblem. */
+export const DEITY_SYMBOL_DETAIL: Record<string, string> = {
+  iomedae: 'drawn as a longsword surrounded by a burst of light',
+  irori: 'an open palm, shown within a circle',
+  lamashtu: 'the third eye is vertical, set in the centre of the forehead',
+  nethys: 'the face divided down the middle, one half black and one half white',
+  norgorber: 'a plain, featureless mask broken only by the single eye',
+  pharasma: 'drawn as a spiral, the path of a soul from birth to death',
+  rovagug: 'the maw is fanged and open',
+  urgathoa: 'the skull sits on the back of the fly',
+};
+
 /** How a category of armour reads at a glance. The catalogue's own item names ("Full plate",
  *  "Studded leather") are already concrete enough for a generator; this only adds the silhouette,
  *  which is what actually changes a portrait's composition. */

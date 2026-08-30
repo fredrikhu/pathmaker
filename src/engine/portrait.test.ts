@@ -170,7 +170,24 @@ describe('the portrait prompt', () => {
   it('describes the holy symbol rather than only naming the god', () => {
     const p = img(devout());
     expect(p).toContain('a sword and sun');
-    expect(p).toContain('Use that and no other religious emblem');
+    expect(p).toContain('Use that emblem and no other');
+  });
+
+  it('adds the clarifying detail where a terse symbol would be guessed at', () => {
+    const lamashtu = withDecision(withDecision(fighter(), 'alignment', 'CE'), 'deity', 'lamashtu');
+    const p = img(lamashtu);
+    expect(p).toContain('a three-eyed jackal face — the third eye is vertical, set in the centre of the forehead');
+  });
+
+  it('leaves an unambiguous symbol alone rather than padding it', () => {
+    const torag = withDecision(withDecision(fighter(), 'alignment', 'LG'), 'deity', 'torag');
+    expect(img(torag)).toContain('holy symbol is an iron hammer.');
+  });
+
+  it('states the symbol detail once, not in every section', () => {
+    const p = img(devout());
+    const occurrences = p.split('drawn as a longsword surrounded by a burst of light').length - 1;
+    expect(occurrences).toBe(1);
   });
 
   it('never forbids a shape the required symbol contains', () => {
