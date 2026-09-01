@@ -182,6 +182,10 @@ export interface PlayState {
   round: number;
   /** Initiative rolled for the current encounter, or null outside one. */
   initiative: number | null;
+  /** The d20 face that produced `initiative`, so the sheet can show the roll and the modifier
+   *  apart. Null outside an encounter, and on a doc saved before this was recorded — a total
+   *  restored from such a doc still stands, it just cannot be broken down. */
+  initiativeRoll?: number | null;
   /** Running durations on conditions and buffs. */
   timers: Timer[];
   /** Consumables used up in play: item id → quantity consumed (phase 5). */
@@ -206,7 +210,7 @@ export type ActionType = 'standard' | 'move' | 'swift';
 
 export const emptyPlayState = (): PlayState => ({
   hpDamage: 0, tempHp: 0, nonlethal: 0, usedSlots: {}, conditions: [], usedPools: {},
-  prepared: {}, castPrepared: {}, preparedBonus: {}, castBonus: {}, round: 0, initiative: null, timers: [],
+  prepared: {}, castPrepared: {}, preparedBonus: {}, castBonus: {}, round: 0, initiative: null, initiativeRoll: null, timers: [],
   consumed: {}, usedCharges: {}, powerAttack: false, twoWeapon: false, actionsUsed: {},
 });
 

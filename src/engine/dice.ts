@@ -140,6 +140,21 @@ export function rollAttack(bonus: number, threshold = 20, rng: Rng = defaultRng)
   };
 }
 
+export interface CheckRoll {
+  /** The face on the d20, before any modifier. */
+  natural: number;
+  total: number;
+  bonus: number;
+}
+
+/** Roll a plain d20 check — initiative, an ability check. Deliberately has no natural-1/20 rule:
+ *  only attacks and saves get one, and a check is decided by the total alone. Returning the face
+ *  as well as the total is the point — a stored total cannot say which half of it was luck. */
+export function rollCheck(bonus: number, rng: Rng = defaultRng): CheckRoll {
+  const natural = rollDie(20, rng);
+  return { natural, total: natural + bonus, bonus };
+}
+
 export interface SaveRoll {
   natural: number;
   total: number;

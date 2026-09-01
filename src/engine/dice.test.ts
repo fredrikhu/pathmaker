@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseDamage, rollDamage, rollAttack, rollDie, rollSave, rollMissChance, threatRange, type Rng } from './dice';
+import { parseDamage, rollDamage, rollAttack, rollCheck, rollDie, rollSave, rollMissChance, threatRange, type Rng } from './dice';
 
 /** A scripted rng: each value is the face the next die should show, so the tests assert on
  *  arithmetic rather than on luck. `faces` are 1-based die results. */
@@ -196,5 +196,24 @@ describe('rollMissChance', () => {
   it('total concealment misses half the time — 50 misses, 51 gets through', () => {
     expect(rollMissChance(50, always(50, 100)).missed).toBe(true);
     expect(rollMissChance(50, always(51, 100)).missed).toBe(false);
+  });
+});
+
+describe('rollCheck', () => {
+  it('adds the bonus to the die and reports both', () => {
+    const r = rollCheck(5, always(12, 20));
+    expect(r.natural).toBe(12);
+    expect(r.bonus).toBe(5);
+    expect(r.total).toBe(17);
+  });
+
+  it('has no natural-1 or natural-20 rule — a check is decided by the total', () => {
+    // Deliberately unlike rollSave/rollAttack: initiative has no automatic success or failure,
+    // so nothing here may report one.
+    const one = rollCheck(9, always(1, 20));
+    const twenty = rollCheck(-3, always(20, 20));
+    expect(one.total).toBe(10);
+    expect(twenty.total).toBe(17);
+    expect(Object.keys(one).sort()).toEqual(['bonus', 'natural', 'total']);
   });
 });

@@ -51,15 +51,17 @@ export function nextRound(play: PlayState): AdvanceResult {
   return { play: { ...ticked, round: p.round + 1, actionsUsed: {} }, expired };
 }
 
-/** Begin an encounter at round 1 with the given initiative. Timers carry over — a buff cast
- *  before the fight is still running. */
-export function startEncounter(play: PlayState, initiative: number): PlayState {
-  return { ...normalizePlayState(play), round: 1, initiative, actionsUsed: {} };
+/** Begin an encounter at round 1 with the given initiative. `roll` is the d20 face behind that
+ *  total, kept so the sheet can show what was luck and what was the character; pass null when the
+ *  initiative was entered rather than rolled. Timers carry over — a buff cast before the fight is
+ *  still running. */
+export function startEncounter(play: PlayState, initiative: number, roll: number | null = null): PlayState {
+  return { ...normalizePlayState(play), round: 1, initiative, initiativeRoll: roll, actionsUsed: {} };
 }
 
 /** Leave combat. Durations keep running (they're tracked in rounds either way). */
 export function endEncounter(play: PlayState): PlayState {
-  return { ...normalizePlayState(play), round: 0, initiative: null, actionsUsed: {} };
+  return { ...normalizePlayState(play), round: 0, initiative: null, initiativeRoll: null, actionsUsed: {} };
 }
 
 export function addTimer(play: PlayState, timer: Timer): PlayState {
@@ -82,7 +84,7 @@ export function rest(play: PlayState): AdvanceResult {
     ...p,
     hpDamage: 0, nonlethal: 0, tempHp: 0,
     usedSlots: {}, usedPools: {}, castPrepared: {}, castBonus: {},
-    round: 0, initiative: null, actionsUsed: {},
+    round: 0, initiative: null, initiativeRoll: null, actionsUsed: {},
   };
   return tick(restored, REST_ROUNDS);
 }

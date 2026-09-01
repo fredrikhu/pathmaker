@@ -161,3 +161,24 @@ describe('legacy play state', () => {
     expect(next.hpDamage).toBe(4);
   });
 });
+
+describe('initiative provenance', () => {
+  it('keeps the d20 face alongside the total, so the sheet can show what was luck', () => {
+    const p = startEncounter(play(), 17, 12);
+    expect(p.initiative).toBe(17);
+    expect(p.initiativeRoll).toBe(12);
+    // The modifier actually used is recoverable from the pair — the sheet reads it back this way
+    // rather than trusting the current modifier, which a mid-fight buff can have changed.
+    expect(p.initiative! - p.initiativeRoll!).toBe(5);
+  });
+
+  it('records no die when initiative was entered rather than rolled', () => {
+    expect(startEncounter(play(), 14).initiativeRoll).toBeNull();
+  });
+
+  it('clears the die with the total when combat ends or the night passes', () => {
+    const fighting = startEncounter(play(), 17, 12);
+    expect(endEncounter(fighting).initiativeRoll).toBeNull();
+    expect(rest(fighting).play.initiativeRoll).toBeNull();
+  });
+});

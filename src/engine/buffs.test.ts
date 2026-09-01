@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { spellBuffTimer, spellDamageAt, spellAttackerTimer, type AttackerContext } from './buffs';
-import { spellById } from '../content/index';
+import { allyCastableBuffs, spellBuffTimer, spellDamageAt, spellAttackerTimer, type AttackerContext } from './buffs';
+import { SPELLS, spellById } from '../content/index';
 import { newCharacter, withDecision } from './character';
 import { resolve } from './resolve';
 import { emptyPlayState, type CharacterDoc } from './types';
@@ -382,5 +382,42 @@ describe('protection from energy — an absorbing pool on a timer', () => {
     expect(resolve(d).sheet.defenses.absorb).toEqual([
       { type: 'fire', remaining: 72, note: 'Protection from Energy (Fire)', timerId: 't1' },
     ]);
+  });
+});
+
+describe("a buff someone else cast on you", () => {
+  it("resolves at the ally's caster level, not yours", () => {
+    // The same call the play sheet makes for your own casting — only the number differs, which is
+    // the whole point: a 12th-level cleric's Bless is a 12th-level Bless on a 1st-level fighter.
+    const mine = spellBuffTimer(spell('barkskin'), 3, 'x')!;
+    const theirs = spellBuffTimer(spell('barkskin'), 12, 'y', undefined, 'from an ally')!;
+    expect(mine.effects![0].value).toBe(2);
+    expect(theirs.effects![0].value).toBe(5);
+    expect(theirs.remaining).toBe(1200); // 10 min/level at CL 12 = 120 min = 1200 rounds
+  });
+
+  it('names the caster in the label, so a chip on a fighter is not a puzzle', () => {
+    expect(spellBuffTimer(spell('bless'), 5, 'x')!.label).toBe('Bless (CL 5)');
+    expect(spellBuffTimer(spell('bless'), 5, 'x', undefined, 'from an ally')!.label)
+      .toBe('Bless (CL 5, from an ally)');
+    // A cast-time choice still comes first, and the source is appended after the caster level.
+    expect(spellBuffTimer(spell('resist-energy'), 7, 'x', 'fire', 'from an ally')!.label)
+      .toBe('Resist Energy (Fire, CL 7, from an ally)');
+  });
+
+  it('offers every buff except the Personal-range ones', () => {
+    const ids = allyCastableBuffs(SPELLS).map((s) => s.id);
+    // The ones a party actually hands out.
+    for (const id of ['bless', 'haste', 'prayer', 'heroism', 'aid', 'barkskin', 'bulls-strength', 'mage-armor']) {
+      expect(ids).toContain(id);
+    }
+    // Personal range: these affect their own caster and nobody else, whoever casts them.
+    for (const id of ['shield', 'divine-favor', 'expeditious-retreat', 'longstrider']) {
+      expect(spell(id).range).toBe('Personal');
+      expect(ids).not.toContain(id);
+    }
+    // Nothing without an engine-computable buff leaks in — an ally's Fireball is not a timer.
+    expect(allyCastableBuffs(SPELLS).every((s) => !!s.buff)).toBe(true);
+    expect(ids).not.toContain('fireball');
   });
 });

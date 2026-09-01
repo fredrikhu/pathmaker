@@ -7,9 +7,9 @@ import {
   durationLabel, ROUNDS_PER_MINUTE, ROUNDS_PER_HOUR,
 } from '../engine/clock';
 import { consume, unconsume, spendCharges, restoreCharges, restock } from '../engine/inventory';
-import { rollAttack, rollDamage, rollSave, rollMissChance, threatRange, CONCEALMENT, type Concealment, type MetamagicDamageMods } from '../engine/dice';
+import { rollAttack, rollCheck, rollDamage, rollSave, rollMissChance, threatRange, CONCEALMENT, type Concealment, type MetamagicDamageMods } from '../engine/dice';
 import { applyDamage, bypassOptions, ENERGY_TYPES } from '../engine/damage';
-import { spellBuffTimer, spellDamageAt, spellAttackerTimer } from '../engine/buffs';
+import { allyCastableBuffs, spellBuffTimer, spellDamageAt, spellAttackerTimer } from '../engine/buffs';
 import { spendAction, resetActions, COMMON_ACTIONS, type ActionCost } from '../engine/actions';
 import { CONDITIONS, conditionById, SPELLS, spellById, spellLevelOn, classById, skillById, METAMAGIC, effectiveSpellLevel, dcSpellLevel, type MetamagicDef } from '../content/index';
 import { useCharacter } from './useCharacter';
@@ -269,7 +269,31 @@ export function PlaySheet({ id }: { id: string }) {
 
   // ---- Encounter & time (phase 4) ----
   const initMod = sheet.stats['init']?.total ?? 0;
-  const rollInitiative = () => Math.floor(Math.random() * 20) + 1 + initMod;
+  /** Where an initiative number came from — the die (when there was one) above the engine's own
+   *  breakdown of the modifier. A stored total minus its die is the modifier that was actually
+   *  used, which can differ from the current one if a buff started mid-fight; say so rather than
+   *  showing lines that do not add up to the number beside them. */
+  const initTip = (roll: number | null, shown: string) => {
+    const st = sheet.stats['init'];
+    const usedMod = roll !== null && play.initiative !== null ? play.initiative - roll : null;
+    const drift = usedMod !== null && usedMod !== initMod
+      ? [`Rolled with ${fmtMod(usedMod)}; your modifier is now ${fmtMod(initMod)}.`] : [];
+    const annotations = [...(st?.annotations ?? []), ...drift];
+    return tip.card({
+      kicker: 'Breakdown',
+      title: `Initiative ${shown}`,
+      lines: [...(roll !== null ? [{ label: 'd20 roll', value: roll }] : []), ...(st?.lines ?? [])],
+      ...(annotations.length ? { annotations } : {}),
+    });
+  };
+  /** Roll initiative and open the encounter. The die is stored alongside the total — a bare "17"
+   *  cannot say whether it was a 12 and a good character or a 2 and a great one — and logged like
+   *  every other roll. */
+  const rollInitiative = () => {
+    const r = rollCheck(initMod);
+    log({ source: 'Initiative', detail: `d20 ${r.natural} ${fmtMod(r.bonus)}`, total: r.total });
+    applyClock((p) => startEncounter(p, r.total, r.natural));
+  };
   const inEncounter = play.round > 0;
   const [timerLabel, setTimerLabel] = useState('');
   const [timerAmount, setTimerAmount] = useState(1);
@@ -315,6 +339,19 @@ export function PlaySheet({ id }: { id: string }) {
   // The cast-time choice the picked spell requires (resist energy's energy type), if any.
   const buffPickParam = buffPick ? spellById.get(buffPick)?.buff?.param : undefined;
 
+  // ---- A buff someone else cast on you ----
+  // The party cleric's Bless lands on your sheet, not theirs, and it resolves at *their* caster
+  // level — so this picker is the whole buff catalogue plus a caster level, not your spell list.
+  // Personal-range spells are excluded: Shield and Longstrider only ever affect their own caster,
+  // whoever that is. Self-directed attackers are excluded too — an ally's spiritual weapon is
+  // theirs to roll, not a running effect on you.
+  const allyBuffs = allyCastableBuffs(SPELLS).sort((a, b) => a.name.localeCompare(b.name));
+  const [allyPick, setAllyPick] = useState('');
+  const [allyParam, setAllyParam] = useState('');
+  // Defaulted to your own level: a party member is usually near it, and it beats an empty box.
+  const [allyCasterLevel, setAllyCasterLevel] = useState(doc.level);
+  const allyPickParam = allyPick ? spellById.get(allyPick)?.buff?.param : undefined;
+
   const casterAbilityMods = ABILITIES.reduce((m, ab) => {
     m[ab] = abilityMod(sheet.stats[`ability:${ab}`]?.total ?? 10);
     return m;
@@ -335,6 +372,17 @@ export function PlaySheet({ id }: { id: string }) {
           abilityMods: casterAbilityMods,
           dcBase: block.dcBase,
         }, id);
+    if (timer) applyClock((p) => addTimer(p, timer));
+  };
+
+  /** Take a buff an ally cast on you. Exactly the path casting it yourself takes — the engine does
+   *  not care whose caster level it resolves against — so the bonuses stack by type on your sheet
+   *  and expire on the clock like any other running effect. */
+  const receiveBuff = (spellId: string, casterLevel: number, param?: string) => {
+    const sp = spellById.get(spellId);
+    if (!sp) return;
+    const id = `t${Date.now()}${Math.random().toString(36).slice(2, 6)}`;
+    const timer = spellBuffTimer(sp, casterLevel, id, param, 'from an ally');
     if (timer) applyClock((p) => addTimer(p, timer));
   };
 
@@ -381,14 +429,17 @@ export function PlaySheet({ id }: { id: string }) {
           {inEncounter ? (
             <>
               <span style={{ fontSize: 13 }}>Round <span className="num" style={{ fontSize: 19, fontWeight: 700, color: 'var(--color-accent-300)' }}>{play.round}</span></span>
-              {play.initiative !== null && <span className="text-muted" style={{ fontSize: 12 }}>initiative {play.initiative}</span>}
+              {play.initiative !== null && <InitReadout open={initTip(play.initiativeRoll ?? null, String(play.initiative))}
+                text={`initiative ${play.initiative}`}
+                aside={play.initiativeRoll != null ? `d20 ${play.initiativeRoll} ${fmtMod(play.initiative - play.initiativeRoll)}` : null} />}
               <button className="btn btn-primary" style={{ fontSize: 12 }} onClick={() => applyClock((p) => nextRound(p).play)}>Next round ▶</button>
               <button className="btn btn-ghost" style={{ fontSize: 11.5 }} onClick={() => applyClock(endEncounter)}>End encounter</button>
             </>
           ) : (
             <>
-              <span className="text-muted" style={{ fontSize: 12 }}>not in combat · initiative {fmtMod(initMod)}</span>
-              <button className="btn btn-secondary" style={{ fontSize: 12 }} onClick={() => applyClock((p) => startEncounter(p, rollInitiative()))}>🎲 Roll initiative &amp; start</button>
+              <span className="text-muted" style={{ fontSize: 12 }}>not in combat</span>
+              <InitReadout open={initTip(null, fmtMod(initMod))} text={`initiative ${fmtMod(initMod)}`} aside={null} />
+              <button className="btn btn-secondary" style={{ fontSize: 12 }} onClick={rollInitiative}>🎲 Roll initiative &amp; start</button>
             </>
           )}
           <span style={{ flex: 1 }} />
@@ -440,7 +491,7 @@ export function PlaySheet({ id }: { id: string }) {
               onClick={() => setAddOpen((o) => !o)}>{addOpen ? 'Close' : 'Add'}</button>
           </div>
           {play.timers.length === 0 ? (
-            <p className="text-muted" style={{ fontSize: 11.5, margin: '0 0 10px' }}>Nothing running. Use <strong>Add</strong> to start a buff or a timed condition — it counts down as rounds and time pass.</p>
+            <p className="text-muted" style={{ fontSize: 11.5, margin: '0 0 10px' }}>Nothing running. Use <strong>Add</strong> to start a buff — yours or one an ally cast on you — or a timed condition. It counts down as rounds and time pass.</p>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
               {play.timers.map((t) => {
@@ -528,6 +579,31 @@ export function PlaySheet({ id }: { id: string }) {
               <span className="text-muted" style={{ fontSize: 11 }}>expending the slot is still up to you, below</span>
             </div>
           )}
+          {/* A buff an ally cast on you. Outside the block above on purpose — a fighter casts
+              nothing and still spends most fights under someone else's Bless and Haste. */}
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginTop: 8 }}>
+            <span className="text-muted" style={{ fontSize: 11.5 }}>Buff an ally cast on you</span>
+            <select className="input" style={{ width: 'auto', fontSize: 12, padding: '4px 7px', minWidth: 200 }} value={allyPick}
+              onChange={(e) => { setAllyPick(e.target.value); setAllyParam(''); }}>
+              <option value="">&mdash; choose a spell &mdash;</option>
+              {allyBuffs.map((s) => <option key={s.id} value={s.id}>{s.name} &mdash; {s.buff!.scaling}</option>)}
+            </select>
+            <label className="text-muted" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11.5 }}
+              title="The caster level of whoever cast it — the spell scales off theirs, not yours">
+              their caster level
+              <input className="input" style={{ width: 52, fontSize: 12, padding: '4px 7px', textAlign: 'center' }} type="number" min={1}
+                value={allyCasterLevel} onChange={(e) => setAllyCasterLevel(Math.max(1, Math.round(Number(e.target.value) || 1)))} />
+            </label>
+            {allyPickParam && (
+              <select className="input" style={{ width: 'auto', fontSize: 12, padding: '4px 7px' }} value={allyParam}
+                onChange={(e) => setAllyParam(e.target.value)}>
+                <option value="">{allyPickParam.label}&hellip;</option>
+                {allyPickParam.options.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
+              </select>
+            )}
+            <button className="btn btn-secondary" style={{ fontSize: 12 }} disabled={!allyPick || (!!allyPickParam && !allyParam)}
+              onClick={() => { receiveBuff(allyPick, allyCasterLevel, allyParam || undefined); setAllyPick(''); setAllyParam(''); }}>Apply</button>
+          </div>
           </>)}
         </div>
       </div>
@@ -1330,6 +1406,19 @@ function SpellBlurb({ sp, kicker, level, indent = 2 }: {
       <span className="text-muted"> · {spellStatLine(sp)} · </span>
       <span className="term">full text</span>
     </div>
+  );
+}
+
+/** The encounter bar's initiative number, made inspectable — the one place initiative is read
+ *  during play, and until now the one place it could not say where it came from. `aside` carries
+ *  the arithmetic inline once there is a roll behind the total. */
+function InitReadout({ open, text, aside }: { open: (e: React.MouseEvent) => void; text: string; aside: string | null }) {
+  const tip = useTip();
+  return (
+    <button className="inspect" style={{ fontSize: 12 }} onMouseEnter={open} onMouseLeave={tip.leave} onClick={open}>
+      {text}
+      {aside && <span className="text-muted" style={{ marginLeft: 6 }}>({aside})</span>}
+    </button>
   );
 }
 

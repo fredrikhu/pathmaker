@@ -6,8 +6,12 @@ import type { Ability, IndependentAttacker, Timer } from './types';
 import { iterativeBonuses } from './resolve';
 
 /** Build the running-effect timer a buff spell starts, resolved at the caster level it was cast at.
- *  Returns null for a spell with no engine-computable effect, which is most of them. */
-export function spellBuffTimer(spell: SpellDef, casterLevel: number, id: string, param?: string): Timer | null {
+ *  Returns null for a spell with no engine-computable effect, which is most of them.
+ *
+ *  The caster level is a parameter rather than something this reads off the character precisely so
+ *  a spell an ally cast on you resolves at *their* caster level; `castBy` then names them in the
+ *  label, since a chip reading "Bless (CL 5)" on a fighter's sheet would otherwise be a puzzle. */
+export function spellBuffTimer(spell: SpellDef, casterLevel: number, id: string, param?: string, castBy?: string): Timer | null {
   if (!spell.buff) return null;
   // Caster level 0 is not a thing you can cast at; guard so a half-built character cannot produce
   // a zero-round timer that expires the instant it starts.
@@ -17,13 +21,20 @@ export function spellBuffTimer(spell: SpellDef, casterLevel: number, id: string,
   const opts = spell.buff.param?.options;
   const chosen = opts ? (opts.find((o) => o.id === param) ?? opts[0]) : undefined;
   const { effects, rounds, dr, resistances, absorb } = spell.buff.at(cl, chosen?.id);
-  const label = chosen ? `${spell.name} (${chosen.name}, CL ${cl})` : `${spell.name} (CL ${cl})`;
+  const label = `${spell.name} (${[chosen?.name, `CL ${cl}`, castBy].filter(Boolean).join(', ')})`;
   return {
     id, label, remaining: rounds, effects, spellId: spell.id,
     ...(dr?.length ? { dr } : {}),
     ...(resistances?.length ? { resistances } : {}),
     ...(absorb ? { absorb: { type: absorb.type, remaining: absorb.amount } } : {}),
   };
+}
+
+/** The buffs someone else can put on you: every spell with an engine-computable buff except the
+ *  Personal-range ones, which only ever affect their own caster however high their level. Who a
+ *  spell can legally target is a rule, so it is decided here rather than in the picker. */
+export function allyCastableBuffs(spells: SpellDef[]): SpellDef[] {
+  return spells.filter((s) => s.buff && !/^personal$/i.test(s.range));
 }
 
 /** The caster's numbers a self-directed attacker needs at cast time. */
