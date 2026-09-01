@@ -789,7 +789,7 @@ describe('caster slot tables on the sheet (Part-2 depth)', () => {
   });
 });
 
-describe('bloodrager: four-level caster, no creation spell step', () => {
+describe('bloodrager: a four-level spontaneous caster picks spells from 4th', () => {
   function bloodrager(level: number): CharacterDoc {
     let d = newCharacter('t-blr', 'Crowe');
     d = withDecision(d, 'ability-base', { str: 16, dex: 12, con: 14, int: 8, wis: 10, cha: 14 });
@@ -804,12 +804,37 @@ describe('bloodrager: four-level caster, no creation spell step', () => {
     expect(r.sheet.casterLevel).toBeUndefined();
     expect(r.steps).not.toContain('spells');
   });
-  it('level 7 (Cha 16): caster level 4, 4-level slots incl. ability bonus, still no spells step', () => {
+  it('level 3: still nothing known, so still no spells step', () => {
+    // Casting starts at 4th. The step is gated on the known table being non-empty, not on the
+    // class's progression — the old test asserted "four-level casters never get a spells step",
+    // which pinned a bug: it denied the bloodrager its picker at every level, not just early ones.
+    expect(resolve(bloodrager(3)).steps).not.toContain('spells');
+  });
+  it('level 7 (Cha 16): caster level 4, 4-level slots incl. ability bonus, and a spells step', () => {
     const r = resolve(bloodrager(7));
     expect(r.sheet.casterLevel).toBe(4);
-    // four[7] = [0,1,0]; Cha +3 bonus: 1st 1+1=2, 2nd 0+1=1 → [0,2,1]
-    expect(r.sheet.spellSlots).toEqual([0, 2, 1]);
-    expect(r.steps).not.toContain('spells');
+    // The bloodrager's own grid at 7th is [0,1,1] — the paladin's is [0,1,0], and pointing the
+    // bloodrager at the paladin table cost it a 2nd-level slot here. Cha +3 adds one at each
+    // castable level: 1st 1+1=2, 2nd 1+1=2.
+    expect(r.sheet.spellSlots).toEqual([0, 2, 2]);
+    expect(r.steps).toContain('spells');
+    // Spells known is its own table, unaffected by the Charisma bonus that widened the slots.
+    expect(r.sheet.spellsKnown).toEqual([0, 4, 2]);
+    const picks = r.slots.filter((x) => x.step === 'spells');
+    expect(picks.map((x) => x.id)).toEqual(['spell-picks-L1', 'spell-picks-L2']);
+    expect(picks.map((x) => x.count)).toEqual([4, 2]);
+    // And it picks from the bloodrager list, not the sorcerer/wizard one it used to borrow.
+    const first = picks[0].options.map((o) => o.id);
+    expect(first).toContain('shocking-grasp');
+    expect(first).toContain('mage-armor');
+    expect(first).not.toContain('sleep');
+    expect(first).not.toContain('charm-person');
+  });
+  it('level 20: knows the top of its table and reaches 4th-level spells', () => {
+    const r = resolve(bloodrager(20));
+    expect(r.sheet.spellsKnown).toEqual([0, 6, 6, 6, 5]);
+    const picks = r.slots.filter((x) => x.step === 'spells');
+    expect(picks.map((x) => x.count)).toEqual([6, 6, 6, 5]);
   });
 });
 

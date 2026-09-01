@@ -1316,7 +1316,7 @@ export function resolve(doc: CharacterDoc): Resolution {
     spellSlots, spellsKnown, maxSpellLevel,
   });
 
-  const steps = deriveSteps(klass);
+  const steps = deriveSteps(klass, spellsKnown);
 
   const summaryLine = [
     dec.alignment ?? '',
@@ -1876,19 +1876,24 @@ function carryingCapacity(str: number, size: 'small' | 'medium'): { light: numbe
   return caps;
 }
 
-function deriveSteps(klass?: C.ClassDef): string[] {
+function deriveSteps(klass?: C.ClassDef, spellsKnown?: number[]): string[] {
   // Class → Race → Basics: pick the class and race first so that by the time you reach
   // Basics the ability rows already show racial modifiers and the alignment grid already
   // knows any class constraint. The engine is order-independent (resolve() is a pure function
   // of decisions), so this array only sets the tab order and the issue-panel grouping.
   const steps = ['class', 'race', 'basics', 'advancement', 'skills', 'feats'];
-  // Only classes that make a spell selection at creation get a Spells step. Prepared-list
-  // divine casters (cleric, druid, warpriest) prepare from their whole list daily — nothing
-  // to choose at level 1 — so they get no creation-time Spells step.
-  // Four-level casters (paladin/ranger/bloodrager) gain no spells at 1st level, so they get no
-  // creation-time spell step even when spontaneous.
+  // Only classes that make a spell selection get a Spells step. Prepared-list casters (cleric,
+  // druid, warpriest, alchemist) prepare from their whole list daily — nothing to choose here —
+  // so they never get one.
+  //
+  // A spontaneous caster gets the step once it actually knows a spell. This used to test
+  // `progression !== 'four'`, reasoning that the four-level casters gain nothing at 1st level —
+  // true, but the builder is used at every level, and that test denied the bloodrager and vampire
+  // hunter their spells-known picker *forever*. Reading the known table instead gives them no step
+  // through 3rd and the right one from 4th.
   const sc = klass?.spellcasting;
-  if (sc && sc.progression !== 'four' && (sc.kind === 'prepared-book' || sc.kind === 'spontaneous')) steps.push('spells');
+  const knowsASpell = (spellsKnown ?? []).some((n) => n > 0);
+  if (sc && (sc.kind === 'prepared-book' || (sc.kind === 'spontaneous' && knowsASpell))) steps.push('spells');
   steps.push('equipment', 'review');
   return steps;
 }
@@ -2149,7 +2154,10 @@ function buildSlotsAndIssues(
   }
 
   // ---------- SPELLS (per accessible spell level) ----------
-  if (klass?.spellcasting && klass.spellcasting.progression !== 'four') {
+  // No progression filter: a four-level caster's slots simply come out empty until 4th level,
+  // because the known table it reads is empty there. Filtering by progression instead is what
+  // kept the bloodrager and the vampire hunter from ever picking a spell.
+  if (klass?.spellcasting) {
     const sc = klass.spellcasting;
     const listSpells = C.SPELLS.filter((s) => s.lists.includes(sc.list));
     // Filter by the spell's level *on this class's list*, not its flat level — a spell that is bard 2
@@ -2297,7 +2305,7 @@ function buildSlotsAndIssues(
 
   // Sort issues: severity then step order.
   const sevRank = { error: 0, warning: 1, info: 2 };
-  const stepOrder = deriveSteps(klass);
+  const stepOrder = deriveSteps(klass, ctx.spellsKnown);
   issues.sort((a, b) => sevRank[a.severity] - sevRank[b.severity] || stepOrder.indexOf(a.step) - stepOrder.indexOf(b.step));
 
   return { slots, issues };

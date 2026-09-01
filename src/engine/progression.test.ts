@@ -227,16 +227,32 @@ describe('arcanist spell tables', () => {
 });
 
 describe('four-level spontaneous casters (bloodrager, vampire hunter)', () => {
-  // Both share FOUR_LEVEL for slots per day and differ only in spells known — read from each
-  // class's own table markup. The vampire hunter's per-day grid turned out to be identical to
-  // the paladin/ranger one, which is why only the known tables are new.
-  it('both spend the same slots per day as a paladin or ranger', () => {
+  // Both start casting at 4th and top out at 4th-level spells, but only the vampire hunter
+  // actually shares the paladin/ranger per-day grid. The bloodrager was pointed at it too, which
+  // was wrong in two ways at once (see BLOODRAGER_PER_DAY).
+  it('neither casts before 4th level', () => {
     for (const t of ['bloodrager', 'vampire-hunter'] as const) {
-      expect(spellSlotsPerDay(t, 3, 0)).toEqual([]);           // no casting before 4th
-      expect(spellSlotsPerDay(t, 4, 0)).toEqual(spellSlotsPerDay('four', 4, 0));
-      expect(spellSlotsPerDay(t, 13, 0)).toEqual(spellSlotsPerDay('four', 13, 0));
-      expect(spellSlotsPerDay(t, 20, 0)).toEqual([0, 4, 4, 3, 3]);
+      expect(spellSlotsPerDay(t, 3, 0)).toEqual([]);
     }
+  });
+
+  it('the vampire hunter really does share the paladin and ranger grid', () => {
+    for (const lvl of [4, 7, 13, 20]) {
+      expect(spellSlotsPerDay('vampire-hunter', lvl, 0)).toEqual(spellSlotsPerDay('four', lvl, 0));
+    }
+    expect(spellSlotsPerDay('vampire-hunter', 20, 0)).toEqual([0, 4, 4, 3, 3]);
+  });
+
+  it('the bloodrager does not — it has no bonus-only rows, and a smaller capstone', () => {
+    // Where the paladin has a 0 (castable only off a high ability), the bloodrager has a slot.
+    expect(spellSlotsPerDay('four', 4, 0)).toEqual([0, 0]);
+    expect(spellSlotsPerDay('bloodrager', 4, 0)).toEqual([0, 1]);
+    expect(spellSlotsPerDay('four', 7, 0)).toEqual([0, 1, 0]);
+    expect(spellSlotsPerDay('bloodrager', 7, 0)).toEqual([0, 1, 1]);
+    expect(spellSlotsPerDay('four', 13, 0)).toEqual([0, 3, 2, 1, 0]);
+    expect(spellSlotsPerDay('bloodrager', 13, 0)).toEqual([0, 3, 2, 1, 1]);
+    // And the capstones differ: paladin 4/4/3/3, bloodrager 4/4/3/2.
+    expect(spellSlotsPerDay('bloodrager', 20, 0)).toEqual([0, 4, 4, 3, 2]);
   });
 
   it('a 0 in the table means castable only with a bonus spell from a high ability', () => {

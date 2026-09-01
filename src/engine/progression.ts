@@ -200,6 +200,32 @@ const FOUR_LEVEL: number[][] = [
   [0, 4, 4, 3, 3],
 ];
 
+// The bloodrager's per-day grid is NOT the paladin/ranger one, though it shares their four-level
+// shape and it was wrongly pointed at FOUR_LEVEL until now. Two differences, both read off the
+// class table on d20pfsrd: the paladin has "0 slots, bonus spells only" rows where the bloodrager
+// simply has a slot (paladin 4th is 0, bloodrager 4th is 1; same at 7th/2nd, 10th/3rd, 13th/4th),
+// and their capstones differ — paladin 20th is 4/4/3/3, bloodrager 20th is 4/4/3/2.
+const BLOODRAGER_PER_DAY: number[][] = [
+  [], [], [],
+  [0, 1],
+  [0, 1],
+  [0, 1],
+  [0, 1, 1],
+  [0, 1, 1],
+  [0, 2, 1],
+  [0, 2, 1, 1],
+  [0, 2, 1, 1],
+  [0, 2, 2, 1],
+  [0, 3, 2, 1, 1],
+  [0, 3, 2, 1, 1],
+  [0, 3, 2, 2, 1],
+  [0, 3, 3, 2, 1],
+  [0, 4, 3, 2, 1],
+  [0, 4, 3, 2, 2],
+  [0, 4, 3, 3, 2],
+  [0, 4, 4, 3, 2],
+];
+
 // ---- Spontaneous spells-known tables (fixed; unaffected by ability) --------------------
 
 const SORCERER_KNOWN: number[][] = [
@@ -391,11 +417,10 @@ function baseSlotTable(table: SpellTable): number[][] {
     case 'spont-six': return SIX_LEVEL;
     case 'prepared-six': return PREPARED_SIX;
     case 'extract': return EXTRACT_SIX;
-    // The two four-level spontaneous casters share the slots table and differ only in what
-    // they know, so they are separate tags with the same per-day grid.
     case 'four':
-    case 'bloodrager':
     case 'vampire-hunter': return FOUR_LEVEL;
+    // Four-level like the paladin and ranger, but not the same grid — see BLOODRAGER_PER_DAY.
+    case 'bloodrager': return BLOODRAGER_PER_DAY;
     case 'arcanist': return ARCANIST_PER_DAY;
   }
 }
