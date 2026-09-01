@@ -778,6 +778,9 @@ export const SPELLS: SpellDef[] = [
   { id: 'ill-omen', name: 'Ill Omen', level: 1, school: 'Enchantment', lists: ['witch'], source: 'APG', summary: 'The target rolls twice and takes the worse.', cast: '1 standard action', comp: 'V, S, M', range: 'Close', dur: '1 round/level or until discharged', save: 'None', desc: 'On its next d20 roll the target rolls twice and keeps the worse result, plus one further roll per five caster levels (five at 20th). A target that knows what was cast can spend a move action on a prayer to shrug off one reroll.' },
   { id: 'saving-finale', name: 'Saving Finale', level: 1, school: 'Evocation', lists: ['bard'], source: 'APG', summary: 'End a performance to reroll an ally’s save.', cast: '1 immediate action', comp: 'V, S', range: 'Close', dur: 'Instantaneous', save: 'Will negates (harmless)', desc: 'You must have a bardic performance running. When a creature your performance affects fails a save, you end the performance and it immediately rerolls that save.' },
   { id: 'timely-inspiration', name: 'Timely Inspiration', level: 1, school: 'Divination', lists: ['bard'], source: 'APG', summary: 'Retroactively rescue a failed roll.', cast: '1 immediate action', comp: 'V', range: 'Close', dur: 'Instantaneous', save: 'Will negates (harmless)', desc: 'Cast after a creature fails an attack roll or a skill check: it gains a +1 competence bonus per five caster levels, to a maximum of +3, applied retroactively — enough of a bonus and the failure becomes a success.' },
+
+  // ---- Monster Codex ----
+  { id: 'ironskin', name: 'Ironskin', level: 2, school: 'Transmutation', lists: ['divine', 'druid', 'paladin', 'ranger', 'witch'], source: 'Monster Codex', summary: '+4 (or better) enhancement to natural armor.', cast: '1 standard action', comp: 'V, S, DF/M', range: 'Personal', dur: '1 min/level (D); see text', save: 'None', desc: 'Your skin hardens to the colour and texture of rough iron, granting a +4 enhancement bonus to your natural armor — counting a bonus of +0 if you have none — rising with caster level. You may dismiss the spell to turn a confirmed critical hit or sneak attack from a physical weapon into a normal hit.' },
 ];
 
 // The witch spell list (Advanced Player's Guide) is its own tradition — overlapping the arcane list
@@ -862,6 +865,76 @@ const RANGER_LEVELS: Record<string, number> = {
   'summon-natures-ally-iv': 4, 'tree-stride': 4,
 };
 
+// The inquisitor and magus lists, scraped from each class's own d20pfsrd list page and filtered to
+// the spells we carry. Unlike the paladin and ranger lists these are not subsets of one full-caster
+// list: the inquisitor draws mostly from the cleric list but reaches for Invisibility, Knock and
+// Heroism, and the magus takes a narrow, combat-shaped slice of the sorcerer/wizard list. That
+// narrowness is the point — before this, a magus was offered all 397 arcane spells and an
+// inquisitor all 234 divine ones. Both lists top out at 6th level, matching the classes' tables.
+//
+// Every entry a spell we do not stock is simply absent; the scrape's leftovers are almost all
+// splatbook spells (the litanies, the judgment spells, Elemental Touch) rather than gaps in the
+// Core set. A content test pins both counts so a batch that adds them has to update them here.
+const INQUISITOR_LEVELS: Record<string, number> = {
+  'acid-splash': 0, bleed: 0, 'create-water': 0, daze: 0, 'detect-magic': 0, 'detect-poison': 0,
+  'disrupt-undead': 0, guidance: 0, light: 0, 'read-magic': 0, resistance: 0, stabilize: 0, virtue: 0,
+  alarm: 1, bane: 1, bless: 1, 'bless-water': 1, 'cause-fear': 1, command: 1, 'comprehend-languages': 1,
+  'cure-light-wounds': 1, 'curse-water': 1, 'detect-evil': 1, 'detect-undead': 1, 'disguise-self': 1,
+  'divine-favor': 1, doom: 1, 'expeditious-retreat': 1, 'hide-from-undead': 1, 'inflict-light-wounds': 1,
+  'magic-weapon': 1, 'protection-from-chaos': 1, 'protection-from-evil': 1, 'protection-from-good': 1,
+  'protection-from-law': 1, 'remove-fear': 1, sanctuary: 1, 'shield-of-faith': 1, 'true-strike': 1, aid: 2,
+  'align-weapon': 2, 'calm-emotions': 2, consecrate: 2, 'cure-moderate-wounds': 2, darkness: 2,
+  'death-knell': 2, 'delay-poison': 2, desecrate: 2, 'detect-thoughts': 2, enthrall: 2, 'find-traps': 2,
+  'hold-person': 2, 'inflict-moderate-wounds': 2, invisibility: 2, knock: 2, 'lesser-restoration': 2,
+  'remove-paralysis': 2, 'resist-energy': 2, 'see-invisibility': 2, 'shield-other': 2, silence: 2,
+  'spiritual-weapon': 2, tongues: 2, 'undetectable-alignment': 2, 'weapon-of-awe': 2, 'whispering-wind': 2,
+  'zone-of-truth': 2, 'arcane-sight': 3, 'continual-flame': 3, 'cure-serious-wounds': 3, daylight: 3,
+  'deeper-darkness': 3, 'dimensional-anchor': 3, 'dispel-magic': 3, 'glyph-of-warding': 3,
+  'greater-magic-weapon': 3, 'halt-undead': 3, heroism: 3, 'inflict-serious-wounds': 3,
+  'invisibility-purge': 3, 'keen-edge': 3, 'locate-object': 3, 'magic-circle-against-chaos': 3,
+  'magic-circle-against-evil': 3, 'magic-circle-against-good': 3, 'magic-circle-against-law': 3,
+  'magic-vestment': 3, nondetection: 3, 'obscure-object': 3, prayer: 3, 'protection-from-energy': 3,
+  'remove-curse': 3, 'remove-disease': 3, 'searing-light': 3, 'speak-with-dead': 3, 'chaos-hammer': 4,
+  'cure-critical-wounds': 4, 'death-ward': 4, 'detect-scrying': 4, 'discern-lies': 4, dismissal: 4,
+  divination: 4, 'divine-power': 4, fear: 4, 'freedom-of-movement': 4, 'greater-invisibility': 4,
+  'hold-monster': 4, 'holy-smite': 4, 'inflict-critical-wounds': 4, 'lesser-geas': 4, 'neutralize-poison': 4,
+  'order-s-wrath': 4, restoration: 4, sending: 4, 'spell-immunity': 4, stoneskin: 4, 'unholy-blight': 4,
+  atonement: 5, banishment: 5, 'break-enchantment': 5, commune: 5, 'dispel-chaos': 5, 'dispel-evil': 5,
+  'dispel-good': 5, 'dispel-law': 5, 'disrupting-weapon': 5, 'flame-strike': 5, 'geas-quest': 5,
+  'greater-command': 5, hallow: 5, 'mark-of-justice': 5, 'mass-cure-light-wounds': 5,
+  'mass-inflict-light-wounds': 5, 'righteous-might': 5, 'spell-resistance': 5, 'telepathic-bond': 5,
+  'true-seeing': 5, unhallow: 5, 'blade-barrier': 6, blasphemy: 6, 'circle-of-death': 6, dictum: 6,
+  'find-the-path': 6, forbiddance: 6, 'greater-dispel-magic': 6, 'greater-glyph-of-warding': 6, harm: 6,
+  heal: 6, 'heroes-feast': 6, 'holy-word': 6, 'legend-lore': 6, 'mass-cure-moderate-wounds': 6,
+  'mass-inflict-moderate-wounds': 6, repulsion: 6, 'undeath-to-death': 6, 'word-of-chaos': 6,
+};
+const MAGUS_LEVELS: Record<string, number> = {
+  'acid-splash': 0, 'arcane-mark': 0, 'dancing-lights': 0, daze: 0, 'detect-magic': 0, 'disrupt-undead': 0,
+  flare: 0, 'ghost-sound': 0, light: 0, 'mage-hand': 0, 'open-close': 0, prestidigitation: 0,
+  'ray-of-frost': 0, 'read-magic': 0, 'burning-hands': 1, 'chill-touch': 1, 'color-spray': 1,
+  'enlarge-person': 1, 'expeditious-retreat': 1, 'feather-fall': 1, 'floating-disk': 1, grease: 1,
+  'hydraulic-push': 1, jump: 1, 'magic-missile': 1, 'magic-weapon': 1, mount: 1, 'obscuring-mist': 1,
+  'ray-of-enfeeblement': 1, 'reduce-person': 1, shield: 1, 'shocking-grasp': 1, 'silent-image': 1,
+  'true-strike': 1, 'unseen-servant': 1, vanish: 1, 'acid-arrow': 2, 'alter-self': 2, 'bears-endurance': 2,
+  blur: 2, 'bulls-strength': 2, 'cats-grace': 2, darkness: 2, 'flaming-sphere': 2, 'fog-cloud': 2,
+  glitterdust: 2, 'gust-of-wind': 2, invisibility: 2, levitate: 2, 'minor-image': 2, 'mirror-image': 2,
+  pyrotechnics: 2, 'scorching-ray': 2, shatter: 2, 'spider-climb': 2, web: 2, 'arcane-sight': 3,
+  'beast-shape-i': 3, blink: 3, 'cloak-of-winds': 3, daylight: 3, 'dispel-magic': 3, displacement: 3,
+  fireball: 3, 'flame-arrow': 3, fly: 3, 'gaseous-form': 3, 'greater-magic-weapon': 3, haste: 3,
+  'keen-edge': 3, 'lightning-bolt': 3, 'major-image': 3, 'phantom-steed': 3, 'ray-of-exhaustion': 3,
+  'sleet-storm': 3, slow: 3, 'stinking-cloud': 3, 'vampiric-touch': 3, 'water-breathing': 3, 'wind-wall': 3,
+  'beast-shape-ii': 4, 'black-tentacles': 4, 'dimension-door': 4, 'elemental-body-i': 4, 'fire-shield': 4,
+  'greater-invisibility': 4, 'ice-storm': 4, 'mass-enlarge-person': 4, 'mass-reduce-person': 4,
+  'phantasmal-killer': 4, shout: 4, 'solid-fog': 4, stoneskin: 4, 'wall-of-fire': 4, 'wall-of-ice': 4,
+  'baleful-polymorph': 5, 'beast-shape-iii': 5, cloudkill: 5, 'cone-of-cold': 5, 'elemental-body-ii': 5,
+  'interposing-hand': 5, 'overland-flight': 5, telekinesis: 5, teleport: 5, 'wall-of-force': 5,
+  'wall-of-stone': 5, 'acid-fog': 6, 'beast-shape-iv': 6, 'chain-lightning': 6, disintegrate: 6,
+  'elemental-body-iii': 6, 'flesh-to-stone': 6, 'forceful-hand': 6, 'form-of-the-dragon-i': 6,
+  'freezing-sphere': 6, 'greater-dispel-magic': 6, 'mass-bears-endurance': 6, 'mass-bulls-strength': 6,
+  'mass-cats-grace': 6, mislead: 6, 'stone-to-flesh': 6, transformation: 6, 'true-seeing': 6,
+  'wall-of-iron': 6,
+};
+
 // Structured effects live beside the prose rather than inline, so this table stays readable and the
 // verified scaling clauses sit together in one file. Attached here so every consumer sees them.
 for (const s of SPELLS) {
@@ -878,6 +951,8 @@ for (const s of SPELLS) {
     ['witch', WITCH_LEVELS[s.id]],
     ['paladin', PALADIN_LEVELS[s.id]],
     ['ranger', RANGER_LEVELS[s.id]],
+    ['inquisitor', INQUISITOR_LEVELS[s.id]],
+    ['magus', MAGUS_LEVELS[s.id]],
   ] as const) {
     if (level === undefined) continue;
     if (!s.lists.includes(list)) s.lists = [...s.lists, list];

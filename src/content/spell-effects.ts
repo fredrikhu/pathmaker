@@ -312,6 +312,24 @@ export const SPELL_BUFFS: Record<string, SpellBuffDef> = {
       effects: [{ target: 'ac', type: 'untyped', value: 4, note: 'Cloak of Winds', condition: 'against ranged attacks' }],
     }),
   },
+
+  // ---- Monster Codex ----
+  ironskin: {
+    scaling: '+4 natural armor, +1 more per four caster levels above 4th (max +7), for 1 minute per caster level',
+    caveat: 'You may dismiss it — no action, but you must be conscious and aware — to turn a confirmed critical hit or sneak attack from a physical weapon into a normal hit.',
+    // The printed text says "+1 for every 4 caster levels above 4th, to a maximum of +7 at 15th
+    // level", which does not add up: that clause reaches +7 at 16th, and d20pfsrd flags the "15th"
+    // as an error with no Paizo ruling since. The clause is encoded, not the cap level.
+    at: (cl) => {
+      const bonus = clamp(4 + Math.floor(Math.max(0, cl - 4) / 4), 4, 7);
+      return {
+        rounds: cl * MINUTE,
+        // Typed like Barkskin: both are enhancement bonuses to natural armor, so neither stacks
+        // with the other or with an amulet of natural armor.
+        effects: [{ target: 'ac', type: 'natural-armor', value: bonus, note: `Ironskin +${bonus}` }],
+      };
+    },
+  },
 };
 
 /** Per-caster-level dice, capped: "1d6 per level, maximum 10d6". */

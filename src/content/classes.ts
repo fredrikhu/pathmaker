@@ -295,7 +295,9 @@ export const CLASSES: ClassDef[] = [
       { id: 'inq-stern-gaze', name: 'Stern Gaze', desc: 'A morale bonus on Intimidate and Sense Motive equal to half your level.' },
     ],
     choices: [{ id: 'domain', label: 'Domain', kind: 'cleric-domains', count: 1 }],
-    spellcasting: { kind: 'spontaneous', ability: 'wis', list: 'divine', slots1: [999, 1], known1: [4, 2] },
+    // Its own list, not the cleric's: the inquisitor tops out at 6th level and reaches for spells
+    // no cleric gets (Invisibility, Knock, Heroism, Keen Edge).
+    spellcasting: { kind: 'spontaneous', ability: 'wis', list: 'inquisitor', slots1: [999, 1], known1: [4, 2] },
   },
   {
     id: 'magus', name: 'Magus', sub: 'Base · d8 · spell combat',
@@ -309,7 +311,9 @@ export const CLASSES: ClassDef[] = [
       { id: 'mag-spell-combat', name: 'Spell Combat', desc: 'Cast a spell and make all your weapon attacks in the same round, at a penalty.' },
       { id: 'mag-cantrips', name: 'Cantrips', desc: 'Prepare 0-level magus spells, cast at will.' },
     ],
-    spellcasting: { kind: 'prepared-book', ability: 'int', list: 'arcane', slots1: [3, 1], bookPicks1: 'threePlusInt' },
+    // A narrow, combat-shaped slice of the sorcerer/wizard list, and its own list for that reason:
+    // no Wish, no divinations to speak of, and it tops out at 6th level.
+    spellcasting: { kind: 'prepared-book', ability: 'int', list: 'magus', slots1: [3, 1], bookPicks1: 'threePlusInt' },
   },
   {
     id: 'oracle', name: 'Oracle', sub: 'Base · d8 · mystery',

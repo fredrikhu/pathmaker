@@ -412,7 +412,7 @@ describe("a buff someone else cast on you", () => {
       expect(ids).toContain(id);
     }
     // Personal range: these affect their own caster and nobody else, whoever casts them.
-    for (const id of ['shield', 'divine-favor', 'expeditious-retreat', 'longstrider']) {
+    for (const id of ['shield', 'divine-favor', 'expeditious-retreat', 'longstrider', 'ironskin', 'aspect-of-the-falcon']) {
       expect(spell(id).range).toBe('Personal');
       expect(ids).not.toContain(id);
     }

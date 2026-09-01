@@ -133,7 +133,10 @@ export interface LeveledFeatureDef extends ClassFeatureDef {
 export interface SpellcastingDef {
   kind: 'prepared-book' | 'spontaneous' | 'prepared-list';
   ability: Ability;
-  list: 'arcane' | 'bard' | 'divine' | 'druid' | 'ranger' | 'paladin' | 'witch';
+  /** The spell list this class casts from. Was a hand-written union duplicating `SpellList`; the
+   *  two had already drifted once (SpellList gained 'paladin'/'ranger' while this lagged, leaving
+   *  both classes resolving almost no spells), so it now simply *is* SpellList. */
+  list: SpellList;
   /** Slot/known progression speed ('full' 9-level, 'six', or 'four'). Drives caster level. */
   progression?: CasterProgression;
   /** Which verified slot/known table this class uses. Only set when the table is encoded;
@@ -643,11 +646,13 @@ export interface SpellDamageDef {
 // Must stay a superset of SpellcastingDef['list'] — the engine filters a caster's spells by
 // `s.lists.includes(sc.list)`, so a list a class can cast from but no spell can be tagged with
 // silently resolves to an empty spellbook.
-export type SpellList = 'arcane' | 'bard' | 'divine' | 'druid' | 'witch' | 'paladin' | 'ranger';
+export type SpellList =
+  | 'arcane' | 'bard' | 'divine' | 'druid' | 'witch' | 'paladin' | 'ranger'
+  | 'inquisitor' | 'magus';
 
 /** A non-Core source book. One entry per book we have actually authored from, so a typo is a
  *  typecheck failure rather than a spell that silently escapes the Core audit. */
-export type SpellSource = 'APG';
+export type SpellSource = 'APG' | 'Monster Codex';
 
 export interface SpellDef {
   id: string;

@@ -14,7 +14,7 @@ const BONUS_TYPES = new Set([
   'sacred', 'deflection', 'natural-armor', 'armor', 'shield', 'size', 'circumstance', 'alchemical',
   'resistance', 'untyped', 'penalty',
 ]);
-const SPELL_LISTS = new Set(['arcane', 'bard', 'divine', 'druid', 'ranger', 'paladin', 'witch']);
+const SPELL_LISTS = new Set(['arcane', 'bard', 'divine', 'druid', 'ranger', 'paladin', 'witch', 'inquisitor', 'magus']);
 const CHOICE_KINDS = new Set([
   'wizard-school', 'wizard-opposition', 'arcane-bond', 'cleric-domains', 'warpriest-blessings',
   'sorcerer-bloodline', 'oracle-revelation', 'eidolon-evolutions', 'companion', 'list',
@@ -795,11 +795,13 @@ describe('spells — Advanced Player’s Guide batch', () => {
     return s!;
   };
 
-  // Every row read off that spell's own d20pfsrd page, then filtered to the lists we model: the
-  // alchemist, magus, summoner, inquisitor and oracle lines arrive through the list those classes
-  // already read, and psychic/mesmerist/occultist/spiritualist have no list here at all.
+  // Every row read off that spell's own d20pfsrd page, then filtered to the lists we model. The
+  // inquisitor and magus tags are not authored here — they come from INQUISITOR_LEVELS/MAGUS_LEVELS,
+  // scraped from those two classes' own list pages, which is why four of these spells carry one.
+  // Alchemist, summoner and oracle lines arrive through the list those classes already read, and
+  // psychic/mesmerist/occultist/spiritualist have no list here at all.
   const EXPECTED: [string, [C.SpellList, number][]][] = [
-    ['weapon-of-awe', [['divine', 2], ['paladin', 2]]],
+    ['weapon-of-awe', [['divine', 2], ['paladin', 2], ['inquisitor', 2]]],
     ['grace', [['divine', 2], ['paladin', 1]]],
     ['blessing-of-fervor', [['divine', 4]]],
     ['ant-haul', [['arcane', 1], ['divine', 1], ['druid', 1], ['ranger', 1]]],
@@ -811,9 +813,9 @@ describe('spells — Advanced Player’s Guide batch', () => {
     ['strong-jaw', [['druid', 4], ['ranger', 3]]],
     ['bristle', [['druid', 1]]],
     ['feather-step', [['bard', 1], ['druid', 1], ['ranger', 1]]],
-    ['hydraulic-push', [['arcane', 1], ['druid', 1]]],
-    ['cloak-of-winds', [['arcane', 3], ['druid', 3], ['ranger', 3]]],
-    ['vanish', [['arcane', 1], ['bard', 1]]],
+    ['hydraulic-push', [['arcane', 1], ['druid', 1], ['magus', 1]]],
+    ['cloak-of-winds', [['arcane', 3], ['druid', 3], ['ranger', 3], ['magus', 3]]],
+    ['vanish', [['arcane', 1], ['bard', 1], ['magus', 1]]],
     ['twilight-knife', [['arcane', 3], ['witch', 3]]],
     ['ill-omen', [['witch', 1]]],
     ['saving-finale', [['bard', 1]]],
@@ -864,6 +866,104 @@ describe('spells — Advanced Player’s Guide batch', () => {
     // Cloak of Winds is conditional, so it is annotated rather than added to AC.
     expect(by('cloak-of-winds').buff!.at(5).effects![0].condition).toBe('against ranged attacks');
   });
+});
+
+describe('inquisitor and magus spell lists', () => {
+  const on = (list: 'inquisitor' | 'magus') => C.SPELLS.filter((s) => s.lists.includes(list));
+  const lvl = (id: string, list: string) => C.spellLevelOn(C.spellById.get(id)!, list);
+  const listOf = (classId: string) => C.classById.get(classId)!.spellcasting!.list;
+
+  it('are what those two classes actually cast from', () => {
+    // The point of the batch: before this an inquisitor was offered the whole cleric list and a
+    // magus the whole sorcerer/wizard list, both far wider than the class really gets.
+    expect(listOf('inquisitor')).toBe('inquisitor');
+    expect(listOf('magus')).toBe('magus');
+    // Every other class that shares those parent lists is untouched.
+    expect(listOf('cleric')).toBe('divine');
+    expect(listOf('oracle')).toBe('divine');
+    expect(listOf('warpriest')).toBe('divine');
+    expect(listOf('wizard')).toBe('arcane');
+    expect(listOf('sorcerer')).toBe('arcane');
+    expect(listOf('arcanist')).toBe('arcane');
+  });
+
+  it('carry the scraped lists at 0–6, the range both class tables stop at', () => {
+    // Counts, so a spell silently dropping off either list fails here. They are the intersection
+    // of each class's d20pfsrd list page with the spells we stock, which is why they are not the
+    // full published lists (191 and 148 rows respectively, once third-party rows are excluded).
+    expect(on('inquisitor').length).toBe(156);
+    expect(on('magus').length).toBe(124);
+    for (const list of ['inquisitor', 'magus'] as const) {
+      for (const s of on(list)) {
+        const l = C.spellLevelOn(s, list);
+        expect(l >= 0 && l <= 6, `${s.id} at ${list} ${l} is outside 0–6`).toBe(true);
+      }
+    }
+  });
+
+  it('give the inquisitor spells no cleric gets, at its own levels', () => {
+    // Arcane spells the inquisitor reaches — none of these are on the cleric list.
+    for (const id of ['invisibility', 'knock', 'heroism', 'keen-edge', 'see-invisibility']) {
+      expect(C.spellById.get(id)!.lists, `${id} should be an inquisitor spell`).toContain('inquisitor');
+      expect(C.spellById.get(id)!.lists, `${id} is not a cleric spell`).not.toContain('divine');
+    }
+    // And where it shares a spell with the cleric, it often gets it at a different level.
+    expect(lvl('tongues', 'inquisitor')).toBe(2);        // cleric 3
+    expect(lvl('banishment', 'inquisitor')).toBe(5);     // cleric 6, wizard 7
+    expect(lvl('holy-word', 'inquisitor')).toBe(6);      // cleric 7 — the inquisitor's capstone band
+    expect(lvl('dictum', 'inquisitor')).toBe(6);
+    expect(lvl('locate-object', 'inquisitor')).toBe(3);  // bard and wizard get it at 2
+    expect(lvl('neutralize-poison', 'inquisitor')).toBe(4);
+    expect(lvl('weapon-of-awe', 'inquisitor')).toBe(2);  // the APG spell this all started from
+  });
+
+  it('keep the magus list narrow — a combat slice of the wizard list', () => {
+    // Everything the magus gets is at the wizard's level bar one, so absence is what makes this
+    // list real rather than a rename of the arcane one.
+    for (const id of ['wish', 'sleep', 'charm-person', 'summon-monster-i', 'mage-armor']) {
+      expect(C.spellById.get(id)!.lists, `${id} is not a magus spell`).not.toContain('magus');
+    }
+    for (const id of ['shocking-grasp', 'fireball', 'haste', 'true-strike', 'mirror-image']) {
+      expect(C.spellById.get(id)!.lists, `${id} is a magus spell`).toContain('magus');
+    }
+    expect(lvl('true-seeing', 'magus')).toBe(6);  // wizard 5 — the list's only level shift
+    expect(lvl('shocking-grasp', 'magus')).toBe(1);
+    expect(lvl('vanish', 'magus')).toBe(1);
+    expect(lvl('disintegrate', 'magus')).toBe(6);
+    // A quarter the size of the list it is drawn from, which is the whole improvement.
+    expect(on('magus').length * 3).toBeLessThan(C.SPELLS.filter((s) => s.lists.includes('arcane')).length);
+  });
+});
+
+describe('spells — Monster Codex', () => {
+  it('carries Ironskin on the five lists that publish it', () => {
+    const s = C.spellById.get('ironskin')!;
+    expect(s.source).toBe('Monster Codex');
+    expect([...s.lists].sort()).toEqual(['divine', 'druid', 'paladin', 'ranger', 'witch']);
+    for (const list of s.lists) expect(C.spellLevelOn(s, list), `ironskin on ${list}`).toBe(2);
+    // Alchemist, antipaladin, bloodrager and psychic also publish it, but the first three read a
+    // list whose owning class (sorcerer/wizard) has no Ironskin line, so tagging 'arcane' would
+    // hand it to every wizard. Psychic has no list here at all.
+    expect(s.lists).not.toContain('arcane');
+  });
+
+  it('scales its natural armor by the printed clause, not the printed cap', () => {
+    // "+4 ... increases by 1 for every 4 caster levels above 4th, to a maximum of +7 at 15th."
+    // Those two halves disagree — the clause reaches +7 at 16th — so the clause is what is encoded.
+    const bonus = (cl: number) => C.spellById.get('ironskin')!.buff!.at(cl).effects![0].value;
+    expect(bonus(3)).toBe(4);
+    expect(bonus(7)).toBe(4);
+    expect(bonus(8)).toBe(5);
+    expect(bonus(12)).toBe(6);
+    expect(bonus(15)).toBe(6);  // not +7: the printed cap level is the half that is wrong
+    expect(bonus(16)).toBe(7);
+    expect(bonus(20)).toBe(7);  // capped
+    const eff = C.spellById.get('ironskin')!.buff!.at(9).effects![0];
+    // Typed like Barkskin, so the two do not stack with each other or an amulet of natural armor.
+    expect(eff).toMatchObject({ target: 'ac', type: 'natural-armor' });
+    expect(C.spellById.get('ironskin')!.buff!.at(9).rounds).toBe(90);  // 1 min/level
+  });
+
 });
 
 describe('paladin and ranger spell lists', () => {
