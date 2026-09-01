@@ -648,7 +648,7 @@ export interface SpellDamageDef {
 // silently resolves to an empty spellbook.
 export type SpellList =
   | 'arcane' | 'bard' | 'divine' | 'druid' | 'witch' | 'paladin' | 'ranger'
-  | 'inquisitor' | 'magus';
+  | 'inquisitor' | 'magus' | 'alchemist' | 'bloodrager' | 'summoner' | 'shaman' | 'hunter';
 
 /** A non-Core source book. One entry per book we have actually authored from, so a typo is a
  *  typecheck failure rather than a spell that silently escapes the Core audit. */

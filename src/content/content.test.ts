@@ -14,7 +14,14 @@ const BONUS_TYPES = new Set([
   'sacred', 'deflection', 'natural-armor', 'armor', 'shield', 'size', 'circumstance', 'alchemical',
   'resistance', 'untyped', 'penalty',
 ]);
-const SPELL_LISTS = new Set(['arcane', 'bard', 'divine', 'druid', 'ranger', 'paladin', 'witch', 'inquisitor', 'magus']);
+const SPELL_LISTS = new Set(['arcane', 'bard', 'divine', 'druid', 'ranger', 'paladin', 'witch',
+  'inquisitor', 'magus', 'alchemist', 'bloodrager', 'summoner', 'shaman', 'hunter']);
+
+/** Lists a spell only ever carries because a *class list page* put it there — the overlay maps at
+ *  the bottom of spells.ts, plus the derived hunter list. Excluded when a test asserts the exact
+ *  set of lists a spell's own page publishes, since those two sources are audited separately.
+ *  Witch, paladin and ranger are deliberately absent: splatbook spells tag those inline. */
+const CLASS_LIST_OVERLAYS = new Set(['inquisitor', 'magus', 'alchemist', 'bloodrager', 'summoner', 'shaman', 'hunter']);
 const CHOICE_KINDS = new Set([
   'wizard-school', 'wizard-opposition', 'arcane-bond', 'cleric-domains', 'warpriest-blessings',
   'sorcerer-bloodline', 'oracle-revelation', 'eidolon-evolutions', 'companion', 'list',
@@ -645,7 +652,11 @@ describe('spells — CRB completion batch 2 (levels 3–4)', () => {
   it("gives the druid its own summon line and the cleric's 4th-level staples", () => {
     expect(C.spellLevelOn(by('summon-natures-ally-iii'), 'druid')).toBe(3);
     // Druid 3, and also ranger 3 since the ranger list was authored — not on arcane or divine.
-    expect(by('summon-natures-ally-iii').lists).toEqual(['druid', 'ranger']);
+    // Asserted as membership rather than an exact array: the hybrid-class lists are layered on
+    // afterwards, so a spell's full `lists` grows every time one of those is authored.
+    expect(by('summon-natures-ally-iii').lists).toEqual(expect.arrayContaining(['druid', 'ranger']));
+    expect(by('summon-natures-ally-iii').lists).not.toContain('arcane');
+    expect(by('summon-natures-ally-iii').lists).not.toContain('divine');
     for (const id of ['order-s-wrath', 'lesser-planar-ally', 'water-walk', 'helping-hand',
                       'invisibility-purge', 'remove-blindness-deafness']) {
       expect(by(id).lists).toContain('divine');
@@ -695,9 +706,13 @@ describe('spells — CRB completion batch 3 (levels 5–6)', () => {
                       'summon-natures-ally-vi']) {
       expect(C.spellById.has(id), `${id} missing`).toBe(true);
     }
-    // The three summon-nature lines the druid gained this batch stay druid-only.
+    // The summon-nature lines the druid gained this batch stay off the arcane and divine lists —
+    // the hybrid classes that read the druid list pick them up, which is the point of those lists.
     for (const id of ['summon-natures-ally-v', 'summon-natures-ally-vi']) {
-      expect(by(id).lists).toEqual(['druid']);
+      expect(by(id).lists).toContain('druid');
+      expect(by(id).lists).not.toContain('arcane');
+      expect(by(id).lists).not.toContain('divine');
+      expect(by(id).lists).not.toContain('bard');
     }
   });
 
@@ -727,8 +742,11 @@ describe('spells — CRB completion batch 4 (levels 7–9, set complete)', () =>
     }
     // elemental-body-ii filled the gap left between batches 2 (i) and 3 (iii).
     expect(C.spellLevelOn(by('elemental-body-ii'), 'arcane')).toBe(5);
-    // The summon-nature ladder is druid-only all the way up.
-    expect(by('summon-natures-ally-ix').lists).toEqual(['druid']);
+    // The summon-nature ladder stays off every other *base* list all the way up.
+    expect(by('summon-natures-ally-ix').lists).toContain('druid');
+    for (const l of ['arcane', 'divine', 'bard']) {
+      expect(by('summon-natures-ally-ix').lists).not.toContain(l);
+    }
   });
 
   it('places the level-differing high spells correctly per list', () => {
@@ -826,7 +844,12 @@ describe('spells — Advanced Player’s Guide batch', () => {
     for (const [id, pairs] of EXPECTED) {
       const s = by(id);
       expect(s.source, `${id} must be tagged APG or it escapes the Core audit`).toBe('APG');
-      expect([...s.lists].sort(), `${id} lists`).toEqual(pairs.map(([l]) => l).sort());
+      // Exact-set only over the lists this spell's own page publishes. The hybrid-class lists are
+      // layered on afterwards from those classes' own list pages, so they are excluded here and
+      // audited by their own tests — otherwise every future list batch would break this one.
+      const authored = (ls: string[]) => ls.filter((l) => !CLASS_LIST_OVERLAYS.has(l)).sort();
+      expect(authored([...s.lists]), `${id} lists`).toEqual(authored(pairs.map(([l]) => l)));
+      // Levels are checked for every pair, overlay lists included — those are verified data too.
       for (const [list, lvl] of pairs) expect(C.spellLevelOn(s, list), `${id} on ${list}`).toBe(lvl);
     }
   });
@@ -865,6 +888,109 @@ describe('spells — Advanced Player’s Guide batch', () => {
     expect(falcon.find((e) => e.target === 'skill:perception')!.value).toBe(3);
     // Cloak of Winds is conditional, so it is annotated rather than added to AC.
     expect(by('cloak-of-winds').buff!.at(5).effects![0].condition).toBe('against ranged attacks');
+  });
+});
+
+describe('the remaining class spell lists', () => {
+  const on = (list: string) => C.SPELLS.filter((s) => s.lists.includes(list as never));
+  const lvl = (id: string, list: string) => C.spellLevelOn(C.spellById.get(id)!, list);
+  const listOf = (classId: string) => C.classById.get(classId)!.spellcasting!.list;
+
+  it('point every caster at the list it actually casts from', () => {
+    // Verified one by one against each class's own Spells feature, not assumed from flavour.
+    expect(listOf('alchemist')).toBe('alchemist');
+    expect(listOf('investigator')).toBe('alchemist');   // "uses the alchemist formulae list"
+    expect(listOf('summoner')).toBe('summoner');
+    expect(listOf('bloodrager')).toBe('bloodrager');
+    expect(listOf('shaman')).toBe('shaman');
+    expect(listOf('hunter')).toBe('hunter');
+    expect(listOf('witch')).toBe('witch');
+    expect(listOf('vampire-hunter')).toBe('inquisitor');
+  });
+
+  it('leave alone the four classes that really do share another list', () => {
+    // These are not borrowed approximations — each class's Spells feature names the other list.
+    expect(listOf('warpriest')).toBe('divine');   // "drawn from the cleric spell list"
+    expect(listOf('oracle')).toBe('divine');      // "drawn from the cleric spell list"
+    expect(listOf('skald')).toBe('bard');         // "drawn from the bard spell list"
+    expect(listOf('arcanist')).toBe('arcane');    // "drawn from the sorcerer/wizard spell list"
+  });
+
+  it('carry each scraped list at the levels its class table reaches', () => {
+    // Counts pin the scrape; the bands pin the level offsets, which differ per page — the summoner
+    // and shaman pages open with a cantrip table, the alchemist and bloodrager pages open at 1st.
+    const bands: [string, number, number, number][] = [
+      // list, spells carried, lowest level, highest level
+      ['alchemist', 94, 1, 6],
+      ['bloodrager', 83, 1, 4],
+      ['summoner', 136, 0, 6],
+      ['shaman', 225, 0, 9],
+    ];
+    for (const [list, count, lo, hi] of bands) {
+      const spells = on(list);
+      expect(spells.length, `${list} list size`).toBe(count);
+      const levels = spells.map((s) => C.spellLevelOn(s, list));
+      expect(Math.min(...levels), `${list} lowest level`).toBe(lo);
+      expect(Math.max(...levels), `${list} highest level`).toBe(hi);
+    }
+  });
+
+  it('agree with the individual spell pages on where each list starts', () => {
+    // The offsets were the one thing a table index could get silently wrong, so each is confirmed
+    // against a spell whose own page names its level on that class.
+    expect(lvl('ant-haul', 'alchemist')).toBe(1);
+    expect(lvl('ant-haul', 'summoner')).toBe(1);
+    expect(lvl('hydraulic-push', 'bloodrager')).toBe(1);
+    expect(lvl('hydraulic-push', 'shaman')).toBe(1);
+    expect(lvl('ironskin', 'alchemist')).toBe(2);
+    expect(lvl('ironskin', 'bloodrager')).toBe(2);
+  });
+
+  it('build the hunter list from the rule its class feature states', () => {
+    // "Only druid spells of 6th level and lower and ranger spells ... If a spell appears on both,
+    // the hunter uses the lower of the two spell levels." Both worked examples from the feature:
+    expect(lvl('reduce-animal', 'druid')).toBe(2);
+    expect(lvl('reduce-animal', 'ranger')).toBe(3);
+    expect(lvl('reduce-animal', 'hunter')).toBe(2);   // the lower of the two
+    // The feature's second example calls detect poison "a 2nd-level ranger spell", but d20pfsrd's
+    // ranger list puts it at 1st and that is what RANGER_LEVELS carries. The example's *result* is
+    // unaffected — the druid level is lower either way — so the rule is asserted against our data.
+    expect(lvl('detect-poison', 'druid')).toBe(0);
+    expect(lvl('detect-poison', 'ranger')).toBe(1);
+    expect(lvl('detect-poison', 'hunter')).toBe(0);
+    // Ranger-only spells come along whole; druid spells above 6th do not come at all.
+    expect(C.spellById.get('lead-blades')!.lists).toContain('hunter');   // ranger 1, no druid line
+    expect(lvl('lead-blades', 'hunter')).toBe(1);
+    for (const s of on('hunter')) {
+      expect(C.spellLevelOn(s, 'hunter') <= 6, `${s.id} is above the hunter's 6th`).toBe(true);
+    }
+    const highDruid = C.SPELLS.filter((s) => s.lists.includes('druid') && C.spellLevelOn(s, 'druid') > 6);
+    expect(highDruid.length).toBeGreaterThan(0);
+    for (const s of highDruid) {
+      // Unless the ranger list carries it too, which no 7th+ druid spell does.
+      expect(s.lists, `${s.id} is druid ${C.spellLevelOn(s, 'druid')} and must not be a hunter spell`)
+        .not.toContain('hunter');
+    }
+  });
+
+  it('narrow every switched class rather than widening it', () => {
+    // Each of these was reading a list far larger than the class really gets. The witch is the
+    // starkest: WITCH_LEVELS existed for an arcanist archetype while the witch herself was still
+    // being offered the whole sorcerer/wizard list.
+    const arcane = on('arcane').length;
+    const divine = on('divine').length;
+    const druid = on('druid').length;
+    expect(on('witch').length).toBeLessThan(arcane);
+    expect(on('alchemist').length).toBeLessThan(arcane);
+    expect(on('summoner').length).toBeLessThan(arcane);
+    expect(on('bloodrager').length).toBeLessThan(arcane);
+    expect(on('shaman').length).toBeLessThan(divine);
+    expect(on('hunter').length).toBeGreaterThan(0);
+    expect(on('druid').length).toBeGreaterThan(0);
+    expect(druid).toBeGreaterThan(0);
+    // No witch has ever cast Fireball, and no bloodrager casts a 5th-level spell.
+    expect(C.spellById.get('fireball')!.lists).not.toContain('witch');
+    expect(Math.max(...on('bloodrager').map((s) => C.spellLevelOn(s, 'bloodrager')))).toBe(4);
   });
 });
 
@@ -936,15 +1062,26 @@ describe('inquisitor and magus spell lists', () => {
 });
 
 describe('spells — Monster Codex', () => {
-  it('carries Ironskin on the five lists that publish it', () => {
+  it('carries Ironskin on the five lists its own page publishes', () => {
     const s = C.spellById.get('ironskin')!;
     expect(s.source).toBe('Monster Codex');
-    expect([...s.lists].sort()).toEqual(['divine', 'druid', 'paladin', 'ranger', 'witch']);
+    const authored = [...s.lists].filter((l) => !CLASS_LIST_OVERLAYS.has(l)).sort();
+    expect(authored).toEqual(['divine', 'druid', 'paladin', 'ranger', 'witch']);
     for (const list of s.lists) expect(C.spellLevelOn(s, list), `ironskin on ${list}`).toBe(2);
-    // Alchemist, antipaladin, bloodrager and psychic also publish it, but the first three read a
-    // list whose owning class (sorcerer/wizard) has no Ironskin line, so tagging 'arcane' would
-    // hand it to every wizard. Psychic has no list here at all.
+    // Psychic and antipaladin publish it too but have no list here. It must not reach 'arcane':
+    // the alchemist and bloodrager lines are real, but sorcerer/wizard has no Ironskin row, so
+    // tagging the shared arcane list would have handed it to every wizard.
     expect(s.lists).not.toContain('arcane');
+  });
+
+  it('reaches the alchemist and bloodrager through their own class lists', () => {
+    // Independent confirmation that the class-list scrape agrees with the spell's own page: both
+    // say alchemist 2 and bloodrager 2, and the two came from different pages.
+    const s = C.spellById.get('ironskin')!;
+    for (const list of ['alchemist', 'bloodrager'] as const) {
+      expect(s.lists, `ironskin should be on the ${list} list`).toContain(list);
+      expect(C.spellLevelOn(s, list), `ironskin on ${list}`).toBe(2);
+    }
   });
 
   it('scales its natural armor by the printed clause, not the printed cap', () => {

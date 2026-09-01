@@ -248,7 +248,8 @@ export const CLASSES: ClassDef[] = [
       { id: 'alch-throw', name: 'Throw Anything', desc: 'Gain Throw Anything as a bonus feat; add Int to splash damage.' },
     ],
     // Extracts per day use the 6-level "extract" table (no 0-level); no creation-time selection.
-    spellcasting: { kind: 'prepared-list', ability: 'int', list: 'arcane', slots1: [] },
+    // Its own formulae list, 1st-6th - not the sorcerer/wizard list it used to borrow.
+    spellcasting: { kind: 'prepared-list', ability: 'int', list: 'alchemist', slots1: [] },
   },
   {
     id: 'cavalier', name: 'Cavalier', sub: 'Base · d10 · order & mount',
@@ -363,7 +364,9 @@ export const CLASSES: ClassDef[] = [
       { id: 'evolutions', label: 'Eidolon evolutions', kind: 'eidolon-evolutions', count: EIDOLON_EVOLUTIONS.length },
     ],
     companions: [{ choiceId: 'eidolon-form', kind: 'eidolon', label: 'Eidolon' }],
-    spellcasting: { kind: 'spontaneous', ability: 'cha', list: 'arcane', slots1: [999, 1], known1: [4, 2] },
+    // The summoner's own list: heavy on summon monster, the eidolon spells and battlefield
+    // control, and it stops at 6th.
+    spellcasting: { kind: 'spontaneous', ability: 'cha', list: 'summoner', slots1: [999, 1], known1: [4, 2] },
   },
   {
     id: 'witch', name: 'Witch', sub: 'Base · d6 · hexes & patron',
@@ -382,7 +385,10 @@ export const CLASSES: ClassDef[] = [
       { id: 'hex', label: 'Hex', kind: 'list', count: 1, options: WITCH_HEXES },
     ],
     companions: [{ choiceId: 'familiar', kind: 'familiar', label: "Witch's Familiar" }],
-    spellcasting: { kind: 'prepared-book', ability: 'int', list: 'arcane', slots1: [3, 1], bookPicks1: 'threePlusInt' },
+    // WITCH_LEVELS has existed since the Unlettered Arcanist archetype was added, but the witch
+    // herself was still reading the sorcerer/wizard list - so she was offered Fireball and every
+    // other spell no witch has ever had. Her own list, at last.
+    spellcasting: { kind: 'prepared-book', ability: 'int', list: 'witch', slots1: [3, 1], bookPicks1: 'threePlusInt' },
   },
   {
     id: 'vampire-hunter', name: 'Vampire Hunter', sub: 'Base · d8 · monster slayer',
@@ -399,7 +405,9 @@ export const CLASSES: ClassDef[] = [
     ],
     // Spontaneous divine caster from 4th level, drawing on the inquisitor list: no orisons, and
     // nothing above 4th level. Wisdom-based, with bonus spells per day from a high Wisdom.
-    spellcasting: { kind: 'spontaneous', ability: 'wis', list: 'divine', slots1: [0, 0], known1: [0, 0] },
+    // The inquisitor list, as the comment above has always said - it only became expressible
+    // once that list existed.
+    spellcasting: { kind: 'spontaneous', ability: 'wis', list: 'inquisitor', slots1: [0, 0], known1: [0, 0] },
   },
 
   // ─────────────────────────── HYBRID CLASSES ───────────────────────────
@@ -431,7 +439,8 @@ export const CLASSES: ClassDef[] = [
     ],
     choices: [{ id: 'bloodline', label: 'Bloodline', kind: 'list', count: 1, options: BLOODRAGER_BLOODLINES }],
     // Spontaneous arcane casting from 4th level (caster level = level − 3); no level-1 spells.
-    spellcasting: { kind: 'spontaneous', ability: 'cha', list: 'arcane', slots1: [] },
+    // Its own list: 1st-4th only, and shaped for a raging melee caster.
+    spellcasting: { kind: 'spontaneous', ability: 'cha', list: 'bloodrager', slots1: [] },
   },
   {
     id: 'brawler', name: 'Brawler', sub: 'Hybrid · d10 · martial flexibility',
@@ -460,7 +469,9 @@ export const CLASSES: ClassDef[] = [
     ],
     choices: [{ id: 'animal-companion', label: 'Animal Companion', kind: 'companion', companionKind: 'animal', count: 1 }],
     companions: [{ choiceId: 'animal-companion', kind: 'animal', label: 'Animal Companion' }],
-    spellcasting: { kind: 'spontaneous', ability: 'wis', list: 'druid', slots1: [999, 1], known1: [4, 2] },
+    // Druid spells of 6th and lower plus every ranger spell, at the lower level where a spell is
+    // on both - the class feature spells that rule out, so the list is derived in spells.ts.
+    spellcasting: { kind: 'spontaneous', ability: 'wis', list: 'hunter', slots1: [999, 1], known1: [4, 2] },
   },
   {
     id: 'investigator', name: 'Investigator', sub: 'Hybrid · d8 · inspiration',
@@ -475,7 +486,8 @@ export const CLASSES: ClassDef[] = [
       { id: 'inv-trapfinding', name: 'Trapfinding', desc: 'Add half your level to find and disable traps, including magical ones.' },
     ],
     // Extracts per day use the 6-level "extract" table (no 0-level); no creation-time selection.
-    spellcasting: { kind: 'prepared-list', ability: 'int', list: 'arcane', slots1: [] },
+    // An investigator's extracts come off the alchemist formulae list, per its Alchemy feature.
+    spellcasting: { kind: 'prepared-list', ability: 'int', list: 'alchemist', slots1: [] },
   },
   {
     id: 'shaman', name: 'Shaman', sub: 'Hybrid · d8 · spirit',
@@ -494,7 +506,8 @@ export const CLASSES: ClassDef[] = [
       { id: 'spirit-animal', label: 'Spirit Animal', kind: 'companion', companionKind: 'familiar', count: 1 },
     ],
     companions: [{ choiceId: 'spirit-animal', kind: 'familiar', label: 'Spirit Animal' }],
-    spellcasting: { kind: 'prepared-list', ability: 'wis', list: 'divine', slots1: [3, 1] },
+    // Its own list - a full 9-level caster drawing on druid, cleric and witch spells alike.
+    spellcasting: { kind: 'prepared-list', ability: 'wis', list: 'shaman', slots1: [3, 1] },
   },
   {
     id: 'skald', name: 'Skald', sub: 'Hybrid · d8 · raging song',

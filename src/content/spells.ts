@@ -1,4 +1,4 @@
-import type { SpellDef } from './model';
+import type { SpellDef, SpellList } from './model';
 import { SPELL_ATTACKERS, SPELL_BUFFS, SPELL_DAMAGE } from './spell-effects';
 
 // Level 0-1 spells across the arcane/divine/druid/bard lists. Enough to exercise the
@@ -875,6 +875,133 @@ const RANGER_LEVELS: Record<string, number> = {
 // Every entry a spell we do not stock is simply absent; the scrape's leftovers are almost all
 // splatbook spells (the litanies, the judgment spells, Elemental Touch) rather than gaps in the
 // Core set. A content test pins both counts so a batch that adds them has to update them here.
+// The four remaining classes that publish a list of their own, each scraped from its own
+// d20pfsrd page and filtered to the spells we stock. Their tables start in different places —
+// the summoner and shaman pages open with a 0-level (cantrip) table, the alchemist and
+// bloodrager pages have no cantrips and open at 1st — so the level offsets were checked against
+// individual spell pages rather than assumed: Ant Haul is alchemist 1 and summoner 1, Hydraulic
+// Push is bloodrager 1 and shaman 1, Ironskin is alchemist 2 and bloodrager 2.
+//
+// The investigator reads ALCHEMIST_LEVELS too: its Alchemy feature says its extracts come off
+// the alchemist formulae list, so there is no second list to author.
+const ALCHEMIST_LEVELS: Record<string, number> = {
+  'ant-haul': 1, 'comprehend-languages': 1, 'cure-light-wounds': 1, 'detect-secret-doors': 1,
+  'detect-undead': 1, 'disguise-self': 1, 'endure-elements': 1, 'enlarge-person': 1,
+  'expeditious-retreat': 1, identify: 1, jump: 1, 'keen-senses': 1, 'reduce-person': 1, shield: 1,
+  'true-strike': 1, aid: 2, 'alter-self': 2, barkskin: 2, 'bears-endurance': 2, blur: 2, 'bulls-strength': 2,
+  'cats-grace': 2, 'cure-moderate-wounds': 2, darkvision: 2, 'delay-poison': 2, 'detect-thoughts': 2,
+  'eagles-splendor': 2, 'false-life': 2, 'foxs-cunning': 2, invisibility: 2, ironskin: 2,
+  'lesser-restoration': 2, levitate: 2, 'owls-wisdom': 2, 'protection-from-arrows': 2, 'resist-energy': 2,
+  'see-invisibility': 2, 'spider-climb': 2, 'undetectable-alignment': 2, 'arcane-sight': 3,
+  'beast-shape-i': 3, 'cure-serious-wounds': 3, displacement: 3, fly: 3, 'gaseous-form': 3, haste: 3,
+  heroism: 3, nondetection: 3, 'protection-from-energy': 3, rage: 3, 'remove-blindness-deafness': 3,
+  'remove-curse': 3, 'remove-disease': 3, tongues: 3, 'water-breathing': 3, 'air-walk': 4, 'arcane-eye': 4,
+  'beast-shape-ii': 4, 'cure-critical-wounds': 4, 'death-ward': 4, 'discern-lies': 4, 'elemental-body-i': 4,
+  'fire-shield': 4, 'freedom-of-movement': 4, 'greater-invisibility': 4, 'neutralize-poison': 4,
+  restoration: 4, 'spell-immunity': 4, stoneskin: 4, 'beast-shape-iii': 5, 'contact-other-plane': 5,
+  dream: 5, 'elemental-body-ii': 5, 'magic-jar': 5, nightmare: 5, 'overland-flight': 5, 'plant-shape-i': 5,
+  polymorph: 5, sending: 5, 'spell-resistance': 5, 'analyze-dweomer': 6, 'beast-shape-iv': 6,
+  'elemental-body-iii': 6, eyebite: 6, 'form-of-the-dragon-i': 6, 'giant-form-i': 6, heal: 6, mislead: 6,
+  'plant-shape-ii': 6, 'shadow-walk': 6, statue: 6, transformation: 6, 'true-seeing': 6, 'wind-walk': 6,
+};
+const BLOODRAGER_LEVELS: Record<string, number> = {
+  'burning-hands': 1, 'cause-fear': 1, 'chill-touch': 1, 'color-spray': 1, 'endure-elements': 1,
+  'enlarge-person': 1, 'feather-fall': 1, 'hydraulic-push': 1, jump: 1, 'mage-armor': 1, 'magic-missile': 1,
+  'magic-weapon': 1, mount: 1, 'protection-from-chaos': 1, 'protection-from-evil': 1,
+  'protection-from-good': 1, 'protection-from-law': 1, 'ray-of-enfeeblement': 1, 'reduce-person': 1,
+  shield: 1, 'shocking-grasp': 1, 'true-strike': 1, 'acid-arrow': 2, 'bears-endurance': 2, blindness: 2,
+  'bulls-strength': 2, 'cats-grace': 2, 'daze-monster': 2, 'eagles-splendor': 2, 'false-life': 2,
+  'flaming-sphere': 2, 'ghoul-touch': 2, glitterdust: 2, 'gust-of-wind': 2, ironskin: 2, 'mirror-image': 2,
+  'protection-from-arrows': 2, pyrotechnics: 2, 'resist-energy': 2, 'scorching-ray': 2,
+  'see-invisibility': 2, shatter: 2, 'spider-climb': 2, 'touch-of-idiocy': 2, 'beast-shape-i': 3,
+  'cloak-of-winds': 3, fireball: 3, 'flame-arrow': 3, fly: 3, 'greater-magic-weapon': 3, haste: 3,
+  heroism: 3, 'hold-person': 3, 'keen-edge': 3, 'lightning-bolt': 3, 'phantom-steed': 3,
+  'protection-from-energy': 3, rage: 3, 'ray-of-exhaustion': 3, 'sleet-storm': 3, 'stinking-cloud': 3,
+  'twilight-knife': 3, 'vampiric-touch': 3, 'water-breathing': 3, 'wind-wall': 3, 'beast-shape-ii': 4,
+  'bestow-curse': 4, 'black-tentacles': 4, confusion: 4, contagion: 4, 'crushing-despair': 4,
+  'elemental-body-i': 4, enervation: 4, fear: 4, 'fire-shield': 4, 'ice-storm': 4, 'mass-enlarge-person': 4,
+  'mass-reduce-person': 4, 'phantasmal-killer': 4, shout: 4, stoneskin: 4, 'wall-of-fire': 4,
+  'wall-of-ice': 4,
+};
+const SUMMONER_LEVELS: Record<string, number> = {
+  'acid-splash': 0, 'arcane-mark': 0, daze: 0, 'detect-magic': 0, guidance: 0, light: 0, 'mage-hand': 0,
+  mending: 0, message: 0, 'open-close': 0, 'read-magic': 0, resistance: 0, alarm: 1, 'ant-haul': 1,
+  'daze-monster': 1, 'endure-elements': 1, 'enlarge-person': 1, 'expeditious-retreat': 1, 'feather-fall': 1,
+  grease: 1, identify: 1, jump: 1, 'mage-armor': 1, 'magic-fang': 1, 'magic-mouth': 1, mount: 1,
+  'protection-from-chaos': 1, 'protection-from-evil': 1, 'protection-from-good': 1, 'protection-from-law': 1,
+  'reduce-person': 1, shield: 1, 'summon-monster-i': 1, 'unseen-servant': 1, ventriloquism: 1,
+  'alter-self': 2, barkskin: 2, 'bears-endurance': 2, blur: 2, 'bulls-strength': 2, 'cats-grace': 2,
+  'detect-thoughts': 2, 'eagles-splendor': 2, 'foxs-cunning': 2, glitterdust: 2, haste: 2, invisibility: 2,
+  levitate: 2, misdirection: 2, 'owls-wisdom': 2, 'phantom-steed': 2, 'protection-from-arrows': 2,
+  'resist-energy': 2, 'see-invisibility': 2, slow: 2, 'spider-climb': 2, 'summon-monster-ii': 2,
+  'summon-swarm': 2, 'wind-wall': 2, 'black-tentacles': 3, 'charm-monster': 3, 'dimension-door': 3,
+  'dimensional-anchor': 3, 'dispel-magic': 3, displacement: 3, 'fire-shield': 3, fly: 3,
+  'greater-invisibility': 3, 'greater-magic-fang': 3, heroism: 3, 'locate-creature': 3,
+  'magic-circle-against-chaos': 3, 'magic-circle-against-evil': 3, 'magic-circle-against-good': 3,
+  'magic-circle-against-law': 3, 'mass-enlarge-person': 3, 'mass-reduce-person': 3, 'minor-creation': 3,
+  nondetection: 3, 'protection-from-energy': 3, rage: 3, stoneskin: 3, 'summon-monster-iv': 3, tongues: 3,
+  'wall-of-fire': 3, 'wall-of-ice': 3, 'water-breathing': 3, 'baleful-polymorph': 4,
+  'contact-other-plane': 4, dismissal: 4, 'hold-monster': 4, 'insect-plague': 4, 'lesser-planar-binding': 4,
+  'mages-faithful-hound': 4, 'magic-jar': 4, 'major-creation': 4, 'mass-bears-endurance': 4,
+  'mass-bulls-strength': 4, 'mass-cats-grace': 4, 'mass-eagles-splendor': 4, 'mass-foxs-cunning': 4,
+  'mass-owls-wisdom': 4, 'overland-flight': 4, sending: 4, 'summon-monster-v': 4, teleport: 4,
+  'wall-of-stone': 4, banishment: 5, 'creeping-doom': 5, 'ethereal-jaunt': 5, 'greater-dispel-magic': 5,
+  'greater-heroism': 5, 'greater-teleport': 5, 'mass-invisibility': 5, 'planar-binding': 5, 'plane-shift': 5,
+  repulsion: 5, sequester: 5, simulacrum: 5, 'spell-turning': 5, 'summon-monster-vii': 5, 'true-seeing': 5,
+  'wall-of-iron': 5, antipathy: 6, binding: 6, 'dimensional-lock': 6, 'discern-location': 6,
+  'dominate-monster': 6, 'greater-planar-binding': 6, 'incendiary-cloud': 6, 'mass-charm-monster': 6,
+  maze: 6, 'protection-from-spells': 6, 'summon-monster-viii': 6, sympathy: 6, 'teleportation-circle': 6,
+};
+const SHAMAN_LEVELS: Record<string, number> = {
+  'arcane-mark': 0, bleed: 0, 'create-water': 0, 'dancing-lights': 0, daze: 0, 'detect-magic': 0,
+  'detect-poison': 0, guidance: 0, 'know-direction': 0, light: 0, mending: 0, 'purify-food-and-drink': 0,
+  'read-magic': 0, resistance: 0, stabilize: 0, 'touch-of-fatigue': 0, virtue: 0, bane: 1, bless: 1,
+  'burning-hands': 1, 'calm-animals': 1, 'cause-fear': 1, 'charm-animal': 1, 'charm-person': 1,
+  'chill-touch': 1, 'comprehend-languages': 1, 'cure-light-wounds': 1, 'detect-animals-or-plants': 1,
+  'detect-evil': 1, 'detect-undead': 1, doom: 1, 'endure-elements': 1, entangle: 1, goodberry: 1,
+  'hide-from-animals': 1, 'hydraulic-push': 1, 'inflict-light-wounds': 1, 'magic-stone': 1,
+  'magic-weapon': 1, 'obscuring-mist': 1, 'pass-without-trace': 1, 'produce-flame': 1,
+  'protection-from-chaos': 1, 'protection-from-evil': 1, 'protection-from-good': 1, 'protection-from-law': 1,
+  'remove-fear': 1, sleep: 1, 'summon-natures-ally-i': 1, aid: 2, 'alter-self': 2, 'animal-messenger': 2,
+  augury: 2, barkskin: 2, 'bears-endurance': 2, 'bulls-strength': 2, 'calm-emotions': 2,
+  'cure-moderate-wounds': 2, darkness: 2, 'delay-poison': 2, 'eagles-splendor': 2, enthrall: 2,
+  'false-life': 2, 'flame-blade': 2, 'fog-cloud': 2, 'gentle-repose': 2, 'hold-person': 2,
+  'inflict-moderate-wounds': 2, 'lesser-restoration': 2, levitate: 2, 'owls-wisdom': 2,
+  'remove-paralysis': 2, 'resist-energy': 2, scare: 2, 'spiritual-weapon': 2, 'summon-natures-ally-ii': 2,
+  'summon-swarm': 2, 'tree-shape': 2, 'warp-wood': 2, 'wood-shape': 2, 'animate-dead': 3, 'bestow-curse': 3,
+  blindness: 3, 'call-lightning': 3, 'clairaudience-clairvoyance': 3, 'create-food-and-water': 3,
+  'cure-serious-wounds': 3, daylight: 3, 'deep-slumber': 3, 'deeper-darkness': 3, 'dispel-magic': 3,
+  'dominate-animal': 3, fly: 3, 'inflict-serious-wounds': 3, 'magic-circle-against-chaos': 3,
+  'magic-circle-against-evil': 3, 'magic-circle-against-good': 3, 'magic-circle-against-law': 3,
+  'magic-vestment': 3, 'protection-from-energy': 3, 'remove-blindness-deafness': 3, 'remove-curse': 3,
+  'remove-disease': 3, 'sleet-storm': 3, 'speak-with-dead': 3, 'stinking-cloud': 3, 'stone-shape': 3,
+  'summon-natures-ally-iii': 3, 'water-breathing': 3, 'water-walk': 3, 'wind-wall': 3, 'command-plants': 4,
+  'control-water': 4, 'cure-critical-wounds': 4, 'detect-scrying': 4, dismissal: 4, divination: 4,
+  'divine-power': 4, fear: 4, 'giant-vermin': 4, 'greater-magic-weapon': 4, 'ice-storm': 4,
+  'imbue-with-spell-ability': 4, 'inflict-critical-wounds': 4, 'lesser-planar-ally': 4,
+  'neutralize-poison': 4, poison: 4, reincarnate: 4, 'repel-vermin': 4, restoration: 4, scrying: 4,
+  sending: 4, 'solid-fog': 4, 'spike-stones': 4, 'summon-natures-ally-iv': 4, tongues: 4, 'animal-growth': 5,
+  'baleful-polymorph': 5, blight: 5, 'break-enchantment': 5, 'breath-of-life': 5, 'call-lightning-storm': 5,
+  commune: 5, 'commune-with-nature': 5, 'control-winds': 5, 'dispel-chaos': 5, 'dispel-evil': 5,
+  'dispel-good': 5, 'dispel-law': 5, 'dominate-person': 5, 'flame-strike': 5, 'insect-plague': 5,
+  'mass-cure-light-wounds': 5, 'mass-inflict-light-wounds': 5, 'overland-flight': 5, stoneskin: 5,
+  'summon-natures-ally-v': 5, 'true-seeing': 5, 'wall-of-fire': 5, 'wall-of-thorns': 5, 'antilife-shell': 6,
+  awaken: 6, banishment: 6, 'cone-of-cold': 6, 'create-undead': 6, 'find-the-path': 6, 'fire-seeds': 6,
+  'flesh-to-stone': 6, 'greater-dispel-magic': 6, 'mass-bears-endurance': 6, 'mass-bulls-strength': 6,
+  'mass-cure-moderate-wounds': 6, 'mass-eagles-splendor': 6, 'mass-inflict-moderate-wounds': 6,
+  'mass-owls-wisdom': 6, 'planar-ally': 6, 'raise-dead': 6, 'slay-living': 6, 'stone-to-flesh': 6,
+  'summon-natures-ally-vi': 6, 'wall-of-stone': 6, 'animate-plants': 7, 'control-weather': 7,
+  'creeping-doom': 7, 'greater-restoration': 7, 'greater-scrying': 7, harm: 7, heal: 7, liveoak: 7,
+  'mass-cure-serious-wounds': 7, 'mass-inflict-serious-wounds': 7, 'plane-shift': 7, regenerate: 7,
+  'stone-tell': 7, 'summon-natures-ally-vii': 7, sunbeam: 7, 'transport-via-plants': 7, vision: 7,
+  'wind-walk': 7, 'animal-shapes': 8, 'create-greater-undead': 8, destruction: 8, 'discern-location': 8,
+  earthquake: 8, 'fire-storm': 8, 'greater-planar-ally': 8, 'horrid-wilting': 8, 'irresistible-dance': 8,
+  'mass-cure-critical-wounds': 8, 'mass-inflict-critical-wounds': 8, resurrection: 8,
+  'summon-natures-ally-viii': 8, sunburst: 8, whirlwind: 8, 'elemental-swarm': 9, 'energy-drain': 9,
+  etherealness: 9, foresight: 9, 'mass-heal': 9, shambler: 9, shapechange: 9, 'soul-bind': 9,
+  'storm-of-vengeance': 9, 'summon-natures-ally-ix': 9, 'wail-of-the-banshee': 9,
+};
+
 const INQUISITOR_LEVELS: Record<string, number> = {
   'acid-splash': 0, bleed: 0, 'create-water': 0, daze: 0, 'detect-magic': 0, 'detect-poison': 0,
   'disrupt-undead': 0, guidance: 0, light: 0, 'read-magic': 0, resistance: 0, stabilize: 0, virtue: 0,
@@ -953,10 +1080,30 @@ for (const s of SPELLS) {
     ['ranger', RANGER_LEVELS[s.id]],
     ['inquisitor', INQUISITOR_LEVELS[s.id]],
     ['magus', MAGUS_LEVELS[s.id]],
+    ['alchemist', ALCHEMIST_LEVELS[s.id]],
+    ['bloodrager', BLOODRAGER_LEVELS[s.id]],
+    ['summoner', SUMMONER_LEVELS[s.id]],
+    ['shaman', SHAMAN_LEVELS[s.id]],
   ] as const) {
     if (level === undefined) continue;
     if (!s.lists.includes(list)) s.lists = [...s.lists, list];
     if (level !== s.level) s.levelByList = { ...s.levelByList, [list]: level };
+  }
+  // The hunter list is the only one derived rather than authored, because its class feature states
+  // the whole rule: "Only druid spells of 6th level and lower and ranger spells are considered to
+  // be part of the hunter spell list. If a spell appears on both the druid and ranger spell lists,
+  // the hunter uses the lower of the two spell levels." It even works the examples — reduce animal
+  // is druid 2 / ranger 3 and so hunter 2; detect poison is druid 0 / ranger 2 and so hunter 0.
+  // Runs after the loop above so the ranger tag is already in place.
+  const levelOn = (list: SpellList) => (s.lists.includes(list) ? s.levelByList?.[list] ?? s.level : undefined);
+  const druidLevel = levelOn('druid');
+  const rangerLevel = levelOn('ranger');
+  const hunterFrom = [druidLevel !== undefined && druidLevel <= 6 ? druidLevel : undefined, rangerLevel]
+    .filter((l): l is number => l !== undefined);
+  if (hunterFrom.length) {
+    const level = Math.min(...hunterFrom);
+    s.lists = [...s.lists, 'hunter'];
+    if (level !== s.level) s.levelByList = { ...s.levelByList, hunter: level };
   }
 }
 
