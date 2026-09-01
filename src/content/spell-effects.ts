@@ -274,6 +274,44 @@ export const SPELL_BUFFS: Record<string, SpellBuffDef> = {
       ],
     }),
   },
+
+  // ---- Advanced Player's Guide ----
+  // Three of the batch's nineteen spells reduce to an unconditional typed bonus. The rest do not,
+  // and are deliberately left as prose: Gravity Bow, Lead Blades and Strong Jaw change a damage
+  // *die* rather than adding to a roll; Bristle is a per-round trade the player makes; Blessing of
+  // Fervor is a menu chosen fresh each round; Ill Omen and Timely Inspiration reshape a d20 rather
+  // than modify it. The engine cannot total any of those honestly.
+  'weapon-of-awe': {
+    scaling: '+2 sacred bonus on damage rolls, for 1 minute per caster level',
+    caveat: 'The bonus rides the one weapon touched, not every attack you make; a critical hit from it leaves the target shaken for 1 round with no save.',
+    at: (cl) => ({
+      rounds: cl * MINUTE,
+      effects: [{ target: 'damage:weapon', type: 'sacred', value: 2, note: 'Weapon of Awe' }],
+    }),
+  },
+
+  'aspect-of-the-falcon': {
+    scaling: '+1 competence on ranged attacks and +3 competence on Perception, for 1 minute per caster level',
+    caveat: 'Your bows and crossbows also threaten on 19–20 for ×3, which does not stack with Improved Critical or a keen weapon.',
+    at: (cl) => ({
+      rounds: cl * MINUTE,
+      effects: [
+        { target: 'attack:ranged', type: 'competence', value: 1, note: 'Aspect of the Falcon' },
+        { target: 'skill:perception', type: 'competence', value: 3, note: 'Aspect of the Falcon' },
+      ],
+    }),
+  },
+
+  'cloak-of-winds': {
+    scaling: '−4 on ranged attacks against you, for 1 minute per caster level',
+    caveat: 'Windstorm-strength winds also cannot check or blow you away, and a Tiny or smaller creature attacking you in melee must save or be knocked prone and hurled back.',
+    at: (cl) => ({
+      rounds: cl * MINUTE,
+      // Recorded against AC, where the roll it spoils is resolved, and left conditional so it is
+      // annotated rather than folded into a single AC number that would be wrong in melee.
+      effects: [{ target: 'ac', type: 'untyped', value: 4, note: 'Cloak of Winds', condition: 'against ranged attacks' }],
+    }),
+  },
 };
 
 /** Per-caster-level dice, capped: "1d6 per level, maximum 10d6". */

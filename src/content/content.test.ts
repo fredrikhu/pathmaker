@@ -764,8 +764,112 @@ describe('spells — CRB completion batch 4 (levels 7–9, set complete)', () =>
   });
 });
 
+describe('racial spell-like abilities', () => {
+  /** The slug `slaExtras` in resolve.ts derives from an SLA's name to find its spell. */
+  const slug = (name: string) => name.toLowerCase().replace(/['’]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+
+  it('names a spell the catalogue carries, for every race and heritage', () => {
+    // An SLA whose name finds no spell still resolves — it just shows a caster level and no save
+    // DC. That silent degradation is why this is asserted here: a typo in an SLA name, or a race
+    // added with a spell we do not stock, reads as working. The last gap (the undine's Hydraulic
+    // Push) closed with the APG batch, so the invariant is now that there are none.
+    const missing: string[] = [];
+    for (const r of C.RACES) {
+      for (const t of [...r.traits, ...r.altTraits]) {
+        for (const sla of t.spellLikeAbilities ?? []) {
+          if (!C.spellById.has(slug(sla.name))) missing.push(`${r.id}/${t.id}: ${sla.name}`);
+        }
+      }
+      for (const h of r.heritages ?? []) {
+        if (!C.spellById.has(slug(h.spellLikeAbility.name))) missing.push(`${r.id} heritage ${h.id}: ${h.spellLikeAbility.name}`);
+      }
+    }
+    expect(missing, `spell-like abilities with no catalogue spell: ${missing.join(', ')}`).toEqual([]);
+  });
+});
+
+describe('spells — Advanced Player’s Guide batch', () => {
+  const by = (id: string) => {
+    const s = C.spellById.get(id);
+    expect(s, `APG spell "${id}" is missing`).toBeTruthy();
+    return s!;
+  };
+
+  // Every row read off that spell's own d20pfsrd page, then filtered to the lists we model: the
+  // alchemist, magus, summoner, inquisitor and oracle lines arrive through the list those classes
+  // already read, and psychic/mesmerist/occultist/spiritualist have no list here at all.
+  const EXPECTED: [string, [C.SpellList, number][]][] = [
+    ['weapon-of-awe', [['divine', 2], ['paladin', 2]]],
+    ['grace', [['divine', 2], ['paladin', 1]]],
+    ['blessing-of-fervor', [['divine', 4]]],
+    ['ant-haul', [['arcane', 1], ['divine', 1], ['druid', 1], ['ranger', 1]]],
+    ['life-bubble', [['arcane', 5], ['divine', 5], ['druid', 4], ['ranger', 3]]],
+    ['gravity-bow', [['arcane', 1], ['ranger', 1]]],
+    ['lead-blades', [['ranger', 1]]],
+    ['aspect-of-the-falcon', [['druid', 1], ['ranger', 1]]],
+    ['instant-enemy', [['ranger', 3]]],
+    ['strong-jaw', [['druid', 4], ['ranger', 3]]],
+    ['bristle', [['druid', 1]]],
+    ['feather-step', [['bard', 1], ['druid', 1], ['ranger', 1]]],
+    ['hydraulic-push', [['arcane', 1], ['druid', 1]]],
+    ['cloak-of-winds', [['arcane', 3], ['druid', 3], ['ranger', 3]]],
+    ['vanish', [['arcane', 1], ['bard', 1]]],
+    ['twilight-knife', [['arcane', 3], ['witch', 3]]],
+    ['ill-omen', [['witch', 1]]],
+    ['saving-finale', [['bard', 1]]],
+    ['timely-inspiration', [['bard', 1]]],
+  ];
+
+  it('puts every spell on exactly the lists it belongs to, at the published level', () => {
+    for (const [id, pairs] of EXPECTED) {
+      const s = by(id);
+      expect(s.source, `${id} must be tagged APG or it escapes the Core audit`).toBe('APG');
+      expect([...s.lists].sort(), `${id} lists`).toEqual(pairs.map(([l]) => l).sort());
+      for (const [list, lvl] of pairs) expect(C.spellLevelOn(s, list), `${id} on ${list}`).toBe(lvl);
+    }
+  });
+
+  it('carries the levels a summary would get wrong', () => {
+    // Each of these was corrected by reading the spell's own page. Pinned so a future edit that
+    // "tidies" them back to the intuitive value fails here.
+    expect(C.spellLevelOn(by('strong-jaw'), 'druid')).toBe(4); // ranger 3, but druid 4
+    expect(C.spellLevelOn(by('life-bubble'), 'divine')).toBe(5); // cleric 5, not 4
+    expect(C.spellLevelOn(by('life-bubble'), 'ranger')).toBe(3);
+    expect(C.spellLevelOn(by('grace'), 'paladin')).toBe(1); // cleric 2, paladin 1
+    // Weapon of Awe is cleric/oracle, inquisitor and paladin — not a magus spell.
+    expect(by('weapon-of-awe').lists).not.toContain('arcane');
+  });
+
+  it('leaves the Core paladin, ranger and witch lists exactly as they were', () => {
+    // The overlay maps below are the Core lists; an APG spell tags its list inline instead, so
+    // nothing here should have been added to them.
+    for (const id of ['weapon-of-awe', 'grace', 'lead-blades', 'ill-omen', 'twilight-knife']) {
+      expect(by(id).source).toBe('APG');
+    }
+    expect(C.SPELLS.filter((s) => s.source === 'APG').length).toBe(EXPECTED.length);
+  });
+
+  it('gives an engine effect only to the three spells that reduce to a typed bonus', () => {
+    const withBuff = C.SPELLS.filter((s) => s.source === 'APG' && s.buff).map((s) => s.id).sort();
+    expect(withBuff).toEqual(['aspect-of-the-falcon', 'cloak-of-winds', 'weapon-of-awe']);
+    // Weapon of Awe: a flat +2 sacred on damage that does not scale with caster level.
+    const awe = (cl: number) => by('weapon-of-awe').buff!.at(cl).effects!;
+    expect(awe(1)[0]).toMatchObject({ target: 'damage:weapon', type: 'sacred', value: 2 });
+    expect(awe(20)[0].value).toBe(2);
+    expect(by('weapon-of-awe').buff!.at(7).rounds).toBe(70); // 1 min/level
+    // Aspect of the Falcon: +1 ranged only — it is not a bonus on melee attacks.
+    const falcon = by('aspect-of-the-falcon').buff!.at(5).effects!;
+    expect(falcon.map((e) => e.target).sort()).toEqual(['attack:ranged', 'skill:perception']);
+    expect(falcon.find((e) => e.target === 'skill:perception')!.value).toBe(3);
+    // Cloak of Winds is conditional, so it is annotated rather than added to AC.
+    expect(by('cloak-of-winds').buff!.at(5).effects![0].condition).toBe('against ranged attacks');
+  });
+});
+
 describe('paladin and ranger spell lists', () => {
-  const on = (list: 'paladin' | 'ranger') => C.SPELLS.filter((s) => s.lists.includes(list));
+  // Core Rulebook only: these two counts audit PALADIN_LEVELS/RANGER_LEVELS against each class's
+  // own d20pfsrd list page, and a splatbook batch that adds to either list must not move them.
+  const on = (list: 'paladin' | 'ranger') => C.SPELLS.filter((s) => !s.source && s.lists.includes(list));
   const lvl = (id: string, list: string) => C.spellLevelOn(C.spellById.get(id)!, list);
 
   it('carries the whole paladin list at its own levels', () => {

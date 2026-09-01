@@ -1435,16 +1435,18 @@ describe('senses & innate spell-like abilities', () => {
     expect(g.saveDc).toBe(10 + 2 + 3);     // = 15
   });
 
-  it('leaves an SLA whose spell we lack unlinked but still caster-levelled', () => {
-    // Undine's hydraulic push is the remaining racial SLA with no catalogue spell. This case used
-    // to be the aasimar lawbringer's Continual Flame, which the CRB spell-completion pass linked.
-    let d = newCharacter('t-sla-nolink');
+  it("links the undine's Hydraulic Push, the last racial SLA that had no spell", () => {
+    // This case has now been the unlinked example twice and been linked twice: first the aasimar
+    // lawbringer's Continual Flame (CRB completion), now Hydraulic Push (the APG batch). Every
+    // racial SLA resolves to a catalogue spell — content.test.ts asserts that as an invariant, so
+    // this one only has to check what linking actually produces.
+    let d = newCharacter('t-sla-link');
     d = withDecision(d, 'ability-base', { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 14 });
     d = withDecision(d, 'race', 'undine');
     d = withDecision(d, 'class', 'fighter');
     const hp = resolve(d).sheet.spellLikeAbilities.find((a) => a.name === 'Hydraulic Push')!;
-    expect(hp.spellId).toBeUndefined();
-    expect(hp.saveDc).toBeUndefined();
+    expect(hp.spellId).toBe('hydraulic-push');
+    expect(hp.saveDc).toBeUndefined();  // hydraulic push allows no save
     expect(hp.casterLevel).toBe(1);
   });
 

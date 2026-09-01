@@ -54,6 +54,10 @@ function loadFixture(): Record<string, Partial<Record<SpellList, number>>> {
 
 describe('spell lists match the Core Rulebook class lists', () => {
   const srd = loadFixture();
+  // Splatbook spells are out of this fixture's scope by construction, so they are dropped up
+  // front rather than skipped check by check. Keeping them in would make the audit's meaning
+  // drift every time a batch lands: "complete" here means complete against the Core Rulebook.
+  const CORE = C.SPELLS.filter((s) => !s.source);
   const refFor = (s: SpellDef) => srd[s.id] ?? srd[srdIdFor(s.id)];
 
   it('has a fixture covering the whole Core Rulebook', () => {
@@ -64,7 +68,7 @@ describe('spell lists match the Core Rulebook class lists', () => {
 
   it('tags no spell onto a list that does not carry it', () => {
     const wrong: string[] = [];
-    for (const s of C.SPELLS) {
+    for (const s of CORE) {
       const ref = refFor(s);
       if (!ref) continue;
       for (const list of s.lists) {
@@ -77,7 +81,7 @@ describe('spell lists match the Core Rulebook class lists', () => {
 
   it('places every spell at its published level on each list', () => {
     const wrong: string[] = [];
-    for (const s of C.SPELLS) {
+    for (const s of CORE) {
       const ref = refFor(s);
       if (!ref) continue;
       for (const list of s.lists) {
@@ -91,7 +95,7 @@ describe('spell lists match the Core Rulebook class lists', () => {
 
   it('omits no list a spell we carry actually belongs to', () => {
     const missing: string[] = [];
-    for (const s of C.SPELLS) {
+    for (const s of CORE) {
       const ref = refFor(s);
       if (!ref) continue;
       for (const list of Object.keys(ref) as SpellList[]) {
@@ -102,9 +106,27 @@ describe('spell lists match the Core Rulebook class lists', () => {
   });
 
   it('accounts for every spell that matches no CRB list entry', () => {
-    const unmatched = C.SPELLS.filter((s) => !refFor(s)).map((s) => s.id);
+    const unmatched = CORE.filter((s) => !refFor(s)).map((s) => s.id);
     // Anything new here is either a splatbook spell or an id that has drifted from the
     // convention — both worth looking at rather than silently skipping the checks above.
     expect(new Set(unmatched)).toEqual(NOT_ON_A_CRB_LIST);
+  });
+});
+
+describe('splatbook spells stay outside the Core Rulebook audit', () => {
+  const srd = loadFixture();
+  const sourced = C.SPELLS.filter((s) => s.source);
+
+  it('carries the Advanced Player’s Guide batch', () => {
+    // A count, so a spell going missing in a refactor is caught; the memberships themselves are
+    // asserted spell by spell in content.test.ts against each spell's own d20pfsrd page.
+    expect(sourced.filter((s) => s.source === 'APG').length).toBe(19);
+  });
+
+  it('tags nothing as splatbook that the Core Rulebook lists actually carry', () => {
+    // The failure this guards against is a mislabelled `source`, which would quietly exempt a
+    // Core spell from every check above.
+    const mislabelled = sourced.filter((s) => srd[s.id] ?? srd[srdIdFor(s.id)]).map((s) => s.id);
+    expect(mislabelled, `sourced but on a CRB list: ${mislabelled.join(', ')}`).toEqual([]);
   });
 });

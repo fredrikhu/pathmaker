@@ -645,6 +645,10 @@ export interface SpellDamageDef {
 // silently resolves to an empty spellbook.
 export type SpellList = 'arcane' | 'bard' | 'divine' | 'druid' | 'witch' | 'paladin' | 'ranger';
 
+/** A non-Core source book. One entry per book we have actually authored from, so a typo is a
+ *  typecheck failure rather than a spell that silently escapes the Core audit. */
+export type SpellSource = 'APG';
+
 export interface SpellDef {
   id: string;
   name: string;
@@ -655,6 +659,10 @@ export interface SpellDef {
   /** Per-list level overrides for spells whose level differs by list (e.g. Hold Person is bard 2
    *  but sorcerer/wizard 3). A list absent here uses the flat `level`. */
   levelByList?: Partial<Record<SpellList, number>>;
+  /** The book a spell comes from, when it is not the Core Rulebook. Absent means Core, which is
+   *  what the CRB list audit keys off: a splatbook spell that omits this is reported as an id the
+   *  audit cannot account for, rather than quietly widening what "complete" means. */
+  source?: SpellSource;
   summary: string;
   cast: string;
   comp: string;
