@@ -1166,7 +1166,15 @@ Still open from that audit:
   Disciple) are left out. Combat likewise (22, same day): the general UC combat traits, leaving out
   the gunslinger firearm set, the ranger favored-enemy set and the monk style ones. Situational
   bonuses (Courageous vs fear, Vigilant Battler vs feints) are conditional effects, so they show as
-  annotations and roll toggles rather than in the total. `TraitDef.classSkills` makes "X is always a class skill" real, and
+  annotations and roll toggles rather than in the total. **Faith (26) and magic (35) followed the same
+  day**, so all five categories are now filled from the Ultimate Campaign general lists: 125 traits
+  total (combat 22, faith 26, magic 35, social 38, drawbacks 4). Left out everywhere: traits gated on
+  a class feature (gunslinger grit/firearms, ranger favored enemy, monk styles, alchemist mutagens and
+  bombs, magus arcane pool, sorcerer bloodline, summoner eidolon). Concentration-check traits (Focused
+  Mind, Desperate Resolve, Arcane Temper's second half) stay prose because no concentration stat
+  exists; likewise the elemental `DR 1/—` traits, since `TraitDef` carries no damage reduction.
+  Three more ability swaps landed here: Planar Savant (Knowledge planes on Cha), Pragmatic Activator
+  (Use Magic Device on Int) and Precise Treatment (Heal on Int). `TraitDef.classSkills` makes "X is always a class skill" real, and
   `TraitDef.param` (pick stored at `trait-params[traitId]`) covers choose-a-skill traits such as
   Criminal, Influence and Talented — the engine folds the picked skill into `classSkillIds` and lands
   the trait bonus on it, and nudges with an info issue until a pick is made. `TraitDef.abilitySwap`

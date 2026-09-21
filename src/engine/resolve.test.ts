@@ -6446,3 +6446,76 @@ describe('combat traits: Tactician, Courageous, Vigilant Battler', () => {
     expect(s.annotations.some((a) => /Vigilant Battler: \+1 to counter a feint/.test(a))).toBe(true);
   });
 });
+
+describe('faith and magic traits', () => {
+  /** A fighter with the abilities a given trait needs, so a swap has something to prove. */
+  const withAbilities = (a: Partial<Record<'str' | 'dex' | 'con' | 'int' | 'wis' | 'cha', number>>) =>
+    withDecision(humanFighter1(), 'ability-base', { str: 15, dex: 14, con: 14, int: 10, wis: 12, cha: 8, ...a });
+
+  it('Planar Savant puts Knowledge (planes) on Charisma when Charisma is better', () => {
+    let d = withDecision(withAbilities({ int: 10, cha: 18 }), 'traits', ['planar-savant']);
+    d = withDecision(d, 'skill-ranks', { 'know-planes': 1, 'know-religion': 1 });
+    const r = resolve(d);
+    expect(r.sheet.skillAbility['know-planes']).toBe('cha');
+    expect(r.sheet.skillAbility['know-religion']).toBe('int');
+    expect(r.sheet.stats['skill:know-planes'].total).toBe(5); // 1 rank + Cha +4
+  });
+
+  it('Precise Treatment stacks its trait bonus with the Int-for-Wis swap on Heal', () => {
+    let d = withDecision(withAbilities({ int: 18, wis: 12 }), 'traits', ['precise-treatment']);
+    d = withDecision(d, 'skill-ranks', { heal: 1 });
+    const r = resolve(d);
+    expect(r.sheet.skillAbility['heal']).toBe('int');
+    expect(r.sheet.stats['skill:heal'].total).toBe(6); // 1 rank + Int +4 + 1 trait
+  });
+
+  it('Pragmatic Activator swaps Use Magic Device to Intelligence', () => {
+    const d = withDecision(withAbilities({ int: 16, cha: 8 }), 'traits', ['pragmatic-activator']);
+    expect(resolve(d).sheet.skillAbility['use-magic-device']).toBe('int');
+  });
+
+  it('Child of the Temple gives both Knowledge bonuses but only the picked class skill', () => {
+    let d = withDecision(humanFighter1(), 'traits', ['child-of-the-temple']);
+    d = withDecision(d, 'trait-params', { 'child-of-the-temple': 'know-religion' });
+    d = withDecision(d, 'skill-ranks', { 'know-religion': 1, 'know-nobility': 1 });
+    const r = resolve(d);
+    expect(r.sheet.classSkillIds).toContain('know-religion');
+    expect(r.sheet.classSkillIds).not.toContain('know-nobility');
+    expect(r.sheet.stats['skill:know-religion'].total).toBe(5); // 1 rank + Int 0 + 3 class + 1 trait
+    expect(r.sheet.stats['skill:know-nobility'].total).toBe(2); // 1 rank + 1 trait, no class bonus
+  });
+
+  it('Arcane Temper adds its initiative bonus; its concentration half stays prose', () => {
+    const base = resolve(humanFighter1()).sheet.stats['init'].total;
+    expect(resolve(withDecision(humanFighter1(), 'traits', ['arcane-temper'])).sheet.stats['init'].total).toBe(base + 1);
+  });
+
+  it('Skeptic and Reincarnated annotate every save without changing a total', () => {
+    const plain = resolve(humanFighter1());
+    for (const [id, re] of [['skeptic', /Skeptic: \+2 vs illusions/], ['reincarnated', /Reincarnated: \+2 vs fear and death/]] as const) {
+      const r = resolve(withDecision(humanFighter1(), 'traits', [id]));
+      for (const sv of ['fort', 'ref', 'will']) {
+        expect(r.sheet.stats[`save:${sv}`].total).toBe(plain.sheet.stats[`save:${sv}`].total);
+        expect(r.sheet.stats[`save:${sv}`].annotations.some((a) => re.test(a)), `${id} on ${sv}`).toBe(true);
+      }
+    }
+  });
+
+  it('Principled computes its Bluff penalty as well as its conditional save bonus', () => {
+    let d = withDecision(humanFighter1(), 'traits', ['principled']);
+    d = withDecision(d, 'skill-ranks', { bluff: 1 });
+    const r = resolve(d);
+    expect(r.sheet.stats['skill:bluff'].total).toBe(-2); // 1 rank + Cha −1 − 2 penalty
+    expect(r.sheet.stats['save:will'].annotations.some((a) => /Principled: \+2 vs charm, compulsion, and emotion/.test(a))).toBe(true);
+  });
+
+  it('Scholar of the Great Beyond now covers planes as well as history', () => {
+    let d = withDecision(humanFighter1(), 'traits', ['scholar-of-the-great-beyond']);
+    d = withDecision(d, 'trait-params', { 'scholar-of-the-great-beyond': 'know-planes' });
+    d = withDecision(d, 'skill-ranks', { 'know-planes': 1, 'know-history': 1 });
+    const r = resolve(d);
+    expect(r.sheet.stats['skill:know-history'].total).toBe(2);
+    expect(r.sheet.stats['skill:know-planes'].total).toBe(5); // class skill via the pick
+    expect(r.sheet.classSkillIds).toContain('know-planes');
+  });
+});

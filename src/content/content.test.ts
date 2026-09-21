@@ -470,6 +470,8 @@ describe('traits', () => {
     const social = C.TRAITS.filter((t) => t.category === 'social');
     expect(social.length).toBeGreaterThanOrEqual(35);
     expect(C.TRAITS.filter((t) => t.category === 'combat').length).toBeGreaterThanOrEqual(20);
+    expect(C.TRAITS.filter((t) => t.category === 'faith').length).toBeGreaterThanOrEqual(25);
+    expect(C.TRAITS.filter((t) => t.category === 'magic').length).toBeGreaterThanOrEqual(35);
   });
 });
 
