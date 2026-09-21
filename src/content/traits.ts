@@ -5,6 +5,7 @@ import { skillById } from './skills';
 const skills = (...ids: string[]) => ids.map((id) => ({ id, name: skillById.get(id)!.name }));
 const CRAFTS = ['craft-alchemy', 'craft-armor', 'craft-weapons'];
 const PERFORMS = ['perform-oratory', 'perform-strings'];
+const CHA_SKILLS = ['bluff', 'diplomacy', 'disguise', 'handle-animal', 'intimidate', ...PERFORMS, 'use-magic-device'];
 
 // Basic traits (Advanced Player's Guide, reprinted and extended in Ultimate Campaign), plus drawbacks.
 // Numeric skill/save/initiative bonuses are computed; "X is always a class skill" is `classSkills`;
@@ -24,7 +25,7 @@ export const TRAITS: TraitDef[] = [
   // Combat
   { id: 'resilient', name: 'Resilient', category: 'combat', desc: 'Constant vigilance toughened you. +1 trait bonus on Fortitude saves.', effects: [{ target: 'save:fort', type: 'trait', value: 1, note: 'Resilient' }] },
   { id: 'reckless', name: 'Reckless', category: 'combat', desc: 'You take risks others would not. +1 trait bonus on Acrobatics, and it is a class skill.', effects: [{ target: 'skill:acrobatics', type: 'trait', value: 1, note: 'Reckless' }], classSkills: ['acrobatics'] },
-  { id: 'bruising-intellect', name: 'Bruising Intellect', category: 'social', desc: 'Your sharp wit cuts deep. Intimidate is a class skill and uses your Intelligence modifier instead of Charisma.', classSkills: ['intimidate'] },
+  { id: 'bruising-intellect', name: 'Bruising Intellect', category: 'social', desc: 'Your sharp wit cuts deep. Intimidate is a class skill and uses your Intelligence modifier instead of Charisma.', classSkills: ['intimidate'], abilitySwap: { ability: 'int', skills: ['intimidate'] } },
   { id: 'anatomist', name: 'Anatomist', category: 'combat', desc: 'You know where to strike. +1 trait bonus on rolls to confirm critical hits.' },
   { id: 'armor-expert', name: 'Armor Expert', category: 'combat', desc: 'You trained in armor from a young age. Reduce your armor check penalty by 1 (minimum 0).' },
   // Magic
@@ -39,7 +40,7 @@ export const TRAITS: TraitDef[] = [
   // Social
   { id: 'fast-talker', name: 'Fast-Talker', category: 'social', desc: 'You lied your way through childhood. +1 trait bonus on Bluff, and it is a class skill.', effects: [{ target: 'skill:bluff', type: 'trait', value: 1, note: 'Fast-Talker' }], classSkills: ['bluff'] },
   { id: 'child-of-the-streets', name: 'Child of the Streets', category: 'social', desc: 'You grew up cutting purses. +1 trait bonus on Sleight of Hand, and it is a class skill.', effects: [{ target: 'skill:sleight-of-hand', type: 'trait', value: 1, note: 'Child of the Streets' }], classSkills: ['sleight-of-hand'] },
-  { id: 'clever-wordplay', name: 'Clever Wordplay', category: 'social', desc: 'You talk circles around people. One Charisma-based skill of your choice uses your Intelligence modifier instead.' },
+  { id: 'clever-wordplay', name: 'Clever Wordplay', category: 'social', desc: 'You talk circles around people. One Charisma-based skill of your choice uses your Intelligence modifier instead.', param: { label: 'Skill', options: skills(...CHA_SKILLS) }, abilitySwap: { ability: 'int' } },
 
   // ---- The rest of the Ultimate Campaign social traits (the general ones; class-tied ones are left out). ----
   { id: 'acrobat', name: 'Acrobat', category: 'social', desc: 'Trained from a young age in feats of daring. +1 bonus on Acrobatics, and an accelerated climb costs only −2 instead of −5.', effects: [{ target: 'skill:acrobatics', type: 'untyped', value: 1, note: 'Acrobat' }] },
@@ -74,7 +75,7 @@ export const TRAITS: TraitDef[] = [
   { id: 'unpredictable', name: 'Unpredictable', category: 'social', desc: 'There is method to your madness. +1 trait bonus on Bluff, and it is a class skill.', effects: [{ target: 'skill:bluff', type: 'trait', value: 1, note: 'Unpredictable' }], classSkills: ['bluff'] },
   { id: 'worldly', name: 'Worldly', category: 'social', desc: 'Unusual breadth of life experience. Once per day, roll a check for a skill you are untrained in twice and take the better result.' },
   // Pathfinder Player Companion: Quests & Campaigns
-  { id: 'student-of-philosophy', name: 'Student of Philosophy', category: 'social', desc: 'Trained in a defunct philosophical tradition, you persuade with logic. Use your Intelligence modifier instead of Charisma on Diplomacy checks to persuade and on Bluff checks to convince others a lie is true (not to gather information or to feint).' },
+  { id: 'student-of-philosophy', name: 'Student of Philosophy', category: 'social', desc: 'Trained in a defunct philosophical tradition, you persuade with logic. Use your Intelligence modifier instead of Charisma on Diplomacy checks to persuade and on Bluff checks to convince others a lie is true (not to gather information or to feint).', abilitySwap: { ability: 'int', skills: ['diplomacy', 'bluff'], caveat: 'not to gather information or to feint' } },
 
   // Drawbacks — taking one grants a third trait.
   { id: 'dw-pride', name: 'Pride (drawback)', category: 'drawback', desc: 'You cannot abide insults. Whenever a foe demoralizes you or damages your reputation, take −2 on all attacks against anyone else until you act against the offender.' },

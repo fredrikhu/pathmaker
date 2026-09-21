@@ -493,7 +493,7 @@ function PageOne({ doc, sheet }: { doc: CharacterDoc; sheet: Sheet }) {
                 <div className="pf-name">{sk.name}{sk.trainedOnly ? '*' : ''}</div>
                 <div className="pf-val">{usable ? fmtMod(s.total) : ''}</div>
                 <div className="pf-abbr">=</div>
-                <div className="pf-abbr">{sk.ability}</div>
+                <div className="pf-abbr">{sheet.skillAbility[sk.id] ?? sk.ability}</div>
                 <div className="pf-val">{fmtMod(b.ability)}</div>
                 <div className="pf-abbr">+</div>
                 <div className="pf-val">{b.ranks || ''}</div>

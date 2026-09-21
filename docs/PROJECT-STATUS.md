@@ -1166,7 +1166,12 @@ Still open from that audit:
   Disciple) are left out. `TraitDef.classSkills` makes "X is always a class skill" real, and
   `TraitDef.param` (pick stored at `trait-params[traitId]`) covers choose-a-skill traits such as
   Criminal, Influence and Talented — the engine folds the picked skill into `classSkillIds` and lands
-  the trait bonus on it, and nudges with an info issue until a pick is made. **Equipment**: the full Core armor table (hide, splint/banded/half-plate, steel
+  the trait bonus on it, and nudges with an info issue until a pick is made. `TraitDef.abilitySwap`
+  ("use Int instead of Cha") is computed too: Bruising Intellect, Student of Philosophy (with its
+  gather-information/feint caveat on the breakdown) and Clever Wordplay (on the picked skill). A
+  swap is a "may", so it applies only when the other modifier is better, and says so either way in
+  the skill's annotations. `Sheet.skillAbility` carries the ability each skill actually keys off, so
+  the Skills step and the official sheet's ability column show INT rather than the catalogue's CHA. **Equipment**: the full Core armor table (hide, splint/banded/half-plate, steel
   shields, tower shield) and a fuller adventuring-gear list (light sources, climbing/disguise kits,
   alchemical items, containers) atop the 80 weapons — costs/weights from the Core table.
   - **Feat fidelity**: numeric bonuses that are unconditional flow into the stat graph (Magical

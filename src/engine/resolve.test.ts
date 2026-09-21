@@ -6291,3 +6291,60 @@ describe('social traits: class-skill grants and skill picks', () => {
     expect(r.issues.some((i) => /Criminal/.test(i.message))).toBe(false);
   });
 });
+
+describe('trait ability swaps (Bruising Intellect, Clever Wordplay, Student of Philosophy)', () => {
+  // humanFighter1: Int 10 (+0), Cha 8 (−1). Intimidate is a fighter class skill.
+  it('Bruising Intellect puts Intimidate on Int when Int is the better modifier', () => {
+    let d = withDecision(humanFighter1(), 'traits', ['bruising-intellect']);
+    d = withDecision(d, 'skill-ranks', { intimidate: 1 });
+    const r = resolve(d);
+    const s = r.sheet.stats['skill:intimidate'];
+    // 1 rank + Int (+0) + 3 class — not Cha (−1)
+    expect(s.total).toBe(4);
+    // A +0 line is elided by stack(), so only the absence of the Cha line is visible here.
+    expect(s.lines.map((l) => l.label)).not.toContain('CHA modifier');
+    expect(r.sheet.skillAbility['intimidate']).toBe('int');
+    expect(s.annotations.some((a) => /Bruising Intellect: INT \+0 in place of CHA −1/.test(a))).toBe(true);
+  });
+
+  it('a swap is a "may": with Cha the better score it stays on Cha and says so', () => {
+    let d = withDecision(humanFighter1(), 'ability-base', { str: 15, dex: 14, con: 14, int: 8, wis: 12, cha: 14 });
+    d = withDecision(d, 'traits', ['bruising-intellect']);
+    d = withDecision(d, 'skill-ranks', { intimidate: 1 });
+    const r = resolve(d);
+    const s = r.sheet.stats['skill:intimidate'];
+    expect(s.total).toBe(6); // 1 + Cha 2 + 3
+    expect(r.sheet.skillAbility['intimidate']).toBe('cha');
+    expect(s.annotations.some((a) => /Bruising Intellect: INT −1 does not beat CHA \+2, not applied/.test(a))).toBe(true);
+  });
+
+  it('Student of Philosophy swaps Diplomacy and Bluff, with the caveat on the breakdown', () => {
+    let d = withDecision(humanFighter1(), 'traits', ['student-of-philosophy']);
+    d = withDecision(d, 'skill-ranks', { diplomacy: 1, bluff: 1, disguise: 1 });
+    const r = resolve(d);
+    expect(r.sheet.skillAbility['diplomacy']).toBe('int');
+    expect(r.sheet.skillAbility['bluff']).toBe('int');
+    expect(r.sheet.skillAbility['disguise']).toBe('cha');
+    expect(r.sheet.stats['skill:diplomacy'].total).toBe(1); // 1 rank + Int 0, not a fighter class skill
+    expect(r.sheet.stats['skill:diplomacy'].annotations.some((a) => /not to gather information or to feint/.test(a))).toBe(true);
+  });
+
+  it('Clever Wordplay swaps only the picked skill, and nothing until picked', () => {
+    let d = withDecision(humanFighter1(), 'traits', ['clever-wordplay']);
+    d = withDecision(d, 'skill-ranks', { diplomacy: 1, bluff: 1 });
+    let r = resolve(d);
+    expect(r.sheet.skillAbility['diplomacy']).toBe('cha');
+    expect(r.issues.some((i) => /Clever Wordplay: choose/.test(i.message))).toBe(true);
+    d = withDecision(d, 'trait-params', { 'clever-wordplay': 'diplomacy' });
+    r = resolve(d);
+    expect(r.sheet.skillAbility['diplomacy']).toBe('int');
+    expect(r.sheet.skillAbility['bluff']).toBe('cha');
+    expect(r.sheet.stats['skill:diplomacy'].total).toBe(1);
+    expect(r.sheet.stats['skill:bluff'].total).toBe(0);
+  });
+
+  it('every skill reports the catalogue ability when no trait swaps it', () => {
+    const r = resolve(humanFighter1());
+    for (const sk of C.SKILLS) expect(r.sheet.skillAbility[sk.id]).toBe(sk.ability);
+  });
+});

@@ -455,7 +455,11 @@ describe('traits', () => {
       if (t.param) {
         expect(t.param.options.length, `trait ${t.id}: param with no options`).toBeGreaterThan(1);
         for (const o of t.param.options) expect(skillIds.has(o.id), `trait ${t.id}: unknown skill option "${o.id}"`).toBe(true);
-        expect(t.param.bonus || t.param.classSkill, `trait ${t.id}: param does nothing`).toBeTruthy();
+        expect(t.param.bonus || t.param.classSkill || t.abilitySwap, `trait ${t.id}: param does nothing`).toBeTruthy();
+      }
+      if (t.abilitySwap) {
+        expect(t.abilitySwap.skills || t.param, `trait ${t.id}: ability swap names no skill and has no pick`).toBeTruthy();
+        for (const sk of t.abilitySwap.skills ?? []) expect(skillIds.has(sk), `trait ${t.id}: swap on unknown skill "${sk}"`).toBe(true);
       }
     }
   });

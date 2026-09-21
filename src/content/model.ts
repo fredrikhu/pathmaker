@@ -507,6 +507,11 @@ export interface TraitDef {
    *  Hand). The pick is stored under `trait-params[traitId]`; the chosen skill gains `bonus` as a
    *  trait bonus (when set) and becomes a class skill (when `classSkill`). */
   param?: { label: string; options: { id: string; name: string }[]; bonus?: number; classSkill?: boolean };
+  /** "Use your Intelligence modifier instead of Charisma" (Bruising Intellect). Applies to `skills`,
+   *  or to the skill picked via `param` when `skills` is absent (Clever Wordplay). The text says
+   *  "may", so the engine takes the better of the two modifiers. `caveat` names the uses the swap
+   *  does not cover, for the breakdown (Student of Philosophy: not gathering information or feinting). */
+  abilitySwap?: { ability: Ability; skills?: string[]; caveat?: string };
 }
 
 export interface WeaponDef {

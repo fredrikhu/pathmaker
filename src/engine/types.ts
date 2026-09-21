@@ -511,6 +511,9 @@ export interface Sheet {
   skillIds: string[];
   classSkillIds: string[];
   acpSkillIds: string[];
+  /** The ability each skill actually keys off — the catalogue's, unless a trait swapped it
+   *  (Bruising Intellect puts Intimidate on Int). Renderers read this, not the catalogue. */
+  skillAbility: Record<string, Ability>;
   skillRanksTotal: number;
   skillRanksSpent: number;
   /** The race's alternative favored-class bonus, when the character has taken it at least once.

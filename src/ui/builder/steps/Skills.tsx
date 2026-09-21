@@ -57,7 +57,7 @@ export function SkillsStep({ ch }: { ch: CharCtl }) {
         return (
           <div key={sk.id} style={{ display: 'grid', gridTemplateColumns: '260px 56px 140px 70px 70px 1fr', gap: 8, alignItems: 'center', padding: '6px 4px', borderBottom: '1px solid var(--color-divider)' }}>
             <span style={{ fontSize: 13.5 }}>{sk.name} {classSet.has(sk.id) && <span style={{ color: 'var(--color-accent)', fontSize: 10 }}>●</span>} {acpSet.has(sk.id) && <span style={{ color: 'var(--color-neutral-500)', fontSize: 10 }}>▲</span>}</span>
-            <span className="text-muted" style={{ fontSize: 12 }}>{(sk.ability as Ability).toUpperCase()}</span>
+            <span className="text-muted" style={{ fontSize: 12 }}>{((sheet.skillAbility?.[sk.id] ?? sk.ability) as Ability).toUpperCase()}</span>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
               <button className="stepper" style={{ width: 24, height: 24 }} disabled={r <= 0} onClick={() => setRank(sk.id, r - 1)}>−</button>
               <span className="num" style={{ width: 18, textAlign: 'center', fontWeight: 600 }}>{r}</span>

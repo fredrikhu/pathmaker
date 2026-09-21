@@ -1145,14 +1145,30 @@ export function resolve(doc: CharacterDoc): Resolution {
   const skillIds = C.SKILLS.map((s) => s.id);
   const classSkillIds: string[] = [];
   const acpSkillIds: string[] = [];
+  // Trait ability swaps (Bruising Intellect: Intimidate on Int). Keyed by skill; a fixed list on
+  // the trait, or the skill the player picked for it.
+  const swaps = new Map<string, { ability: Ability; trait: string; caveat?: string }>();
+  for (const tid of dec.traits) {
+    const t = C.traitById.get(tid);
+    if (!t?.abilitySwap) continue;
+    const targets = t.abilitySwap.skills ?? [traitParamSkill(t, dec)].filter(Boolean) as string[];
+    for (const sk of targets) swaps.set(sk, { ability: t.abilitySwap.ability, trait: t.name, caveat: t.abilitySwap.caveat });
+  }
+  const skillAbility: Record<string, Ability> = {};
   for (const sk of C.SKILLS) {
     const ranks = dec.skillRanks[sk.id] ?? 0;
     const isClass = classSkillSet.has(sk.id);
     if (isClass) classSkillIds.push(sk.id);
     if (sk.acp) acpSkillIds.push(sk.id);
+    // A swap is a "may", so it only applies when the other modifier is better. The line keeps the
+    // `XXX modifier` shape the official sheet sorts on; the trait is named in an annotation.
+    const swap = swaps.get(sk.id);
+    const swapped = !!swap && mods[swap.ability] > mods[sk.ability];
+    const ability: Ability = swapped ? swap!.ability : sk.ability;
+    skillAbility[sk.id] = ability;
     const contribs: Contribution[] = [
       { type: 'base', value: ranks, note: `${ranks} rank${ranks === 1 ? '' : 's'}` },
-      { type: 'base', value: mods[sk.ability], note: `${sk.ability.toUpperCase()} modifier` },
+      { type: 'base', value: mods[ability], note: `${ability.toUpperCase()} modifier` },
     ];
     if (isClass && ranks > 0) contribs.push({ type: 'base', value: 3, note: 'Class skill' });
     if (sk.acp && acp.total < 0) contribs.push({ type: 'penalty', value: acp.total, note: `Armor check penalty (${acp.sources.join(', ')})` });
@@ -1164,6 +1180,15 @@ export function resolve(doc: CharacterDoc): Resolution {
     // `skill:all` is the across-the-board bonus (Prayer), mirroring how `save:all` already works.
     contribs.push(...unconds(`skill:${sk.id}`), ...unconds('skill:all'));
     stats[`skill:${sk.id}`] = makeStat(`skill:${sk.id}`, sk.name, contribs, [...conds(`skill:${sk.id}`), ...conds('skill:all')]);
+    if (swap) {
+      const up = (a: Ability) => a.toUpperCase();
+      const own = `${up(sk.ability)} ${fmtSigned(mods[sk.ability])}`;
+      const theirs = `${up(swap.ability)} ${fmtSigned(mods[swap.ability])}`;
+      const tail = swap.caveat ? `; ${swap.caveat}` : '';
+      stats[`skill:${sk.id}`].annotations.push(swapped
+        ? `${swap.trait}: ${theirs} in place of ${own}${tail}`
+        : `${swap.trait}: ${theirs} does not beat ${own}, not applied`);
+    }
   }
   const skillRanksSpent = Object.values(dec.skillRanks).reduce((a, b) => a + b, 0);
 
@@ -1356,7 +1381,7 @@ export function resolve(doc: CharacterDoc): Resolution {
 
   const sheet: Sheet = {
     level,
-    stats, skillIds, classSkillIds, acpSkillIds,
+    stats, skillIds, classSkillIds, acpSkillIds, skillAbility,
     skillRanksTotal, skillRanksSpent,
     ...(favoredClassAlt ? { favoredClassAlt } : {}),
     gold,
