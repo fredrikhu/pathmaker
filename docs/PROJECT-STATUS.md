@@ -1160,8 +1160,8 @@ Still open from that audit:
   obscure long tail and per-list level differences remain (the single-level model). **Subsystem option lists** (rage powers, talents, hexes, discoveries, arcana, mysteries,
   revelations, etc.) are expanded core-scope sets, not exhaustive. **Traits**: the common core/APG
   traits across all categories (numeric skill/save/init ones computed; mechanic-only ones prose) plus
-  four drawbacks. Social is complete for Ultimate Campaign's general social traits (2026-09-21, 37
-  of them, verified on d20pfsrd); the class-tied ones (Destined Diplomat, Imposing Scion, Knowing the
+  four drawbacks. Social is complete for Ultimate Campaign's general social traits (2026-09-21, 38
+  of them plus Student of Philosophy from Player Companion: Quests & Campaigns, verified on d20pfsrd); the class-tied ones (Destined Diplomat, Imposing Scion, Knowing the
   Enemy, Unnatural Revenge, and the monk quartet Harvester / Simple Disciple / Style Sage / Veiled
   Disciple) are left out. `TraitDef.classSkills` makes "X is always a class skill" real, and
   `TraitDef.param` (pick stored at `trait-params[traitId]`) covers choose-a-skill traits such as

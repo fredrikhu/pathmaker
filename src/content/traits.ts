@@ -73,6 +73,8 @@ export const TRAITS: TraitDef[] = [
   { id: 'unintentional-linguist', name: 'Unintentional Linguist', category: 'social', desc: 'You can speak with outsiders. +1 trait bonus on Linguistics, and you know one extra language: Abyssal, Aquan, Celestial, Ignan, Infernal, Protean, or Terran.', effects: [{ target: 'skill:linguistics', type: 'trait', value: 1, note: 'Unintentional Linguist' }] },
   { id: 'unpredictable', name: 'Unpredictable', category: 'social', desc: 'There is method to your madness. +1 trait bonus on Bluff, and it is a class skill.', effects: [{ target: 'skill:bluff', type: 'trait', value: 1, note: 'Unpredictable' }], classSkills: ['bluff'] },
   { id: 'worldly', name: 'Worldly', category: 'social', desc: 'Unusual breadth of life experience. Once per day, roll a check for a skill you are untrained in twice and take the better result.' },
+  // Pathfinder Player Companion: Quests & Campaigns
+  { id: 'student-of-philosophy', name: 'Student of Philosophy', category: 'social', desc: 'Trained in a defunct philosophical tradition, you persuade with logic. Use your Intelligence modifier instead of Charisma on Diplomacy checks to persuade and on Bluff checks to convince others a lie is true (not to gather information or to feint).' },
 
   // Drawbacks — taking one grants a third trait.
   { id: 'dw-pride', name: 'Pride (drawback)', category: 'drawback', desc: 'You cannot abide insults. Whenever a foe demoralizes you or damages your reputation, take −2 on all attacks against anyone else until you act against the offender.' },
