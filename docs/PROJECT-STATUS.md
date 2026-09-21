@@ -1176,7 +1176,16 @@ Still open from that audit:
   trait, now raises an error and **does not grant its third trait slot** — it used to be honoured
   silently off `dec.drawback ? 1 : 0`. `stats['init']` now carries conditional bonuses (it took only
   unconditional ones, so Lovesick's situational −2 would have vanished), and the content test's target
-  validator accepts `skill:all`, which the skill loop has always read. Left out everywhere: traits gated on
+  validator accepts `skill:all`, which the skill loop has always read.
+  **Full invention audit run 2026-09-21 after the drawback findings**, comparing all 139 entries with
+  the published d20pfsrd indexes and pages: every trait exists, in the right category, so Frail was
+  the only fabricated *entry*. Two wrong *texts* turned up and are fixed — Magical Lineage said
+  "treat its level increase as one lower (minimum +1)", which blocked the published case of a +1
+  metamagic becoming free (the rule lowers the spell's own level, floored at its base level), and
+  Wanderer's Shroud did not name Diplomacy as the skill its penalty hits. Method that found them:
+  scrape each trait page, diff the set of signed numbers against our `desc` + effect values, then diff
+  the skills/saves named. Beware crude substring matching on the second pass — "affinity" contains
+  "init", "ill will" contains "will" and "refusing" contains "ref", which produced ten false positives. Left out everywhere: traits gated on
   a class feature (gunslinger grit/firearms, ranger favored enemy, monk styles, alchemist mutagens and
   bombs, magus arcane pool, sorcerer bloodline, summoner eidolon). Concentration-check traits (Focused
   Mind, Desperate Resolve, Arcane Temper's second half) stay prose because no concentration stat
