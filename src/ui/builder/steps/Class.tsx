@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { CharCtl } from '../../Builder';
-import { CLASSES, classById } from '../../../content/index';
+import { CLASSES, classById, raceById } from '../../../content/index';
 import type { ChoiceSlot } from '../../../engine/types';
 import { OptionCard, Stepper, revealSplitDetail, showSplitList, useSnapPanels } from '../bits';
 import type { SlotOption } from '../../../engine/types';
@@ -117,7 +117,11 @@ export function ClassStep({ ch }: { ch: CharCtl }) {
             <select className="input" style={{ maxWidth: 340 }} value={archetype ?? ''}
               onChange={(e) => setDecision('archetype', e.target.value || null)}>
               <option value="">Standard {view.name} — no archetype</option>
-              {view.archetypes.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+              {view.archetypes.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.name}{a.races ? ` (${a.races.map((r) => raceById.get(r)?.name ?? r).join('/')} only)` : ''}
+                </option>
+              ))}
             </select>
             {(() => {
               const a = view.archetypes!.find((x) => x.id === archetype);

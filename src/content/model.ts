@@ -398,6 +398,10 @@ export interface ArchetypeDef {
    *  a class with no bonus feats creates one. Used by archetypes that trade bonus feats for other
    *  abilities (e.g. the Sensei loses its feats at 2nd/6th/10th/14th). */
   bonusFeatSlots?: { add?: number[]; remove?: number[] };
+  /** Races this archetype is limited to, when the published archetype is race-locked (the wizard's
+   *  Spellbinder is elf only). Nothing locks — a mismatch raises a non-blocking Issue, the same way
+   *  a class's alignment requirement does. Absent means any race may take it. */
+  races?: string[];
   /** Alignment restriction changes. `null` lifts the class's restriction entirely (the Martial
    *  Artist monk, who may be of any alignment); an array narrows or replaces it. Omit to keep the
    *  class's own. */

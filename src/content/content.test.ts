@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import * as C from './index';
 import type { Predicate } from '../engine/types';
+import { SOURCE_POWER_PREFIXES } from '../engine/resolve';
 
 // Content-integrity tests. These don't check rules *math* (golden characters do that) —
 // they catch data-entry mistakes across the whole content set: typos in cross-referenced
@@ -1788,5 +1789,132 @@ describe('spell data holds together', () => {
         bad.push(`${s.id}: save "${s.save}" names no save type`);
     }
     expect(bad, bad.join(' | ')).toEqual([]);
+  });
+});
+
+describe('archetypes: nothing may silently do nothing', () => {
+  // Every check here targets the same bug shape: a field that names something misspelled or absent,
+  // so the archetype removes/adds nothing and the test suite never notices.
+  const WEAPON_GROUPS = new Set(['simple', 'martial', 'exotic', 'firearms']);
+  const weaponIds = new Set(C.WEAPONS.map((w) => w.id));
+
+  it('choices.remove names a choice the class actually offers', () => {
+    const bad: string[] = [];
+    for (const c of C.CLASSES) {
+      const offered = new Set((c.choices ?? []).map((ch) => ch.id));
+      for (const a of c.archetypes ?? [])
+        for (const id of a.choices?.remove ?? [])
+          if (!offered.has(id)) bad.push(`${a.id}: removes choice "${id}" that ${c.id} does not offer`);
+    }
+    expect(bad, bad.join(' | ')).toEqual([]);
+  });
+
+  it('two choice definitions sharing an id never grant at the same level', () => {
+    // Slots are keyed `<id>` at 1st and `<id>-L<level>` after, so a shared id is fine (the
+    // Dual-Cursed oracle adds revelations at 5th and 13th alongside the normal 1/3/7/11/15/19) but
+    // a shared *level* would collide on one key and silently lose a pick.
+    const bad: string[] = [];
+    for (const c of C.CLASSES)
+      for (const a of c.archetypes ?? []) {
+        const removed = new Set(a.choices?.remove ?? []);
+        const kept = (c.choices ?? []).filter((ch) => !removed.has(ch.id));
+        const byId = new Map<string, Set<number>>();
+        for (const ch of [...kept, ...(a.choices?.add ?? [])]) {
+          const seen = byId.get(ch.id) ?? new Set<number>();
+          for (const l of ch.levels ?? [1]) {
+            if (seen.has(l)) bad.push(`${a.id}: two "${ch.id}" choices both grant at level ${l}`);
+            seen.add(l);
+          }
+          byId.set(ch.id, seen);
+        }
+      }
+    expect(bad, bad.join(' | ')).toEqual([]);
+  });
+
+  it('weapon proficiency changes name a real weapon or weapon group', () => {
+    const bad: string[] = [];
+    for (const c of C.CLASSES)
+      for (const a of c.archetypes ?? [])
+        for (const w of [...(a.proficiencies?.weapons?.add ?? []), ...(a.proficiencies?.weapons?.remove ?? [])])
+          if (!WEAPON_GROUPS.has(w) && !weaponIds.has(w))
+            bad.push(`${a.id}: proficiency "${w}" is neither a weapon group nor a weapon id`);
+    expect(bad, bad.join(' | ')).toEqual([]);
+  });
+
+  it('an armor proficiency it removes is one the class has', () => {
+    const bad: string[] = [];
+    for (const c of C.CLASSES)
+      for (const a of c.archetypes ?? [])
+        for (const ar of a.proficiencies?.armor?.remove ?? [])
+          if (!c.proficiencies.armor.includes(ar))
+            bad.push(`${a.id}: removes ${ar} armor, which ${c.id} does not have`);
+    expect(bad, bad.join(' | ')).toEqual([]);
+  });
+
+  it('suppressSourcePowers targets a prefix the engine actually emits', () => {
+    const known = new Set(SOURCE_POWER_PREFIXES);
+    const bad: string[] = [];
+    for (const c of C.CLASSES)
+      for (const a of c.archetypes ?? [])
+        for (const s of a.suppressSourcePowers ?? [])
+          if (!known.has(s.prefix))
+            bad.push(`${a.id}: suppresses unknown prefix "${s.prefix}" (known: ${[...known].join(', ')})`);
+    expect(bad, bad.join(' | ')).toEqual([]);
+  });
+
+  it('every archetype changes something about its class', () => {
+    const bad: string[] = [];
+    for (const c of C.CLASSES)
+      for (const a of c.archetypes ?? []) {
+        const changes = a.replaces.length || a.grants.length || a.proficiencies || a.spellcasting !== undefined
+          || a.spellcastingMod || a.choices || a.classSkills || a.bonusFeatSlots || a.damageReduction
+          || a.companions || a.fusedCompanion || a.suppressSourcePowers || a.conditionalSuppress
+          || a.sourceLines || a.alignment !== undefined;
+        if (!changes) bad.push(`${a.id}: inert — changes nothing`);
+      }
+    expect(bad, bad.join(' | ')).toEqual([]);
+  });
+
+  it('an archetype does not replace the same feature twice', () => {
+    const bad: string[] = [];
+    for (const c of C.CLASSES)
+      for (const a of c.archetypes ?? []) {
+        const seen = new Set<string>();
+        for (const r of a.replaces) {
+          if (seen.has(r)) bad.push(`${a.id}: replaces ${r} twice`);
+          seen.add(r);
+        }
+      }
+    expect(bad, bad.join(' | ')).toEqual([]);
+  });
+
+  it('sourceLines name a choice the archetype or class provides', () => {
+    const bad: string[] = [];
+    for (const c of C.CLASSES) {
+      const offered = new Set((c.choices ?? []).map((ch) => ch.id));
+      for (const a of c.archetypes ?? []) {
+        const available = new Set([...offered, ...(a.choices?.add ?? []).map((ch) => ch.id)]);
+        for (const l of a.sourceLines ?? [])
+          if (!available.has(l.choiceId))
+            bad.push(`${a.id}: sourceLine on choice "${l.choiceId}" that nothing offers`);
+      }
+    }
+    expect(bad, bad.join(' | ')).toEqual([]);
+  });
+});
+
+describe('race-locked archetypes', () => {
+  it('name real races', () => {
+    const bad: string[] = [];
+    for (const c of C.CLASSES)
+      for (const a of c.archetypes ?? [])
+        for (const r of a.races ?? [])
+          if (!C.raceById.has(r)) bad.push(`${a.id}: unknown race "${r}"`);
+    expect(bad, bad.join(' | ')).toEqual([]);
+  });
+  it('the elf-only Spellbinder is the one we carry', () => {
+    const locked = C.CLASSES.flatMap((c) => (c.archetypes ?? []).filter((a) => a.races))
+      .map((a) => `${a.id}:${a.races!.join('+')}`);
+    expect(locked).toEqual(['spellbinder:elf']);
   });
 });

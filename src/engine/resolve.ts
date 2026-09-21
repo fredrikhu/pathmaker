@@ -405,6 +405,11 @@ const SOURCE_TABLES: Record<C.SourceTableId, { map: Record<string, C.SourceFeatu
   'witch-patron-spells': { map: C.WITCH_PATRON_SPELLS, prefix: 'witch-patron' },
 };
 
+/** The feature-id prefixes `ArchetypeDef.suppressSourcePowers` may target. Exported so content tests
+ *  can reject a typo, which would otherwise suppress nothing at all and pass silently. */
+export const SOURCE_POWER_PREFIXES: readonly string[] =
+  Object.values(SOURCE_TABLES).map((t) => t.prefix);
+
 /** Which class natively draws which source line, and off which choice id. */
 const CLASS_SOURCE_LINES: { classId: string; choiceId: string; table: C.SourceTableId }[] = [
   { classId: 'sorcerer', choiceId: 'bloodline', table: 'sorcerer-bloodline-powers' },
@@ -1994,6 +1999,18 @@ function buildSlotsAndIssues(
       severity: 'error', step: 'basics', slot: 'alignment',
       message: `Alignment ${dec.alignment} conflicts with ${klass.name} (requires ${klass.alignment.join(' / ')})`,
     });
+  }
+  // A race-locked archetype (the elf-only Spellbinder). Like every other conflict this is an Issue,
+  // not a lock — the archetype still applies, and either the race or the archetype can change.
+  if (dec.archetype && dec.raceId && klass) {
+    const arch = klass.archetypes?.find((a) => a.id === dec.archetype);
+    if (arch?.races && !arch.races.includes(dec.raceId)) {
+      const allowed = arch.races.map((r) => C.raceById.get(r)?.name ?? r).join(' / ');
+      issues.push({
+        severity: 'error', step: 'class', slot: 'archetype',
+        message: `${arch.name} is ${allowed} only — your race is ${C.raceById.get(dec.raceId)?.name ?? dec.raceId}`,
+      });
+    }
   }
   if (dec.deityId && dec.alignment) {
     const deity = C.deityById.get(dec.deityId);

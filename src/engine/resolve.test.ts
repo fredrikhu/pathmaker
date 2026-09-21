@@ -6653,3 +6653,42 @@ describe('feat gating by class level and character level', () => {
     expect(option(withDecision(base, 'skill-ranks', { 'craft-weapons': 3, 'craft-armor': 2 }), 'master-craftsman')!.legal).toBe(false);
   });
 });
+
+describe('a race-locked archetype raises an Issue but still applies', () => {
+  function wizardWith(race: string, archetype: string | null): CharacterDoc {
+    let d = newCharacter('t-sb', 'Aeliel');
+    d = withDecision(d, 'ability-base', { str: 8, dex: 14, con: 12, int: 17, wis: 12, cha: 10 });
+    d = withDecision(d, 'race', race);
+    d = withDecision(d, 'alignment', 'N');
+    d = withDecision(d, 'class', 'wizard');
+    if (archetype) d = withDecision(d, 'archetype', archetype);
+    return d;
+  }
+  const archIssues = (d: CharacterDoc) => resolve(d).issues.filter((i) => i.slot === 'archetype');
+
+  it('an elf Spellbinder is clean', () => {
+    expect(archIssues(wizardWith('elf', 'spellbinder'))).toHaveLength(0);
+  });
+
+  it('a human Spellbinder is flagged, naming the allowed race and the actual one', () => {
+    const iss = archIssues(wizardWith('human', 'spellbinder'));
+    expect(iss).toHaveLength(1);
+    expect(iss[0].severity).toBe('error');
+    expect(iss[0].step).toBe('class');
+    expect(iss[0].message).toMatch(/Spellbinder is Elf only — your race is Human/);
+  });
+
+  it('the archetype still takes effect, because nothing locks', () => {
+    // Spellbinder replaces Arcane Bond, so the feature is gone and its choice slot with it.
+    const r = resolve(wizardWith('human', 'spellbinder'));
+    const levelOne = r.sheet.progression.find((row) => row.level === 1);
+    expect(levelOne?.features ?? []).not.toContain('Arcane Bond');
+    expect(levelOne?.features ?? []).toContain('Spellbound');
+    expect(r.slots.some((s) => s.id === 'arcane-bond')).toBe(false);
+  });
+
+  it('an unrestricted archetype on any race raises nothing', () => {
+    expect(archIssues(wizardWith('human', 'scrollmaster'))).toHaveLength(0);
+    expect(archIssues(wizardWith('human', null))).toHaveLength(0);
+  });
+});

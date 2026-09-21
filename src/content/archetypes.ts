@@ -862,6 +862,8 @@ export const WIZARD_ARCHETYPES: ArchetypeDef[] = [
   {
     id: 'spellbinder', classId: 'wizard', name: 'Spellbinder',
     desc: 'An elven wizard who bonds not with a familiar or object but with the spells themselves, ready at a thought.',
+    // Published as elf only; the restriction surfaces as an Issue rather than hiding the option.
+    races: ['elf'],
     replaces: ['wizard-arcane-bond'],
     choices: { remove: ['arcane-bond'] },
     grants: [

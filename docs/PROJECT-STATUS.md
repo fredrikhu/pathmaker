@@ -1222,7 +1222,22 @@ Telekinesis, Analyze Dweomer, Mislead, Screen, Word of Recall and Greater Shadow
 Four new content tests guard the shape: every school is one the catalogue knows, a buff lasts as long
 as its `dur` says, a damage formula is dice notation at CL 1/5/11/20, and a save line names a real
 save. Note the sweep must parse both quote styles — 29 spell names are double-quoted for their
-apostrophe (Mage's Disjunction was missed by a single-quote-only grep and nearly escaped). Left out everywhere: traits gated on
+apostrophe (Mage's Disjunction was missed by a single-quote-only grep and nearly escaped).
+
+**Archetype audit (2026-09-22).** The 125 archetypes are **internally clean**: every `replaces` id, every
+`choices.remove`, every weapon/armour proficiency change, every `sourceLines` choice id and every
+`suppressSourcePowers` prefix resolves to something real, nothing is inert, and no two choice
+definitions sharing an id grant at the same level. Eight new content tests pin that down, all of them
+aimed at the silent-no-op shape (a misspelled id removes nothing and passes). `SOURCE_POWER_PREFIXES`
+is now exported from resolve.ts so a typo'd suppression prefix fails a test instead of suppressing
+nothing. The one real finding was a **race-locked archetype with nothing enforcing it: Spellbinder is
+elf only.** New `ArchetypeDef.races` records it, a mismatch raises a non-blocking Issue on the class
+step (the same shape as the class alignment conflict, since nothing locks), and the picker labels the
+option "Spellbinder (Elf only)". **Use Archives of Nethys, not d20pfsrd, for archetype existence** —
+d20pfsrd carries no Spellbinder page at all, so a d20pfsrd-only sweep reports a false absence. Two
+near-misses worth recording: Sage is real but is a *Wildblooded bloodline mutation* rather than a
+listed archetype, and Wild Caller exists twice, where the Advanced Race Guide version is half-elf only
+and the Heroes of the Wild version we model is not. Left out everywhere: traits gated on
   a class feature (gunslinger grit/firearms, ranger favored enemy, monk styles, alchemist mutagens and
   bombs, magus arcane pool, sorcerer bloodline, summoner eidolon). Concentration-check traits (Focused
   Mind, Desperate Resolve, Arcane Temper's second half) stay prose because no concentration stat
