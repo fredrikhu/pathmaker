@@ -5,6 +5,9 @@ import type { ChoiceSlot, SlotOption } from '../../../engine/types';
 import { WarnTag } from '../bits';
 import { useTip } from '../../Tooltip';
 
+/** Display order for the trait picker's category groups. */
+const TRAIT_CATEGORIES = ['combat', 'faith', 'magic', 'social', 'drawback'] as const;
+
 /** Level a feat slot opens at, parsed from its `-L<n>` suffix (bare keys are level 1). */
 const slotLevel = (id: string): number => { const m = id.match(/-L(\d+)$/); return m ? Number(m[1]) : 1; };
 
@@ -119,6 +122,9 @@ export function FeatsStep({ ch }: { ch: CharCtl }) {
     const next = traits.includes(id) ? traits.filter((t) => t !== id) : [...traits, id];
     setDecision('traits', next);
   };
+  // A choose-a-skill trait (Criminal, Influence) keeps its pick under `trait-params[traitId]`.
+  const traitParams = (doc.decisions['trait-params'] as Record<string, string>) ?? {};
+  const setTraitParam = (traitId: string, value: string) => setDecision('trait-params', { ...traitParams, [traitId]: value });
 
   return (
     <div style={{ maxWidth: 980 }}>
@@ -237,23 +243,39 @@ export function FeatsStep({ ch }: { ch: CharCtl }) {
 
       <h3 style={{ fontSize: 18, margin: '28px 0 6px' }}>Traits</h3>
       <p className="text-muted" style={{ fontSize: 12, margin: '0 0 12px' }}>Choose 2 traits from different categories. Taking a drawback grants a third. ({traits.length}/{budget} used)</p>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 8 }}>
-        {TRAITS.map((t) => {
-          const selected = t.id === drawback || traits.includes(t.id);
-          const isDrawback = t.category === 'drawback';
-          return (
-            <div key={t.id} className={`pick${selected ? ' is-sel' : ''}`} style={{ padding: '10px 12px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: 13, fontWeight: 500 }}>{t.name}</span>
-                <span className="tag tag-neutral" style={{ fontSize: 10 }}>{t.category}</span>
-                <span style={{ flex: 1 }} />
-                <button className="btn btn-ghost" style={{ fontSize: 11 }} onClick={() => isDrawback ? setDecision('drawback', drawback === t.id ? null : t.id) : toggleTrait(t.id)}>{selected ? '✓ Taken' : 'Take'}</button>
-              </div>
-              <div style={{ fontSize: 12, color: 'var(--color-neutral-400)', marginTop: 3, lineHeight: 1.5 }}>{t.desc}</div>
-            </div>
-          );
-        })}
-      </div>
+      {TRAIT_CATEGORIES.map((cat) => (
+        <div key={cat} className="trait-group">
+          <h4 className="micro" style={{ margin: '14px 0 6px' }}>{cat === 'drawback' ? 'Drawbacks' : `${cat} traits`}</h4>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 8 }}>
+            {TRAITS.filter((t) => t.category === cat).map((t) => {
+              const selected = t.id === drawback || traits.includes(t.id);
+              const isDrawback = t.category === 'drawback';
+              const picked = traitParams[t.id];
+              return (
+                <div key={t.id} className={`pick${selected ? ' is-sel' : ''}`} style={{ padding: '10px 12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 13, fontWeight: 500 }}>{t.name}</span>
+                    <span className="tag tag-neutral" style={{ fontSize: 10 }}>{t.category}</span>
+                    <span style={{ flex: 1 }} />
+                    <button className="btn btn-ghost" style={{ fontSize: 11 }} onClick={() => isDrawback ? setDecision('drawback', drawback === t.id ? null : t.id) : toggleTrait(t.id)}>{selected ? '✓ Taken' : 'Take'}</button>
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--color-neutral-400)', marginTop: 3, lineHeight: 1.5 }}>{t.desc}</div>
+                  {selected && t.param && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 }}>
+                      <select className="input" style={{ fontSize: 11.5, padding: '2px 5px', maxWidth: 190 }}
+                        value={picked ?? ''} onChange={(e) => setTraitParam(t.id, e.target.value)}>
+                        <option value="">choose {t.param.label.toLowerCase()}…</option>
+                        {t.param.options.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
+                      </select>
+                      {!picked && <span style={{ fontSize: 11, color: 'var(--warn-fg)' }}>pick one</span>}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

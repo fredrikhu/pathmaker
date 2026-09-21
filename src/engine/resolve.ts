@@ -69,6 +69,8 @@ interface Decisions {
   featParams: Record<string, string>; // param key -> chosen value (weapon/skill/school, or a feat choice)
   traits: string[];
   drawback: string | null;
+  /** traitId -> chosen skill id, for traits that let the player pick a skill (Criminal, Influence). */
+  traitParams: Record<string, string>;
   skillRanks: Record<string, number>;
   /** Treasure gained (or lost) after the build, once the character has been played. Held apart
    *  from the wealth-by-level baseline so raising the level still recomputes that baseline. */
@@ -102,6 +104,7 @@ function readDecisions(doc: CharacterDoc): Decisions {
     featParams: get<Record<string, string>>('feat-params', {}),
     traits: get<string[]>('traits', []),
     drawback: get<string | null>('drawback', null),
+    traitParams: get<Record<string, string>>('trait-params', {}),
     skillRanks: get<Record<string, number>>('skill-ranks', {}),
     // A hand-typed field, so a stray value must not poison the gold figure downstream.
     bonusGold: (() => { const n = Number(get<number>('bonus-gold', 0)); return Number.isFinite(n) ? n : 0; })(),
@@ -500,6 +503,14 @@ function sourceGrantedFeats(dec: Decisions, level: number, params: Record<string
   return out;
 }
 
+/** The skill the player picked for a choose-a-skill trait, or null when unpicked or not one of the
+ *  trait's options (a stale value from a catalogue change must not grant a class skill). */
+function traitParamSkill(t: C.TraitDef, dec: Decisions): string | null {
+  if (!t.param) return null;
+  const raw = dec.traitParams[t.id];
+  return raw && t.param.options.some((o) => o.id === raw) ? raw : null;
+}
+
 /** Decision key (under `feat-params`) for a race-trait-granted feat's parameter. */
 function raceGrantParamKey(traitId: string): string { return `granted-race:${traitId}`; }
 
@@ -626,6 +637,9 @@ function collectEffects(dec: Decisions, doc: CharacterDoc, level: number): Effec
   for (const tid of [...dec.traits, dec.drawback].filter(Boolean) as string[]) {
     const t = C.traitById.get(tid);
     if (t?.effects) effects.push(...t.effects);
+    // A pick-a-skill trait's bonus lands on whichever skill the player chose.
+    const picked = t ? traitParamSkill(t, dec) : null;
+    if (t && picked && t.param?.bonus) effects.push({ target: `skill:${picked}`, type: 'trait', value: t.param.bonus, note: t.name });
   }
   // Equipped armor / shield
   const armor = doc.equipped.armor ? C.armorById.get(doc.equipped.armor) : null;
@@ -1104,6 +1118,14 @@ export function resolve(doc: CharacterDoc): Resolution {
       const b = C.bloodlineById.get(bl);
       if (b) classSkillSet.add(b.classSkill);
     }
+  }
+  // "X is always a class skill for you" — fixed on the trait, or the skill the player picked for it.
+  for (const tid of dec.traits) {
+    const t = C.traitById.get(tid);
+    if (!t) continue;
+    for (const sk of t.classSkills ?? []) classSkillSet.add(sk);
+    const picked = traitParamSkill(t, dec);
+    if (picked && t.param?.classSkill) classSkillSet.add(picked);
   }
   const racialSkillPerLevel = standard.reduce((n, t) => n + (t.skillRanksPerLevel ?? 0), 0);
   // Skill-rank budget summed over levels 1..N, using the Int modifier as of each level (an
@@ -2146,6 +2168,10 @@ function buildSlotsAndIssues(
   const cats = traitDefs.map((t) => t.category);
   const dupCat = cats.find((c, i) => cats.indexOf(c) !== i);
   if (dupCat) issues.push({ severity: 'error', step: 'feats', slot: 'traits', message: `Two traits share the ${dupCat} category — pick different categories` });
+  for (const t of traitDefs) {
+    if (t.param && !traitParamSkill(t, dec))
+      issues.push({ severity: 'info', step: 'feats', slot: 'traits', message: `${t.name}: choose which ${t.param.label.toLowerCase()} it applies to` });
+  }
   const traitBudget = 2 + (dec.drawback ? 1 : 0);
   if (dec.traits.length > traitBudget) issues.push({ severity: 'error', step: 'feats', slot: 'traits', message: `${dec.traits.length} traits selected, only ${traitBudget} allowed` });
   else if (dec.traits.length < traitBudget) {

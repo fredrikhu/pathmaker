@@ -6227,3 +6227,67 @@ describe('archetypes — fourth-per-class batch 6 (completing the pass)', () => 
     }
   });
 });
+
+describe('social traits: class-skill grants and skill picks', () => {
+  const perception = (d: CharacterDoc) => resolve(d).sheet.stats['skill:perception'];
+
+  it('Seeker makes Perception a fighter class skill and adds +1', () => {
+    let d = withDecision(humanFighter1(), 'traits', ['seeker']);
+    d = withDecision(d, 'skill-ranks', { perception: 1 });
+    const r = resolve(d);
+    expect(r.sheet.classSkillIds).toContain('perception');
+    // 1 rank + Wis 12 (+1) + 3 class skill + 1 trait
+    expect(perception(d).total).toBe(6);
+    expect(perception(d).lines.map((l) => l.label)).toContain('Class skill');
+  });
+
+  it('without the trait, Perception is not a fighter class skill', () => {
+    let d = withDecision(humanFighter1(), 'skill-ranks', { perception: 1 });
+    expect(resolve(d).sheet.classSkillIds).not.toContain('perception');
+    expect(perception(d).total).toBe(2);
+  });
+
+  it('Criminal nudges for a pick, then applies the bonus and class skill to the picked skill only', () => {
+    let d = withDecision(humanFighter1(), 'traits', ['criminal', 'reactionary']);
+    d = withDecision(d, 'skill-ranks', { 'sleight-of-hand': 1, intimidate: 1 });
+    let r = resolve(d);
+    expect(r.issues.some((i) => i.slot === 'traits' && /Criminal: choose/.test(i.message))).toBe(true);
+    expect(r.sheet.classSkillIds).not.toContain('sleight-of-hand');
+    d = withDecision(d, 'trait-params', { criminal: 'sleight-of-hand' });
+    r = resolve(d);
+    expect(r.issues.some((i) => /Criminal: choose/.test(i.message))).toBe(false);
+    expect(r.sheet.classSkillIds).toContain('sleight-of-hand');
+    // 1 rank + Dex 14 (+2) + 3 class + 1 trait
+    expect(r.sheet.stats['skill:sleight-of-hand'].total).toBe(7);
+    // Intimidate is a fighter class skill already; it gets no trait bonus: 1 + Cha 8 (−1) + 3
+    expect(r.sheet.stats['skill:intimidate'].total).toBe(3);
+  });
+
+  it('a stale pick outside the trait\'s options grants nothing', () => {
+    let d = withDecision(humanFighter1(), 'traits', ['criminal']);
+    d = withDecision(d, 'trait-params', { criminal: 'perception' });
+    const r = resolve(d);
+    expect(r.sheet.classSkillIds).not.toContain('perception');
+    expect(r.issues.some((i) => /Criminal: choose/.test(i.message))).toBe(true);
+  });
+
+  it('Talented makes every Perform skill a class skill and the bonus lands on the chosen one', () => {
+    let d = withDecision(humanFighter1(), 'traits', ['talented']);
+    d = withDecision(d, 'trait-params', { talented: 'perform-strings' });
+    d = withDecision(d, 'skill-ranks', { 'perform-strings': 1, 'perform-oratory': 1 });
+    const r = resolve(d);
+    expect(r.sheet.classSkillIds).toEqual(expect.arrayContaining(['perform-strings', 'perform-oratory']));
+    // 1 rank + Cha 8 (−1) + 3 class (+1 trait on strings only)
+    expect(r.sheet.stats['skill:perform-strings'].total).toBe(4);
+    expect(r.sheet.stats['skill:perform-oratory'].total).toBe(3);
+  });
+
+  it('a dropped trait takes its class skill and pick with it', () => {
+    let d = withDecision(humanFighter1(), 'traits', ['criminal']);
+    d = withDecision(d, 'trait-params', { criminal: 'sleight-of-hand' });
+    d = withDecision(d, 'traits', []);
+    const r = resolve(d);
+    expect(r.sheet.classSkillIds).not.toContain('sleight-of-hand');
+    expect(r.issues.some((i) => /Criminal/.test(i.message))).toBe(false);
+  });
+});

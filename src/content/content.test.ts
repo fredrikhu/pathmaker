@@ -449,6 +449,23 @@ describe('traits', () => {
       checkEffects(t.effects, `trait ${t.id}`);
     }
   });
+  it('class-skill grants and skill-pick options reference real skills', () => {
+    for (const t of C.TRAITS) {
+      for (const sk of t.classSkills ?? []) expect(skillIds.has(sk), `trait ${t.id}: unknown class skill "${sk}"`).toBe(true);
+      if (t.param) {
+        expect(t.param.options.length, `trait ${t.id}: param with no options`).toBeGreaterThan(1);
+        for (const o of t.param.options) expect(skillIds.has(o.id), `trait ${t.id}: unknown skill option "${o.id}"`).toBe(true);
+        expect(t.param.bonus || t.param.classSkill, `trait ${t.id}: param does nothing`).toBeTruthy();
+      }
+    }
+  });
+  it('every "class skill" in the text is modelled, and each category is populated', () => {
+    for (const t of C.TRAITS) {
+      if (/class skill/i.test(t.desc)) expect((t.classSkills?.length ?? 0) > 0 || t.param?.classSkill, `trait ${t.id}: says class skill but grants none`).toBeTruthy();
+    }
+    const social = C.TRAITS.filter((t) => t.category === 'social');
+    expect(social.length).toBeGreaterThanOrEqual(35);
+  });
 });
 
 describe('deities and bloodlines', () => {

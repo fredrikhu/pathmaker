@@ -1160,7 +1160,13 @@ Still open from that audit:
   obscure long tail and per-list level differences remain (the single-level model). **Subsystem option lists** (rage powers, talents, hexes, discoveries, arcana, mysteries,
   revelations, etc.) are expanded core-scope sets, not exhaustive. **Traits**: the common core/APG
   traits across all categories (numeric skill/save/init ones computed; mechanic-only ones prose) plus
-  four drawbacks. **Equipment**: the full Core armor table (hide, splint/banded/half-plate, steel
+  four drawbacks. Social is complete for Ultimate Campaign's general social traits (2026-09-21, 37
+  of them, verified on d20pfsrd); the class-tied ones (Destined Diplomat, Imposing Scion, Knowing the
+  Enemy, Unnatural Revenge, and the monk quartet Harvester / Simple Disciple / Style Sage / Veiled
+  Disciple) are left out. `TraitDef.classSkills` makes "X is always a class skill" real, and
+  `TraitDef.param` (pick stored at `trait-params[traitId]`) covers choose-a-skill traits such as
+  Criminal, Influence and Talented — the engine folds the picked skill into `classSkillIds` and lands
+  the trait bonus on it, and nudges with an info issue until a pick is made. **Equipment**: the full Core armor table (hide, splint/banded/half-plate, steel
   shields, tower shield) and a fuller adventuring-gear list (light sources, climbing/disguise kits,
   alchemical items, containers) atop the 80 weapons — costs/weights from the Core table.
   - **Feat fidelity**: numeric bonuses that are unconditional flow into the stat graph (Magical

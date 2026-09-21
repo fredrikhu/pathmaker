@@ -501,6 +501,12 @@ export interface TraitDef {
   desc: string;
   effects?: Effect[];
   bonusGold?: number; // Rich Parents
+  /** Skills the trait makes class skills outright ("Sense Motive is always a class skill for you"). */
+  classSkills?: string[];
+  /** A trait that lets the player pick a skill (Criminal: Disable Device, Intimidate or Sleight of
+   *  Hand). The pick is stored under `trait-params[traitId]`; the chosen skill gains `bonus` as a
+   *  trait bonus (when set) and becomes a class skill (when `classSkill`). */
+  param?: { label: string; options: { id: string; name: string }[]; bonus?: number; classSkill?: boolean };
 }
 
 export interface WeaponDef {
