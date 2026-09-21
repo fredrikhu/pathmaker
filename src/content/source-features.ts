@@ -1,9 +1,16 @@
+import type { Effect } from '../engine/types';
+
 // Per-source, per-level class abilities that are FIXED by an earlier choice (sorcerer bloodline,
 // cavalier order) rather than picked from a list. The engine injects the matching source's
 // abilities into the advancement progression once the source is chosen (see resolve.ts →
 // sourceFeatures). Core-scope; sources not listed here fall back to the class's descriptive feature.
 
-export interface SourceFeature { level: number; name: string; desc: string; grantsFeat?: string; grantsFeatChoice?: string[]; }
+export interface SourceFeature {
+  level: number; name: string; desc: string; grantsFeat?: string; grantsFeatChoice?: string[];
+  /** Numeric effects that scale with the class level (Forewarned: initiative +½ wizard level).
+   *  Evaluated at the level of the class that owns the source when the feature is injected. */
+  effectsAt?: (classLevel: number) => Effect[];
+}
 
 /** Sorcerer bloodline powers, keyed by bloodline id (levels 1/3/9/15/20). */
 export const SORCERER_BLOODLINE_POWERS: Record<string, SourceFeature[]> = {
@@ -310,7 +317,8 @@ export const SCHOOL_POWERS: Record<string, SourceFeature[]> = {
     { level: 8, name: 'Dimensional Steps', desc: 'Teleport short distances each day, spent from a per-day pool of feet.' },
   ],
   divination: [
-    { level: 1, name: 'Forewarned', desc: 'Always act in the surprise round, with a bonus to initiative.' },
+    { level: 1, name: 'Forewarned', desc: 'Always act in the surprise round (flat-footed until you act), and a bonus on initiative equal to ½ your wizard level (minimum +1). At 20th, every initiative roll counts as a natural 20.',
+      effectsAt: (l) => [{ target: 'init', type: 'untyped', value: Math.max(1, Math.floor(l / 2)), note: 'Forewarned' }] },
     { level: 1, name: "Diviner's Fortune", desc: 'Touch a creature to grant it an insight bonus on its rolls for a round.' },
     { level: 8, name: 'Scrying Adept', desc: 'Always aware of scrying sensors, and your own scrying improves.' },
   ],

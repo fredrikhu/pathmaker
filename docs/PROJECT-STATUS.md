@@ -1171,7 +1171,14 @@ Still open from that audit:
   gather-information/feint caveat on the breakdown) and Clever Wordplay (on the picked skill). A
   swap is a "may", so it applies only when the other modifier is better, and says so either way in
   the skill's annotations. `Sheet.skillAbility` carries the ability each skill actually keys off, so
-  the Skills step and the official sheet's ability column show INT rather than the catalogue's CHA. **Equipment**: the full Core armor table (hide, splint/banded/half-plate, steel
+  the Skills step and the official sheet's ability column show INT rather than the catalogue's CHA.
+  **Source powers can now carry numbers** (2026-09-21): `SourceFeature.effectsAt(classLevel)` is
+  evaluated when the power is injected, and the effects pass reads source powers (it used to call
+  `allClassFeatures` without the decisions, so nothing a school/bloodline/order granted could ever
+  reach a stat). First user: Forewarned, initiative +½ wizard level (min +1). Source powers are also
+  now listed only under the class that chose the source — a second class in a multiclass no longer
+  repeats them. Enchanting Smile (+2 Bluff/Diplomacy/Intimidate, +1 per 5 levels) is the obvious next
+  power to give an `effectsAt`. **Equipment**: the full Core armor table (hide, splint/banded/half-plate, steel
   shields, tower shield) and a fuller adventuring-gear list (light sources, climbing/disguise kits,
   alchemical items, containers) atop the 80 weapons — costs/weights from the Core table.
   - **Feat fidelity**: numeric bonuses that are unconditional flow into the stat graph (Magical

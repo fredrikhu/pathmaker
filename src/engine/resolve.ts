@@ -331,14 +331,16 @@ function classFeaturesUpTo(klass: C.ClassDef | undefined, level: number, dec?: D
   if (!klass) return [];
   // `klass` is already the archetype-effective class (see effectiveClass / classBreakdown).
   const src: C.LeveledFeatureDef[] = klass.features ?? klass.features1.map((f) => ({ ...f, level: 1 }));
-  const extra = dec ? sourceFeatures(dec) : [];
+  // Source powers belong to the class that chose the source, so a second class in a multiclass
+  // must not list them again (or re-apply a level-scaled effect at its own level).
+  const extra = dec && klass.id === dec.classId ? sourceFeatures(dec, level) : [];
   return [...src, ...extra].filter((f) => f.level <= level).sort((a, b) => a.level - b.level);
 }
 
 /** Per-level abilities fixed by a chosen source (bloodline/order) — injected into the progression.
  *  An archetype may suppress some of these (e.g. the Tattooed Sorcerer drops the 1st/9th bloodline
  *  powers) via `suppressSourcePowers`, matched by the exact source prefix and level. */
-function sourceFeatures(dec: Decisions): C.LeveledFeatureDef[] {
+function sourceFeatures(dec: Decisions, classLevel: number): C.LeveledFeatureDef[] {
   const arch = dec.archetype && dec.classId
     ? C.classById.get(dec.classId)?.archetypes?.find((a) => a.id === dec.archetype)
     : undefined;
@@ -369,6 +371,7 @@ function sourceFeatures(dec: Decisions): C.LeveledFeatureDef[] {
         level: p.level, id: `${prefix}-${sourceId}-${p.level}`, name: p.name, desc: p.desc,
         ...(p.grantsFeat ? { grantsFeat: p.grantsFeat } : {}),
         ...(p.grantsFeatChoice ? { grantsFeatChoice: p.grantsFeatChoice } : {}),
+        ...(p.effectsAt ? { effects: p.effectsAt(classLevel) } : {}),
       });
     }
   };
@@ -615,8 +618,9 @@ function collectEffects(dec: Decisions, doc: CharacterDoc, level: number): Effec
   if (race?.speeds?.swim) effects.push({ target: 'skill:swim', type: 'racial', value: 8, note: 'Swim speed' });
   if (race?.speeds?.climb) effects.push({ target: 'skill:climb', type: 'racial', value: 8, note: 'Climb speed' });
 
-  // Class features gained so far (e.g. druid Nature Sense's +2 to Nature/Survival).
-  for (const feat of allClassFeatures(dec, level, false)) if (feat.effects) effects.push(...feat.effects);
+  // Class features gained so far (e.g. druid Nature Sense's +2 to Nature/Survival), including the
+  // source powers a chosen school/bloodline/order injects (Forewarned's initiative bonus).
+  for (const feat of allClassFeatures(dec, level)) if (feat.effects) effects.push(...feat.effects);
 
   // Feats (orphaned feats suspended — see validFeatIds)
   const featSet = new Set(validFeatIds(dec, level));

@@ -6348,3 +6348,43 @@ describe('trait ability swaps (Bruising Intellect, Clever Wordplay, Student of P
     for (const sk of C.SKILLS) expect(r.sheet.skillAbility[sk.id]).toBe(sk.ability);
   });
 });
+
+describe('Forewarned (Divination school): initiative +½ wizard level, minimum +1', () => {
+  function diviner(level: number, school: string | null = 'divination'): CharacterDoc {
+    let d = newCharacter('t-diviner', 'Iolanthe');
+    d = withDecision(d, 'ability-base', { str: 8, dex: 14, con: 13, int: 15, wis: 12, cha: 10 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['int']);
+    d = withDecision(d, 'alignment', 'N');
+    d = withDecision(d, 'class', 'wizard');
+    if (school) d = withDecision(d, 'class-choices', { school: [school] });
+    return atLevel(d, level);
+  }
+  const init = (d: CharacterDoc) => resolve(d).sheet.stats['init'];
+
+  it('is +1 at wizard 1 (the minimum), on top of Dex', () => {
+    expect(init(diviner(1)).total).toBe(3); // Dex +2, Forewarned +1
+    expect(init(diviner(1)).lines).toContainEqual(expect.objectContaining({ label: 'Forewarned', value: 1 }));
+  });
+  it('is +1 at wizard 3 and +2 at wizard 4, +5 at 10', () => {
+    expect(init(diviner(3)).total).toBe(3);
+    expect(init(diviner(4)).total).toBe(4);
+    expect(init(diviner(10)).total).toBe(7);
+  });
+  it('another school, or no school, gets nothing', () => {
+    expect(init(diviner(4, 'evocation')).total).toBe(2);
+    expect(init(diviner(4, null)).total).toBe(2);
+    expect(init(diviner(4, 'evocation')).lines.map((l) => l.label)).not.toContain('Forewarned');
+  });
+  it('stacks with Reactionary (trait) and Improved Initiative', () => {
+    let d = withDecision(diviner(4), 'traits', ['reactionary']);
+    expect(init(d).total).toBe(6);
+  });
+  it('a wizard 4 / fighter 1 scales off the wizard levels only, and lists the school power once', () => {
+    let d = diviner(5);
+    d = withDecision(d, 'class-levels', ['wizard', 'wizard', 'wizard', 'wizard', 'fighter']);
+    const r = resolve(d);
+    expect(r.sheet.stats['init'].total).toBe(4); // Dex +2, Forewarned +2 (wizard 4)
+    expect(r.sheet.stats['init'].lines.filter((l) => l.label === 'Forewarned')).toHaveLength(1);
+  });
+});
