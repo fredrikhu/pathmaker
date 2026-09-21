@@ -323,7 +323,8 @@ export const SCHOOL_POWERS: Record<string, SourceFeature[]> = {
     { level: 8, name: 'Scrying Adept', desc: 'Always aware of scrying sensors, and your own scrying improves.' },
   ],
   enchantment: [
-    { level: 1, name: 'Enchanting Smile', desc: 'A bonus on Bluff, Diplomacy, and Intimidate (and reflect enchantments at 20th).' },
+    { level: 1, name: 'Enchanting Smile', desc: '+2 enhancement bonus on Bluff, Diplomacy, and Intimidate, +1 per five wizard levels (max +6 at 20th). At 20th, an enchantment spell you save against is reflected on its caster.',
+      effectsAt: (l) => ['bluff', 'diplomacy', 'intimidate'].map((sk) => ({ target: `skill:${sk}`, type: 'enhancement' as const, value: 2 + Math.floor(l / 5), note: 'Enchanting Smile' })) },
     { level: 1, name: 'Dazing Touch', desc: 'A melee touch dazes a weaker living creature for a round.' },
     { level: 8, name: 'Aura of Despair', desc: "An aura penalizes nearby foes' rolls for rounds per day." },
   ],

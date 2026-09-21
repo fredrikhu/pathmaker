@@ -6388,3 +6388,37 @@ describe('Forewarned (Divination school): initiative +½ wizard level, minimum +
     expect(r.sheet.stats['init'].lines.filter((l) => l.label === 'Forewarned')).toHaveLength(1);
   });
 });
+
+describe('Enchanting Smile (Enchantment school): +2 enhancement on Bluff/Diplomacy/Intimidate, +1 per 5 levels', () => {
+  function enchanter(level: number): CharacterDoc {
+    let d = newCharacter('t-enchanter', 'Selise');
+    d = withDecision(d, 'ability-base', { str: 8, dex: 14, con: 13, int: 15, wis: 12, cha: 10 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['int']);
+    d = withDecision(d, 'alignment', 'N');
+    d = withDecision(d, 'class', 'wizard');
+    d = withDecision(d, 'class-choices', { school: ['enchantment'] });
+    return atLevel(d, level);
+  }
+  const sk = (d: CharacterDoc, id: string) => resolve(d).sheet.stats[`skill:${id}`];
+
+  it('is +2 at wizard 1 on all three, and nothing on Sense Motive', () => {
+    for (const id of ['bluff', 'diplomacy', 'intimidate']) {
+      expect(sk(enchanter(1), id).total, id).toBe(2); // Cha +0, no ranks
+      expect(sk(enchanter(1), id).lines).toContainEqual(expect.objectContaining({ label: 'Enchanting Smile', value: 2, type: 'enhancement' }));
+    }
+    expect(sk(enchanter(1), 'sense-motive').total).toBe(1); // Wis +1 only
+  });
+  it('steps at 5, 10, 15 and caps at +6 at 20', () => {
+    expect(sk(enchanter(4), 'bluff').total).toBe(2);
+    expect(sk(enchanter(5), 'bluff').total).toBe(3);
+    expect(sk(enchanter(10), 'bluff').total).toBe(4);
+    expect(sk(enchanter(15), 'bluff').total).toBe(5);
+    expect(sk(enchanter(20), 'bluff').total).toBe(6);
+  });
+  it('is an enhancement bonus, so it does not stack with another enhancement bonus on the skill', () => {
+    // A trait bonus stacks; a second enhancement bonus of the same or lower value would not.
+    const d = withDecision(enchanter(1), 'traits', ['fast-talker']);
+    expect(sk(d, 'bluff').total).toBe(3); // +2 enhancement +1 trait
+  });
+});
