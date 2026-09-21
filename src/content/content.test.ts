@@ -36,7 +36,9 @@ const languageIds = new Set(C.LANGUAGES);
 function checkTarget(target: string, where: string) {
   expect(target, `${where}: empty effect target`).toBeTruthy();
   if (target.startsWith('skill:')) {
-    expect(skillIds.has(target.slice('skill:'.length)), `${where}: unknown skill in target ${target}`).toBe(true);
+    // `skill:all` is the across-the-board bonus the skill loop reads, mirroring `save:all`.
+    const sk = target.slice('skill:'.length);
+    expect(sk === 'all' || skillIds.has(sk), `${where}: unknown skill in target ${target}`).toBe(true);
   } else if (target.startsWith('ability:')) {
     expect(ABILITIES.includes(target.slice('ability:'.length)), `${where}: unknown ability in target ${target}`).toBe(true);
   }
@@ -472,6 +474,11 @@ describe('traits', () => {
     expect(C.TRAITS.filter((t) => t.category === 'combat').length).toBeGreaterThanOrEqual(20);
     expect(C.TRAITS.filter((t) => t.category === 'faith').length).toBeGreaterThanOrEqual(25);
     expect(C.TRAITS.filter((t) => t.category === 'magic').length).toBeGreaterThanOrEqual(35);
+    // Every drawback id carries the dw- prefix, and nothing else does, so the picker's two actions
+    // (set `drawback` vs toggle `traits`) can never be wired to the wrong kind of entry.
+    for (const t of C.TRAITS)
+      expect(t.id.startsWith('dw-'), `trait ${t.id}: dw- prefix must mean drawback and vice versa`).toBe(t.category === 'drawback');
+    expect(C.TRAITS.filter((t) => t.category === 'drawback').length).toBeGreaterThanOrEqual(18);
   });
 });
 

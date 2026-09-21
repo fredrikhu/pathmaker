@@ -1072,7 +1072,7 @@ export function resolve(doc: CharacterDoc): Resolution {
   stats['init'] = makeStat('init', 'Initiative', [
     { type: 'base', value: mods.dex, note: 'Dex modifier' },
     ...unconds('init'),
-  ]);
+  ], conds('init'));
   const cmbSize = size === 'small' ? -1 : 0;
   stats['cmb'] = makeStat('cmb', 'CMB', [
     { type: 'base', value: bab, note: 'BAB' },
@@ -2201,7 +2201,12 @@ function buildSlotsAndIssues(
     if (t.param && !traitParamSkill(t, dec))
       issues.push({ severity: 'info', step: 'feats', slot: 'traits', message: `${t.name}: choose which ${t.param.label.toLowerCase()} it applies to` });
   }
-  const traitBudget = 2 + (dec.drawback ? 1 : 0);
+  // A drawback whose id has left the catalogue (or points at a non-drawback) must not keep handing
+  // out its extra trait slot — the decision is suspended and named, rather than silently honoured.
+  const drawbackDef = dec.drawback ? C.traitById.get(dec.drawback) : undefined;
+  if (dec.drawback && drawbackDef?.category !== 'drawback')
+    issues.push({ severity: 'error', step: 'feats', slot: 'traits', message: `"${dec.drawback}" is not a drawback in the catalogue — choose one again (its extra trait is suspended)` });
+  const traitBudget = 2 + (drawbackDef?.category === 'drawback' ? 1 : 0);
   if (dec.traits.length > traitBudget) issues.push({ severity: 'error', step: 'feats', slot: 'traits', message: `${dec.traits.length} traits selected, only ${traitBudget} allowed` });
   else if (dec.traits.length < traitBudget) {
     const left = traitBudget - dec.traits.length;

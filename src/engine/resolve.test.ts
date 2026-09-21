@@ -6519,3 +6519,60 @@ describe('faith and magic traits', () => {
     expect(r.sheet.classSkillIds).toContain('know-planes');
   });
 });
+
+describe('drawbacks', () => {
+  const dw = (id: string | null) => withDecision(humanFighter1(), 'drawback', id);
+
+  it('Oblivious computes its Sense Motive penalty and annotates the sight-based Perception one', () => {
+    const r = resolve(dw('dw-oblivious'));
+    const sm = r.sheet.stats['skill:sense-motive'];
+    const per = r.sheet.stats['skill:perception'];
+    expect(sm.total).toBe(-1); // Wis +1 − 2
+    // The Perception half only applies to sight, so it stays out of the total.
+    expect(per.total).toBe(resolve(humanFighter1()).sheet.stats['skill:perception'].total);
+    expect(per.annotations.some((a) => /Oblivious: −2 on sight-based checks/.test(a))).toBe(true);
+  });
+
+  it('Lovesick reaches initiative, which now carries conditional penalties', () => {
+    const r = resolve(dw('dw-lovesick'));
+    const init = r.sheet.stats['init'];
+    expect(init.total).toBe(2); // Dex +2, the penalty being situational
+    expect(init.annotations.some((a) => /Lovesick: −2 while away from your beloved/.test(a))).toBe(true);
+  });
+
+  it('Sentimental splits across Perception and Reflex, neither in the total', () => {
+    const r = resolve(dw('dw-sentimental'));
+    const plain = resolve(humanFighter1());
+    expect(r.sheet.stats['save:ref'].total).toBe(plain.sheet.stats['save:ref'].total);
+    expect(r.sheet.stats['save:ref'].annotations.some((a) => /Sentimental: −2 vs traps and hazards/.test(a))).toBe(true);
+    expect(r.sheet.stats['skill:perception'].annotations.some((a) => /Sentimental: −2 to avoid being surprised/.test(a))).toBe(true);
+  });
+
+  it("Meticulous's untrained penalty annotates every skill via skill:all", () => {
+    const r = resolve(dw('dw-meticulous'));
+    for (const id of ['acrobatics', 'perception', 'stealth']) {
+      expect(r.sheet.stats[`skill:${id}`].annotations.some((a) => /Meticulous: −2 on skills you are untrained in/.test(a)), id).toBe(true);
+      expect(r.sheet.stats[`skill:${id}`].total).toBe(resolve(humanFighter1()).sheet.stats[`skill:${id}`].total);
+    }
+  });
+
+  it('a drawback still raises the trait budget to 3', () => {
+    let d = withDecision(dw('dw-vain'), 'traits', ['reactionary', 'indomitable-faith', 'magical-lineage']);
+    expect(resolve(d).issues.filter((i) => i.slot === 'traits')).toHaveLength(0);
+  });
+
+  it('a drawback id that has left the catalogue is suspended, not silently honoured', () => {
+    // 'dw-frail' was never a published drawback and has been removed; an old save may still name it.
+    let d = withDecision(dw('dw-frail'), 'traits', ['reactionary', 'indomitable-faith', 'magical-lineage']);
+    const iss = resolve(d).issues.filter((i) => i.slot === 'traits');
+    expect(iss.some((i) => i.severity === 'error' && /is not a drawback in the catalogue/.test(i.message))).toBe(true);
+    // Budget stays 2, so the third trait is over budget rather than quietly allowed.
+    expect(iss.some((i) => /3 traits selected, only 2 allowed/.test(i.message))).toBe(true);
+    expect(resolve(d).sheet.stats['save:fort'].total).toBe(resolve(humanFighter1()).sheet.stats['save:fort'].total);
+  });
+
+  it('pointing the drawback slot at an ordinary trait is rejected', () => {
+    const iss = resolve(dw('reactionary')).issues.filter((i) => i.slot === 'traits');
+    expect(iss.some((i) => /is not a drawback in the catalogue/.test(i.message))).toBe(true);
+  });
+});

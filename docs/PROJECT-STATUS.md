@@ -1168,7 +1168,15 @@ Still open from that audit:
   bonuses (Courageous vs fear, Vigilant Battler vs feints) are conditional effects, so they show as
   annotations and roll toggles rather than in the total. **Faith (26) and magic (35) followed the same
   day**, so all five categories are now filled from the Ultimate Campaign general lists: 125 traits
-  total (combat 22, faith 26, magic 35, social 38, drawbacks 4). Left out everywhere: traits gated on
+  total (combat 22, faith 26, magic 35, social 38, drawbacks 18). **Drawbacks were rewritten wholesale
+  (2026-09-21):** the shipped four were unreliable — Pride and Meticulous both carried invented rules
+  text, and **"Frail" is not a published drawback at all**. The category now holds the full Ultimate
+  Campaign set of 17 plus Oblivious (Quests & Campaigns, corrected to cover sight-based Perception).
+  A drawback id that is no longer in the catalogue, or a `drawback` decision pointing at an ordinary
+  trait, now raises an error and **does not grant its third trait slot** — it used to be honoured
+  silently off `dec.drawback ? 1 : 0`. `stats['init']` now carries conditional bonuses (it took only
+  unconditional ones, so Lovesick's situational −2 would have vanished), and the content test's target
+  validator accepts `skill:all`, which the skill loop has always read. Left out everywhere: traits gated on
   a class feature (gunslinger grit/firearms, ranger favored enemy, monk styles, alchemist mutagens and
   bombs, magus arcane pool, sorcerer bloodline, summoner eidolon). Concentration-check traits (Focused
   Mind, Desperate Resolve, Arcane Temper's second half) stay prose because no concentration stat
