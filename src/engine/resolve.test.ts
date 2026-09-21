@@ -6576,3 +6576,80 @@ describe('drawbacks', () => {
     expect(iss.some((i) => /is not a drawback in the catalogue/.test(i.message))).toBe(true);
   });
 });
+
+describe('feat gating by class level and character level', () => {
+  /** A fighter of the given level who already has Weapon Focus in its first slot. */
+  function fighterWithWeaponFocus(level: number): CharacterDoc {
+    let d = humanFighter1();
+    d = atLevel(d, level);
+    d = withDecision(d, 'feats', { 'feat-1': 'weapon-focus' });
+    d = withDecision(d, 'feat-params', { 'feat-1': 'longsword' });
+    return d;
+  }
+  // Each feat slot is judged at the level it opens, so the slot to inspect is the highest one the
+  // character has — that is where "can I take this now" is answered.
+  const option = (d: CharacterDoc, featId: string) => {
+    const lvlOf = (id: string) => { const m = id.match(/-L(\d+)$/); return m ? Number(m[1]) : 1; };
+    const slots = resolve(d).slots
+      .filter((s) => s.step === 'feats' && s.options.some((o) => o.id === featId))
+      .sort((a, b) => lvlOf(b.id) - lvlOf(a.id));
+    return slots[0]?.options.find((o) => o.id === featId);
+  };
+
+  it('Weapon Specialization needs fighter 4, not merely being a fighter', () => {
+    const early = option(fighterWithWeaponFocus(3), 'weapon-specialization')!;
+    expect(early.legal).toBe(false);
+    expect(early.whyNot).toMatch(/fighter level 4 — you have 3/i);
+    expect(option(fighterWithWeaponFocus(4), 'weapon-specialization')!.legal).toBe(true);
+  });
+
+  it('Greater Weapon Focus needs fighter 8', () => {
+    expect(option(fighterWithWeaponFocus(7), 'greater-weapon-focus')!.legal).toBe(false);
+    expect(option(fighterWithWeaponFocus(8), 'greater-weapon-focus')!.legal).toBe(true);
+  });
+
+  it('Disruptive needs fighter 6', () => {
+    expect(option(atLevel(humanFighter1(), 5), 'disruptive')!.legal).toBe(false);
+    expect(option(atLevel(humanFighter1(), 6), 'disruptive')!.legal).toBe(true);
+  });
+
+  it('a fighter 3 / rogue 3 has only 3 fighter levels, so Weapon Specialization stays closed', () => {
+    let d = fighterWithWeaponFocus(6);
+    d = withDecision(d, 'class-levels', ['fighter', 'fighter', 'fighter', 'rogue', 'rogue', 'rogue']);
+    const o = option(d, 'weapon-specialization')!;
+    expect(o.legal).toBe(false);
+    expect(o.whyNot).toMatch(/you have 3/);
+  });
+
+  it('Leadership needs character level 7, counting levels in every class', () => {
+    // A fighter's bonus slots are combat-only, so Leadership is offered in the general slots, whose
+    // newest at character level 6 is still the 5th-level one — judged at level 5.
+    expect(option(atLevel(humanFighter1(), 6), 'leadership')!.legal).toBe(false);
+    expect(option(atLevel(humanFighter1(), 6), 'leadership')!.whyNot).toMatch(/character level 7/i);
+    expect(option(atLevel(humanFighter1(), 7), 'leadership')!.legal).toBe(true);
+    // A multiclass reaches it on total level, not on any one class.
+    let multi = atLevel(humanFighter1(), 7);
+    multi = withDecision(multi, 'class-levels', ['fighter', 'fighter', 'fighter', 'fighter', 'rogue', 'rogue', 'rogue']);
+    expect(option(multi, 'leadership')!.legal).toBe(true);
+  });
+
+  it('Arcane Strike is closed to a non-caster and open to a wizard', () => {
+    expect(option(humanFighter1(), 'arcane-strike')!.legal).toBe(false);
+    let wiz = newCharacter('t-as', 'Ilna');
+    wiz = withDecision(wiz, 'ability-base', { str: 8, dex: 14, con: 13, int: 15, wis: 12, cha: 10 });
+    wiz = withDecision(wiz, 'race', 'human');
+    wiz = withDecision(wiz, 'floating-bonus', ['int']);
+    wiz = withDecision(wiz, 'alignment', 'N');
+    wiz = withDecision(wiz, 'class', 'wizard');
+    expect(option(wiz, 'arcane-strike')!.legal).toBe(true);
+  });
+
+  it('Master Craftsman opens on 5 ranks in any one Craft or Profession', () => {
+    const base = atLevel(humanFighter1(), 5);
+    expect(option(base, 'master-craftsman')!.legal).toBe(false);
+    expect(option(withDecision(base, 'skill-ranks', { 'craft-weapons': 5 }), 'master-craftsman')!.legal).toBe(true);
+    expect(option(withDecision(base, 'skill-ranks', { 'profession-any': 5 }), 'master-craftsman')!.legal).toBe(true);
+    // Spread across two skills it does not qualify.
+    expect(option(withDecision(base, 'skill-ranks', { 'craft-weapons': 3, 'craft-armor': 2 }), 'master-craftsman')!.legal).toBe(false);
+  });
+});

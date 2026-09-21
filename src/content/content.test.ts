@@ -1626,3 +1626,101 @@ describe('companion creatures', () => {
     }
   });
 });
+
+describe('feat prerequisites: reqText and the predicate must agree', () => {
+  /** Every leaf clause in a predicate, flattened. */
+  function atoms(p: Predicate | undefined): Predicate[] {
+    if (!p) return [];
+    if ('all' in p) return p.all.flatMap(atoms);
+    if ('any' in p) return p.any.flatMap(atoms);
+    if ('not' in p) return atoms(p.not);
+    return [p];
+  }
+  const ABBR: Record<string, string> = { str: 'str', dex: 'dex', con: 'con', int: 'int', wis: 'wis', cha: 'cha' };
+
+  it('a "<Class> N" requirement is a class-level gate, not bare class membership', () => {
+    const classNames = new Set(C.CLASSES.map((c) => c.name.toLowerCase()));
+    for (const f of C.FEATS) {
+      // e.g. "Weapon Focus, Fighter 8" — a class name followed by a level above 1.
+      const m = f.reqText.match(/\b([A-Z][a-z]+)\s+(\d+)\b/);
+      if (!m || !classNames.has(m[1].toLowerCase())) continue;
+      const want = Number(m[2]);
+      const found = atoms(f.prerequisites).find(
+        (a) => 'classLevel' in a && a.classLevel.classId === m[1].toLowerCase(),
+      );
+      expect(found, `feat ${f.id}: reqText says "${m[1]} ${want}" but no classLevel clause gates it`).toBeTruthy();
+      expect((found as { classLevel: { gte: number } }).classLevel.gte,
+        `feat ${f.id}: gated at the wrong ${m[1]} level`).toBe(want);
+      // A bare classId clause for the same class would silently let in a 1st-level character.
+      expect(atoms(f.prerequisites).some((a) => 'classId' in a && a.classId === m[1].toLowerCase()),
+        `feat ${f.id}: bare classId clause ignores the level requirement`).toBe(false);
+    }
+  });
+
+  it('a "Character level N" requirement is enforced', () => {
+    for (const f of C.FEATS) {
+      const m = f.reqText.match(/Character level (\d+)/i);
+      if (!m) continue;
+      const found = atoms(f.prerequisites).find((a) => 'level' in a);
+      expect(found, `feat ${f.id}: reqText requires character level ${m[1]} but nothing gates it`).toBeTruthy();
+      expect((found as { level: number }).level).toBe(Number(m[1]));
+    }
+  });
+
+  // The next three collect every violation before asserting, so one run names them all.
+  it('every "BAB +N" in reqText is enforced at that value', () => {
+    const bad: string[] = [];
+    for (const f of C.FEATS) {
+      const m = f.reqText.match(/BAB \+(\d+)/);
+      if (!m) continue;
+      const found = atoms(f.prerequisites).find((a) => 'bab' in a) as { bab: number } | undefined;
+      if (!found) bad.push(`${f.id}: needs BAB +${m[1]}, ungated`);
+      else if (found.bab !== Number(m[1])) bad.push(`${f.id}: BAB gate ${found.bab}, reqText says ${m[1]}`);
+    }
+    expect(bad, bad.join(' | ')).toEqual([]);
+  });
+
+  it('every ability-score requirement in reqText is enforced at that score', () => {
+    const bad: string[] = [];
+    for (const f of C.FEATS) {
+      for (const m of f.reqText.matchAll(/\b(Str|Dex|Con|Int|Wis|Cha) (\d+)\b/g)) {
+        const ab = ABBR[m[1].toLowerCase()];
+        const found = atoms(f.prerequisites).find((a) => 'ability' in a && a.ability === ab) as { gte: number } | undefined;
+        if (!found) bad.push(`${f.id}: needs ${m[1]} ${m[2]}, ungated`);
+        else if (found.gte !== Number(m[2])) bad.push(`${f.id}: ${m[1]} gate ${found.gte}, reqText says ${m[2]}`);
+      }
+    }
+    expect(bad, bad.join(' | ')).toEqual([]);
+  });
+
+  it('every feat named in reqText is required, directly or through the prerequisite chain', () => {
+    const byName = new Map(C.FEATS.map((f) => [f.name.toLowerCase(), f.id]));
+    const byId = new Map(C.FEATS.map((f) => [f.id, f]));
+    const directFeats = (id: string): string[] =>
+      atoms(byId.get(id)?.prerequisites).filter((a) => 'feat' in a).map((a) => (a as { feat: string }).feat);
+    /** Feats a feat requires, following each requirement's own prerequisites — a reqText may spell
+     *  out the whole chain (Medusa's Wrath names Improved Unarmed Strike) while the predicate needs
+     *  only the immediate link, which is correct as long as the chain actually closes. */
+    const closure = (id: string): Set<string> => {
+      const seen = new Set<string>();
+      const stack = [...directFeats(id)];
+      while (stack.length) {
+        const cur = stack.pop()!;
+        if (seen.has(cur)) continue;
+        seen.add(cur);
+        stack.push(...directFeats(cur));
+      }
+      return seen;
+    };
+    const bad: string[] = [];
+    for (const f of C.FEATS) {
+      const implied = closure(f.id);
+      // reqText lists prerequisites comma-separated; only the clauses naming a catalogue feat count.
+      for (const part of f.reqText.split(',').map((x) => x.trim())) {
+        const id = byName.get(part.toLowerCase());
+        if (id && !implied.has(id)) bad.push(`${f.id}: reqText names ${part}, and nothing in its chain requires it`);
+      }
+    }
+    expect(bad, bad.join(' | ')).toEqual([]);
+  });
+});

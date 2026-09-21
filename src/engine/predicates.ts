@@ -10,6 +10,9 @@ export interface PredicateCtx {
   alignment: Alignment | null;
   casterLevel: number;
   skillRanks: Record<string, number>;
+  /** Total character level, and levels per class id — a multiclass contributes to each separately. */
+  level: number;
+  classLevels: Record<string, number>;
 }
 
 export function evalPredicate(p: Predicate, ctx: PredicateCtx): boolean {
@@ -21,6 +24,8 @@ export function evalPredicate(p: Predicate, ctx: PredicateCtx): boolean {
   if ('feat' in p) return ctx.featIds.includes(p.feat);
   if ('race' in p) return ctx.raceId === p.race;
   if ('classId' in p) return ctx.classId === p.classId;
+  if ('level' in p) return ctx.level >= p.level;
+  if ('classLevel' in p) return (ctx.classLevels[p.classLevel.classId] ?? 0) >= p.classLevel.gte;
   if ('casterLevel' in p) return ctx.casterLevel >= p.casterLevel;
   if ('alignment' in p) return ctx.alignment !== null && p.alignment.includes(ctx.alignment);
   if ('skillRanks' in p) return (ctx.skillRanks[p.skillRanks.skill] ?? 0) >= p.skillRanks.gte;
@@ -50,6 +55,9 @@ export function explainFailure(p: Predicate, ctx: PredicateCtx, names: (id: stri
   if ('feat' in p) return `Requires ${names(p.feat)}`;
   if ('race' in p) return `Requires race: ${names(p.race)}`;
   if ('classId' in p) return `Requires class: ${names(p.classId)}`;
+  if ('level' in p) return `Requires character level ${p.level} — you are ${ctx.level}`;
+  if ('classLevel' in p)
+    return `Requires ${names(p.classLevel.classId)} level ${p.classLevel.gte} — you have ${ctx.classLevels[p.classLevel.classId] ?? 0}`;
   if ('casterLevel' in p) return `Requires caster level ${p.casterLevel}`;
   if ('alignment' in p) return `Requires alignment ${p.alignment.join(' / ')}`;
   if ('skillRanks' in p)

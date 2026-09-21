@@ -459,6 +459,8 @@ function predCtxAt(dec: Decisions, level: number): PredicateCtx {
       return p ? Math.max(best, casterLevel(p.progression ?? 'full', c.levels)) : best;
     }, 0),
     skillRanks: dec.skillRanks,
+    level,
+    classLevels: Object.fromEntries(cls.map((c) => [c.klass.id, c.levels])),
   };
 }
 
@@ -923,6 +925,7 @@ export function resolve(doc: CharacterDoc): Resolution {
     abilities, bab, featIds,
     raceId: dec.raceId, classId: dec.classId, alignment: dec.alignment,
     casterLevel: clvl, skillRanks: dec.skillRanks,
+    level, classLevels: Object.fromEntries(classes.map((c) => [c.klass.id, c.levels])),
   };
 
   // ---- Stats ----

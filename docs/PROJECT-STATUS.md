@@ -1185,7 +1185,26 @@ Still open from that audit:
   Wanderer's Shroud did not name Diplomacy as the skill its penalty hits. Method that found them:
   scrape each trait page, diff the set of signed numbers against our `desc` + effect values, then diff
   the skills/saves named. Beware crude substring matching on the second pass — "affinity" contains
-  "init", "ill will" contains "will" and "refusing" contains "ref", which produced ten false positives. Left out everywhere: traits gated on
+  "init", "ill will" contains "will" and "refusing" contains "ref", which produced ten false positives.
+
+**Feat audit (2026-09-22).** Same two-pass method plus a third that traits did not need: `FeatDef` carries
+both a human `reqText` and a machine `prerequisites` predicate, and **they had drifted**. Findings, all
+fixed: the predicate language had no way to say "fighter level 8", so seven feats used bare
+`{ classId: 'fighter' }` and a **1st-level fighter could take Greater Weapon Focus, Greater Weapon
+Specialization, Greater Shield Focus, Penetrating Strike, Greater Penetrating Strike, Weapon
+Specialization and Disruptive**; Leadership's "Character level 7th" was never gated at all; Greater Bull
+Rush and Unseat silently dropped clauses their own `reqText` listed. `Predicate` gains `{ level }` and
+`{ classLevel: { classId, gte } }`, and `PredicateCtx` gains `level` + `classLevels` (per class, so a
+multiclass is judged on the right one). Also corrected against the published pages: **Spell Focus has
+no prerequisite** (ours invented "Ability to cast spells"), Improved Familiar's level "varies by
+familiar" rather than being caster level 3, Rapid Reload also accepts Exotic Weapon Proficiency
+(firearms), and Awesome Blow reads "size Large or larger". Arcane Strike and Master Craftsman are now
+gated as closely as the DSL allows (Arcane Strike can only ask for *a* caster, not an arcane one).
+Four content tests now hold the line: every `Str 13`/`BAB +6`/`<Class> N`/`Character level N` in a
+`reqText` must have a matching clause, and every feat named in a `reqText` must be required directly or
+**through the prerequisite chain** (the chain check matters — 17 entries legitimately state the whole
+chain while gating only the immediate link). A feat slot is judged at the level it opens, so tests must
+read the highest slot, not the first. Left out everywhere: traits gated on
   a class feature (gunslinger grit/firearms, ranger favored enemy, monk styles, alchemist mutagens and
   bombs, magus arcane pool, sorcerer bloodline, summoner eidolon). Concentration-check traits (Focused
   Mind, Desperate Resolve, Arcane Temper's second half) stay prose because no concentration stat

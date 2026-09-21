@@ -38,6 +38,11 @@ export type Predicate =
   | { feat: string }
   | { race: string }
   | { classId: string }
+  /** Total character level ("Character level 7th" — Leadership). */
+  | { level: number }
+  /** Levels in one class ("fighter level 4th" — Weapon Specialization). `classId` alone only asks
+   *  whether the character has the class at all, which let a 1st-level fighter take an 8th-level feat. */
+  | { classLevel: { classId: string; gte: number } }
   | { casterLevel: number }
   | { alignment: Alignment[] }
   | { skillRanks: { skill: string; gte: number } };
