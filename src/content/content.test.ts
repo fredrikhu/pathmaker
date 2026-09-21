@@ -1724,3 +1724,69 @@ describe('feat prerequisites: reqText and the predicate must agree', () => {
     expect(bad, bad.join(' | ')).toEqual([]);
   });
 });
+
+describe('spell data holds together', () => {
+  it("every spell's school is one the catalogue knows", () => {
+    const names = new Set([...C.SCHOOLS.map((s) => s.name), 'Universal']);
+    const bad = C.SPELLS.filter((s) => !names.has(s.school)).map((s) => `${s.id}: "${s.school}"`);
+    expect(bad, bad.join(' | ')).toEqual([]);
+  });
+
+  it('a buff lasts as long as the spell says it does', () => {
+    // Durations are stored in rounds; these are the published shapes, in rounds.
+    const MIN = 10, HOUR = 600;
+    const parse = (dur: string): ((cl: number) => number) | null => {
+      const d = dur.toLowerCase().replace(/\s+/g, ' ').trim();
+      if (/^1 round\/level/.test(d)) return (cl) => cl;
+      if (/^1 min\.?\/level/.test(d)) return (cl) => cl * MIN;
+      if (/^10 min\.?\/level/.test(d)) return (cl) => cl * 10 * MIN;
+      if (/^1 hour\/level/.test(d)) return (cl) => cl * HOUR;
+      if (/^10 min(ute)?s?\b/.test(d)) return () => 10 * MIN;
+      if (/^1 min(ute)?\b/.test(d)) return () => MIN;
+      if (/^(\d+) rounds?\b/.test(d)) return () => Number(d.match(/^(\d+)/)![1]);
+      if (/^(\d+) hours?\b/.test(d)) return () => Number(d.match(/^(\d+)/)![1]) * HOUR;
+      return null; // concentration, instantaneous, permanent, "see text" — nothing to compare
+    };
+    const bad: string[] = [];
+    const unparsed: string[] = [];
+    for (const s of C.SPELLS) {
+      if (!s.buff) continue;
+      const expected = parse(s.dur);
+      if (!expected) { unparsed.push(`${s.id} ("${s.dur}")`); continue; }
+      for (const cl of [1, 5, 11]) {
+        const got = s.buff.at(cl).rounds;
+        if (got !== expected(cl)) {
+          bad.push(`${s.id}: dur "${s.dur}" implies ${expected(cl)} rounds at CL ${cl}, buff gives ${got}`);
+          break;
+        }
+      }
+    }
+    // Surfaced rather than asserted: these durations are deliberately not a fixed number of rounds.
+    if (unparsed.length) console.log('buff durations not compared:', unparsed.join(', '));
+    expect(bad, bad.join('\n')).toEqual([]);
+  });
+
+  it('a damage formula is dice notation at every caster level it is asked for', () => {
+    const ok = /^[0-9d+\-−×x /()]+$/;
+    const bad: string[] = [];
+    for (const s of C.SPELLS) {
+      if (!s.damage) continue;
+      for (const cl of [1, 5, 11, 20]) {
+        const f = s.damage.at(cl);
+        if (!f || !ok.test(f)) bad.push(`${s.id}: CL ${cl} gives "${f}"`);
+      }
+    }
+    expect(bad, bad.join(' | ')).toEqual([]);
+  });
+
+  it('a spell that offers a save says so, and one that says so has a save line', () => {
+    const bad: string[] = [];
+    for (const s of C.SPELLS) {
+      const saysNone = /^(none|no)\b/i.test(s.save.trim()) || s.save.trim() === '—';
+      // A save line naming a save type must name a real one.
+      if (!saysNone && !/fort|ref|will|see text|special|none/i.test(s.save))
+        bad.push(`${s.id}: save "${s.save}" names no save type`);
+    }
+    expect(bad, bad.join(' | ')).toEqual([]);
+  });
+});

@@ -1204,7 +1204,25 @@ Four content tests now hold the line: every `Str 13`/`BAB +6`/`<Class> N`/`Chara
 `reqText` must have a matching clause, and every feat named in a `reqText` must be required directly or
 **through the prerequisite chain** (the chain check matters — 17 entries legitimately state the whole
 chain while gating only the immediate link). A feat slot is judged at the level it opens, so tests must
-read the highest slot, not the first. Left out everywhere: traits gated on
+read the highest slot, not the first.
+
+**Spell audit (2026-09-22).** List membership and per-list levels were already covered by
+`spell-lists.test.ts`, so this audited what was not: school, the save line, and the internal
+duplication between `SpellBuffDef.at(cl).rounds` and the published `dur` string. **Clean: all 642
+schools match, and every buff's duration matches its own duration text** at caster levels 1, 5 and 11.
+**The save line was not clean — 32 spells corrected.** Ten named the wrong ability or invented/omitted
+a save outright: Virtue claimed a Fortitude save where the spell has none, Shatter said "Will/Fort",
+Resist Energy and Protection from Energy said Will where the book says Fortitude, Unholy Blight said
+Fortitude partial where its three siblings correctly say Will partial, Holy Word and Blasphemy said
+None instead of Will partial, and Fire Seeds, Animal Shapes and Dispel Evil were each wrong in their
+own way. The other 22 said "None" (or a vague "See text") where the spell does allow a qualified save
+— the `(harmless)` and `(object)` saves on the restoration line, True Seeing, Guidance, Freedom,
+Foresight, Remove Curse, Magic Mouth, Mage's Disjunction, the teleport family, Word of Chaos, Dictum,
+Telekinesis, Analyze Dweomer, Mislead, Screen, Word of Recall and Greater Shadow Conjuration.
+Four new content tests guard the shape: every school is one the catalogue knows, a buff lasts as long
+as its `dur` says, a damage formula is dice notation at CL 1/5/11/20, and a save line names a real
+save. Note the sweep must parse both quote styles — 29 spell names are double-quoted for their
+apostrophe (Mage's Disjunction was missed by a single-quote-only grep and nearly escaped). Left out everywhere: traits gated on
   a class feature (gunslinger grit/firearms, ranger favored enemy, monk styles, alchemist mutagens and
   bombs, magus arcane pool, sorcerer bloodline, summoner eidolon). Concentration-check traits (Focused
   Mind, Desperate Resolve, Arcane Temper's second half) stay prose because no concentration stat
