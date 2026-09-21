@@ -6422,3 +6422,27 @@ describe('Enchanting Smile (Enchantment school): +2 enhancement on Bluff/Diploma
     expect(sk(d, 'bluff').total).toBe(3); // +2 enhancement +1 trait
   });
 });
+
+describe('combat traits: Tactician, Courageous, Vigilant Battler', () => {
+  it('Tactician adds +1 trait to initiative; with Reactionary the higher trait bonus wins', () => {
+    const base = resolve(humanFighter1()).sheet.stats['init'].total; // Dex +2
+    expect(resolve(withDecision(humanFighter1(), 'traits', ['tactician'])).sheet.stats['init'].total).toBe(base + 1);
+    // Two combat traits is illegal anyway (same category), but the stacking rule holds regardless:
+    // trait bonuses of the same type take the highest.
+    expect(resolve(withDecision(humanFighter1(), 'traits', ['tactician', 'reactionary'])).sheet.stats['init'].total).toBe(base + 2);
+  });
+  it('Courageous is a conditional +2 on every save, shown as an annotation not in the total', () => {
+    const r = resolve(withDecision(humanFighter1(), 'traits', ['courageous']));
+    const plain = resolve(humanFighter1());
+    for (const sv of ['fort', 'ref', 'will']) {
+      expect(r.sheet.stats[`save:${sv}`].total).toBe(plain.sheet.stats[`save:${sv}`].total);
+      expect(r.sheet.stats[`save:${sv}`].annotations.some((a) => /Courageous: \+2 vs fear/.test(a))).toBe(true);
+    }
+  });
+  it('Vigilant Battler: +1 always, a further conditional +1 vs feints', () => {
+    const d = withDecision(humanFighter1(), 'traits', ['vigilant-battler']);
+    const s = resolve(d).sheet.stats['skill:sense-motive'];
+    expect(s.total).toBe(2); // Wis +1, trait +1
+    expect(s.annotations.some((a) => /Vigilant Battler: \+1 to counter a feint/.test(a))).toBe(true);
+  });
+});

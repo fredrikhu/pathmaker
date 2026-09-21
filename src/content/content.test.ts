@@ -469,6 +469,7 @@ describe('traits', () => {
     }
     const social = C.TRAITS.filter((t) => t.category === 'social');
     expect(social.length).toBeGreaterThanOrEqual(35);
+    expect(C.TRAITS.filter((t) => t.category === 'combat').length).toBeGreaterThanOrEqual(20);
   });
 });
 

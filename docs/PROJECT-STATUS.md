@@ -1163,7 +1163,10 @@ Still open from that audit:
   four drawbacks. Social is complete for Ultimate Campaign's general social traits (2026-09-21, 38
   of them plus Student of Philosophy from Player Companion: Quests & Campaigns, verified on d20pfsrd); the class-tied ones (Destined Diplomat, Imposing Scion, Knowing the
   Enemy, Unnatural Revenge, and the monk quartet Harvester / Simple Disciple / Style Sage / Veiled
-  Disciple) are left out. `TraitDef.classSkills` makes "X is always a class skill" real, and
+  Disciple) are left out. Combat likewise (22, same day): the general UC combat traits, leaving out
+  the gunslinger firearm set, the ranger favored-enemy set and the monk style ones. Situational
+  bonuses (Courageous vs fear, Vigilant Battler vs feints) are conditional effects, so they show as
+  annotations and roll toggles rather than in the total. `TraitDef.classSkills` makes "X is always a class skill" real, and
   `TraitDef.param` (pick stored at `trait-params[traitId]`) covers choose-a-skill traits such as
   Criminal, Influence and Talented — the engine folds the picked skill into `classSkillIds` and lands
   the trait bonus on it, and nudges with an info issue until a pick is made. `TraitDef.abilitySwap`
