@@ -1397,6 +1397,28 @@ Lookup note: d20pfsrd keeps the ability tables on the **parent** `/magic-items/m
 at all; the weapon tables head the price column **"Base Price Modifier"** while the armour ones say
 just **"Base Price"**, and ability names carry glued footnote digits ("Anarchic3").
 
+**Spell slot / spells-known table audit (2026-09-22). One wrong cell in 240.** Every row of twelve
+grids compared against the published class tables: the wizard, sorcerer, bard, magus, alchemist,
+paladin, bloodrager, arcanist and inquisitor per-day grids, the sorcerer, bard, inquisitor and
+bloodrager spells-known grids, and the arcanist's prepared grid. **`BARD_KNOWN` level 20 gave four
+6th-level spells known where the table says five** (0th-6th reads 6 6 6 6 6 5 5). Fixed; it affected
+the skald too, which shares the bard's tables. Wealth by level also verified, all 19 rows.
+
+**Two conventions worth knowing before touching these grids**, because misreading them looks exactly
+like a bug: our rows **always keep index 0 for 0-level spells**, carrying 0 for classes that cast
+cantrips at will, while the published *per-day* tables for those classes omit the column - so compare
+`ours[1:]` there, and `ours` as-is for the wizard and magus whose tables do print a 0th column. A
+*spells known* table does include the cantrip column. My first diff pass reported 60 false
+differences purely from getting that offset wrong.
+
+A golden now pins spot rows (1st, a middle level, 20th) for every grid, the corrected bard capstone,
+the wealth table, and - the guard that would have caught this - **no spell level may ever lose slots
+or known spells as class level rises**. Extraction notes: on the sorcerer, inquisitor, bloodrager and
+arcanist pages the spells-known table's header is a **single merged cell**, so find rows by their
+level label rather than by column headers; and the sorcerer and arcanist per-day tables carry a
+spell-level sub-header row that a naive `find('1st')` grabs instead of the real 1st-level row, so
+filter to rows whose second cell looks like a BAB.
+
 ### Modeling simplifications (fidelity notes)
 - **Per-list spell levels — audited in full.** The per-list level map (`SpellDef.levelByList`, read via
   `spellLevelOn`) handles every spell whose level differs by list. All 172 multi-list spells were
