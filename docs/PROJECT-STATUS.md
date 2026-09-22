@@ -1383,6 +1383,20 @@ others, and several carry a **spells-per-day sub-header row of "1st 2nd 3rd…"*
 `find('1st')` matches instead of the real 1st-level row. **Read the 20th-level row**: BAB +20/+15/+10
 distinguishes the three progressions, and a good save reaches +12 where a poor one stops at +6.
 
+**Magic item pricing audit (2026-09-22). Entirely clean — nothing was wrong.** Verified against the
+published tables: **all 19 weapon special abilities** (bonus equivalents), **all 15 armour and shield
+abilities** (equivalent or flat surcharge), and **all 50 wondrous items** — 41 across ten tiered
+families plus 9 flat-priced. The engine's own formula checks out too: `WEAPON_ENHANCEMENT_COST` and
+`ARMOR_ENHANCEMENT_COST` are bonus² × 2,000 and bonus² × 1,000, masterwork is 300 gp on a weapon and
+150 on armour, the enhancement ceiling is +5 and the combined ceiling +10, and `qualityCost` prices a
+named ability by **raising the total bonus** rather than adding a separate line, so a +1 flaming sword
+costs the same as a +2 one. A golden now pins every one of those numbers, including the per-family
+multiplier for each wondrous family and a completeness check that no catalogue item escapes the table.
+Lookup note: d20pfsrd keeps the ability tables on the **parent** `/magic-items/magic-weapons/` and
+`/magic-items/magic-armor/` pages, not the `.../…-special-abilities/` sub-pages, which carry no tables
+at all; the weapon tables head the price column **"Base Price Modifier"** while the armour ones say
+just **"Base Price"**, and ability names carry glued footnote digits ("Anarchic3").
+
 ### Modeling simplifications (fidelity notes)
 - **Per-list spell levels — audited in full.** The per-list level map (`SpellDef.levelByList`, read via
   `spellLevelOn`) handles every spell whose level differs by list. All 172 multi-list spells were

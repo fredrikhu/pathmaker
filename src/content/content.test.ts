@@ -2,7 +2,11 @@ import { describe, it, expect } from 'vitest';
 import * as C from './index';
 import * as S from './subsystems';
 import type { Predicate } from '../engine/types';
-import { SOURCE_POWER_PREFIXES } from '../engine/resolve';
+import { SOURCE_POWER_PREFIXES, propertyPrice } from '../engine/resolve';
+import {
+  WEAPON_ENHANCEMENT_COST, ARMOR_ENHANCEMENT_COST, MASTERWORK_WEAPON_COST,
+  MASTERWORK_ARMOR_COST, MAX_ENHANCEMENT, MAX_TOTAL_BONUS, qualityCost,
+} from '../engine/items';
 
 // Content-integrity tests. These don't check rules *math* (golden characters do that) —
 // they catch data-entry mistakes across the whole content set: typos in cross-referenced
@@ -2320,5 +2324,123 @@ describe('class chassis, verified against the published class tables', () => {
       if (new Set(c.classSkills).size !== c.classSkills.length) bad.push(`${c.id}: duplicate class skill`);
     }
     expect(bad, bad.join(' | ')).toEqual([]);
+  });
+});
+
+describe('magic item pricing, verified against the published tables', () => {
+  // Read off d20pfsrd on 2026-09-22: the weapon/armour special-ability tables, the two
+  // "pricing by bonus" tables, and the wondrous item and ring price lists.
+
+  it('the enhancement price tables are bonus squared times 2,000 for weapons and 1,000 for armour', () => {
+    for (let b = 1; b <= 5; b++) {
+      expect(WEAPON_ENHANCEMENT_COST[b], `weapon +${b}`).toBe(b * b * 2_000);
+      expect(ARMOR_ENHANCEMENT_COST[b], `armour +${b}`).toBe(b * b * 1_000);
+    }
+    expect(WEAPON_ENHANCEMENT_COST[1]).toBe(2_000);
+    expect(ARMOR_ENHANCEMENT_COST[5]).toBe(25_000);
+    expect(MASTERWORK_WEAPON_COST).toBe(300);
+    expect(MASTERWORK_ARMOR_COST).toBe(150);
+    // Enhancement caps at +5; enhancement plus ability equivalents caps at +10.
+    expect(MAX_ENHANCEMENT).toBe(5);
+    expect(MAX_TOTAL_BONUS).toBe(10);
+  });
+
+  it('every weapon special ability carries its published bonus equivalent', () => {
+    const PUBLISHED: Record<string, number> = {
+      bane: 1, defending: 1, flaming: 1, frost: 1, shock: 1, 'ghost-touch': 1, keen: 1,
+      merciful: 1, vicious: 1,
+      anarchic: 2, axiomatic: 2, holy: 2, unholy: 2, 'flaming-burst': 2, wounding: 2,
+      speed: 3,
+      'brilliant-energy': 4, dancing: 4,
+      vorpal: 5,
+    };
+    expect(C.WEAPON_PROPERTIES.map((p) => p.id).sort()).toEqual(Object.keys(PUBLISHED).sort());
+    const bad = C.WEAPON_PROPERTIES.filter((p) => p.equivalent !== PUBLISHED[p.id])
+      .map((p) => `${p.id}: +${p.equivalent}, published +${PUBLISHED[p.id]}`);
+    expect(bad, bad.join(' | ')).toEqual([]);
+  });
+
+  it('every armour and shield ability carries its published equivalent or flat surcharge', () => {
+    // A flat-priced ability adds gp directly; an equivalent raises the squared bonus instead.
+    const PUBLISHED: Record<string, { equivalent?: number; flatCost?: number }> = {
+      glamered: { flatCost: 2_700 },
+      slick: { flatCost: 3_750 },
+      shadow: { flatCost: 3_750 },
+      'fortification-light': { equivalent: 1 },
+      'fortification-moderate': { equivalent: 3 },
+      'fortification-heavy': { equivalent: 5 },
+      invulnerability: { equivalent: 3 },
+      'spell-resistance-13': { equivalent: 2 },
+      'spell-resistance-15': { equivalent: 3 },
+      'spell-resistance-17': { equivalent: 4 },
+      'spell-resistance-19': { equivalent: 5 },
+      bashing: { equivalent: 1 },
+      'arrow-catching': { equivalent: 1 },
+      'arrow-deflection': { equivalent: 2 },
+      animated: { equivalent: 2 },
+    };
+    expect(C.ARMOR_PROPERTIES.map((p) => p.id).sort()).toEqual(Object.keys(PUBLISHED).sort());
+    const bad: string[] = [];
+    for (const p of C.ARMOR_PROPERTIES) {
+      const want = PUBLISHED[p.id];
+      if ((p.equivalent ?? undefined) !== want.equivalent) bad.push(`${p.id}: equivalent ${p.equivalent}, published ${want.equivalent}`);
+      if ((p.flatCost ?? undefined) !== want.flatCost) bad.push(`${p.id}: flat ${p.flatCost}, published ${want.flatCost}`);
+      // The two pricing styles are mutually exclusive.
+      if (p.equivalent !== undefined && p.flatCost !== undefined) bad.push(`${p.id}: both an equivalent and a flat cost`);
+    }
+    expect(bad, bad.join(' | ')).toEqual([]);
+  });
+
+  it('every wondrous item costs what the published list says', () => {
+    // Tiered families are bonus squared times a per-family multiplier; the rest are flat prices.
+    const FAMILY: [string, number[], number][] = [
+      ['belt-strength', [2, 4, 6], 1_000], ['belt-dexterity', [2, 4, 6], 1_000],
+      ['belt-constitution', [2, 4, 6], 1_000], ['headband-intelligence', [2, 4, 6], 1_000],
+      ['headband-wisdom', [2, 4, 6], 1_000], ['headband-charisma', [2, 4, 6], 1_000],
+      ['cloak-resistance', [1, 2, 3, 4, 5], 1_000],
+      ['ring-protection', [1, 2, 3, 4, 5], 2_000],
+      ['amulet-natural-armor', [1, 2, 3, 4, 5], 2_000],
+      ['bracers-armor', [1, 2, 3, 4, 5, 6, 7, 8], 1_000],
+    ];
+    const FLAT: Record<string, number> = {
+      'boots-elvenkind': 2_500, 'cloak-elvenkind': 2_500, 'eyes-of-the-eagle': 2_500,
+      'gloves-swimming-climbing': 6_250, 'vest-of-escape': 5_200, 'circlet-of-persuasion': 4_500,
+      'boots-striding-springing': 5_500, 'boots-of-speed': 12_000, 'goggles-of-night': 12_000,
+    };
+    const bad: string[] = [];
+    const seen = new Set<string>();
+    for (const [base, tiers, per] of FAMILY)
+      for (const b of tiers) {
+        const id = `${base}-${b}`;
+        seen.add(id);
+        const item = C.wondrousItemById.get(id);
+        if (!item) { bad.push(`${id}: missing`); continue; }
+        if (item.cost !== b * b * per) bad.push(`${id}: ${item.cost}, published ${b * b * per}`);
+        if (item.bonus !== b) bad.push(`${id}: bonus ${item.bonus}, expected ${b}`);
+        if (!item.tiered) bad.push(`${id}: not marked tiered`);
+      }
+    for (const [id, cost] of Object.entries(FLAT)) {
+      seen.add(id);
+      const item = C.wondrousItemById.get(id);
+      if (!item) { bad.push(`${id}: missing`); continue; }
+      if (item.cost !== cost) bad.push(`${id}: ${item.cost}, published ${cost}`);
+      if (item.tiered) bad.push(`${id}: marked tiered but flat-priced`);
+    }
+    expect(bad, bad.join(' | ')).toEqual([]);
+    // Nothing in the catalogue escapes the table above.
+    const extra = C.WONDROUS_ITEMS.map((i) => i.id).filter((id) => !seen.has(id));
+    expect(extra, `unpriced wondrous items: ${extra.join(', ')}`).toEqual([]);
+  });
+
+  it('a named ability prices by raising the total bonus, not as a separate line', () => {
+    // A +1 flaming sword is a +2 weapon for pricing: 300 masterwork + 2² × 2,000.
+    const lookup = (id: string) => propertyPrice(id);
+    expect(qualityCost('weapon', { enhancement: 1, properties: ['flaming'] }, lookup)).toBe(300 + 8_000);
+    // Two +1 abilities on a +1 weapon price at +3.
+    expect(qualityCost('weapon', { enhancement: 1, properties: ['flaming', 'frost'] }, lookup)).toBe(300 + 18_000);
+    // A flat-priced armour ability adds gp on top of the squared bonus rather than raising it.
+    expect(qualityCost('armor', { enhancement: 1, properties: ['glamered'] }, lookup)).toBe(150 + 1_000 + 2_700);
+    // Masterwork alone, with no enhancement.
+    expect(qualityCost('weapon', { masterwork: true }, lookup)).toBe(300);
   });
 });
