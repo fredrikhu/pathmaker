@@ -1634,6 +1634,432 @@ describe('companion creatures', () => {
   });
 });
 
+describe('class progression, verified against every published class table', () => {
+  // The Special column of each class's own table, read off Archives of Nethys (and d20pfsrd for the
+  // Vampire Hunter and the gunslinger's deeds) on 2026-09-23. One string per class level, verbatim
+  // apart from the em dash for an empty cell, which is dropped.
+  const PUBLISHED: Record<string, string[]> = {
+    fighter: ['Bonus feat', 'Bonus feat, bravery +1', 'Armor training 1', 'Bonus feat', 'Weapon training 1',
+      'Bonus feat, bravery +2', 'Armor training 2', 'Bonus feat', 'Weapon training 2', 'Bonus feat, bravery +3',
+      'Armor training 3', 'Bonus feat', 'Weapon training 3', 'Bonus feat, bravery +4', 'Armor training 4',
+      'Bonus feat', 'Weapon training 4', 'Bonus feat, bravery +5', 'Armor mastery', 'Bonus feat, weapon mastery'],
+    barbarian: ['Fast movement, rage', 'Rage power, uncanny dodge', 'Trap sense +1', 'Rage power',
+      'Improved uncanny dodge', 'Rage power, trap sense +2', 'Damage reduction 1/-', 'Rage power', 'Trap sense +3',
+      'Damage reduction 2/-, rage power', 'Greater rage', 'Rage power, trap sense +4', 'Damage reduction 3/-',
+      'Indomitable will, rage power', 'Trap sense +5', 'Damage reduction 4/-, rage power', 'Tireless rage',
+      'Rage power, trap sense +6', 'Damage reduction 5/-', 'Mighty rage, rage power'],
+    bard: ['Bardic knowledge, bardic performance, cantrips, countersong, distraction, fascinate, inspire courage +1',
+      'Versatile performance, well-versed', 'Inspire competence +2', '', 'Inspire courage +2, lore master 1/day',
+      'Suggestion, versatile performance', 'Inspire competence +3', 'Dirge of doom', 'Inspire greatness',
+      'Jack-of-all-trades, versatile performance', 'Inspire competence +4, inspire courage +3, lore master 2/day',
+      'Soothing performance', '', 'Frightening tune, versatile performance', 'Inspire competence +5, inspire heroics',
+      '', 'Inspire courage +4, lore master 3/day', 'Mass suggestion, versatile performance', 'Inspire competence +6',
+      'Deadly performance'],
+    cleric: ['Aura, channel energy 1d6, domains, orisons', '', 'Channel energy 2d6', '', 'Channel energy 3d6', '',
+      'Channel energy 4d6', '', 'Channel energy 5d6', '', 'Channel energy 6d6', '', 'Channel energy 7d6', '',
+      'Channel energy 8d6', '', 'Channel energy 9d6', '', 'Channel energy 10d6', ''],
+    druid: ["Nature bond, nature sense, orisons, wild empathy", 'Woodland stride', 'Trackless step',
+      "Resist nature's lure, wild shape (1/day)", '', 'Wild shape (2/day)', '', 'Wild shape (3/day)',
+      'Venom immunity', 'Wild shape (4/day)', '', 'Wild shape (5/day)', 'A thousand faces', 'Wild shape (6/day)',
+      'Timeless body', 'Wild shape (7/day)', '', 'Wild shape (8/day)', '', 'Wild shape (at will)'],
+    monk: ['Bonus feat, flurry of blows, stunning fist, unarmed strike', 'Bonus feat, evasion',
+      'Fast movement, maneuver training, still mind', 'Ki pool (magic), slow fall 20 ft.',
+      'High jump, purity of body', 'Bonus feat, slow fall 30 ft.', 'Ki pool (cold iron/silver), wholeness of body',
+      'Slow fall 40 ft.', 'Improved evasion', 'Bonus feat, ki pool (lawful), slow fall 50 ft.', 'Diamond body',
+      'Abundant step, slow fall 60 ft.', 'Diamond soul', 'Bonus feat, slow fall 70 ft.', 'Quivering palm',
+      'Ki pool (adamantine), slow fall 80 ft.', 'Timeless body, tongue of the sun and moon',
+      'Bonus feat, slow fall 90 ft.', 'Empty body', 'Perfect self, slow fall any distance'],
+    paladin: ['Aura of good, detect evil, smite evil 1/day', 'Divine grace, lay on hands',
+      'Aura of courage, divine health, mercy', 'Channel positive energy, smite evil 2/day', 'Divine bond', 'Mercy',
+      'Smite evil 3/day', 'Aura of resolve', 'Mercy', 'Smite evil 4/day', 'Aura of justice', 'Mercy',
+      'Smite evil 5/day', 'Aura of faith', 'Mercy', 'Smite evil 6/day', 'Aura of righteousness', 'Mercy',
+      'Smite evil 7/day', 'Holy champion'],
+    ranger: ['1st favored enemy, track, wild empathy', 'Combat style feat', 'Endurance, 1st favored terrain',
+      "Hunter's bond", '2nd favored enemy', 'Combat style feat', 'Woodland stride',
+      'Swift tracker, 2nd favored terrain', 'Evasion', '3rd favored enemy, combat style feat', 'Quarry',
+      'Camouflage', '3rd favored terrain', 'Combat style feat', '4th favored enemy', 'Improved evasion',
+      'Hide in plain sight', '4th favored terrain, combat style feat', 'Improved quarry',
+      '5th favored enemy, master hunter'],
+    rogue: ['Sneak attack +1d6, trapfinding', 'Evasion, rogue talent', 'Sneak attack +2d6, trap sense +1',
+      'Rogue talent, uncanny dodge', 'Sneak attack +3d6', 'Rogue talent, trap sense +2', 'Sneak attack +4d6',
+      'Improved uncanny dodge, rogue talent', 'Sneak attack +5d6, trap sense +3', 'Advanced talents, rogue talent',
+      'Sneak attack +6d6', 'Rogue talent, trap sense +4', 'Sneak attack +7d6', 'Rogue talent',
+      'Sneak attack +8d6, trap sense +5', 'Rogue talent', 'Sneak attack +9d6', 'Rogue talent, trap sense +6',
+      'Sneak attack +10d6', 'Master strike, rogue talent'],
+    sorcerer: ['Bloodline power, cantrips, eschew materials', '', 'Bloodline power, bloodline spell', '',
+      'Bloodline spell', '', 'Bloodline feat, bloodline spell', '', 'Bloodline power, bloodline spell', '',
+      'Bloodline spell', '', 'Bloodline feat, bloodline spell', '', 'Bloodline power, bloodline spell', '',
+      'Bloodline spell', '', 'Bloodline feat, bloodline spell', 'Bloodline power'],
+    warpriest: ['Aura, blessings (minor), focus weapon, orisons, sacred weapon', 'Fervor 1d6', 'Bonus feat',
+      'Channel energy, sacred weapon +1', 'Fervor 2d6', 'Bonus feat', 'Sacred armor +1',
+      'Fervor 3d6, sacred weapon +2', 'Bonus feat', 'Blessings (major), sacred armor +2', 'Fervor 4d6',
+      'Bonus feat, sacred weapon +3', 'Sacred armor +3', 'Fervor 5d6', 'Bonus feat',
+      'Sacred armor +4, sacred weapon +4', 'Fervor 6d6', 'Bonus feat', 'Sacred armor +5',
+      'Aspect of war, fervor 7d6, sacred weapon +5'],
+    wizard: ['Arcane bond, arcane school, cantrips, Scribe Scroll', '', '', '', 'Bonus feat', '', '', '', '',
+      'Bonus feat', '', '', '', '', 'Bonus feat', '', '', '', '', 'Bonus feat'],
+    alchemist: ['Alchemy, bomb 1d6, Brew Potion, mutagen, Throw Anything',
+      'Discovery, poison resistance +2, poison use', 'Bomb 2d6, swift alchemy', 'Discovery',
+      'Bomb 3d6, poison resistance +4', 'Discovery, swift poisoning', 'Bomb 4d6',
+      'Discovery, poison resistance +6', 'Bomb 5d6', 'Discovery, poison immunity', 'Bomb 6d6', 'Discovery',
+      'Bomb 7d6', 'Discovery, persistent mutagen', 'Bomb 8d6', 'Discovery', 'Bomb 9d6',
+      'Discovery, instant alchemy', 'Bomb 10d6', 'Grand discovery'],
+    cavalier: ['Challenge 1/day, mount, order, tactician', 'Order ability', "Cavalier's charge",
+      'Challenge 2/day, expert trainer', 'Banner', 'Bonus feat', 'Challenge 3/day', 'Order ability',
+      'Greater tactician', 'Challenge 4/day', 'Mighty charge', 'Bonus feat, demanding challenge',
+      'Challenge 5/day', 'Greater banner', 'Order ability', 'Challenge 6/day', 'Master tactician', 'Bonus feat',
+      'Challenge 7/day', 'Supreme charge'],
+    gunslinger: ['Deeds, grit, gunsmith', 'Nimble +1', 'Deeds', 'Bonus feat', 'Gun training 1', 'Nimble +2',
+      'Deeds', 'Bonus feat', 'Gun training 2', 'Nimble +3', 'Deeds', 'Bonus feat', 'Gun training 3', 'Nimble +4',
+      'Deeds', 'Bonus feat', 'Gun training 4', 'Nimble +5', 'Deeds', 'Bonus feat, true grit'],
+    inquisitor: ['Domain, judgment 1/day, monster lore, orisons, stern gaze',
+      'Cunning initiative, detect alignment, track', 'Solo tactics, teamwork feat', 'Judgment 2/day',
+      'Bane, discern lies', 'Teamwork feat', 'Judgment 3/day', 'Second judgment', 'Teamwork feat',
+      'Judgment 4/day', 'Stalwart', 'Greater bane, teamwork feat', 'Judgment 5/day', 'Exploit weakness',
+      'Teamwork feat', 'Judgment 6/day, third judgment', 'Slayer', 'Teamwork feat', 'Judgment 7/day',
+      'True judgment'],
+    magus: ['Arcane pool, cantrips, spell combat', 'Spellstrike', 'Magus arcana', 'Spell recall', 'Bonus feat',
+      'Magus arcana', 'Knowledge pool, medium armor', 'Improved spell combat', 'Magus arcana',
+      'Fighter training', 'Bonus feat, improved spell recall', 'Magus arcana', 'Heavy armor',
+      'Greater spell combat', 'Magus arcana', 'Counterstrike', 'Bonus feat', 'Magus arcana',
+      'Greater spell access', 'True magus'],
+    oracle: ["Mystery, oracle's curse, orisons, revelation", 'Mystery spell', 'Revelation', 'Mystery spell', '',
+      'Mystery spell', 'Revelation', 'Mystery spell', '', 'Mystery spell', 'Revelation', 'Mystery spell', '',
+      'Mystery spell', 'Revelation', 'Mystery spell', '', 'Mystery spell', 'Revelation', 'Final revelation'],
+    shifter: ['Shifter aspect, shifter claws, wild empathy', 'Defensive instinct, track',
+      'Shifter claws increase, woodland stride', 'Defensive instinct (+1), wild shape',
+      'Second aspect, trackless step', "Shifter's fury", 'Shifter claws increase', 'Defensive instinct (+2)',
+      'Chimeric aspect', 'Third aspect', 'Shifter claws increase', 'Defensive instinct (+3)',
+      'Shifter claws increase', 'Greater chimeric aspect', 'Fourth aspect', 'Defensive instinct (+4)',
+      'Shifter claws increase', 'A thousand faces, timeless body', 'Shifter claws increase',
+      'Defensive instinct (+5), final aspect'],
+    summoner: ['Cantrips, eidolon, life link, summon monster I', 'Bond senses', 'Summon monster II',
+      'Shield ally', 'Summon monster III', "Maker's call", 'Summon monster IV', 'Transposition',
+      'Summon monster V', 'Aspect', 'Summon monster VI', 'Greater shield ally', 'Summon monster VII',
+      'Life bond', 'Summon monster VIII', 'Merge forms', 'Summon monster IX', 'Greater aspect', 'Gate',
+      'Twin eidolon'],
+    witch: ["Cantrips, hex, witch's familiar", 'Hex', '', 'Hex', '', 'Hex', '', 'Hex', '', 'Hex, major hex', '',
+      'Hex', '', 'Hex', '', 'Hex', '', 'Hex, grand hex', '', 'Hex'],
+    'vampire-hunter': ['Detect undead, technique feat, track, vampiric focus', 'Relentless', 'Technique feat',
+      'Spellcasting, stake', 'Relentless band', 'Technique feat', 'Vampire tracker', 'Second vampiric focus',
+      'Technique feat', 'Swift tracker', 'Vampire bane', 'Technique feat', 'Remove vampirism', 'Quarry',
+      'Technique feat', 'Third vampiric focus', 'Critical reflexes', 'Technique feat', 'Improved quarry',
+      'Master vampire hunter'],
+    arcanist: ['Arcane reservoir, arcanist exploit, cantrips, consume spells', '', 'Arcanist exploit', '',
+      'Arcanist exploit', '', 'Arcanist exploit', '', 'Arcanist exploit', '',
+      'Arcanist exploit, greater exploits', '', 'Arcanist exploit', '', 'Arcanist exploit', '',
+      'Arcanist exploit', '', 'Arcanist exploit', 'Magical supremacy'],
+    bloodrager: ['Bloodline, bloodline power, bloodrage, fast movement', 'Uncanny dodge', 'Blood sanctuary',
+      'Blood casting, bloodline power, eschew materials', 'Improved uncanny dodge', 'Bloodline feat',
+      'Bloodline spell, damage reduction 1/-', 'Bloodline power', 'Bloodline feat',
+      'Bloodline spell, damage reduction 2/-', 'Greater bloodrage', 'Bloodline feat, bloodline power',
+      'Bloodline spell, damage reduction 3/-', 'Indomitable will', 'Bloodline feat',
+      'Bloodline spell, bloodline power, damage reduction 4/-', 'Tireless bloodrage', 'Bloodline feat',
+      'Damage reduction 5/-', 'Bloodline power, mighty bloodrage'],
+    brawler: ["Brawler's cunning, martial flexibility, martial training, unarmed strike",
+      "Bonus combat feat, brawler's flurry (Two-Weapon Fighting)", 'Maneuver training 1',
+      'AC bonus +1, knockout 1/day', "Bonus combat feat, brawler's strike (magic), close weapon mastery",
+      'Martial flexibility (swift action)', 'Maneuver training 2',
+      "Bonus combat feat, brawler's flurry (Improved Two-Weapon Fighting)",
+      "AC bonus +2, brawler's strike (cold iron and silver)",
+      'Martial flexibility (free action), knockout 2/day', 'Bonus combat feat, maneuver training 3',
+      "Brawler's strike (alignment), martial flexibility (immediate action)", 'AC bonus +3',
+      'Bonus combat feat', "Brawler's flurry (Greater Two-Weapon Fighting), maneuver training 4",
+      'Awesome blow, knockout 3/day', "Bonus combat feat, brawler's strike (adamantine)", 'AC bonus +4',
+      'Maneuver training 5', 'Bonus combat feat, improved awesome blow, martial flexibility (any number)'],
+    hunter: ['Animal companion, animal focus, nature training, orisons, wild empathy',
+      'Precise companion, track', 'Hunter tactics, teamwork feat', 'Improved empathic link', 'Woodland stride',
+      'Teamwork feat', 'Bonus trick', 'Second animal focus, swift tracker', 'Teamwork feat',
+      'Raise animal companion', 'Speak with master', 'Teamwork feat', 'Bonus trick', 'Greater empathic link',
+      'Teamwork feat', '', 'One with the wild', 'Teamwork feat', 'Bonus trick', 'Master hunter'],
+    investigator: ['Alchemy, inspiration, trapfinding', 'Poison lore, poison resistance +2',
+      'Investigator talent, keen recollection, trap sense +1',
+      'Studied combat, studied strike +1d6, swift alchemy', 'Investigator talent, poison resistance +4',
+      'Studied strike +2d6, trap sense +2', 'Investigator talent',
+      'Poison resistance +6, studied strike +3d6', 'Investigator talent, trap sense +3',
+      'Studied strike +4d6', 'Investigator talent, poison immunity', 'Studied strike +5d6, trap sense +4',
+      'Investigator talent', 'Studied strike +6d6', 'Investigator talent, trap sense +5',
+      'Studied strike +7d6', 'Investigator talent', 'Studied strike +8d6, trap sense +6',
+      'Investigator talent', 'Studied strike +9d6, true inspiration'],
+    shaman: ['Orisons, spirit, spirit animal, spirit magic', 'Hex', '', 'Hex, wandering spirit', '',
+      'Wandering hex', '', 'Hex, spirit (greater)', '', 'Hex', '', 'Hex, wandering spirit (greater)', '',
+      'Wandering hex (2 hexes)', '', 'Hex, spirit (true)', '', 'Hex', '',
+      'Hex, manifestation, wandering spirit (true)'],
+    skald: ['Bardic knowledge, cantrips, inspired rage +1, raging song, scribe scroll',
+      'Versatile performance, well-versed', 'Rage power, song of marching',
+      'Inspired rage +2, uncanny dodge', 'Spell kenning 1/day', 'Rage power, song of strength',
+      'Lore master 1/day, versatile performance', 'Improved uncanny dodge, inspired rage +3',
+      'Rage power, DR 1/-', 'Dirge of doom', 'Spell kenning 2/day',
+      'Inspired rage +4, rage power, versatile performance', 'Lore master 2/day',
+      'DR 2/-, song of the fallen', 'Rage power', 'Inspired rage +5',
+      'Spell kenning 3/day, versatile performance', 'Rage power', 'DR 3/-, lore master 3/day',
+      'Inspired rage +6, master skald'],
+    slayer: ['1st studied target, track', 'Slayer talent', 'Sneak attack +1d6', 'Slayer talent',
+      '2nd studied target', 'Slayer talent, sneak attack +2d6', 'Stalker', 'Slayer talent',
+      'Sneak attack +3d6', '3rd studied target, advanced talents, slayer talent', 'Swift tracker',
+      'Slayer talent, sneak attack +4d6', "Slayer's advance 1/day", 'Quarry, slayer talent',
+      '4th studied target, sneak attack +5d6', 'Slayer talent', "Slayer's advance 2/day",
+      'Slayer talent, sneak attack +6d6', 'Improved quarry',
+      '5th studied target, master slayer, slayer talent'],
+    swashbuckler: ['Deeds, panache, swashbuckler finesse', 'Charmed life 3/day', 'Deeds, nimble +1',
+      'Bonus feat', 'Swashbuckler weapon training +1', 'Charmed life 4/day', 'Deeds, nimble +2', 'Bonus feat',
+      'Swashbuckler weapon training +2', 'Charmed life 5/day', 'Deeds, nimble +3', 'Bonus feat',
+      'Swashbuckler weapon training +3', 'Charmed life 6/day', 'Deeds, nimble +4', 'Bonus feat',
+      'Swashbuckler weapon training +4', 'Charmed life 7/day', 'Deeds, nimble +5',
+      'Bonus feat, swashbuckler weapon mastery'],
+  };
+
+  /** Published entries the progression deliberately does not hold as their own feature, and why.
+   *  Every one of these is either owned by another part of the engine (spell progression), folded
+   *  into a named feature's description, or expanded into finer-grained features of our own. */
+  const FOLDED: Record<string, Record<string, string>> = {
+    cleric: { 'channel energy': 'cleric-channel' },
+    // One feature covers the three 1st-level performances the table lists separately.
+    bard: { countersong: 'bard-countersong', distraction: 'bard-countersong', fascinate: 'bard-countersong' },
+    paladin: { 'aura of good': 'paladin-aura', 'detect evil': 'paladin-aura' },
+    // A source choice (bloodline, order, mystery, spirit) carries its own per-level powers, and the
+    // feature that names the choice states the levels they arrive at.
+    sorcerer: { 'bloodline power': 'sorc-bloodline' },
+    bloodrager: {
+      'bloodline power': 'br-bloodline', 'bloodline spell': 'br-bloodline',
+      'blood casting': 'br-blood-casting', 'eschew materials': 'br-blood-casting',
+    },
+    cavalier: { 'order ability': 'cav-order' },
+    oracle: { 'mystery spell': 'oracle-mystery', 'final revelation': 'oracle-mystery' },
+    shaman: { manifestation: 'shaman-spirit-feature', 'spirit magic': 'shaman-spirit-feature' },
+    skald: { 'inspired rage': 'skald-raging-song' },
+    investigator: {
+      'poison lore': 'inv-poison-lore', 'poison immunity': 'inv-poison-lore',
+      'poison resistance': 'inv-poison-lore',
+    },
+    alchemist: { 'poison immunity': 'alch-poison-resistance', 'poison resistance': 'alch-poison-resistance' },
+    arcanist: { 'greater exploits': 'arc-exploit' },
+    hunter: { 'second animal focus': 'hunter-animal-focus' },
+    shifter: {
+      'second aspect': 'shifter-aspect-extra', 'third aspect': 'shifter-aspect-extra',
+      'fourth aspect': 'shifter-aspect-extra',
+    },
+    summoner: { 'summon monster': 'summ-summon-monster' },
+    // Ours splits the published "Deeds" line into one feature per deed, so archetypes can swap a
+    // single deed; the deed ids themselves are pinned in the test below.
+    gunslinger: { deeds: 'gun-deed-deadeye' },
+    swashbuckler: { deeds: 'swb-deed-derring-do' },
+    // A pick line rather than a feature: the second talent series opens at 10th, when the advanced
+    // list unlocks, which is exactly what the published "Advanced talents" entry means.
+    rogue: { 'advanced talents': 'rogue-adv-talent' },
+    slayer: { 'advanced talents': 'slayer-adv-talent' },
+  };
+
+  /** Split a Special cell on commas outside parentheses. */
+  const items = (cell: string): string[] => {
+    const out: string[] = [];
+    let depth = 0, cur = '';
+    for (const ch of cell) {
+      if (ch === '(') depth++;
+      else if (ch === ')') depth--;
+      if (ch === ',' && depth === 0) { out.push(cur); cur = ''; } else cur += ch;
+    }
+    out.push(cur);
+    return out.map((x) => x.trim()).filter(Boolean);
+  };
+
+  /** Collapse a rank marker so every step of a scaling ability normalises to one name. */
+  const base = (s: string): string =>
+    s.toLowerCase().replace(/’/g, "'")
+      .replace(/\([^)]*\)/g, ' ')
+      .replace(/^\d+(st|nd|rd|th)\s+/, '')
+      .replace(/\+?\d+d\d+/g, ' ')
+      .replace(/\+\d+/g, ' ')
+      .replace(/\b\d+\s*\/\s*(day|-)/g, ' ')
+      .replace(/\b\d+\s*ft\.?/g, ' ')
+      .replace(/\bany distance\b|\bat will\b|\bincrease\b/g, ' ')
+      .replace(/\b\d+\b/g, ' ')
+      .replace(/[^a-z' ]/g, ' ')
+      .replace(/\s(i{1,3}|iv|vi{0,3}|ix|xi{0,2})$/, '')   // "summon monster ix" -> "summon monster"
+      .replace(/\s+/g, ' ')
+      .trim();
+
+  // Spell progression columns the engine owns; never a leveled feature.
+  const OWNED_ELSEWHERE = new Set(['cantrips', 'orisons', 'spells', 'spellcasting']);
+
+  it('every class has a progression, and every published table is pinned here', () => {
+    const withProgression = Object.keys(C.CLASS_PROGRESSION).sort();
+    expect(C.CLASSES.map((c) => c.id).sort()).toEqual(withProgression);
+    expect(Object.keys(PUBLISHED).sort()).toEqual(withProgression);
+    for (const [id, rows] of Object.entries(PUBLISHED)) expect(rows, `${id}: not 20 rows`).toHaveLength(20);
+  });
+
+  it('every published ability appears at the level it is first published at', () => {
+    const bad: string[] = [];
+    for (const [classId, rows] of Object.entries(PUBLISHED)) {
+      const prog = C.CLASS_PROGRESSION[classId];
+      // What our data offers at each level: features, per-level picks, bonus feats, DR steps.
+      const oursAt = new Map<string, number>();
+      const note = (name: string, level: number) => {
+        const b = base(name);
+        if (!oursAt.has(b) || oursAt.get(b)! > level) oursAt.set(b, level);
+      };
+      for (const f of prog.features) note(f.name, f.level);
+      for (const ch of prog.choices ?? []) for (const l of ch.levels ?? [1]) note(ch.label, l);
+      if (prog.bonusFeats) for (const l of prog.bonusFeats.levels) {
+        note('bonus feat', l);
+        // The table names the track after the class: "Combat style feat", "Technique feat".
+        if (prog.bonusFeats.label) note(prog.bonusFeats.label, l);
+        // A combat-only track is printed as "Bonus combat feat" by the newer classes.
+        if (prog.bonusFeats.combatOnly) note('bonus combat feat', l);
+      }
+      if (prog.damageReduction) for (const l of prog.damageReduction.levels) {
+        note('damage reduction', l);
+        note('dr', l);   // the skald's table abbreviates it
+      }
+
+      const folded = FOLDED[classId] ?? {};
+      const firstPublished = new Map<string, number>();
+      rows.forEach((cell, i) => {
+        for (const entry of items(cell)) {
+          const b = base(entry);
+          if (!firstPublished.has(b)) firstPublished.set(b, i + 1);
+        }
+      });
+      for (const [name, level] of firstPublished) {
+        if (OWNED_ELSEWHERE.has(name)) continue;
+        if (name in folded) continue;
+        const ours = oursAt.get(name);
+        if (ours === undefined) bad.push(`${classId}: "${name}" (published at ${level}) is absent`);
+        else if (ours !== level) bad.push(`${classId}: "${name}" published at ${level}, ours at ${ours}`);
+      }
+    }
+    expect(bad, bad.join(' | ')).toEqual([]);
+  });
+
+  it('every folded entry names a feature or pick line that actually exists', () => {
+    const bad: string[] = [];
+    for (const [classId, folded] of Object.entries(FOLDED)) {
+      const prog = C.CLASS_PROGRESSION[classId];
+      const ids = new Set([...prog.features.map((f) => f.id), ...(prog.choices ?? []).map((c) => c.id)]);
+      for (const [entry, target] of Object.entries(folded))
+        if (!ids.has(target)) bad.push(`${classId}: "${entry}" folds into "${target}", which does not exist`);
+    }
+    expect(bad, bad.join(' | ')).toEqual([]);
+  });
+
+  it('every repeated pick falls on exactly the published levels', () => {
+    // A per-level pick is machine-consumed — the engine emits one slot per level — so unlike a
+    // scaling feature these must match level for level.
+    const EXPECTED: Record<string, Record<string, number[]>> = {
+      barbarian: { 'rage-power': [2, 4, 6, 8, 10, 12, 14, 16, 18, 20] },
+      fighter: { bonusFeats: [1, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20] },
+      monk: { bonusFeats: [1, 2, 6, 10, 14, 18] },
+      rogue: { 'rogue-talent': [2, 4, 6, 8], 'rogue-adv-talent': [10, 12, 14, 16, 18, 20] },
+      ranger: { bonusFeats: [2, 6, 10, 14, 18] },
+      paladin: { 'divine-bond': [5], mercy: [3, 6, 9, 12, 15, 18] },
+      wizard: { bonusFeats: [5, 10, 15, 20] },
+      alchemist: { discovery: [2, 4, 6, 8, 10, 12, 14, 16, 18], 'grand-discovery': [20] },
+      cavalier: { bonusFeats: [6, 12, 18] },
+      gunslinger: { bonusFeats: [4, 8, 12, 16, 20] },
+      inquisitor: { bonusFeats: [3, 6, 9, 12, 15, 18] },
+      magus: { bonusFeats: [5, 11, 17], 'magus-arcana': [3, 6, 9, 12, 15, 18] },
+      oracle: { revelation: [1, 3, 7, 11, 15, 19] },
+      witch: { hex: [2, 4, 6, 8, 10, 12, 14, 16, 18, 20] },
+      warpriest: { bonusFeats: [3, 6, 9, 12, 15, 18] },
+      arcanist: { exploit: [3, 5, 7, 9, 11, 13, 15, 17, 19] },
+      bloodrager: { bonusFeats: [6, 9, 12, 15, 18] },
+      brawler: { bonusFeats: [2, 5, 8, 11, 14, 17, 20] },
+      slayer: { 'slayer-talent': [2, 4, 6, 8], 'slayer-adv-talent': [10, 12, 14, 16, 18, 20] },
+      swashbuckler: { bonusFeats: [4, 8, 12, 16, 20] },
+      investigator: { 'investigator-talent': [3, 5, 7, 9, 11, 13, 15, 17, 19] },
+      hunter: { bonusFeats: [3, 6, 9, 12, 15, 18] },
+      shaman: { 'shaman-hex': [2, 4, 8, 10, 12, 16, 18, 20] },
+      skald: { 'skald-rage-power': [3, 6, 9, 12, 15, 18] },
+      shifter: { 'shifter-aspect-extra': [5, 10, 15, 20] },
+      'vampire-hunter': { bonusFeats: [1, 3, 6, 9, 12, 15, 18] },
+    };
+    const bad: string[] = [];
+    for (const [classId, expected] of Object.entries(EXPECTED)) {
+      const prog = C.CLASS_PROGRESSION[classId];
+      for (const [key, levels] of Object.entries(expected)) {
+        const got = key === 'bonusFeats'
+          ? prog.bonusFeats?.levels
+          : (prog.choices ?? []).find((c) => c.id === key)?.levels;
+        if (!got) { bad.push(`${classId}: no "${key}"`); continue; }
+        if ([...got].join(',') !== levels.join(',')) bad.push(`${classId}/${key}: ${got.join(',')} vs published ${levels.join(',')}`);
+      }
+    }
+    expect(bad, bad.join(' | ')).toEqual([]);
+    // Damage reduction: the amount is how many listed levels you have reached.
+    expect(C.CLASS_PROGRESSION.barbarian.damageReduction?.levels).toEqual([7, 10, 13, 16, 19]);
+    expect(C.CLASS_PROGRESSION.bloodrager.damageReduction?.levels).toEqual([7, 10, 13, 16, 19]);
+    expect(C.CLASS_PROGRESSION.skald.damageReduction?.levels).toEqual([9, 14, 19]);
+  });
+
+  it('the gunslinger and swashbuckler deeds are the published sets, at the published levels', () => {
+    const deedsOf = (classId: string, prefix: string) => C.CLASS_PROGRESSION[classId].features
+      .filter((f) => f.id.startsWith(prefix))
+      .map((f) => `${f.level} ${f.name.replace(/^Deed: /, '')}`)
+      .sort();
+    // Ultimate Combat, read off the gunslinger's own page: three deeds at each of 1/3/7/11/15/19.
+    expect(deedsOf('gunslinger', 'gun-deed-')).toEqual([
+      '1 Deadeye', "1 Gunslinger's Dodge", '1 Quick Clear',
+      '11 Bleeding Wound', '11 Expert Loading', '11 Lightning Reload',
+      '15 Evasive', '15 Menacing Shot', "15 Slinger's Luck",
+      '19 Cheat Death', "19 Death's Shot", '19 Stunning Shot',
+      '3 Gunslinger Initiative', '3 Pistol-Whip', '3 Utility Shot',
+      '7 Dead Shot', '7 Startling Shot', '7 Targeting',
+    ].sort());
+    // Advanced Class Guide. The swashbuckler gains four deeds at 3rd and three at each other level.
+    expect(deedsOf('swashbuckler', 'swb-deed-')).toEqual([
+      '1 Derring-Do', '1 Dodging Panache', '1 Opportune Parry and Riposte',
+      '11 Bleeding Wound', '11 Evasive', '11 Subtle Blade',
+      '15 Dizzying Defense', '15 Perfect Thrust', '15 Swashbuckler’s Edge',
+      '19 Cheat Death', '19 Deadly Stab', '19 Stunning Stab',
+      '3 Kip-Up', '3 Menacing Swordplay', '3 Precise Strike', '3 Swashbuckler Initiative',
+      '7 Superior Feint', '7 Swashbuckler’s Grace', '7 Targeted Strike',
+    ].sort());
+  });
+
+  it('the features this audit added stay present', () => {
+    const has = (classId: string, id: string, level: number) => {
+      const f = C.CLASS_PROGRESSION[classId].features.find((x) => x.id === id);
+      expect(f, `${classId}/${id} is missing`).toBeTruthy();
+      expect(f!.level, `${classId}/${id} level`).toBe(level);
+    };
+    // The hunter was missing five published features outright.
+    has('hunter', 'hunter-track', 2);
+    has('hunter', 'hunter-improved-empathic-link', 4);
+    has('hunter', 'hunter-bonus-trick', 7);
+    has('hunter', 'hunter-raise-companion', 10);
+    has('hunter', 'hunter-greater-empathic-link', 14);
+    // Three of the skald's four songs.
+    has('skald', 'skald-song-of-marching', 3);
+    has('skald', 'skald-song-of-strength', 6);
+    has('skald', 'skald-song-of-the-fallen', 14);
+    // The shifter's 14th- and 18th-level features.
+    has('shifter', 'shifter-greater-chimeric-aspect', 14);
+    has('shifter', 'shifter-timeless-body', 18);
+    // The cleric's aura, which our own warpriest already had.
+    has('cleric', 'cleric-aura', 1);
+    // "Slinger's Reload" was invented; the published deed is Slinger's Luck, a reroll.
+    expect(C.CLASS_PROGRESSION.gunslinger.features.map((f) => f.id)).not.toContain('gun-deed-slingers-reload');
+    has('gunslinger', 'gun-deed-slingers-luck', 15);
+  });
+
+  it('no two features in a class share an id, and every level is 1–20', () => {
+    const bad: string[] = [];
+    for (const [classId, prog] of Object.entries(C.CLASS_PROGRESSION)) {
+      const seen = new Set<string>();
+      for (const f of prog.features) {
+        if (seen.has(f.id)) bad.push(`${classId}: duplicate feature id ${f.id}`);
+        seen.add(f.id);
+        if (f.level < 1 || f.level > 20) bad.push(`${classId}/${f.id}: level ${f.level}`);
+      }
+      for (const ch of prog.choices ?? [])
+        for (const l of ch.levels ?? [])
+          if (l < 1 || l > 20) bad.push(`${classId}/${ch.id}: level ${l}`);
+    }
+    expect(bad, bad.join(' | ')).toEqual([]);
+  });
+});
+
 describe('companions, verified against the published tables and stat blocks', () => {
   // Read off d20pfsrd (Animal Companions, Eidolons, Familiars, Wild Caller) and Archives of Nethys
   // (the eidolon base forms, whose values d20pfsrd has lost for the aquatic form, and the Bestiary
