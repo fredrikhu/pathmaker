@@ -2444,3 +2444,93 @@ describe('magic item pricing, verified against the published tables', () => {
     expect(qualityCost('weapon', { masterwork: true }, lookup)).toBe(300);
   });
 });
+
+describe('skills, conditions and metamagic, verified against the published tables', () => {
+  it('every skill has the published key ability, trained-only flag and armour check penalty', () => {
+    // Read off the Skills table on 2026-09-22: [key ability, trained only, armour check penalty].
+    const P: Record<string, [string, boolean, boolean]> = {
+      acrobatics: ['dex', false, true], appraise: ['int', false, false], bluff: ['cha', false, false],
+      climb: ['str', false, true], 'craft-alchemy': ['int', false, false], 'craft-armor': ['int', false, false],
+      'craft-weapons': ['int', false, false], diplomacy: ['cha', false, false],
+      'disable-device': ['dex', true, true], disguise: ['cha', false, false],
+      'escape-artist': ['dex', false, true], fly: ['dex', false, true],
+      'handle-animal': ['cha', true, false], heal: ['wis', false, false], intimidate: ['cha', false, false],
+      'know-arcana': ['int', true, false], 'know-dungeoneering': ['int', true, false],
+      'know-engineering': ['int', true, false], 'know-geography': ['int', true, false],
+      'know-history': ['int', true, false], 'know-local': ['int', true, false],
+      'know-nature': ['int', true, false], 'know-nobility': ['int', true, false],
+      'know-planes': ['int', true, false], 'know-religion': ['int', true, false],
+      linguistics: ['int', true, false], perception: ['wis', false, false],
+      'perform-oratory': ['cha', false, false], 'perform-strings': ['cha', false, false],
+      'profession-any': ['wis', true, false], ride: ['dex', false, true],
+      'sense-motive': ['wis', false, false], 'sleight-of-hand': ['dex', true, true],
+      spellcraft: ['int', true, false], stealth: ['dex', false, true], survival: ['wis', false, false],
+      swim: ['str', false, true], 'use-magic-device': ['cha', true, false],
+    };
+    expect(C.SKILLS.map((s) => s.id).sort()).toEqual(Object.keys(P).sort());
+    const bad: string[] = [];
+    for (const s of C.SKILLS) {
+      const [ability, trained, acp] = P[s.id];
+      if (s.ability !== ability) bad.push(`${s.id}: ${s.ability}, published ${ability}`);
+      if (s.trainedOnly !== trained) bad.push(`${s.id}: trainedOnly ${s.trainedOnly}, published ${trained}`);
+      if (s.acp !== acp) bad.push(`${s.id}: acp ${s.acp}, published ${acp}`);
+    }
+    expect(bad, bad.join(' | ')).toEqual([]);
+  });
+
+  it('the nine armour-check-penalty skills are exactly the published set', () => {
+    expect(C.SKILLS.filter((s) => s.acp).map((s) => s.id).sort()).toEqual(
+      ['acrobatics', 'climb', 'disable-device', 'escape-artist', 'fly', 'ride', 'sleight-of-hand', 'stealth', 'swim']);
+  });
+
+  it('every metamagic feat raises the slot by its published amount', () => {
+    const P: Record<string, number> = {
+      'empower-spell': 2, 'enlarge-spell': 1, 'extend-spell': 1, 'heighten-spell': 0,
+      'maximize-spell': 3, 'quicken-spell': 4, 'silent-spell': 1, 'still-spell': 1, 'widen-spell': 3,
+    };
+    expect(C.METAMAGIC.map((m) => m.id).sort()).toEqual(Object.keys(P).sort());
+    const bad = C.METAMAGIC.filter((m) => m.levelAdj !== P[m.id])
+      .map((m) => `${m.id}: +${m.levelAdj}, published +${P[m.id]}`);
+    expect(bad, bad.join(' | ')).toEqual([]);
+    // Heighten alone is variable, and is the only entry flagged as such.
+    expect(C.METAMAGIC.filter((m) => m.heighten).map((m) => m.id)).toEqual(['heighten-spell']);
+  });
+
+  it('condition penalties match the published entries', () => {
+    // Target -> penalty, for the conditions whose numbers the engine computes.
+    const P: Record<string, Record<string, number>> = {
+      shaken: { 'attack:melee': -2, 'attack:ranged': -2, 'save:all': -2, 'skill:all': -2 },
+      frightened: { 'attack:melee': -2, 'attack:ranged': -2, 'save:all': -2, 'skill:all': -2 },
+      // Panicked carries no attack penalty: the creature cannot attack at all.
+      panicked: { 'save:all': -2, 'skill:all': -2 },
+      sickened: { 'attack:melee': -2, 'attack:ranged': -2, 'save:all': -2, 'damage:weapon': -2, 'skill:all': -2 },
+      fatigued: { 'ability:str': -2, 'ability:dex': -2 },
+      exhausted: { 'ability:str': -6, 'ability:dex': -6 },
+      dazzled: { 'attack:melee': -1, 'attack:ranged': -1 },
+      prone: { 'attack:melee': -4 },
+      entangled: { 'attack:melee': -2, 'attack:ranged': -2, 'ability:dex': -4 },
+      grappled: { 'ability:dex': -4, 'attack:melee': -2, 'attack:ranged': -2 },
+      deafened: { init: -4 },
+      blinded: { ac: -2 },
+      cowering: { ac: -2 },
+      stunned: { ac: -2 },
+      pinned: { ac: -4 },
+    };
+    const bad: string[] = [];
+    for (const [id, want] of Object.entries(P)) {
+      const cond = C.conditionById.get(id);
+      if (!cond) { bad.push(`${id}: missing`); continue; }
+      const got: Record<string, number> = {};
+      for (const e of cond.effects) got[e.target] = e.value;
+      const keys = new Set([...Object.keys(want), ...Object.keys(got)]);
+      for (const k of keys)
+        if (want[k] !== got[k]) bad.push(`${id}/${k}: ours ${got[k] ?? 'none'}, published ${want[k] ?? 'none'}`);
+    }
+    expect(bad, bad.join(' | ')).toEqual([]);
+  });
+
+  it('the conditions that deny the Dexterity bonus to AC are the published set', () => {
+    expect(C.CONDITIONS.filter((c) => c.loseDexToAc).map((c) => c.id).sort()).toEqual(
+      ['blinded', 'cowering', 'flat-footed', 'helpless', 'paralyzed', 'pinned', 'stunned']);
+  });
+});

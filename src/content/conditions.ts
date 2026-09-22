@@ -38,8 +38,10 @@ export const CONDITIONS: ConditionDef[] = [
     effects: [pen('attack:melee', -2, 'Entangled'), pen('attack:ranged', -2, 'Entangled'), pen('ability:dex', -4, 'Entangled')] },
   { id: 'grappled', name: 'Grappled', desc: '−4 Dexterity, −2 on attacks and most checks; cannot move.',
     effects: [pen('ability:dex', -4, 'Grappled'), pen('attack:melee', -2, 'Grappled'), pen('attack:ranged', -2, 'Grappled')] },
-  { id: 'panicked', name: 'Panicked', desc: '−2 on saves and attacks; drop held items and flee in terror.',
-    effects: [pen('attack:melee', -2, 'Panicked'), pen('attack:ranged', -2, 'Panicked'), pen('save:all', -2, 'Panicked')] },
+  // Published as −2 on saving throws, skill checks and ability checks — and no attack penalty,
+  // because a panicked creature cannot attack at all (it drops everything and flees).
+  { id: 'panicked', name: 'Panicked', desc: '−2 on saves and skill/ability checks; drop held items and flee in terror, unable to take other actions.',
+    effects: [pen('save:all', -2, 'Panicked'), pen('skill:all', -2, 'Panicked')] },
   { id: 'deafened', name: 'Deafened', desc: '−4 on initiative; 20% arcane spell failure with verbal components.',
     effects: [pen('init', -4, 'Deafened')] },
   { id: 'blinded', name: 'Blinded', desc: '−2 AC, lose Dex to AC, −4 on Str/Dex skills, 50% miss chance.',

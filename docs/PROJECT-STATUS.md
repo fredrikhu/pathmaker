@@ -1419,6 +1419,20 @@ level label rather than by column headers; and the sorcerer and arcanist per-day
 spell-level sub-header row that a naive `find('1st')` grabs instead of the real 1st-level row, so
 filter to rows whose second cell looks like a BAB.
 
+**Skills, conditions and metamagic audit (2026-09-22). Two clean, one wrong condition.**
+**Skills: clean** - all 38 verified against the Skills table on key ability, trained-only and armour
+check penalty, and the nine armour-check skills are exactly the published set (Acrobatics, Climb,
+Disable Device, Escape Artist, Fly, Ride, Sleight of Hand, Stealth, Swim).
+**Metamagic: clean** - all nine level adjustments match (Empower +2, Enlarge +1, Extend +1, Maximize
++3, Quicken +4, Silent +1, Still +1, Widen +3), with Heighten correctly variable rather than flat.
+**Conditions: `panicked` was wrong both ways.** It carried a -2 attack penalty the rules do not give,
+and omitted the -2 on skill and ability checks that they do. The published entry reads "-2 penalty on
+all saving throws, skill checks, and ability checks", with no attack line because a panicked creature
+drops what it holds and flees and cannot attack at all. Every other condition matched, including the
+seven that deny the Dexterity bonus to AC.
+A golden pins all three tables: each skill's three flags, the nine metamagic adjustments and which
+entry is the variable one, every computed condition penalty by target, and both membership sets.
+
 ### Modeling simplifications (fidelity notes)
 - **Per-list spell levels — audited in full.** The per-list level map (`SpellDef.levelByList`, read via
   `spellLevelOn`) handles every spell whose level differs by list. All 172 multi-list spells were
