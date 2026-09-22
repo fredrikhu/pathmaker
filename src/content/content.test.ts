@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import * as C from './index';
+import * as S from './subsystems';
 import type { Predicate } from '../engine/types';
 import { SOURCE_POWER_PREFIXES } from '../engine/resolve';
 
@@ -2069,6 +2070,108 @@ describe('equipment: shapes that must hold', () => {
     for (const g of C.GEAR) {
       if (g.charges !== undefined && g.charges <= 0) bad.push(`${g.id}: charges ${g.charges}`);
       if (g.charges !== undefined && g.consumable) bad.push(`${g.id}: both charged and consumable`);
+    }
+    expect(bad, bad.join(' | ')).toEqual([]);
+  });
+});
+
+describe('subsystem option lists', () => {
+  // Most of these lists are not re-exported from content/index — class-features.ts and
+  // archetypes.ts import them straight from ./subsystems — so the test does the same.
+  const LISTS: [string, { id: string; name: string; desc: string }[]][] = [
+    ['BARBARIAN_RAGE_POWERS', S.BARBARIAN_RAGE_POWERS],
+    ['ROGUE_TALENTS', S.ROGUE_TALENTS],
+    ['ROGUE_ADVANCED_TALENTS', S.ROGUE_ADVANCED_TALENTS],
+    ['SLAYER_TALENTS', S.SLAYER_TALENTS],
+    ['SLAYER_ADVANCED_TALENTS', S.SLAYER_ADVANCED_TALENTS],
+    ['INVESTIGATOR_TALENTS', S.INVESTIGATOR_TALENTS],
+    ['PALADIN_MERCIES', S.PALADIN_MERCIES],
+    ['PALADIN_DIVINE_BOND', S.PALADIN_DIVINE_BOND],
+    ['ALCHEMIST_DISCOVERIES', S.ALCHEMIST_DISCOVERIES],
+    ['GRAND_DISCOVERIES', S.GRAND_DISCOVERIES],
+    ['MAGUS_ARCANA', S.MAGUS_ARCANA],
+    ['CAVALIER_ORDERS', S.CAVALIER_ORDERS],
+    ['GUNSLINGER_FIREARMS', S.GUNSLINGER_FIREARMS],
+    ['ORACLE_MYSTERIES', S.ORACLE_MYSTERIES],
+    ['ORACLE_CURSES', S.ORACLE_CURSES],
+    ['WITCH_PATRONS', S.WITCH_PATRONS],
+    ['WITCH_HEXES', S.WITCH_HEXES],
+    ['SHAMAN_HEXES', S.SHAMAN_HEXES],
+    ['NATURE_BOND', S.NATURE_BOND],
+    ['HUNTERS_BOND', S.HUNTERS_BOND],
+    ['ARCANIST_EXPLOITS', S.ARCANIST_EXPLOITS],
+    ['BLOODRAGER_BLOODLINES', S.BLOODRAGER_BLOODLINES],
+    ['SHIFTER_ASPECTS', S.SHIFTER_ASPECTS],
+    ['SHAMAN_SPIRITS', S.SHAMAN_SPIRITS],
+  ];
+
+  it('every list is non-empty and every option is fully written', () => {
+    const bad: string[] = [];
+    for (const [name, list] of LISTS) {
+      if (!list.length) bad.push(`${name}: empty`);
+      for (const o of list) {
+        if (!o.id || !/^[a-z0-9-]+$/.test(o.id)) bad.push(`${name}/${o.id}: bad id`);
+        if (!o.name?.trim()) bad.push(`${name}/${o.id}: no name`);
+        // A desc shorter than a phrase tells the player nothing about what they are picking.
+        if (!o.desc?.trim() || o.desc.trim().length < 12) bad.push(`${name}/${o.id}: desc too thin ("${o.desc}")`);
+      }
+    }
+    expect(bad, bad.join(' | ')).toEqual([]);
+  });
+
+  it('ids are unique within a list', () => {
+    const bad: string[] = [];
+    for (const [name, list] of LISTS) {
+      const seen = new Set<string>();
+      for (const o of list) {
+        if (seen.has(o.id)) bad.push(`${name}: duplicate id "${o.id}"`);
+        seen.add(o.id);
+      }
+    }
+    expect(bad, bad.join(' | ')).toEqual([]);
+  });
+
+  it('a basic and advanced pair that gets concatenated shares no id', () => {
+    // class-features.ts builds SLAYER_TALENTS_ALL and the rogue's advanced-eligible slot by
+    // concatenation, so a shared id would make one of the two options unreachable.
+    const bad: string[] = [];
+    for (const [label, basic, adv] of [
+      ['rogue', S.ROGUE_TALENTS, S.ROGUE_ADVANCED_TALENTS],
+      ['slayer', S.SLAYER_TALENTS, S.SLAYER_ADVANCED_TALENTS],
+    ] as const) {
+      const ids = new Set(basic.map((o) => o.id));
+      for (const o of adv) if (ids.has(o.id)) bad.push(`${label}: "${o.id}" is in both the basic and advanced list`);
+    }
+    expect(bad, bad.join(' | ')).toEqual([]);
+  });
+
+  it('a conditional suppression names a choice option that actually exists, at a level it is offered', () => {
+    // The Primalist trades a bloodline power for rage powers at chosen levels. A misspelled
+    // swapValue would never match, so the power would silently never be suppressed.
+    const bad: string[] = [];
+    for (const c of C.CLASSES)
+      for (const a of c.archetypes ?? [])
+        for (const cs of a.conditionalSuppress ?? []) {
+          const offered = [...(c.choices ?? []), ...(a.choices?.add ?? [])].find((ch) => ch.id === cs.choiceId);
+          if (!offered) { bad.push(`${a.id}: conditionalSuppress on unknown choice "${cs.choiceId}"`); continue; }
+          const opts = offered.options ?? [];
+          if (opts.length && !opts.some((o) => o.id === cs.swapValue))
+            bad.push(`${a.id}: swapValue "${cs.swapValue}" is not an option of "${cs.choiceId}"`);
+          for (const l of cs.levels)
+            if (!(offered.levels ?? [1]).includes(l))
+              bad.push(`${a.id}: suppresses at level ${l}, but "${cs.choiceId}" is not offered then`);
+        }
+    expect(bad, bad.join(' | ')).toEqual([]);
+  });
+
+  it('every eidolon evolution costs 1 to 4 points and states its mechanical effect', () => {
+    const bad: string[] = [];
+    for (const e of C.EIDOLON_EVOLUTIONS) {
+      if (![1, 2, 3, 4].includes(e.cost)) bad.push(`${e.id}: cost ${e.cost}`);
+      if (e.minLevel !== undefined && (e.minLevel < 1 || e.minLevel > 20)) bad.push(`${e.id}: minLevel ${e.minLevel}`);
+      if (e.forms && !e.forms.length) bad.push(`${e.id}: empty forms list allows nothing`);
+      // Either the engine applies it, or `apply.manual` marks it as not folded in.
+      if (!e.apply) bad.push(`${e.id}: neither applied nor marked manual`);
     }
     expect(bad, bad.join(' | ')).toEqual([]);
   });

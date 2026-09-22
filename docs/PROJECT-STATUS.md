@@ -1270,7 +1270,29 @@ shield's category matches its slot, heavy armour out-protects light, no id is sh
 catalogues, and a gear item is not both charged and consumable. One of those taught a real lesson:
 **a double weapon's damage is two dice joined by a slash** ("1d6/1d6", and the gnome hooked hammer's
 "×3/×4"), which `weaponDamageForSize` splits on deliberately — so the slash form is load-bearing,
-not a typo. Left out everywhere: traits gated on
+not a typo.
+
+**Subsystem audit (2026-09-22). Internally clean; no invented options found.** The 26 option lists
+(338 options) pass five new guards: every list non-empty with a real id, a name and a description
+worth reading; ids unique within a list; **the rogue and slayer basic/advanced pairs share no id**
+(class-features.ts concatenates them, so a collision would make one option unreachable); a
+`conditionalSuppress` names an option that exists on a choice offered at that level (the Primalist's
+bloodline-for-rage-powers trade, where a misspelled `swapValue` would silently never fire); and every
+eidolon evolution costs 1 to 4 points with an `apply` block. The source-to-powers pairings were
+already covered by existing tests, which is why nothing new was needed there.
+Existence spot-checked against the published pages for **nine lists with every option present**: rage
+powers (36), rogue talents basic and advanced (36), investigator talents (11), alchemist discoveries
+plus grand discoveries (28), magus arcana (18), witch hexes (25), oracle mysteries (10), oracle curses
+(6) and cavalier orders (7). **Two options remain unconfirmed** and are worth a second look with the
+Advanced Class Guide text: the slayer's advanced talent **Swift Poison** and the arcanist exploit
+**Energy Absorption** (which may be confusable with the wizard Abjuration school power of the same
+name). **A real observation, not a bug:** our slayer list offers Combat Trick, Terrain Mastery and
+Weapon Training inline *and* offers "Rogue Talent", so those three are reachable two ways; the
+published slayer reaches them only through the Rogue Talent option.
+Lookup notes: d20pfsrd writes the totem line as "Beast Totem, Greater", so match word bags not word
+order; the witch's hexes are not on `/witch/hexes/` but as `hex-<name>-su` slugs linked from the class
+page; and the slayer-talents and arcanist-exploits tables do not put the option name in the first
+column, so a first-column scrape reports every option missing. Left out everywhere: traits gated on
   a class feature (gunslinger grit/firearms, ranger favored enemy, monk styles, alchemist mutagens and
   bombs, magus arcane pool, sorcerer bloodline, summoner eidolon). Concentration-check traits (Focused
   Mind, Desperate Resolve, Arcane Temper's second half) stay prose because no concentration stat
