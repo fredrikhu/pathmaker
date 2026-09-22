@@ -6,11 +6,11 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 
 ## ▶ Resume here (last session end)
 
-**Current state** — branch `main`, working tree clean, **1,111 tests** passing; run
+**Current state** — branch `main`, working tree clean, **1,118 tests** passing; run
 `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
 **Latest — every catalogue and rules table has been audited against the published sources.**
-Thirteen passes over two days, `6729349`..`a06b997`. Ten turned up something to fix and three were
+Fourteen passes, `6729349`..`b131d9e`. Eleven turned up something to fix and three were
 already clean; the full table and the lessons are in the **Content audit** section below, with a
 detailed paragraph per catalogue further down under *Content breadth*. The worst find was the
 **magus marked full BAB instead of three-quarters**, which inflated every magus attack, CMB, CMD and
@@ -943,8 +943,8 @@ Everything below is the durable detail. When resuming, read this file, then `doc
 ## ▶ Content audit (2026-09-21 → 2026-09-22)
 
 Every content catalogue and every rules table the engine computes from was checked against the
-published source (d20pfsrd, and Archives of Nethys where d20pfsrd is incomplete). Thirteen passes,
-commits `6729349`..`a06b997`. **Ten turned up something to fix; three were already correct**
+published source (d20pfsrd, and Archives of Nethys where d20pfsrd is incomplete). Fourteen passes,
+commits `6729349`..`b131d9e`. **Eleven turned up something to fix; three were already correct**
 (races, equipment, magic item pricing).
 
 | Pass | Result |
@@ -962,6 +962,7 @@ commits `6729349`..`a06b997`. **Ten turned up something to fix; three were alrea
 | Spell slot tables | **1 wrong cell in 240** (bard's 20th-level 6th-level spells known) |
 | Skills / conditions / metamagic | skills and metamagic clean; **`panicked` wrong in both directions** |
 | Companions | all 60 table rows clean; **3 animal companions wrong** (octopus, saber-toothed cat, giant scorpion) |
+| Class features | 25 of 31 classes clean; **hunter missing 5 features**, skald 3, shifter 2, plus an invented deed |
 
 ### What the pattern was
 
@@ -983,8 +984,13 @@ the test too.
 pass where checking the roster mattered more than checking the rows.
 
 **My own scope claim was the last thing to verify.** After twelve passes I told the user everything
-auditable had been audited; the companions had not been. Treat "what is left?" as a question to
-answer from the file list, not from memory of what was done.
+auditable had been audited; the companions had not been, and neither had the class features. Treat
+"what is left?" as a question to answer from the file list, not from memory of what was done.
+
+**A gap is quieter than an error, and needs a different check.** Every earlier pass compared values
+we held against values the book prints. The class-feature pass found almost nothing wrong with what
+we held — it found eleven features we had never written down, which no value-for-value diff can
+surface. Checking a catalogue means walking the *published* list, not ours.
 
 ### What was left behind
 
@@ -1001,6 +1007,10 @@ Each pass added goldens rather than one-off corrections, so these values are now
 - **All three companion advancement tables** cell by cell, plus every creature's size, natural
   armour and ability scores, and the milestone levels that distinguish the animal companion's
   progression from the eidolon's.
+- **All 31 published class tables**, as the Special column verbatim, checked so that every ability
+  appears at the level it is first published at and every repeated pick falls on exactly the
+  published levels. Where our data compresses a published line, a `FOLDED` map names the feature it
+  folds into and a test asserts that target exists — so the compression is documented, not assumed.
 - `Predicate` gained `{ level }` and `{ classLevel }`; `ArchetypeDef` gained `races`; `TraitDef`
   gained `classSkills`, `param` and `abilitySwap`; `SourceFeature` gained `effectsAt`.
 
@@ -1527,6 +1537,27 @@ pounce and the step up to a 2d8 saber-toothed bite; the **giant scorpion's** dro
 60 ft. Also added the turtle familiar's shell retreat, the counterpart of the hedgehog's spiny
 defense we already modelled. The five vermin companions took the longest to verify: they are on the
 same d20pfsrd page as the animals, far below them, and are easy to conclude are absent.
+
+**Class feature audit (2026-09-23). Twenty-five of 31 classes clean; eleven features were missing.**
+Checked `CLASS_PROGRESSION` against the Special column of every published class table on Archives of
+Nethys, with d20pfsrd for the **Vampire Hunter** (a real Paizo class, from *The World of Vampire
+Hunter D*, but absent from AoN) and for the **gunslinger's deeds**, which AoN keeps off the class
+page. The values we held were almost all right; what was wrong was mostly **absence**. The hunter
+was missing five published features — Track (2nd), Improved Empathic Link (4th), Bonus Trick
+(7th/13th/19th), Raise Animal Companion (10th), Greater Empathic Link (14th) — and two of its
+descriptions had been written from the wrong class: its Master Hunter is tracking at full speed plus
+a day-long animal focus, not the slayer's killing strike, and One with the Wild is animals refusing
+to attack, not gaining every focus at once. The skald was missing three of its four songs (marching
+3rd, strength 6th, the fallen 14th); the shifter, Greater Chimeric Aspect (14th) and Timeless Body
+(18th); the cleric, its Aura, which our own warpriest already had. One entry was **invented**:
+*Deed: Slinger's Reload*, which duplicated Lightning Reload and stood in the place of the two real
+15th-level deeds, **Evasive** and **Slinger's Luck** (a grit-fuelled reroll). Two descriptions
+stated a wrong cadence: the brawler's AC bonus rises at 9th/13th/18th, not every five levels, and
+the monk's slow fall improves every two levels, not four. **Method note:** a naive per-level diff
+is unusable here, because our data deliberately holds a scaling ability as one entry whose
+description names the later steps. The comparison that works comes in three parts — first
+appearance, repeated-pick levels, and what the description claims — and the residue after those
+three is exactly the set of deliberate compressions, which the golden now names one by one.
 
 ### Modeling simplifications (fidelity notes)
 - **Per-list spell levels — audited in full.** The per-list level map (`SpellDef.levelByList`, read via
