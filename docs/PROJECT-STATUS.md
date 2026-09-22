@@ -1254,13 +1254,21 @@ lizardfolk are only on d20pfsrd under `other-races/more-races/standard-races-1-1
 modifiers read "Flexible (+2 Str, +2 Con)".
 
 **Equipment audit (2026-09-22). No errors found, but coverage is partial — see the gap below.**
-Verified exact against the published tables: **all 81 weapons** (cost, weight, medium damage die, crit
-line, range increment — 61 from the weapon tables plus 20 firearms), **all 18 armours and shields**
-(cost, weight, AC bonus, max Dex, armour check penalty, arcane spell failure), and **28 of the 64 gear
-items**. **Gap: 36 gear items are still unverified** — the classic CRB adventuring-gear table (backpack,
-trail rations, thieves' tools, the alchemical weapons, ammunition) is not on any d20pfsrd
-goods-and-services sub-page the index enumerates, and AoN's equipment tables load client-side so a
-`fetch` returns only the shell. Worth finishing with a different source.
+**COMPLETE as of 2026-09-22: all 163 equipment items verified exact against the published values** —
+**81 weapons** (cost, weight, medium damage die, crit line, range increment; 61 from the weapon tables
+plus 20 firearms), **18 armours and shields** (cost, weight, AC bonus, max Dex, armour check penalty,
+arcane spell failure) and **all 64 gear items** (cost, weight). Nothing was wrong.
+Finishing the last 36 gear items needed four different sources, worth recording: most sit on
+d20pfsrd's goods-and-services sub-pages but under a **longer published name**, so match loosely
+("Backpack, common", "Rations, trail", "Pouch, spell components", "Hook, grappling, common",
+"Thieves' tools, common", "Manacles, common", "Oil, lamp", "Holy/Unholy Water (1 flask)"); the
+firearm consumables are all on the **firearms** page; arrows, crossbow bolts and sling bullets are
+bundle rows on the **weapons** page ("Bolt(s), crossbow (10)", "Bullet(s), sling (10)" at 1 sp);
+caltrops and the magnifying glass come from **AoN's `EquipmentMiscDisplay.aspx?ItemName=`**, which is
+server-rendered unlike AoN's category tables and is **case-sensitive** ("Magnifying glass" resolves,
+"Magnifying Glass" returns an empty shell); and the potion and wand of cure light wounds are not table
+rows at all but **derived prices** — the potion base-cost table gives 50 gp for a 1st-level spell, and
+a wand is spell level × caster level × 750 gp.
 **Every apparent difference was my scraper, not the data** — worth knowing before trusting a future run:
 d20pfsrd writes the dart's cost as "5 sp" (0.5 gp), weights as "1/2 lb." and "1-1/2 lbs.", and glues
 footnote digits onto values so the tower shield's "+4" reads "+43". A naive number grab reports four
