@@ -6,10 +6,18 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 
 ## ▶ Resume here (last session end)
 
-**Current state** — branch `main`, working tree clean, **839 tests** passing; run
+**Current state** — branch `main`, working tree clean, **1,103 tests** passing; run
 `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
-**Latest — Primalist bloodrager shipped; Wildblooded assessed as a poor fit.** The Primalist (its per-level either/or: keep the bloodline power OR take two rage powers at 4/8/12/16/20) is now expressible via two small reusable engine additions — `ArchetypeDef.conditionalSuppress` (drop a source power at a level only when a per-level choice takes the swap) and `ClassChoiceDef.requiresPerLevel` (a recurring choice's slot appears only at the levels the gate choice selected). 124 archetypes; 836 tests; browser-verified.
+**Latest — every catalogue and rules table has been audited against the published sources.**
+Twelve passes over two days, `6729349`..`774180d`. Nine turned up something to fix and three were
+already clean; the full table and the lessons are in the **Content audit** section below, with a
+detailed paragraph per catalogue further down under *Content breadth*. The worst find was the
+**magus marked full BAB instead of three-quarters**, which inflated every magus attack, CMB, CMD and
+BAB-gated prerequisite — and which survived because **a test asserted it**. Each pass left a golden
+behind, so the numbers are now pinned rather than merely checked once.
+
+**Prior — Primalist bloodrager shipped; Wildblooded assessed as a poor fit.** The Primalist (its per-level either/or: keep the bloodline power OR take two rage powers at 4/8/12/16/20) is now expressible via two small reusable engine additions — `ArchetypeDef.conditionalSuppress` (drop a source power at a level only when a per-level choice takes the swap) and `ClassChoiceDef.requiresPerLevel` (a recurring choice's slot appears only at the levels the gate choice selected). 124 archetypes; 836 tests; browser-verified.
 
 **Wildblooded (sorcerer): the one variant with mechanical payoff — Sage — is now shipped; the rest stays deferred as a poor fit.** Sage (wildblooded arcane) casts on Intelligence rather than Charisma, which is expressible via `spellcastingMod.ability` plus fixing the bloodline pick to Arcane (no new mechanism — removing and re-adding the `bloodline` choice re-fires the source injection off the Arcane value). It keeps the Arcane bloodline's powers, spells, class skill, and bonus feats; a level-20 Sage's spell DC comes off Int. The remaining wildbloods stay deferred: Its defining feature is the bloodline *arcana*, which our engine deliberately does not mechanize (base-bloodline arcana is already descriptive). A general mutated-bloodline framework would need mutated→base resolution across three places (powers, spells, class skill) plus per-variant content, for a mechanically near-invisible result. The one variant with real mechanical payoff is **Sage** (Int-based casting, expressible via `spellcastingMod.ability`), but Sage is specifically the *arcane* wildblood and our bloodline is a free player choice, so a faithful Sage needs a small 'archetype fixes a source choice' mechanism first. Left as a targeted future option rather than a low-value framework.
 
@@ -932,6 +940,69 @@ Eidolon attack evolutions and full monster-race statblocks await a companion/mon
 
 Everything below is the durable detail. When resuming, read this file, then `docs/DESIGN.md`.
 
+## ▶ Content audit (2026-09-21 → 2026-09-22)
+
+Every content catalogue and every rules table the engine computes from was checked against the
+published source (d20pfsrd, and Archives of Nethys where d20pfsrd is incomplete). Twelve passes,
+commits `6729349`..`774180d`. **Nine turned up something to fix; three were already correct**
+(races, equipment, magic item pricing).
+
+| Pass | Result |
+| --- | --- |
+| Traits | **1 fabricated entry** (`Frail` is not a published drawback) + 4 wrong texts; drawbacks rewritten |
+| Feats | **8 unenforced prerequisites** — 7 fighter-level gates and Leadership; 4 wrong requirement texts |
+| Spells | **32 wrong save lines**; school and buff durations clean across all 642 |
+| Archetypes | **1 unenforced race restriction** (Spellbinder is elf only); internally clean across 125 |
+| Races | clean — all 40 ability spreads, sizes and speeds |
+| Equipment | clean — all 163 items (81 weapons, 18 armours, 64 gear) |
+| Subsystems | **2 wrong options** (arcanist Energy Shield, slayer Swift Poison); no inventions |
+| Deities | values all correct, but **2 core gods missing** from the roster (Asmodeus, Cayden Cailean) |
+| Class chassis | **magus BAB wrong**, plus a spurious good Will on cavalier and bloodrager |
+| Magic item pricing | clean — 19 weapon abilities, 15 armour abilities, 50 wondrous items, engine formula |
+| Spell slot tables | **1 wrong cell in 240** (bard's 20th-level 6th-level spells known) |
+| Skills / conditions / metamagic | skills and metamagic clean; **`panicked` wrong in both directions** |
+
+### What the pattern was
+
+**The field nobody computes is the field that rots.** Spell *school* drives Spell Focus and a
+specialist's opposition schools, and was perfect across 642 spells; the *save line* is display-only
+and was wrong 5% of the time. The same split held everywhere: numbers the engine consumes were
+overwhelmingly right, while prose, stated-but-unenforced restrictions, and one-off display strings
+drifted.
+
+**A stated requirement with nothing enforcing it is the most dangerous shape.** It reads as correct
+in the data and silently does nothing in the engine. That covers the feat prerequisites, the elf-only
+Spellbinder, and the drawback whose missing id still granted its third trait slot.
+
+**A golden is only as trustworthy as the source it was written from.** The magus BAB bug survived
+because a test named *"Magus: full BAB (+1 at 1st)"* asserted it. When a value looks wrong, distrust
+the test too.
+
+**A catalogue can be entirely accurate and still be wrong by omission.** The deities were the only
+pass where checking the roster mattered more than checking the rows.
+
+### What was left behind
+
+Each pass added goldens rather than one-off corrections, so these values are now pinned:
+
+- The **class chassis** for all 31 classes (hit die, BAB, good saves, skill ranks, starting wealth).
+- **Magic item pricing** end to end, including the engine formula and a check that no catalogue item
+  escapes the priced list.
+- **Spell slot and known tables**, plus the invariant that no spell level ever loses slots as class
+  level rises — the guard that would have caught the bard cell on its own.
+- **Skills, conditions and metamagic** in full, including both membership sets.
+- Per-catalogue structural guards aimed at the silent-no-op shape: a misspelled id that removes
+  nothing, a suppression prefix that suppresses nothing, an archetype that changes nothing.
+- `Predicate` gained `{ level }` and `{ classLevel }`; `ArchetypeDef` gained `races`; `TraitDef`
+  gained `classSkills`, `param` and `abilitySwap`; `SourceFeature` gained `effectsAt`.
+
+### Scope note
+
+What remains unaudited has **no published source to check against**: the authored prose in
+`playstyle.ts` and `spell-tactics.ts`, and the descriptive text the app writes itself. Everything
+with a book value behind it has been verified. The reusable method, the per-source lookup traps and
+the scraper pitfalls are recorded in the `content-audit-method` memory note.
+
 ## Phase 1 — Level-1 character creator: **complete**
 
 Working, verified (60 tests passing, typecheck clean):
@@ -1253,7 +1324,7 @@ Traits" except on Android where a monster-style preamble pushes it down the page
 lizardfolk are only on d20pfsrd under `other-races/more-races/standard-races-1-10-rp/` where the
 modifiers read "Flexible (+2 Str, +2 Con)".
 
-**Equipment audit (2026-09-22). No errors found, but coverage is partial — see the gap below.**
+**Equipment audit (2026-09-22). No errors found.**
 **COMPLETE as of 2026-09-22: all 163 equipment items verified exact against the published values** —
 **81 weapons** (cost, weight, medium damage die, crit line, range increment; 61 from the weapon tables
 plus 20 firearms), **18 armours and shields** (cost, weight, AC bonus, max Dex, armour check penalty,
