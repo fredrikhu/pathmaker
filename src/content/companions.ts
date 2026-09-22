@@ -171,6 +171,10 @@ export const COMPANION_HD_AVERAGE: Record<number, number> = { 8: 4.5, 10: 5.5 };
 const abil = (str: number, dex: number, con: number, int: number, wis: number, cha: number): Record<Ability, number> =>
   ({ str, dex, con, int, wis, cha });
 
+/** An attack that deals no damage at all and exists only to grab, as the octopus's tentacles do.
+ *  The published stat block prints no dice for it, so neither do we — and no Strength is added. */
+export const NO_DAMAGE = '\u2014';
+
 const atk = (name: string, count: number, damage: string, extra: Partial<CompanionAttackDef> = {}): CompanionAttackDef =>
   ({ name, count, damage, ...extra });
 
@@ -447,11 +451,15 @@ export const ANIMAL_COMPANIONS: CompanionDef[] = [
   animal('octopus', 'Octopus',
     stats({
       size: 'small', speed: { base: 20, swim: 30 }, naturalArmor: 1,
-      attacks: [atk('bite', 1, '1d3'), atk('tentacle', 1, '1d2', { secondary: true, note: 'grab' })],
+      attacks: [atk('bite', 1, '1d3'), atk('tentacle', 1, NO_DAMAGE, { secondary: true, note: 'grab' })],
       abilities: abil(12, 17, 14, 2, 12, 3), senses: ['low-light vision'],
       specialQualities: ['ink cloud', 'jet 200 ft'],
     }),
-    { level: 4, attacks: [atk('bite', 1, '1d3', { note: 'plus poison' }), atk('tentacle', 1, '1d2', { secondary: true, note: 'grab' })], abilityAdj: { str: 2, con: 2 } }),
+    {
+      level: 4,
+      attacks: [atk('bite', 1, '1d3', { note: 'plus poison' }), atk('tentacle', 1, NO_DAMAGE, { secondary: true, note: 'grab' })],
+      abilityAdj: { str: 2, con: 2 },
+    }),
   animal('pteranodon', 'Pteranodon',
     stats({
       size: 'medium', speed: { base: 10, fly: 50, flyManeuver: 'clumsy' }, naturalArmor: 0,
@@ -491,6 +499,7 @@ export const ANIMAL_COMPANIONS: CompanionDef[] = [
       level: 7, size: 'large', naturalArmor: 2,
       attacks: [atk('claw', 2, '1d6', { note: 'plus grab' })],
       abilityAdj: { str: 8, dex: -2, con: 4 },
+      specialAttacks: ['pounce', 'saber-toothed bite (2d8, only on a grapple check to deal damage)'],
     }),
   animal('scorpion-giant', 'Scorpion, giant',
     stats({
@@ -503,6 +512,7 @@ export const ANIMAL_COMPANIONS: CompanionDef[] = [
       level: 7, size: 'large', naturalArmor: 3,
       attacks: [atk('claw', 2, '1d6', { note: 'plus grab' }), atk('sting', 1, '1d6', { note: 'plus poison' })],
       abilityAdj: { str: 8, dex: -2, con: 4 }, specialAttacks: ['poison (1d2 Str damage)'],
+      specialQualities: ['tremorsense 60 ft'],
     }),
   animal('snapping-turtle', 'Snapping turtle',
     stats({
@@ -582,9 +592,10 @@ export const ANIMAL_COMPANIONS: CompanionDef[] = [
 
 // ---------- Eidolon base forms (APG) ----------
 
-/** The three APG eidolon base forms. Free evolutions cost no pool points; a repeated id means the
- *  form grants that evolution twice (the quadruped's two pairs of legs). The aquatic, avian and
- *  tauric forms from later books are not authored. */
+/** The six published eidolon base forms — the three from the APG plus aquatic (Ultimate Magic)
+ *  and avian and tauric (Cohorts and Companions) — followed by the Wild Caller's four plant forms.
+ *  Free evolutions cost no pool points; a repeated id means the form grants that evolution twice
+ *  (the quadruped's two pairs of legs). */
 export const EIDOLON_FORMS: CompanionDef[] = [
   {
     id: 'biped', name: 'Biped', kind: 'eidolon',
@@ -864,6 +875,7 @@ export const FAMILIARS: CompanionDef[] = [
       size: 'tiny', speed: { base: 5, swim: 20 }, naturalArmor: 6,
       attacks: [atk('bite', 1, '1d3')],
       abilities: abil(3, 6, 8, 2, 12, 3), senses: ['low-light vision'],
+      specialQualities: ['shell retreat'],
     }),
     'Master gains a +1 natural armor bonus to AC.'),
 ];

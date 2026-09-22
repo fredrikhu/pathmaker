@@ -63,7 +63,9 @@ function buildAttacks(
     };
     const bonus = bab + attackMod + sizeAcMod + naturalAttackPenalty(ctx);
     const scale = naturalPowerAttackScale(ctx);
-    const dmgMod = strengthDamage(strMod, scale);
+    // An attack with no damage dice (an octopus's grabbing tentacles) deals no damage at all, so
+    // there is nothing for Strength to modify.
+    const dmgMod = /\d+d\d+/.test(a.damage) ? strengthDamage(strMod, scale) : 0;
     const damage = dmgMod === 0 ? a.damage : `${a.damage}${dmgMod > 0 ? '+' : '−'}${Math.abs(dmgMod)}`;
     const notes: string[] = [];
     if (a.note) notes.push(a.note);

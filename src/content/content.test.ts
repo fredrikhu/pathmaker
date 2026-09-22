@@ -1550,7 +1550,8 @@ describe('companion creatures', () => {
       expect(c.start.speed.base, `${key}: negative speed`).toBeGreaterThanOrEqual(0);
       for (const a of c.start.attacks) {
         expect(a.count, `${key}/${a.name}: attack count`).toBeGreaterThan(0);
-        expect(a.damage, `${key}/${a.name}: damage die`).toMatch(/^\d+d\d+$/);
+        // The one legal non-dice entry is an attack that deals no damage and only grabs.
+        expect(a.damage, `${key}/${a.name}: damage die`).toMatch(/^(\d+d\d+|\u2014)$/);
       }
       for (const ab of ABILITIES) {
         expect((c.start.abilities as Record<string, number>)[ab], `${key}: ${ab} score`).toBeGreaterThan(0);
@@ -1630,6 +1631,218 @@ describe('companion creatures', () => {
         expect((c.companions ?? []).length, `${c.id}/${arch.id}: fuses a companion the class does not grant`).toBeGreaterThan(0);
       }
     }
+  });
+});
+
+describe('companions, verified against the published tables and stat blocks', () => {
+  // Read off d20pfsrd (Animal Companions, Eidolons, Familiars, Wild Caller) and Archives of Nethys
+  // (the eidolon base forms, whose values d20pfsrd has lost for the aquatic form, and the Bestiary
+  // stat blocks behind the familiars) on 2026-09-22.
+
+  it('Table: Animal Companion Base Statistics matches all twenty published rows', () => {
+    // hd bab fort ref will skills feats natural-armor str/dex tricks
+    const P = [
+      '2 1 3 3 0 2 1 0 0 1', '3 2 3 3 1 3 2 0 0 1', '3 2 3 3 1 3 2 2 1 2', '4 3 4 4 1 4 2 2 1 2',
+      '5 3 4 4 1 5 3 2 1 2', '6 4 5 5 2 6 3 4 2 3', '6 4 5 5 2 6 3 4 2 3', '7 5 5 5 2 7 4 4 2 3',
+      '8 6 6 6 2 8 4 6 3 4', '9 6 6 6 3 9 5 6 3 4', '9 6 6 6 3 9 5 6 3 4', '10 7 7 7 3 10 5 8 4 5',
+      '11 8 7 7 3 11 6 8 4 5', '12 9 8 8 4 12 6 8 4 5', '12 9 8 8 4 12 6 10 5 6', '13 9 8 8 4 13 7 10 5 6',
+      '14 10 9 9 4 14 7 10 5 6', '15 11 9 9 5 15 8 12 6 7', '15 11 9 9 5 15 8 12 6 7', '16 12 10 10 5 16 8 12 6 7',
+    ];
+    const got = C.ANIMAL_COMPANION_TABLE.map((r) =>
+      [r.hd, r.bab, r.fort, r.ref, r.will, r.skills, r.feats, r.naturalArmor, r.strDex, r.tricks].join(' '));
+    expect(got).toEqual(P);
+    // The special column: ability increases at 4/9/14/20, Multiattack at 9th — not the eidolon's levels.
+    const at = (s: string) => C.ANIMAL_COMPANION_TABLE.flatMap((r, i) => (r.special.includes(s) ? [i + 1] : []));
+    expect(at('Ability score increase')).toEqual([4, 9, 14, 20]);
+    expect(at('Multiattack')).toEqual([9]);
+    expect(at('Evasion')).toEqual([3]);
+    expect(at('Devotion')).toEqual([6]);
+    expect(at('Improved evasion')).toEqual([15]);
+  });
+
+  it('Table: Eidolon Base Statistics matches all twenty published rows', () => {
+    // hd bab good-save poor-save skills feats armor str/dex pool max-attacks
+    const P = [
+      '1 1 2 0 4 1 0 0 3 3', '2 2 3 0 8 1 2 1 4 3', '3 3 3 1 12 2 2 1 5 3', '3 3 3 1 12 2 2 1 7 4',
+      '4 4 4 1 16 2 4 2 8 4', '5 5 4 1 20 3 4 2 9 4', '6 6 5 2 24 3 6 3 10 4', '6 6 5 2 24 3 6 3 11 4',
+      '7 7 5 2 28 4 6 3 13 5', '8 8 6 2 32 4 8 4 14 5', '9 9 6 3 36 5 8 4 15 5', '9 9 6 3 36 5 10 5 16 5',
+      '10 10 7 3 40 5 10 5 17 5', '11 11 7 3 44 6 10 5 19 6', '12 12 8 4 48 6 12 6 20 6',
+      '12 12 8 4 48 6 12 6 21 6', '13 13 8 4 52 7 14 7 22 6', '14 14 9 4 56 7 14 7 23 6',
+      '15 15 9 5 60 8 14 7 25 7', '15 15 9 5 60 8 16 8 26 7',
+    ];
+    const got = C.EIDOLON_TABLE.map((r) =>
+      [r.hd, r.bab, r.goodSave, r.poorSave, r.skills, r.feats, r.armor, r.strDex, r.pool, r.maxAttacks].join(' '));
+    expect(got).toEqual(P);
+    // The eidolon's milestones sit a level earlier than the animal companion's at every step.
+    const at = (s: string) => C.EIDOLON_TABLE.flatMap((r, i) => (r.special.includes(s) ? [i + 1] : []));
+    expect(at('Ability score increase')).toEqual([5, 10, 15]);
+    expect(at('Multiattack')).toEqual([9]);
+    expect(at('Evasion')).toEqual([2]);
+    expect(at('Devotion')).toEqual([6]);
+    expect(at('Improved evasion')).toEqual([14]);
+  });
+
+  it('Table: Familiars matches the published natural armour, Intelligence and abilities', () => {
+    expect(C.FAMILIAR_TABLE.map((r) => `${r.naturalArmor}/${r.int}`)).toEqual([
+      '1/6', '1/6', '2/7', '2/7', '3/8', '3/8', '4/9', '4/9', '5/10', '5/10',
+      '6/11', '6/11', '7/12', '7/12', '8/13', '8/13', '9/14', '9/14', '10/15', '10/15',
+    ]);
+    // The printed table grants abilities on odd levels only, and each is gained once.
+    const at = (s: string) => C.FAMILIAR_TABLE.flatMap((r, i) => (r.special.includes(s) ? [i + 1] : []));
+    expect(at('Alertness')).toEqual([1]);
+    expect(at('Improved evasion')).toEqual([1]);
+    expect(at('Share spells')).toEqual([1]);
+    expect(at('Empathic link')).toEqual([1]);
+    expect(at('Deliver touch spells')).toEqual([3]);
+    expect(at('Speak with master')).toEqual([5]);
+    expect(at('Speak with animals of its kind')).toEqual([7]);
+    expect(at('Spell resistance')).toEqual([11]);
+    expect(at('Scry on familiar')).toEqual([13]);
+  });
+
+  it('every animal companion has its published size, natural armour, abilities and advancement level', () => {
+    // id -> "start-size natural-armor str/dex/con/int/wis/cha | advancement-level advanced-size"
+    const P: Record<string, string> = {
+      ape: 'medium 1 13/17/10/2/12/7 | 4 large',
+      badger: 'small 2 10/17/15/2/12/10 | 4 medium',
+      bear: 'small 2 15/15/13/2/12/6 | 4 medium',
+      bird: 'small 1 10/15/12/2/14/6 | 4 -',
+      boar: 'small 6 13/12/15/2/13/4 | 4 medium',
+      camel: 'large 1 18/16/14/2/11/4 | 4 -',
+      'cat-big': 'medium 1 13/17/13/2/15/10 | 7 large',
+      'cat-small': 'small 1 12/21/13/2/12/6 | 4 medium',
+      crocodile: 'small 4 15/14/15/1/12/2 | 4 medium',
+      deinonychus: 'small 1 11/17/17/2/12/14 | 7 medium',
+      dog: 'small 2 13/17/15/2/12/6 | 4 medium',
+      horse: 'large 4 16/13/15/2/12/6 | 4 -',
+      pony: 'medium 2 13/13/12/2/11/4 | 4 -',
+      shark: 'small 4 13/15/15/1/12/2 | 4 medium',
+      'snake-constrictor': 'medium 2 15/17/13/1/12/2 | 4 large',
+      'snake-viper': 'small 2 8/17/11/1/12/2 | 4 medium',
+      wolf: 'medium 2 13/15/15/2/12/6 | 7 large',
+      aurochs: 'medium 1 14/12/12/2/11/4 | 7 large',
+      'bat-dire': 'medium 0 9/17/9/2/14/6 | 7 large',
+      'bear-grizzly': 'medium 1 17/13/13/2/13/6 | 7 large',
+      'beetle-giant': 'small 6 13/12/13/1/11/4 | 4 medium',
+      'centipede-giant': 'small 2 8/17/11/1/10/2 | 4 medium',
+      'crab-giant': 'small 5 13/14/13/1/11/4 | 4 medium',
+      dolphin: 'medium 1 12/15/13/2/12/6 | 4 -',
+      elephant: 'medium 4 14/14/13/2/13/7 | 7 large',
+      elk: 'medium 1 12/17/14/2/15/5 | 7 large',
+      'frog-giant': 'medium 1 15/13/16/1/9/6 | 4 -',
+      hyena: 'small 2 10/17/13/2/13/6 | 4 medium',
+      'monitor-lizard': 'small 1 13/17/12/2/12/6 | 7 medium',
+      octopus: 'small 1 12/17/14/2/12/3 | 4 -',
+      pteranodon: 'medium 0 8/21/10/2/14/12 | 7 large',
+      rhinoceros: 'medium 4 14/14/15/2/13/5 | 7 large',
+      roc: 'medium 5 12/19/9/2/13/11 | 7 large',
+      'saber-toothed-cat': 'medium 1 15/15/13/2/13/8 | 7 large',
+      'scorpion-giant': 'medium 1 11/12/12/1/10/2 | 7 large',
+      'snapping-turtle': 'medium 10 8/10/9/1/13/6 | 7 large',
+      'spider-giant': 'small 0 6/17/10/1/10/2 | 4 medium',
+      stag: 'small 0 10/19/14/2/15/8 | 4 medium',
+      stegosaurus: 'medium 6 10/18/10/2/12/10 | 7 large',
+      triceratops: 'medium 6 10/13/11/2/12/7 | 7 large',
+      tyrannosaurus: 'medium 4 14/16/10/2/15/10 | 7 large',
+      velociraptor: 'small 1 11/17/17/2/12/14 | 7 medium',
+    };
+    const line = (c: (typeof C.ANIMAL_COMPANIONS)[number]) => {
+      const a = c.start.abilities;
+      const adv = c.advance!;
+      return `${c.start.size} ${c.start.naturalArmor} ${a.str}/${a.dex}/${a.con}/${a.int}/${a.wis}/${a.cha}`
+        + ` | ${adv.level} ${adv.size ?? '-'}`;
+    };
+    expect(C.ANIMAL_COMPANIONS.map((c) => c.id).sort()).toEqual(Object.keys(P).sort());
+    const bad = C.ANIMAL_COMPANIONS.filter((c) => line(c) !== P[c.id]).map((c) => `${c.id}: ${line(c)} / published ${P[c.id]}`);
+    expect(bad, bad.join(' | ')).toEqual([]);
+  });
+
+  it('the three animal-companion entries the audit corrected stay corrected', () => {
+    const find = (id: string) => C.ANIMAL_COMPANIONS.find((c) => c.id === id)!;
+    // The octopus's tentacles only grab; the printed block gives them no damage dice at all.
+    const tentacles = find('octopus').start.attacks.find((a) => a.name === 'tentacle')!;
+    expect(tentacles.damage).toBe(C.NO_DAMAGE);
+    expect(tentacles.note).toBe('grab');
+    // The saber-toothed cat gains pounce at 7th, and its bite steps up with it.
+    const cat = find('saber-toothed-cat').advance!.specialAttacks ?? [];
+    expect(cat).toContain('pounce');
+    expect(cat.some((s) => s.includes('2d8')), 'the 2d8 saber-toothed bite').toBe(true);
+    // The giant scorpion's tremorsense doubles at 7th.
+    expect(find('scorpion-giant').advance!.specialQualities ?? []).toContain('tremorsense 60 ft');
+  });
+
+  it('every eidolon base form has its published saves, size, natural armour and abilities', () => {
+    // id -> "good-saves size natural-armor str/dex/con/int/wis/cha"
+    const P: Record<string, string> = {
+      biped: 'fort,will medium 2 16/12/13/7/10/11',
+      quadruped: 'fort,ref medium 2 14/14/13/7/10/11',
+      serpentine: 'ref,will medium 2 12/16/13/7/10/11',
+      aquatic: 'fort,ref medium 4 16/12/13/7/10/11',
+      avian: 'ref,will small 2 12/16/13/7/10/11',
+      tauric: 'fort,will small 2 14/14/13/7/10/11',
+      // The Wild Caller's plant forms (Heroes of the Wild).
+      cactus: 'fort,ref medium 2 14/14/13/7/10/11',
+      conifer: 'fort,will medium 2 14/12/15/7/10/11',
+      mushroom: 'fort,ref medium 2 14/14/13/7/10/11',
+      tree: 'fort,ref medium 4 16/12/13/7/10/11',
+    };
+    const line = (f: (typeof C.EIDOLON_FORMS)[number]) => {
+      const a = f.start.abilities;
+      return `${(f.goodSaves ?? []).join(',')} ${f.start.size} ${f.start.naturalArmor}`
+        + ` ${a.str}/${a.dex}/${a.con}/${a.int}/${a.wis}/${a.cha}`;
+    };
+    expect(C.EIDOLON_FORMS.map((f) => f.id).sort()).toEqual(Object.keys(P).sort());
+    const bad = C.EIDOLON_FORMS.filter((f) => line(f) !== P[f.id]).map((f) => `${f.id}: ${line(f)} / published ${P[f.id]}`);
+    expect(bad, bad.join(' | ')).toEqual([]);
+  });
+
+  it('every familiar has its published size, speed, natural armour and abilities', () => {
+    // id -> "size base-speed natural-armor str/dex/con/int/wis/cha"
+    const P: Record<string, string> = {
+      bat: 'diminutive 5 0 1/15/6/2/14/5',
+      cat: 'tiny 30 0 3/15/8/2/12/7',
+      hawk: 'tiny 10 0 6/17/11/2/14/7',
+      lizard: 'tiny 20 0 3/15/8/1/12/2',
+      monkey: 'tiny 30 0 3/15/10/2/12/5',
+      owl: 'tiny 10 0 6/17/11/2/15/6',
+      rat: 'tiny 15 0 2/15/11/2/13/2',
+      raven: 'tiny 10 0 2/15/8/2/15/7',
+      toad: 'diminutive 5 0 1/12/6/1/15/4',
+      viper: 'tiny 20 1 4/17/8/1/13/2',
+      weasel: 'tiny 20 1 3/15/10/2/12/5',
+      // A mindless familiar prints "—" for Intelligence; the catalogue authors it at 1 and tags it.
+      'centipede-house': 'tiny 40 2 1/17/10/1/10/2',
+      compsognathus: 'tiny 40 1 8/15/14/2/11/5',
+      'crab-king': 'tiny 30 4 7/15/12/1/10/2',
+      'donkey-rat': 'small 30 0 6/17/13/2/13/4',
+      fox: 'tiny 40 0 9/15/13/2/12/6',
+      goat: 'small 30 1 12/13/12/2/11/5',
+      hedgehog: 'diminutive 20 1 1/16/6/2/12/7',
+      'scorpion-greensting': 'tiny 30 3 3/16/10/1/10/2',
+      turtle: 'tiny 5 6 3/6/8/2/12/3',
+    };
+    const line = (f: (typeof C.FAMILIARS)[number]) => {
+      const a = f.start.abilities;
+      return `${f.start.size} ${f.start.speed.base} ${f.start.naturalArmor}`
+        + ` ${a.str}/${a.dex}/${a.con}/${a.int}/${a.wis}/${a.cha}`;
+    };
+    expect(C.FAMILIARS.map((f) => f.id).sort()).toEqual(Object.keys(P).sort());
+    const bad = C.FAMILIARS.filter((f) => line(f) !== P[f.id]).map((f) => `${f.id}: ${line(f)} / published ${P[f.id]}`);
+    expect(bad, bad.join(' | ')).toEqual([]);
+  });
+
+  it('every familiar grants the master benefit the published table names', () => {
+    const P: Record<string, string> = {
+      bat: 'Fly', cat: 'Stealth', hawk: 'Perception', lizard: 'Climb', monkey: 'Acrobatics',
+      owl: 'Perception', rat: 'Fortitude', raven: 'Appraise', toad: 'hit points', viper: 'Bluff',
+      weasel: 'Reflex', 'centipede-house': 'Stealth', compsognathus: 'Initiative',
+      'crab-king': 'grapple', 'donkey-rat': 'Fortitude', fox: 'Reflex', goat: 'Survival',
+      hedgehog: 'Will', 'scorpion-greensting': 'Initiative', turtle: 'natural armor',
+    };
+    const bad = C.FAMILIARS
+      .filter((f) => !(f.masterBenefit ?? '').includes(P[f.id]))
+      .map((f) => `${f.id}: "${f.masterBenefit}" does not mention ${P[f.id]}`);
+    expect(bad, bad.join(' | ')).toEqual([]);
   });
 });
 

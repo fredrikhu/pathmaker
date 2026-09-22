@@ -22,7 +22,7 @@ export type { SourceFeature } from './source-features';
 export {
   COMPANIONS, ANIMAL_COMPANIONS, EIDOLON_FORMS, FAMILIARS, companionById, companionsOfKind,
   ANIMAL_COMPANION_TABLE, EIDOLON_TABLE, FAMILIAR_TABLE, SIZE_MODIFIERS, SIZE_LABEL,
-  COMPANION_HD_AVERAGE,
+  COMPANION_HD_AVERAGE, NO_DAMAGE,
 } from './companions';
 export type { AnimalCompanionRow, EidolonRow, FamiliarRow } from './companions';
 export { CONDITIONS, conditionById } from './conditions';
