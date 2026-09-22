@@ -6,11 +6,11 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 
 ## ▶ Resume here (last session end)
 
-**Current state** — branch `main`, working tree clean, **1,103 tests** passing; run
+**Current state** — branch `main`, working tree clean, **1,111 tests** passing; run
 `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
 **Latest — every catalogue and rules table has been audited against the published sources.**
-Twelve passes over two days, `6729349`..`774180d`. Nine turned up something to fix and three were
+Thirteen passes over two days, `6729349`..`a06b997`. Ten turned up something to fix and three were
 already clean; the full table and the lessons are in the **Content audit** section below, with a
 detailed paragraph per catalogue further down under *Content breadth*. The worst find was the
 **magus marked full BAB instead of three-quarters**, which inflated every magus attack, CMB, CMD and
@@ -943,8 +943,8 @@ Everything below is the durable detail. When resuming, read this file, then `doc
 ## ▶ Content audit (2026-09-21 → 2026-09-22)
 
 Every content catalogue and every rules table the engine computes from was checked against the
-published source (d20pfsrd, and Archives of Nethys where d20pfsrd is incomplete). Twelve passes,
-commits `6729349`..`774180d`. **Nine turned up something to fix; three were already correct**
+published source (d20pfsrd, and Archives of Nethys where d20pfsrd is incomplete). Thirteen passes,
+commits `6729349`..`a06b997`. **Ten turned up something to fix; three were already correct**
 (races, equipment, magic item pricing).
 
 | Pass | Result |
@@ -961,6 +961,7 @@ commits `6729349`..`774180d`. **Nine turned up something to fix; three were alre
 | Magic item pricing | clean — 19 weapon abilities, 15 armour abilities, 50 wondrous items, engine formula |
 | Spell slot tables | **1 wrong cell in 240** (bard's 20th-level 6th-level spells known) |
 | Skills / conditions / metamagic | skills and metamagic clean; **`panicked` wrong in both directions** |
+| Companions | all 60 table rows clean; **3 animal companions wrong** (octopus, saber-toothed cat, giant scorpion) |
 
 ### What the pattern was
 
@@ -981,6 +982,10 @@ the test too.
 **A catalogue can be entirely accurate and still be wrong by omission.** The deities were the only
 pass where checking the roster mattered more than checking the rows.
 
+**My own scope claim was the last thing to verify.** After twelve passes I told the user everything
+auditable had been audited; the companions had not been. Treat "what is left?" as a question to
+answer from the file list, not from memory of what was done.
+
 ### What was left behind
 
 Each pass added goldens rather than one-off corrections, so these values are now pinned:
@@ -993,6 +998,9 @@ Each pass added goldens rather than one-off corrections, so these values are now
 - **Skills, conditions and metamagic** in full, including both membership sets.
 - Per-catalogue structural guards aimed at the silent-no-op shape: a misspelled id that removes
   nothing, a suppression prefix that suppresses nothing, an archetype that changes nothing.
+- **All three companion advancement tables** cell by cell, plus every creature's size, natural
+  armour and ability scores, and the milestone levels that distinguish the animal companion's
+  progression from the eidolon's.
 - `Predicate` gained `{ level }` and `{ classLevel }`; `ArchetypeDef` gained `races`; `TraitDef`
   gained `classSkills`, `param` and `abilitySwap`; `SourceFeature` gained `effectsAt`.
 
@@ -1503,6 +1511,22 @@ drops what it holds and flees and cannot attack at all. Every other condition ma
 seven that deny the Dexterity bonus to AC.
 A golden pins all three tables: each skill's three flags, the nine metamagic adjustments and which
 entry is the variable one, every computed condition penalty by target, and both membership sets.
+
+**Companion audit (2026-09-22). Three animal companions wrong; every table clean.**
+Checked against d20pfsrd (the animal companion, eidolon and familiar grids, the companion stat
+blocks, and the Wild Caller's plant base forms) and Archives of Nethys (the eidolon base forms,
+whose values d20pfsrd's page has lost for the aquatic form, and the Bestiary blocks behind the
+twenty familiars). **All sixty rows of the three advancement tables match exactly**, including the
+detail that the animal companion's ability increases land at 4/9/14/20 with Multiattack at 9th while
+the eidolon's land at 5/10/15 — the reason the two tables are kept separate. The six eidolon base
+forms, the four plant forms, and all twenty familiars including their master benefits were clean.
+Three animal companions were not: the **octopus's tentacles** dealt 1d2 when the printed block gives
+them no damage at all (they exist only to grab, so they now carry `NO_DAMAGE` and the engine adds no
+Strength to an attack without damage dice); the **saber-toothed cat's** 7th-level advancement dropped
+pounce and the step up to a 2d8 saber-toothed bite; the **giant scorpion's** dropped tremorsense
+60 ft. Also added the turtle familiar's shell retreat, the counterpart of the hedgehog's spiny
+defense we already modelled. The five vermin companions took the longest to verify: they are on the
+same d20pfsrd page as the animals, far below them, and are easy to conclude are absent.
 
 ### Modeling simplifications (fidelity notes)
 - **Per-list spell levels — audited in full.** The per-list level map (`SpellDef.levelByList`, read via
