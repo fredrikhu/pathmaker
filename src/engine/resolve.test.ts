@@ -323,9 +323,11 @@ describe('new Base/Hybrid classes', () => {
     return d;
   }
 
-  it('Magus: full BAB (+1 at 1st), good Fort+Will, and a 3+Int spellbook slot', () => {
+  it('Magus: ¾ BAB (+0 at 1st), good Fort+Will, and a 3+Int spellbook slot', () => {
+    // The magus table reaches +15 at 20th, so it is three-quarters BAB. This test previously
+    // asserted +1 and so pinned the wrong progression in place.
     const r = resolve(human('magus'));
-    expect(r.sheet.stats['bab'].total).toBe(1);
+    expect(r.sheet.stats['bab'].total).toBe(0);
     expect(r.sheet.stats['save:fort'].total).toBe(4); // +2 + 2 Con
     expect(r.sheet.stats['save:will'].total).toBe(3); // +2 + 1 Wis
     expect(r.steps).toContain('spells');

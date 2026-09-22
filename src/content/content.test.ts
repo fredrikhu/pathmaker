@@ -2235,3 +2235,90 @@ describe('deities: internal coherence', () => {
     expect(bad, bad.join(' | ')).toEqual([]);
   });
 });
+
+describe('class chassis, verified against the published class tables', () => {
+  // Hit die, BAB progression, good saves, skill ranks and average starting wealth for all 31
+  // classes, read off each class's own table on 2026-09-22 rather than recalled. BAB is taken from
+  // the 20th-level row (+20 full, +15 three-quarters, +10 half) and a good save from that row
+  // reaching +12 where a poor one stops at +6.
+  const CHASSIS: Record<string, [number, string, string[], number, number]> = {
+    fighter: [10, 'full', ['fort'], 2, 175],
+    barbarian: [12, 'full', ['fort'], 4, 105],
+    bard: [8, 'threequarter', ['ref', 'will'], 6, 105],
+    cleric: [8, 'threequarter', ['fort', 'will'], 2, 140],
+    druid: [8, 'threequarter', ['fort', 'will'], 4, 70],
+    monk: [8, 'threequarter', ['fort', 'ref', 'will'], 4, 35],
+    paladin: [10, 'full', ['fort', 'will'], 2, 175],
+    ranger: [10, 'full', ['fort', 'ref'], 6, 175],
+    rogue: [8, 'threequarter', ['ref'], 8, 140],
+    sorcerer: [6, 'half', ['will'], 2, 70],
+    warpriest: [8, 'threequarter', ['fort', 'will'], 2, 175],
+    wizard: [6, 'half', ['will'], 2, 70],
+    alchemist: [8, 'threequarter', ['fort', 'ref'], 4, 105],
+    // The cavalier's only good save is Fortitude — its table reads Fort +12, Ref +6, Will +6.
+    cavalier: [10, 'full', ['fort'], 4, 175],
+    gunslinger: [10, 'full', ['fort', 'ref'], 4, 175],
+    inquisitor: [8, 'threequarter', ['fort', 'will'], 6, 140],
+    // The magus is three-quarters BAB (+15 at 20th), not full.
+    magus: [8, 'threequarter', ['fort', 'will'], 2, 140],
+    oracle: [8, 'threequarter', ['will'], 4, 105],
+    shifter: [10, 'full', ['fort', 'ref'], 4, 105],
+    summoner: [8, 'threequarter', ['will'], 2, 70],
+    witch: [6, 'half', ['will'], 2, 105],
+    'vampire-hunter': [8, 'full', ['ref', 'will'], 6, 175],
+    arcanist: [6, 'half', ['will'], 2, 70],
+    // Like the barbarian it descends from, the bloodrager's only good save is Fortitude.
+    bloodrager: [10, 'full', ['fort'], 4, 105],
+    brawler: [10, 'full', ['fort', 'ref'], 4, 105],
+    hunter: [8, 'threequarter', ['fort', 'ref'], 6, 140],
+    investigator: [8, 'threequarter', ['ref', 'will'], 6, 105],
+    shaman: [8, 'threequarter', ['will'], 4, 105],
+    skald: [8, 'threequarter', ['fort', 'will'], 4, 105],
+    slayer: [10, 'full', ['fort', 'ref'], 6, 175],
+    swashbuckler: [10, 'full', ['ref'], 4, 175],
+  };
+
+  it('covers every class the app ships, and no extras', () => {
+    expect(Object.keys(CHASSIS).sort()).toEqual(C.CLASSES.map((c) => c.id).sort());
+  });
+
+  it('matches the published hit die, BAB, good saves, skill ranks and starting wealth', () => {
+    const bad: string[] = [];
+    for (const c of C.CLASSES) {
+      const [hd, bab, saves, sk, gold] = CHASSIS[c.id];
+      if (c.hitDie !== hd) bad.push(`${c.id}: hit die d${c.hitDie}, published d${hd}`);
+      if (c.bab !== bab) bad.push(`${c.id}: BAB ${c.bab}, published ${bab}`);
+      if ([...c.goodSaves].sort().join('+') !== [...saves].sort().join('+'))
+        bad.push(`${c.id}: good saves ${c.goodSaves.join('+')}, published ${saves.join('+')}`);
+      if (c.skillRanks !== sk) bad.push(`${c.id}: skill ranks ${c.skillRanks}, published ${sk}`);
+      if (c.startingGold !== gold) bad.push(`${c.id}: starting wealth ${c.startingGold}, published ${gold}`);
+    }
+    expect(bad, bad.join(' | ')).toEqual([]);
+  });
+
+  it('every average starting wealth is a whole number of d6 times ten', () => {
+    // Published starting wealth is always Nd6 × 10 gp, so the average is N × 35.
+    const bad = C.CLASSES.filter((c) => c.startingGold % 35 !== 0)
+      .map((c) => `${c.id}: ${c.startingGold} is not a multiple of 35`);
+    expect(bad, bad.join(' | ')).toEqual([]);
+  });
+
+  it('good saves are a non-empty set with no repeats', () => {
+    const bad: string[] = [];
+    for (const c of C.CLASSES) {
+      if (!c.goodSaves.length) bad.push(`${c.id}: no good save`);
+      if (new Set(c.goodSaves).size !== c.goodSaves.length) bad.push(`${c.id}: repeated good save`);
+    }
+    expect(bad, bad.join(' | ')).toEqual([]);
+  });
+
+  it('every class skill is a real skill, and the list is non-empty', () => {
+    const bad: string[] = [];
+    for (const c of C.CLASSES) {
+      if (!c.classSkills.length) bad.push(`${c.id}: no class skills`);
+      for (const s of c.classSkills) if (!skillIds.has(s)) bad.push(`${c.id}: unknown class skill "${s}"`);
+      if (new Set(c.classSkills).size !== c.classSkills.length) bad.push(`${c.id}: duplicate class skill`);
+    }
+    expect(bad, bad.join(' | ')).toEqual([]);
+  });
+});

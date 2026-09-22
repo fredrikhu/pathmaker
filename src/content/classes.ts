@@ -254,7 +254,7 @@ export const CLASSES: ClassDef[] = [
   {
     id: 'cavalier', name: 'Cavalier', sub: 'Base · d10 · order & mount',
     desc: 'A mounted champion sworn to an order, issuing challenges and rallying allies with battlefield tactics.',
-    hitDie: 10, bab: 'full', goodSaves: ['fort', 'will'], skillRanks: 4,
+    hitDie: 10, bab: 'full', goodSaves: ['fort'], skillRanks: 4,
     classSkills: ['bluff', 'climb', ...CRAFT_ALL, 'diplomacy', 'handle-animal', 'intimidate', 'profession-any', 'ride', 'sense-motive', 'swim'],
     startingGold: 175,
     proficiencies: { weapons: ['simple', 'martial'], armor: ['light', 'medium', 'heavy', 'shield'] },
@@ -303,7 +303,7 @@ export const CLASSES: ClassDef[] = [
   {
     id: 'magus', name: 'Magus', sub: 'Base · d8 · spell combat',
     desc: 'A blade-and-spell hybrid who channels arcane power through weapons via an arcane pool and spell combat. Prepares spells from a spellbook.',
-    hitDie: 8, bab: 'full', goodSaves: ['fort', 'will'], skillRanks: 2,
+    hitDie: 8, bab: 'threequarter', goodSaves: ['fort', 'will'], skillRanks: 2,
     classSkills: ['climb', ...CRAFT_ALL, 'fly', 'intimidate', 'know-arcana', 'know-dungeoneering', 'know-planes', 'profession-any', 'ride', 'spellcraft', 'swim', 'use-magic-device'],
     startingGold: 140,
     proficiencies: { weapons: ['simple', 'martial'], armor: ['light'] },
@@ -429,7 +429,7 @@ export const CLASSES: ClassDef[] = [
   {
     id: 'bloodrager', name: 'Bloodrager', sub: 'Hybrid · d10 · bloodrage',
     desc: 'A barbarian whose fury awakens innate magic from a bloodline. (Spontaneous arcane casting begins at 4th level — no spells at 1st.)',
-    hitDie: 10, bab: 'full', goodSaves: ['fort', 'will'], skillRanks: 4,
+    hitDie: 10, bab: 'full', goodSaves: ['fort'], skillRanks: 4,
     classSkills: ['acrobatics', 'climb', ...CRAFT_ALL, 'handle-animal', 'intimidate', 'know-arcana', 'perception', 'ride', 'spellcraft', 'survival', 'swim'],
     startingGold: 105,
     proficiencies: { weapons: ['simple', 'martial'], armor: ['light', 'medium', 'shield'] },
