@@ -1363,6 +1363,26 @@ column, so a first-column scrape reports every option missing. Left out everywhe
 - **Psychic/occult** spells not authored. **Extracts** (alchemist/investigator) are prepared from the
   full list like other prepared-list casters — slots/day shown, no creation-time selection.
 
+**Class chassis audit (2026-09-22) — three real errors, the widest-impact bugs the whole audit found.**
+All 31 classes checked against their own published tables on hit die, BAB progression, good saves,
+skill ranks and average starting wealth. Hit die, skill ranks and wealth were clean across the board.
+Three were wrong and are fixed:
+- **magus BAB was `full`; the magus is three-quarters** (its table reaches +15 at 20th, not +20). Every
+  magus attack roll, CMB, CMD and BAB-gated feat prerequisite was inflated, by up to +5 at 20th.
+- **cavalier good saves were Fort+Will; the table reads Fort +12, Ref +6, Will +6 — Fortitude only.**
+- **bloodrager likewise Fortitude only**, as befits the barbarian it descends from.
+
+**The magus bug was pinned in place by a test that asserted it** ("Magus: full BAB (+1 at 1st)"), which
+is exactly how it survived — a reminder that a golden is only as good as the source it was written
+from. That test now asserts +0 and says why. A new golden holds the **whole verified chassis for all 31
+classes** in one table so none of these five fields can drift again, plus guards that starting wealth is
+always a multiple of 35 (published wealth is Nd6 × 10, so the average is N × 35), that good saves are a
+non-empty set without repeats, and that every class skill is a real skill id.
+Extraction notes: the class tables label the column **`BAB`** on some pages and `Base Attack Bonus` on
+others, and several carry a **spells-per-day sub-header row of "1st 2nd 3rd…"** that a naive
+`find('1st')` matches instead of the real 1st-level row. **Read the 20th-level row**: BAB +20/+15/+10
+distinguishes the three progressions, and a good save reaches +12 where a poor one stops at +6.
+
 ### Modeling simplifications (fidelity notes)
 - **Per-list spell levels — audited in full.** The per-list level map (`SpellDef.levelByList`, read via
   `spellLevelOn`) handles every spell whose level differs by list. All 172 multi-list spells were
