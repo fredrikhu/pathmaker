@@ -2176,3 +2176,22 @@ describe('subsystem option lists', () => {
     expect(bad, bad.join(' | ')).toEqual([]);
   });
 });
+
+describe('subsystem options that were checked against the Advanced Class Guide', () => {
+  const ids = (list: { id: string }[]) => new Set(list.map((o) => o.id));
+
+  it("the arcanist's energy exploit is Energy Shield, not the wizard's Energy Absorption", () => {
+    // Energy Absorption is an Abjuration *school power*; the ACG arcanist exploit is Energy Shield,
+    // which buys resistance to one energy type with a reservoir point.
+    expect(ids(S.ARCANIST_EXPLOITS).has('energy-shield')).toBe(true);
+    expect(ids(S.ARCANIST_EXPLOITS).has('energy-absorption')).toBe(false);
+    const school = C.SCHOOL_POWERS['abjuration'].map((p) => p.name);
+    expect(school).toContain('Energy Absorption');
+  });
+
+  it('Swift Poison is a rogue talent, reached by a slayer through its Rogue Talent option', () => {
+    expect(ids(S.ROGUE_TALENTS).has('swift-poison')).toBe(true);
+    expect(ids(S.SLAYER_ADVANCED_TALENTS).has('swift-poison')).toBe(false);
+    expect(ids(S.SLAYER_TALENTS).has('rogue-talent')).toBe(true);
+  });
+});

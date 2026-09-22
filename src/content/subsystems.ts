@@ -78,6 +78,7 @@ export const ROGUE_TALENTS: Opt[] = [
   opt('canny-observer', 'Canny Observer', '+4 on Perception to hear conversation or find hidden objects.'),
   opt('fast-fingers', 'Fast Fingers', 'Reroll a failed Sleight of Hand check, once per day.'),
   opt('honeyed-words', 'Honeyed Words', 'Reroll a failed Bluff check, once per day.'),
+  opt('swift-poison', 'Swift Poison', 'Apply poison to a weapon as a move action.'),
 ];
 
 export const ROGUE_ADVANCED_TALENTS: Opt[] = [
@@ -111,7 +112,6 @@ export const SLAYER_TALENTS: Opt[] = [
 export const SLAYER_ADVANCED_TALENTS: Opt[] = [
   opt('assassinate', 'Assassinate', 'After studying a foe, a sneak attack against it can slay it outright (Fortitude negates).'),
   opt('marksmans-shot', "Marksman's Shot", 'A precise ranged attack ignores the target’s cover and concealment.'),
-  opt('swift-poison', 'Swift Poison', 'Apply poison to a weapon as a move action (requires Poison Use).'),
   opt('slayer-camouflage', 'Slayer Camouflage', 'Use Stealth to hide in your mastered terrain even without cover or concealment.'),
   opt('woodland-stride', 'Woodland Stride', 'Move through natural difficult terrain at your normal speed.'),
   opt('rogue-advanced-talent', 'Rogue Advanced Talent', 'Select any advanced rogue talent in place of an advanced slayer talent.'),
@@ -515,7 +515,7 @@ export const EIDOLON_EVOLUTIONS: EvolutionDef[] = [
 export const ARCANIST_EXPLOITS: Opt[] = [
   opt('arcane-weapon', 'Arcane Weapon', 'Spend reservoir to give your weapon a temporary enhancement.'),
   opt('dimensional-slide', 'Dimensional Slide', 'Teleport a short distance as part of your movement.'),
-  opt('energy-absorption', 'Energy Absorption', 'Absorb incoming energy damage using the reservoir.'),
+  opt('energy-shield', 'Energy Shield', 'Spend one arcane reservoir point as a standard action to gain resistance to one energy type.'),
   opt('familiar', 'Familiar', 'Gain an arcane familiar.'),
   opt('flame-arc', 'Flame Arc', 'Loose a line of fire as a reservoir-fueled attack.'),
   opt('potent-magic', 'Potent Magic', 'Spend reservoir to raise a spell’s caster level or save DC.'),

@@ -1291,10 +1291,16 @@ already covered by existing tests, which is why nothing new was needed there.
 Existence spot-checked against the published pages for **nine lists with every option present**: rage
 powers (36), rogue talents basic and advanced (36), investigator talents (11), alchemist discoveries
 plus grand discoveries (28), magus arcana (18), witch hexes (25), oracle mysteries (10), oracle curses
-(6) and cavalier orders (7). **Two options remain unconfirmed** and are worth a second look with the
-Advanced Class Guide text: the slayer's advanced talent **Swift Poison** and the arcanist exploit
-**Energy Absorption** (which may be confusable with the wizard Abjuration school power of the same
-name). **A real observation, not a bug:** our slayer list offers Combat Trick, Terrain Mastery and
+(6) and cavalier orders (7). **Both loose ends closed, and both were real errors** (2026-09-22).
+The arcanist exploit **"Energy Absorption" does not exist** — the ACG exploit is **Energy Shield**
+("spend one arcane reservoir point as a standard action to gain resistance to one energy type"), and
+the old entry had borrowed the name *and* the effect of the wizard's Abjuration school power. Renamed
+and rewritten. **Swift Poison is an Advanced Player's Guide *rogue* talent**, not a slayer advanced
+talent: d20pfsrd's 99 slayer talent rows carry only Poison Use from the ACG, while the rogue list has
+"Swift Poison — Apply poison to a weapon as a move action [PZO1115]". Moved to `ROGUE_TALENTS`, where
+a slayer still reaches it through its own "Rogue Talent" option, exactly as it reaches Combat Trick.
+A test now pins both placements. Note both changes retire an option id, so a saved character that had
+picked one loses that single pick (the engine suspends an unknown option rather than erroring). **A real observation, not a bug:** our slayer list offers Combat Trick, Terrain Mastery and
 Weapon Training inline *and* offers "Rogue Talent", so those three are reachable two ways; the
 published slayer reaches them only through the Rogue Talent option.
 Lookup notes: d20pfsrd writes the totem line as "Beast Totem, Greater", so match word bags not word
