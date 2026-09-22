@@ -271,7 +271,8 @@ const BARD_KNOWN: number[][] = [
   [6, 6, 6, 6, 5, 4, 3],
   [6, 6, 6, 6, 5, 4, 4],
   [6, 6, 6, 6, 5, 5, 4],
-  [6, 6, 6, 6, 6, 5, 4],
+  // 20th: five 6th-level spells known, not four (bard table, 0th–6th: 6 6 6 6 6 5 5).
+  [6, 6, 6, 6, 6, 5, 5],
 ];
 
 // Spells known for the 6-level spontaneous divine/arcane casters (inquisitor, hunter, summoner).

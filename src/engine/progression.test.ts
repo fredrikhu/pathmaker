@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   babAt, saveBase, fixedHpPerLevel, generalFeatLevels, abilityIncreaseLevels,
   casterLevel, bonusSpellSlots, spellSlotsPerDay, spellsKnownPerLevel, spellsPreparedPerLevel, sumBab, sumSave,
+  startingWealth,
 } from './progression';
 
 describe('BAB progression', () => {
@@ -281,5 +282,92 @@ describe('four-level spontaneous casters (bloodrager, vampire hunter)', () => {
     expect(spellsKnownPerLevel('vampire-hunter', 17)).toEqual(spellsKnownPerLevel('vampire-hunter', 18));
     expect(spellsKnownPerLevel('bloodrager', 15)).toEqual(spellsKnownPerLevel('bloodrager', 16));
     expect(spellsKnownPerLevel('bloodrager', 18)).toEqual(spellsKnownPerLevel('bloodrager', 20));
+  });
+});
+
+describe('spell slot and spells-known tables, verified against the published class tables', () => {
+  // Read off each class's own table on 2026-09-22. Our grids always keep index 0 for 0-level
+  // spells, even where the published per-day table omits that column because cantrips are at will.
+  // Rows below are the full grid row as our tables store it (index 0 = 0-level).
+  const SPOT: Record<string, Record<number, number[]>> = {
+    // Wizard / cleric / druid: the published table includes a 0th column.
+    'prepared-full': { 1: [3, 1], 10: [4, 4, 4, 3, 3, 2], 20: [4, 4, 4, 4, 4, 4, 4, 4, 4, 4] },
+    // Sorcerer / oracle. Published per-day starts at 1st; index 0 is the cantrip count.
+    'spontaneous-full': { 1: [4, 3], 10: [6, 6, 6, 6, 5, 3], 20: [6, 6, 6, 6, 6, 6, 6, 6, 6, 6] },
+    bard: { 1: [0, 1], 10: [0, 5, 4, 3, 1], 20: [0, 5, 5, 5, 5, 5, 5] },
+    'prepared-six': { 1: [3, 1], 10: [5, 5, 4, 3, 1], 20: [5, 5, 5, 5, 5, 5, 5] },
+    four: { 4: [0, 0], 5: [0, 1], 20: [0, 4, 4, 3, 3] },
+    bloodrager: { 4: [0, 1], 13: [0, 3, 2, 1, 1], 20: [0, 4, 4, 3, 2] },
+    arcanist: { 1: [4, 2], 10: [9, 4, 4, 4, 4, 2], 20: [9, 4, 4, 4, 4, 4, 4, 4, 4, 4] },
+  };
+
+  it('spot rows of every per-day table match the published grid', () => {
+    const bad: string[] = [];
+    for (const [table, rows] of Object.entries(SPOT))
+      for (const [lvl, want] of Object.entries(rows)) {
+        // A zero ability modifier adds no bonus slots, so this is the base table.
+        const got = spellSlotsPerDay(table as never, Number(lvl), 0);
+        const n = Math.max(got.length, want.length);
+        const pad = (a: number[]) => [...a, ...Array(n - a.length).fill(0)];
+        if (pad(got).join(',') !== pad(want).join(','))
+          bad.push(`${table} L${lvl}: ${got.join(',')} vs expected ${want.join(',')}`);
+      }
+    expect(bad, bad.join(' | ')).toEqual([]);
+  });
+
+  it('spells known match the published tables, including the bard capstone', () => {
+    // The bard knows five 6th-level spells at 20th; this cell read 4 until it was verified.
+    expect(spellsKnownPerLevel('bard', 20)).toEqual([6, 6, 6, 6, 6, 5, 5]);
+    expect(spellsKnownPerLevel('bard', 19)).toEqual([6, 6, 6, 6, 5, 5, 4]);
+    expect(spellsKnownPerLevel('bard', 1)).toEqual([4, 2]);
+    expect(spellsKnownPerLevel('spontaneous-full', 1)).toEqual([4, 2]);
+    expect(spellsKnownPerLevel('spontaneous-full', 20)).toEqual([9, 5, 5, 4, 4, 4, 3, 3, 3, 3]);
+    expect(spellsKnownPerLevel('spont-six', 1)).toEqual([4, 2]);
+    expect(spellsKnownPerLevel('spont-six', 20)).toEqual([6, 6, 6, 6, 6, 5, 5]);
+    // The bloodrager has no cantrips, so index 0 stays 0.
+    expect(spellsKnownPerLevel('bloodrager', 4)).toEqual([0, 2]);
+    expect(spellsKnownPerLevel('bloodrager', 20)).toEqual([0, 6, 6, 6, 5]);
+  });
+
+  it('the arcanist prepares on the sorcerer-known curve', () => {
+    expect(spellsPreparedPerLevel('arcanist', 1)).toEqual([4, 2]);
+    expect(spellsPreparedPerLevel('arcanist', 20)).toEqual([9, 5, 5, 4, 4, 4, 3, 3, 3, 3]);
+  });
+
+  it('no spell level ever loses slots or known spells as the class level rises', () => {
+    // A single mistyped cell shows up here, which is how the bard 20th-level entry was caught.
+    const TABLES = ['prepared-full', 'spontaneous-full', 'bard', 'prepared-six', 'extract',
+      'four', 'bloodrager', 'arcanist', 'vampire-hunter', 'spont-six'] as const;
+    const bad: string[] = [];
+    for (const t of TABLES)
+      for (const read of [spellSlotsPerDay, spellsKnownPerLevel] as const) {
+        const at = (l: number) => (read === spellSlotsPerDay ? spellSlotsPerDay(t, l, 0) : spellsKnownPerLevel(t, l));
+        for (let l = 2; l <= 20; l++) {
+          const prev = at(l - 1), cur = at(l);
+          if (!prev.length || !cur.length) continue;
+          for (let s = 0; s < prev.length; s++)
+            if ((cur[s] ?? 0) < prev[s])
+              bad.push(`${t} ${read === spellSlotsPerDay ? 'per-day' : 'known'} L${l} spell level ${s}: ${cur[s] ?? 0} < ${prev[s]} at L${l - 1}`);
+        }
+      }
+    expect(bad, bad.join(' | ')).toEqual([]);
+  });
+
+  it('wealth by level matches the published table, and 1st level uses the class roll', () => {
+    const PUBLISHED = [1_000, 3_000, 6_000, 10_500, 16_000, 23_500, 33_000, 46_000, 62_000, 82_000,
+      108_000, 140_000, 185_000, 240_000, 315_000, 410_000, 530_000, 685_000, 880_000];
+    PUBLISHED.forEach((gp, i) => {
+      expect(startingWealth(i + 2, 175), `level ${i + 2}`).toBe(gp);
+    });
+    expect(startingWealth(1, 175)).toBe(175);
+  });
+
+  it('every encoded table has twenty rows', () => {
+    const TABLES = ['prepared-full', 'spontaneous-full', 'bard', 'prepared-six', 'extract',
+      'four', 'bloodrager', 'arcanist', 'vampire-hunter', 'spont-six'] as const;
+    for (const t of TABLES) {
+      expect(spellSlotsPerDay(t, 20, 0).length, `${t} has no 20th-level row`).toBeGreaterThan(0);
+      expect(spellSlotsPerDay(t, 21, 0)).toEqual(spellSlotsPerDay(t, 20, 0));
+    }
   });
 });
