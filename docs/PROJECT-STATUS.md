@@ -1251,7 +1251,26 @@ Small races walk 20. Lookup notes: AoN race pages are `RacesDisplay.aspx?ItemNam
 capitalisation exact (`Half-Elf`, not `Half-elf`), the ability line sits right after "<Race> Racial
 Traits" except on Android where a monster-style preamble pushes it down the page, and gnoll and
 lizardfolk are only on d20pfsrd under `other-races/more-races/standard-races-1-10-rp/` where the
-modifiers read "Flexible (+2 Str, +2 Con)". Left out everywhere: traits gated on
+modifiers read "Flexible (+2 Str, +2 Con)".
+
+**Equipment audit (2026-09-22). No errors found, but coverage is partial — see the gap below.**
+Verified exact against the published tables: **all 81 weapons** (cost, weight, medium damage die, crit
+line, range increment — 61 from the weapon tables plus 20 firearms), **all 18 armours and shields**
+(cost, weight, AC bonus, max Dex, armour check penalty, arcane spell failure), and **28 of the 64 gear
+items**. **Gap: 36 gear items are still unverified** — the classic CRB adventuring-gear table (backpack,
+trail rations, thieves' tools, the alchemical weapons, ammunition) is not on any d20pfsrd
+goods-and-services sub-page the index enumerates, and AoN's equipment tables load client-side so a
+`fetch` returns only the shell. Worth finishing with a different source.
+**Every apparent difference was my scraper, not the data** — worth knowing before trusting a future run:
+d20pfsrd writes the dart's cost as "5 sp" (0.5 gp), weights as "1/2 lb." and "1-1/2 lbs.", and glues
+footnote digits onto values so the tower shield's "+4" reads "+43". A naive number grab reports four
+false errors. Seven new content tests cover the shapes: damage and crit lines parse, ranged weapons
+carry a range, firearm stats appear only on firearms, armour numbers are internally consistent and a
+shield's category matches its slot, heavy armour out-protects light, no id is shared across the three
+catalogues, and a gear item is not both charged and consumable. One of those taught a real lesson:
+**a double weapon's damage is two dice joined by a slash** ("1d6/1d6", and the gnome hooked hammer's
+"×3/×4"), which `weaponDamageForSize` splits on deliberately — so the slash form is load-bearing,
+not a typo. Left out everywhere: traits gated on
   a class feature (gunslinger grit/firearms, ranger favored enemy, monk styles, alchemist mutagens and
   bombs, magus arcane pool, sorcerer bloodline, summoner eidolon). Concentration-check traits (Focused
   Mind, Desperate Resolve, Arcane Temper's second half) stay prose because no concentration stat

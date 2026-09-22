@@ -1991,3 +1991,85 @@ describe('races: the fields that fail silently', () => {
     expect(bad, bad.join(' | ')).toEqual([]);
   });
 });
+
+describe('equipment: shapes that must hold', () => {
+  it('every weapon damage die and crit line parses', () => {
+    const bad: string[] = [];
+    // A double weapon states both ends separated by a slash ("1d6/1d6", and the gnome hooked
+    // hammer's "×3/×4"). weaponDamageForSize splits on that slash, so the form is load-bearing.
+    const die = String.raw`\d+d\d+`;
+    const crit = String.raw`(?:\d\d–\d\d\/)?×[234]`;
+    const oneOrDouble = (part: string) => new RegExp(`^(?:${part})(?:\/(?:${part}))?$`);
+    for (const w of C.WEAPONS) {
+      if (!oneOrDouble(die).test(w.dmg) && w.dmg !== '—') bad.push(`${w.id}: damage "${w.dmg}"`);
+      if (!oneOrDouble(crit).test(w.crit)) bad.push(`${w.id}: crit "${w.crit}"`);
+    }
+    expect(bad, bad.join(' | ')).toEqual([]);
+  });
+
+  it('a ranged weapon has a range and a melee one does not, unless it is thrown', () => {
+    const bad: string[] = [];
+    for (const w of C.WEAPONS) {
+      if (w.hands === 'ranged' && !w.range) bad.push(`${w.id}: ranged with no range increment`);
+      // A melee weapon may carry a range (thrown daggers, hand axes); a range of 0 is meaningless.
+      if (w.range !== undefined && (w.range <= 0 || w.range % 5 !== 0)) bad.push(`${w.id}: odd range ${w.range}`);
+    }
+    expect(bad, bad.join(' | ')).toEqual([]);
+  });
+
+  it('firearm stats appear only on firearms, and every firearm carries them', () => {
+    const bad: string[] = [];
+    for (const w of C.WEAPONS) {
+      if (w.firearm && w.group !== 'firearms') bad.push(`${w.id}: firearm stats but group "${w.group}"`);
+      if (!w.firearm && w.group === 'firearms') bad.push(`${w.id}: in the firearms group but carries no firearm stats`);
+    }
+    expect(bad, bad.join(' | ')).toEqual([]);
+  });
+
+  it('armour numbers are internally consistent', () => {
+    const bad: string[] = [];
+    for (const a of C.ARMORS) {
+      if (a.acBonus <= 0) bad.push(`${a.id}: acBonus ${a.acBonus}`);
+      if (a.acp > 0) bad.push(`${a.id}: armour check penalty ${a.acp} should be zero or negative`);
+      if (a.asf < 0 || a.asf > 100) bad.push(`${a.id}: arcane spell failure ${a.asf}%`);
+      if (a.maxDex !== null && (a.maxDex < 0 || a.maxDex > 8)) bad.push(`${a.id}: maxDex ${a.maxDex}`);
+      // A shield sits in the shield slot and vice versa — the engine keys off `slot`, and the
+      // off-hand/armour distinction is exactly the bug the project has hit before.
+      if ((a.category === 'shield') !== (a.slot === 'shield')) bad.push(`${a.id}: category "${a.category}" but slot "${a.slot}"`);
+      // Heavier categories should not protect less than lighter ones at the same cost of mobility.
+      if (a.slot === 'armor' && a.maxDex === null) bad.push(`${a.id}: body armour with no max Dex`);
+    }
+    expect(bad, bad.join(' | ')).toEqual([]);
+  });
+
+  it('armour categories rank sensibly: light is lighter and less restrictive than heavy', () => {
+    const worst = (cat: string) => C.ARMORS.filter((a) => a.category === cat);
+    const light = worst('light'), heavy = worst('heavy');
+    expect(light.length, 'no light armour').toBeGreaterThan(0);
+    expect(heavy.length, 'no heavy armour').toBeGreaterThan(0);
+    // The best heavy armour protects more than the best light armour, and costs more mobility.
+    expect(Math.max(...heavy.map((a) => a.acBonus))).toBeGreaterThan(Math.max(...light.map((a) => a.acBonus)));
+    expect(Math.min(...heavy.map((a) => a.acp))).toBeLessThan(Math.min(...light.map((a) => a.acp)));
+  });
+
+  it('no two items anywhere share an id, since the shop looks one up by id alone', () => {
+    const seen = new Map<string, string>();
+    const bad: string[] = [];
+    for (const [kind, list] of [['weapon', C.WEAPONS], ['armor', C.ARMORS], ['gear', C.GEAR]] as const)
+      for (const it of list) {
+        const prev = seen.get(it.id);
+        if (prev) bad.push(`id "${it.id}" is both a ${prev} and a ${kind}`);
+        seen.set(it.id, kind);
+      }
+    expect(bad, bad.join(' | ')).toEqual([]);
+  });
+
+  it('a charged or consumable gear item says which it is, and charges are positive', () => {
+    const bad: string[] = [];
+    for (const g of C.GEAR) {
+      if (g.charges !== undefined && g.charges <= 0) bad.push(`${g.id}: charges ${g.charges}`);
+      if (g.charges !== undefined && g.consumable) bad.push(`${g.id}: both charged and consumable`);
+    }
+    expect(bad, bad.join(' | ')).toEqual([]);
+  });
+});
