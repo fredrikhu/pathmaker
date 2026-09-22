@@ -17,7 +17,9 @@
 /** Deity id → holy symbol, verbatim from that deity's Archives of Nethys entry. */
 export const DEITY_SYMBOL: Record<string, string> = {
   abadar: 'a golden key',
+  asmodeus: 'a red pentagram',
   calistria: 'three daggers touching at the pommel with points out',
+  'cayden-cailean': 'a tankard of ale',
   desna: 'a butterfly with two stars, a sun, and a moon on its wings',
   erastil: 'a bow and arrow',
   gorum: 'a sword impaling a mountain',

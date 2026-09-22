@@ -2195,3 +2195,43 @@ describe('subsystem options that were checked against the Advanced Class Guide',
     expect(ids(S.SLAYER_TALENTS).has('rogue-talent')).toBe(true);
   });
 });
+
+describe('deities: internal coherence', () => {
+  const ALIGN_DOMAIN: Record<string, string> = { good: 'G', evil: 'E', law: 'L', chaos: 'C' };
+
+  it('every deity but (None) grants exactly five domains', () => {
+    const bad = C.DEITIES.filter((d) => d.id !== 'none' && d.domains.length !== 5)
+      .map((d) => `${d.id}: ${d.domains.length} domains`);
+    expect(bad, bad.join(' | ')).toEqual([]);
+  });
+
+  it('an alignment domain never contradicts the deity that grants it', () => {
+    // A Lawful Good god may offer Law and Good, never Chaos or Evil. A transcription slip in the
+    // domain list shows up here rather than as a legal-looking cleric.
+    const bad: string[] = [];
+    for (const d of C.DEITIES) {
+      for (const dom of d.domains) {
+        const letter = ALIGN_DOMAIN[dom];
+        if (!letter) continue;
+        const opposed = letter === 'G' ? 'E' : letter === 'E' ? 'G' : letter === 'L' ? 'C' : 'L';
+        if (d.alignment.includes(opposed))
+          bad.push(`${d.id} (${d.alignment}) grants the ${dom} domain`);
+        // A neutral-on-that-axis god may still offer the domain only if its alignment names it.
+        if (!d.alignment.includes(letter))
+          bad.push(`${d.id} (${d.alignment}) grants ${dom} without being ${letter}`);
+      }
+    }
+    expect(bad, bad.join(' | ')).toEqual([]);
+  });
+
+  it('every deity has a portfolio and a unique name', () => {
+    const bad: string[] = [];
+    const seen = new Set<string>();
+    for (const d of C.DEITIES) {
+      if (!d.portfolio?.trim()) bad.push(`${d.id}: no portfolio`);
+      if (seen.has(d.name)) bad.push(`duplicate deity name "${d.name}"`);
+      seen.add(d.name);
+    }
+    expect(bad, bad.join(' | ')).toEqual([]);
+  });
+});

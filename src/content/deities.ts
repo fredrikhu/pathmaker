@@ -3,7 +3,9 @@ import type { BlessingDef, BloodlineDef, DeityDef, DomainDef, SchoolDef } from '
 export const DEITIES: DeityDef[] = [
   { id: 'none', name: '(None)', alignment: 'N', domains: [], portfolio: 'Atheism or unaffiliated' },
   { id: 'abadar', name: 'Abadar', alignment: 'LN', domains: ['earth', 'law', 'nobility', 'protection', 'travel'], portfolio: 'Cities, law, merchants, wealth' },
+  { id: 'asmodeus', name: 'Asmodeus', alignment: 'LE', domains: ['evil', 'fire', 'law', 'magic', 'trickery'], portfolio: 'Contracts, pride, slavery, tyranny' },
   { id: 'calistria', name: 'Calistria', alignment: 'CN', domains: ['chaos', 'charm', 'knowledge', 'luck', 'trickery'], portfolio: 'Trickery, lust, revenge' },
+  { id: 'cayden-cailean', name: 'Cayden Cailean', alignment: 'CG', domains: ['chaos', 'charm', 'good', 'strength', 'travel'], portfolio: 'Ale, bravery, freedom, wine' },
   { id: 'desna', name: 'Desna', alignment: 'CG', domains: ['chaos', 'good', 'liberation', 'luck', 'travel'], portfolio: 'Dreams, stars, travelers, luck' },
   { id: 'erastil', name: 'Erastil', alignment: 'LG', domains: ['animal', 'community', 'good', 'law', 'plant'], portfolio: 'Farming, hunting, family' },
   { id: 'gorum', name: 'Gorum', alignment: 'CN', domains: ['chaos', 'destruction', 'glory', 'strength', 'war'], portfolio: 'Strength, battle, weapons' },

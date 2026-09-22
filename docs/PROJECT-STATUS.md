@@ -1300,7 +1300,21 @@ talent: d20pfsrd's 99 slayer talent rows carry only Poison Use from the ACG, whi
 "Swift Poison — Apply poison to a weapon as a move action [PZO1115]". Moved to `ROGUE_TALENTS`, where
 a slayer still reaches it through its own "Rogue Talent" option, exactly as it reaches Combat Trick.
 A test now pins both placements. Note both changes retire an option id, so a saved character that had
-picked one loses that single pick (the engine suspends an unknown option rather than erroring). **A real observation, not a bug:** our slayer list offers Combat Trick, Terrain Mastery and
+picked one loses that single pick (the engine suspends an unknown option rather than erroring).
+
+**Deity audit (2026-09-22). Every value correct; the roster had two gaps.** All 20 deities verified
+against Archives of Nethys on **alignment and full domain list** — no differences. Three new content
+tests cover what the data can check about itself: every deity but (None) grants **exactly five
+domains**, **an alignment domain never contradicts its deity** (a Lawful Good god may offer Law and
+Good, never Chaos or Evil, so a transcription slip surfaces here rather than as a legal-looking
+cleric), and every deity has a portfolio and a unique name.
+**Added Asmodeus (LE; Evil, Fire, Law, Magic, Trickery) and Cayden Cailean (CG; Chaos, Charm, Good,
+Strength, Travel)**, both core-pantheon gods and common player picks that the roster had omitted while
+carrying the far more niche Groetus and Ydersius (both of which are real and verified correct). Adding
+them tripped the existing portrait test that every deity needs an authored holy symbol, so both got
+one — a good example of that guard doing its job. Lookup note: AoN's `DeityDisplay.aspx?ItemName=` is
+server-rendered and carries "Alignment XX", "Areas of Concern" and "Domains" inline, but its
+`Deities.aspx?Pantheon=` index is client-side and returns nothing to a `fetch`. **A real observation, not a bug:** our slayer list offers Combat Trick, Terrain Mastery and
 Weapon Training inline *and* offers "Rogue Talent", so those three are reachable two ways; the
 published slayer reaches them only through the Rogue Talent option.
 Lookup notes: d20pfsrd writes the totem line as "Beast Totem, Greater", so match word bags not word
