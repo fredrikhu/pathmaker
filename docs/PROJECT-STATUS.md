@@ -1237,7 +1237,21 @@ option "Spellbinder (Elf only)". **Use Archives of Nethys, not d20pfsrd, for arc
 d20pfsrd carries no Spellbinder page at all, so a d20pfsrd-only sweep reports a false absence. Two
 near-misses worth recording: Sage is real but is a *Wildblooded bloodline mutation* rather than a
 listed archetype, and Wild Caller exists twice, where the Advanced Race Guide version is half-elf only
-and the Heroes of the Wild version we model is not. Left out everywhere: traits gated on
+and the Heroes of the Wild version we model is not.
+
+**Race audit (2026-09-22). Clean — the first catalogue with no corrections at all.** All 40 races were
+checked against Archives of Nethys (and d20pfsrd for the two monstrous ones it does not carry):
+**every ability-modifier spread, every size and every land speed matches the published values.**
+Internally clean too: `heritageReplaces` resolves, heritages name real abilities and well-formed
+effects, `favoredClassBonuses` keys are real class ids, and no trait id is reused between races
+(a decision stores the bare id, so a collision would cross-wire two races). Six new content tests
+hold that. Two values that look wrong but are correct, so don't "fix" them: **merfolk land speed is
+5 ft** (they swim 50), and goblin, kobold and grippli are Small with a full 30 ft speed while the other
+Small races walk 20. Lookup notes: AoN race pages are `RacesDisplay.aspx?ItemName=<Name>` with the
+capitalisation exact (`Half-Elf`, not `Half-elf`), the ability line sits right after "<Race> Racial
+Traits" except on Android where a monster-style preamble pushes it down the page, and gnoll and
+lizardfolk are only on d20pfsrd under `other-races/more-races/standard-races-1-10-rp/` where the
+modifiers read "Flexible (+2 Str, +2 Con)". Left out everywhere: traits gated on
   a class feature (gunslinger grit/firearms, ranger favored enemy, monk styles, alchemist mutagens and
   bombs, magus arcane pool, sorcerer bloodline, summoner eidolon). Concentration-check traits (Focused
   Mind, Desperate Resolve, Arcane Temper's second half) stay prose because no concentration stat

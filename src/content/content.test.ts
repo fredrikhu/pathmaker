@@ -1918,3 +1918,76 @@ describe('race-locked archetypes', () => {
     expect(locked).toEqual(['spellbinder:elf']);
   });
 });
+
+describe('races: the fields that fail silently', () => {
+  it('heritageReplaces names traits the race actually has', () => {
+    const bad: string[] = [];
+    for (const r of C.RACES) {
+      const ids = new Set(r.traits.map((t) => t.id));
+      for (const rep of r.heritageReplaces ?? [])
+        if (!ids.has(rep)) bad.push(`${r.id}: heritageReplaces "${rep}", which it has no trait for`);
+      // A race with heritages but nothing for them to supersede would stack the heritage's
+      // spell-like ability and skills on top of the defaults instead of replacing them.
+      if (r.heritages?.length && !(r.heritageReplaces ?? []).length)
+        bad.push(`${r.id}: has heritages but replaces none of its own traits`);
+      if (!r.heritages?.length && (r.heritageReplaces ?? []).length)
+        bad.push(`${r.id}: heritageReplaces but no heritages to trigger it`);
+    }
+    expect(bad, bad.join(' | ')).toEqual([]);
+  });
+
+  it('a heritage names real abilities and real skills', () => {
+    const bad: string[] = [];
+    for (const r of C.RACES)
+      for (const h of r.heritages ?? []) {
+        for (const ab of Object.keys(h.abilityMods))
+          if (!ABILITIES.includes(ab)) bad.push(`${r.id}/${h.id}: unknown ability "${ab}"`);
+        checkEffects(h.effects, `race ${r.id} heritage ${h.id}`);
+      }
+    expect(bad, bad.join(' | ')).toEqual([]);
+  });
+
+  it('favoredClassBonuses are keyed by real class ids', () => {
+    const bad: string[] = [];
+    for (const r of C.RACES)
+      for (const cls of Object.keys(r.favoredClassBonuses ?? {}))
+        if (!C.classById.has(cls)) bad.push(`${r.id}: favored-class bonus for unknown class "${cls}"`);
+    expect(bad, bad.join(' | ')).toEqual([]);
+  });
+
+  it('trait ids are unique across every race, since a decision stores the bare id', () => {
+    const seen = new Map<string, string>();
+    const bad: string[] = [];
+    for (const r of C.RACES)
+      for (const t of [...r.traits, ...r.altTraits]) {
+        const prev = seen.get(t.id);
+        if (prev) bad.push(`trait id "${t.id}" used by both ${prev} and ${r.id}`);
+        seen.set(t.id, r.id);
+      }
+    expect(bad, bad.join(' | ')).toEqual([]);
+  });
+
+  it('no alternate trait replaces the same standard trait twice, and two alts may overlap only knowingly', () => {
+    const bad: string[] = [];
+    for (const r of C.RACES)
+      for (const a of r.altTraits) {
+        const seen = new Set<string>();
+        for (const rep of a.replaces) {
+          if (seen.has(rep)) bad.push(`${r.id}/${a.id}: replaces "${rep}" twice`);
+          seen.add(rep);
+        }
+      }
+    expect(bad, bad.join(' | ')).toEqual([]);
+  });
+
+  it('every speed is a sane multiple of five', () => {
+    const bad: string[] = [];
+    for (const r of C.RACES) {
+      // Merfolk are the floor at 5 ft on land (they swim 50); nothing published walks faster than 40.
+      if (r.speed % 5 !== 0 || r.speed < 5 || r.speed > 40) bad.push(`${r.id}: odd land speed ${r.speed}`);
+      for (const [mode, v] of Object.entries(r.speeds ?? {}))
+        if (v % 5 !== 0 || v <= 0) bad.push(`${r.id}: odd ${mode} speed ${v}`);
+    }
+    expect(bad, bad.join(' | ')).toEqual([]);
+  });
+});
