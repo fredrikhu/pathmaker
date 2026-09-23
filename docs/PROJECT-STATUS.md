@@ -6,11 +6,11 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 
 ## ▶ Resume here (last session end)
 
-**Current state** — branch `main`, working tree clean, **1,134 tests** passing; run
+**Current state** — branch `main`, working tree clean, **1,137 tests** passing; run
 `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
 **Latest — every catalogue and rules table has been audited against the published sources.**
-Seventeen passes, `6729349`..`b3daaa9`. Fourteen turned up something to fix and three were
+Eighteen passes, `6729349`..`798e912`. Fifteen turned up something to fix and three were
 already clean; the full table and the lessons are in the **Content audit** section below, with a
 detailed paragraph per catalogue further down under *Content breadth*. The worst find was the
 **magus marked full BAB instead of three-quarters**, which inflated every magus attack, CMB, CMD and
@@ -943,8 +943,8 @@ Everything below is the durable detail. When resuming, read this file, then `doc
 ## ▶ Content audit (2026-09-21 → 2026-09-22)
 
 Every content catalogue and every rules table the engine computes from was checked against the
-published source (d20pfsrd, and Archives of Nethys where d20pfsrd is incomplete). Seventeen passes,
-commits `6729349`..`b3daaa9`. **Fourteen turned up something to fix; three were already correct**
+published source (d20pfsrd, and Archives of Nethys where d20pfsrd is incomplete). Eighteen passes,
+commits `6729349`..`798e912`. **Fifteen turned up something to fix; three were already correct**
 (races, equipment, magic item pricing).
 
 | Pass | Result |
@@ -966,6 +966,7 @@ commits `6729349`..`b3daaa9`. **Fourteen turned up something to fix; three were 
 | Archetype swaps | **17 wrong or missing trades** across 125 archetypes, including one that doubled a barbarian's DR |
 | Source features | 241 abilities + 184 bonus spells; **2 cavalier order bugs**, 1 invented aspect name, 1 dropped qualifier |
 | `features1` fallback | **drifted in 26 of 31 classes and was on screen**; deleted, and the warpriest gained its orisons |
+| Playstyle prose | **4 false rules claims** in authored advice, two contradicting our own data |
 
 ### What the pattern was
 
@@ -989,6 +990,19 @@ pass where checking the roster mattered more than checking the rows.
 **My own scope claim was the last thing to verify.** After twelve passes I told the user everything
 auditable had been audited; the companions had not been, and neither had the class features. Treat
 "what is left?" as a question to answer from the file list, not from memory of what was done.
+
+**Prose with no source is still checkable.** `playstyle.ts` is authored opinion — there is no book
+to diff it against, which is why it sat on the "unauditable" list for seventeen passes. But advice
+about how a class plays makes *rules claims*, and a rules claim can be false: the barbarian's text
+said rage leaves the Will save at its lowest when rage in fact raises it by +2, which our own rage
+feature states one file away. **"No published source" means no line-by-line diff, not no audit** —
+ask instead what the prose asserts, and check the assertions.
+
+**A convention can be so well enforced that it hides the unenforced part.** The house style here is
+tested hard: no numbers, noun phrases lower-case and unpunctuated, style clauses verb-led, every tag
+covered by the typecheck. All of that passed while four sentences misstated the rules, because the
+rule "quote no numbers" protects the prose from drifting against the engine and says nothing about
+whether the words are true.
 
 **A second copy of the truth is worse than no copy, and "the engine ignores it" is not the same as
 "nobody sees it".** `ClassDef.features1` was a level-1-only duplicate of each class's features from
@@ -1042,6 +1056,8 @@ Each pass added goldens rather than one-off corrections, so these values are now
 - **All three companion advancement tables** cell by cell, plus every creature's size, natural
   armour and ability scores, and the milestone levels that distinguish the animal companion's
   progression from the eidolon's.
+- **The playstyle prose's rules vocabulary**: only real action types may be named, and no class may
+  call a save weak that it is actually good at. Both checks would have caught a bug in this pass.
 - **One list of features per class**: `features` equals its progression exactly, every class has
   level-1 features, nothing may reintroduce a level-1-only duplicate, and any class casting 0-level
   spells at 1st must name its cantrips or orisons.
@@ -1061,9 +1077,11 @@ Each pass added goldens rather than one-off corrections, so these values are now
 
 ### Scope note
 
-What remains unaudited has **no published source to check against**: the authored prose in
-`playstyle.ts` and `spell-tactics.ts`, and the descriptive text the app writes itself. Everything
-with a book value behind it has been verified. The reusable method, the per-source lookup traps and
+What remains unaudited is the authored prose in `spell-tactics.ts` and the descriptive text the app
+writes itself. Everything with a book value behind it has been verified — and `playstyle.ts`, which
+sat on this list for seventeen passes because it has no published source, turned out to be
+checkable after all: prose with no source still makes rules claims, and four of its claims were
+false. The reusable method, the per-source lookup traps and
 the scraper pitfalls are recorded in the `content-audit-method` memory note.
 
 ## Phase 1 — Level-1 character creator: **complete**
@@ -1653,6 +1671,21 @@ Advancement and Sheet views already used. Deleting it surfaced one real gap: the
 Orisons feature** although it casts three at 1st level and its published table lists them. The
 class-feature golden had been exempting "orisons" and "cantrips" globally, which is exactly what hid
 it; that exemption is gone, so any class casting 0-level spells at 1st must now name them.
+
+**Playstyle prose audit (2026-09-23). Four false rules claims in authored advice.**
+`content/playstyle.ts` is the half of the playstyle brief that no arithmetic produces, and it has no
+published source — so what this pass checked was not wording but **claims**. Four were false, two of
+them contradicted by our own catalogue: the **barbarian**'s text said the Will save "is at its lowest
+exactly when enemies most want to turn you around" when rage *raises* Will by +2 (our own rage feature
+says so, one file away), the **bloodrager** repeated it, **lay on hands** was described as a "fast
+action" — not a Pathfinder action type at all; on yourself it is a swift action — and **bombs** were
+called an attack "you never run out of mid-fight" when they are a daily pool of class level + Int that
+the engine computes and shows. Two softer fixes: the druid's companion line now allows for the domain
+nature bond, and the blaster line no longer claims damage "never fails outright", which spell
+resistance disproves. Everything else held up: all 19 pool paragraphs match a pool the engine emits,
+no tag's prose is unreachable (`light`, `weak-ref` and `weak-fort` are produced by the armour category
+and a template literal, so a literal-based scan flags them falsely), nothing refers to content renamed
+this week, and the mechanical claims in the other 29 class entries are sound.
 
 ### Modeling simplifications (fidelity notes)
 - **Per-list spell levels — audited in full.** The per-list level map (`SpellDef.levelByList`, read via
