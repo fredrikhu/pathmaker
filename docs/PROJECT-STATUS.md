@@ -6,13 +6,13 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 
 ## ▶ Resume here (last session end)
 
-**Current state** — branch `main`, working tree clean, **1,149 tests** passing; run
+**Current state** — branch `main`, working tree clean, **1,152 tests** passing; run
 `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
 **Latest — every catalogue and rules table has been audited against the published sources.**
-Twenty passes, `6729349`..`c0895b0`, and the campaign is **finished**: every catalogue, every
-rules table, and every piece of authored or generated text has been checked. Seventeen passes turned
-up something to fix and three were already clean; the full table and the lessons are in the
+Twenty-one passes, `6729349`..`7fe0057`, covering every catalogue, every rules table, every piece
+of authored or generated text, and the strings the UI assembles. Eighteen turned up something to fix
+and three were already clean; the full table and the lessons are in the
 **Content audit** section below, with a
 detailed paragraph per catalogue further down under *Content breadth*. The worst find was the
 **magus marked full BAB instead of three-quarters**, which inflated every magus attack, CMB, CMD and
@@ -945,10 +945,10 @@ Everything below is the durable detail. When resuming, read this file, then `doc
 ## ▶ Content audit (2026-09-21 → 2026-09-22)
 
 Every content catalogue and every rules table the engine computes from was checked against the
-published source (d20pfsrd, and Archives of Nethys where d20pfsrd is incomplete). Twenty passes,
-commits `6729349`..`c0895b0`. **Seventeen turned up something to fix; three were already correct**
-(races, equipment, magic item pricing). **The campaign is complete**: nothing in `src/content/` is
-unaudited, and neither is the text the app generates itself.
+published source (d20pfsrd, and Archives of Nethys where d20pfsrd is incomplete). Twenty-one passes,
+commits `6729349`..`7fe0057`. **Eighteen turned up something to fix; three were already correct**
+(races, equipment, magic item pricing). Nothing in `src/content/` is unaudited, and neither is the
+text the engine generates or the strings the UI assembles.
 
 | Pass | Result |
 | --- | --- |
@@ -972,6 +972,7 @@ unaudited, and neither is the text the app generates itself.
 | Playstyle prose | **4 false rules claims** in authored advice, two contradicting our own data |
 | Spell tactics | 223 overrides, all real and all load-bearing; **7 mis-roled**, incl. 4 death spells called blasts |
 | Generated text | export numbers match the sheet; **3 plural/agreement defects** in issue messages |
+| UI strings | **2 rules formulas living in the view** (lifting figures, armour speed) + 1 fabricated plural |
 
 ### What the pattern was
 
@@ -995,6 +996,14 @@ pass where checking the roster mattered more than checking the rows.
 **My own scope claim was the last thing to verify.** After twelve passes I told the user everything
 auditable had been audited; the companions had not been, and neither had the class features. Treat
 "what is left?" as a question to answer from the file list, not from memory of what was done.
+
+**The architecture rule is only as good as the sweep that checks it.** "The UI does zero rules
+math" has been a stated invariant since the first design note, and two violations had been sitting in
+the view: the printed sheet multiplied the maximum load for its lifting rows, and the Equipment step
+kept its own copy of the armour speed reduction — making three copies of one formula, two in the
+engine and one in a component. Both were *correct*, which is exactly why nobody noticed. A rule that
+is never swept for is a rule that decays quietly; grepping the view for arithmetic on game numbers
+took one command.
 
 **A guard that never fires is not a guard.** The first version of the plural checks swept a set of
 builds for badly-worded messages and passed — while never producing the over-full spellbook whose
@@ -1080,6 +1089,9 @@ Each pass added goldens rather than one-off corrections, so these values are now
 - **All three companion advancement tables** cell by cell, plus every creature's size, natural
   armour and ability scores, and the milestone levels that distinguish the animal companion's
   progression from the eidolon's.
+- **The two formulas that were in the view**: the lifting figures against the published multipliers
+  (over head ×1, off the ground ×2, drag ×5), and `armorSlowedSpeed` at 30→20 and 20→15, including
+  that the resolved speed and the Equipment preview now come from the same helper.
 - **The generated text's own properties**: the player's name never leaves the sheet in any export
   format (with a mirror test that the filter keeps the character's description), and no issue
   message writes a plural noun after a count of one, a singular after a count above one, a lazy
@@ -1108,7 +1120,8 @@ Each pass added goldens rather than one-off corrections, so these values are now
 
 ### Scope note
 
-**The audit campaign is complete — there is no unaudited content left.** The files that sat on this
+**The audit campaign is complete — there is no unaudited content left, and the view has been swept
+too.** The files that sat on this
 list longest had no published source to diff against, and every one of them turned out to be
 checkable anyway. Authored prose still makes rules claims (four of `playstyle.ts`'s were false). An
 override table can be checked against the rule it overrides (seven of `spell-tactics.ts`'s 223 were
@@ -1748,6 +1761,18 @@ plural, and **"2 ranks exceeds the max"** and **"8 spells exceeds your 5"** disa
 plural subjects. What this pass mainly leaves behind is the enforcement: the privacy rule had nothing
 testing it, and the plural checks needed a guard of their own after the first version passed without
 ever producing the message it was meant to catch.
+
+**UI string audit (2026-09-23). Two rules formulas in the view, and one invented word.**
+The ~5,900 lines under `src/ui/` assemble a good deal of text, nearly all of it read off the
+resolution. Three things were not. **The printed sheet computed its own lifting figures** —
+`sheet.load.heavy * 2` for Lift off Ground, `* 5` for Drag or Push — and **the Equipment step kept a
+private copy of the armour speed reduction**, so that one formula existed three times, twice in
+`resolve.ts` and once in a component. Both were arithmetically right, which is why they survived: a
+wrong number gets reported, a misplaced one does not. `sheet.load` now carries `liftOverHead`,
+`liftOffGround` and `dragPush`, and `armorSlowedSpeed` lives in `types.ts` with all three callers
+using it. The third finding was a fabricated word: the Basics hint pluralised a race name by
+appending an *s*, so a half-elf read **"Half-elfs gain +2 to one ability"**. It now says "A Half-elf
+gains…", which cannot invent a plural for any race added later.
 
 ### Modeling simplifications (fidelity notes)
 - **Per-list spell levels — audited in full.** The per-list level map (`SpellDef.levelByList`, read via
