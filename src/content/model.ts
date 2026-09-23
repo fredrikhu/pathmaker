@@ -457,9 +457,10 @@ export interface ClassDef {
     armor: ('light' | 'medium' | 'heavy' | 'shield')[];
   };
   /** Level-1 class features. Retained as the fallback while per-level `features` are authored
-   *  class-by-class in Part B; the engine reads `features` when present, else `features1` at L1. */
-  features1: ClassFeatureDef[];
-  /** Full per-level feature progression (Part B). When present, supersedes `features1`. */
+   *  The per-level progression below is the only place a class's features live. */
+  /** Full per-level feature progression, attached from `CLASS_PROGRESSION` at module load. Optional
+   *  only because it is assigned there rather than in each class literal; a golden asserts every
+   *  class has one, so nothing reads a fallback. */
   features?: LeveledFeatureDef[];
   /** Archetypes for this class — each swaps a set of class features for alternates. */
   archetypes?: ArchetypeDef[];

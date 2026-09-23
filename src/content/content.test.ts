@@ -124,7 +124,7 @@ describe('classes', () => {
       for (const sid of c.classSkills) {
         expect(skillIds.has(sid), `class ${c.id}: class skill "${sid}" is not a real skill`).toBe(true);
       }
-      for (const f of c.features1) checkEffects(f.effects, `class ${c.id} feature ${f.id}`);
+      for (const f of c.features ?? []) checkEffects(f.effects, `class ${c.id} feature ${f.id}`);
       const featIdsSeen = new Set<string>();
       for (const f of c.features ?? []) {
         expect(f.level, `class ${c.id} feature ${f.id}: level out of 1..20`).toBeGreaterThanOrEqual(1);
@@ -1494,7 +1494,7 @@ describe('archetypes', () => {
     for (const c of C.CLASSES) {
       for (const a of c.archetypes ?? []) {
         expect(a.classId).toBe(c.id);
-        const featureIds = new Set((c.features ?? c.features1).map((f) => f.id));
+        const featureIds = new Set((c.features ?? []).map((f) => f.id));
         for (const rid of a.replaces) expect(featureIds.has(rid), `${a.id} replaces unknown feature ${rid}`).toBe(true);
         // Partial-casting tweaks (Diminished Spellcasting etc.) only mean something on a class that
         // still casts after the archetype is applied — a mod with nothing to modify is a mistake.
@@ -2025,6 +2025,43 @@ describe('archetype swaps: the prose and the machine list must agree', () => {
   });
 });
 
+describe('a class has exactly one list of features', () => {
+  // `ClassDef.features1` used to hold a second, level-1-only copy of each class's features. It was
+  // the list the Class step showed as its level-1 preview, and it had drifted from the real
+  // progression in 26 of 31 classes — a cleric's preview named two features where the character
+  // gains five. It is gone; these tests hold the invariants that made it removable.
+
+  it('every class has a progression, and every class has level-1 features', () => {
+    for (const c of C.CLASSES) {
+      expect(C.CLASS_PROGRESSION[c.id], `${c.id}: no progression`).toBeTruthy();
+      expect(c.features, `${c.id}: no features attached`).toBeTruthy();
+      expect((c.features ?? []).filter((f) => f.level === 1).length, `${c.id}: nothing at 1st level`)
+        .toBeGreaterThan(0);
+    }
+  });
+
+  it("a class's attached features are exactly its progression's, with no second copy", () => {
+    for (const c of C.CLASSES) {
+      const prog = C.CLASS_PROGRESSION[c.id].features;
+      expect(c.features, `${c.id}`).toEqual(prog);
+      // The old fallback field is gone; nothing may reintroduce a level-1-only duplicate.
+      expect((c as unknown as Record<string, unknown>).features1, `${c.id}: features1 is back`).toBeUndefined();
+    }
+  });
+
+  it('every class that casts 0-level spells at 1st level says so as a feature', () => {
+    const bad: string[] = [];
+    for (const c of C.CLASSES) {
+      const zero = c.spellcasting?.slots1?.[0] ?? 0;
+      if (!zero) continue;   // no 0-level casting at 1st: paladin, ranger, alchemist, bloodrager…
+      const names = (c.features ?? []).filter((f) => f.level === 1).map((f) => f.name.toLowerCase());
+      if (!names.some((n) => n.includes('cantrip') || n.includes('orison')))
+        bad.push(`${c.id}: casts ${zero === 999 ? 'cantrips at will' : `${zero} 0-level spells`} but names neither`);
+    }
+    expect(bad, bad.join(' | ')).toEqual([]);
+  });
+});
+
 describe('class progression, verified against every published class table', () => {
   // The Special column of each class's own table, read off Archives of Nethys (and d20pfsrd for the
   // Vampire Hunter and the gunslinger's deeds) on 2026-09-23. One string per class level, verbatim
@@ -2270,8 +2307,10 @@ describe('class progression, verified against every published class table', () =
       .replace(/\s+/g, ' ')
       .trim();
 
-  // Spell progression columns the engine owns; never a leveled feature.
-  const OWNED_ELSEWHERE = new Set(['cantrips', 'orisons', 'spells', 'spellcasting']);
+  // The spell progression itself is the engine's, not a leveled feature. Cantrips and orisons are
+  // NOT exempt: every published table that lists them expects the class to say so at 1st level, and
+  // the warpriest was missing its orisons until that exemption was removed.
+  const OWNED_ELSEWHERE = new Set(['spells', 'spellcasting']);
 
   it('every class has a progression, and every published table is pinned here', () => {
     const withProgression = Object.keys(C.CLASS_PROGRESSION).sort();

@@ -36,16 +36,14 @@ export function ClassStep({ ch }: { ch: CharCtl }) {
   const favored = doc.decisions['favored-class'] as string | null;
   const fcb = doc.decisions['fcb'] as string | null;
 
-  // Level-1 feature preview. Normally the class's own `features1` copy; when an archetype is
-  // selected on the selected class, derive them through `effectiveClass` so swapped features
-  // (e.g. Bladebound's Arcane Pool) show here too, matching the Advancement/Sheet views.
+  // Level-1 feature preview, taken from the class's own progression — the same list the
+  // Advancement and Sheet views read. When an archetype is selected on the selected class it comes
+  // through `effectiveClass`, so swapped features (e.g. Bladebound's Arcane Pool) show here too.
   const level1Features = (() => {
-    if (view.id === selectedClass && archetype) {
-      const eff = effectiveClass(view, readDecisions(doc));
-      const lvl1 = (eff.features ?? []).filter((f) => f.level === 1);
-      if (lvl1.length) return lvl1.map((f) => ({ id: f.id, name: f.name, desc: f.desc }));
-    }
-    return view.features1;
+    const from = view.id === selectedClass && archetype ? effectiveClass(view, readDecisions(doc)) : view;
+    return (from.features ?? [])
+      .filter((f) => f.level === 1)
+      .map((f) => ({ id: f.id, name: f.name, desc: f.desc }));
   })();
 
   const toggleChoice = (slot: ChoiceSlot, optId: string) => {

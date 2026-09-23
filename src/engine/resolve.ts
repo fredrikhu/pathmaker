@@ -259,7 +259,7 @@ function finalAbilities(dec: Decisions, uptoLevel = Infinity): Record<Ability, n
 }
 
 /** Normalized class features gained at or below `level` (uses per-level `features`, else the
- *  level-1 `features1` fallback while Part B authoring is in progress). Includes source-dependent
+ *  progression). Includes source-dependent
  *  abilities fixed by an earlier choice (sorcerer bloodline, cavalier order). */
 /** The class as modified by the character's archetype (if any belongs to this class): features
  *  swapped, weapon/armor proficiency and spellcasting altered. Applied once, at classBreakdown time
@@ -268,7 +268,7 @@ function finalAbilities(dec: Decisions, uptoLevel = Infinity): Record<Ability, n
 function effectiveClass(klass: C.ClassDef, dec: Decisions): C.ClassDef {
   const arch = dec.archetype ? klass.archetypes?.find((a) => a.id === dec.archetype) : undefined;
   if (!arch) return klass;
-  const baseFeatures = klass.features ?? klass.features1.map((f) => ({ ...f, level: 1 }));
+  const baseFeatures = klass.features ?? [];
   const replaced = new Set(arch.replaces);
   const features = [...baseFeatures.filter((f) => !replaced.has(f.id)), ...arch.grants];
   let proficiencies = klass.proficiencies;
@@ -330,7 +330,7 @@ function effectiveClass(klass: C.ClassDef, dec: Decisions): C.ClassDef {
 function classFeaturesUpTo(klass: C.ClassDef | undefined, level: number, dec?: Decisions): C.LeveledFeatureDef[] {
   if (!klass) return [];
   // `klass` is already the archetype-effective class (see effectiveClass / classBreakdown).
-  const src: C.LeveledFeatureDef[] = klass.features ?? klass.features1.map((f) => ({ ...f, level: 1 }));
+  const src: C.LeveledFeatureDef[] = klass.features ?? [];
   // Source powers belong to the class that chose the source, so a second class in a multiclass
   // must not list them again (or re-apply a level-scaled effect at its own level).
   const extra = dec && klass.id === dec.classId ? sourceFeatures(dec, level) : [];
@@ -824,7 +824,7 @@ function classPools(klass: C.ClassDef | undefined, level: number, mods: Record<A
   const out: ResourcePool[] = [];
   // `klass` is already the archetype-effective class (classBreakdown applies it), so a feature the
   // archetype replaced is simply absent here.
-  const featureIds = new Set((klass.features ?? klass.features1.map((f) => ({ ...f, level: 1 }))).map((f) => f.id));
+  const featureIds = new Set((klass.features ?? []).map((f) => f.id));
   const add = (id: string, name: string, max: number, unit: ResourcePool['unit']) => {
     const needs = POOL_FEATURE[id];
     if (needs && !featureIds.has(needs)) return;

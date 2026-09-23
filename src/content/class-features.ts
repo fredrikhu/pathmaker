@@ -391,6 +391,7 @@ export const CLASS_PROGRESSION: Record<string, ClassProgression> = {
       f(1, 'wp-aura', 'Aura', "Project your deity's alignment aura."),
       f(1, 'wp-blessings', 'Blessings', 'Two minor blessings from your deity\'s domains; major versions at 10th.'),
       f(1, 'wp-focus-weapon', 'Focus Weapon', "Gain Weapon Focus with your deity's favored weapon."),
+      f(1, 'wp-orisons', 'Orisons', 'Cast 0-level warpriest spells at will.'),
       f(1, 'wp-sacred-weapon', 'Sacred Weapon', 'Empower your weapon with scaling damage dice and, later, alignment and enhancement.'),
       f(2, 'wp-fervor', 'Fervor 1d6', 'Heal or cast a swift buff on yourself; the pool grows every 3 levels.'),
       f(4, 'wp-channel', 'Channel Energy', 'Channel positive or negative energy like a cleric.'),

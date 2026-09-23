@@ -53,9 +53,6 @@ export const CLASSES: ClassDef[] = [
     classSkills: [...CRAFT_ALL, 'handle-animal', 'intimidate', 'know-dungeoneering', 'know-engineering', 'profession-any', 'ride', 'survival', 'swim', 'climb'],
     startingGold: 175,
     proficiencies: { weapons: ['simple', 'martial'], armor: ['light', 'medium', 'heavy', 'shield'] },
-    features1: [
-      { id: 'fighter-bonus-feat', name: 'Bonus Feat', desc: 'A fighter gains a bonus combat feat at 1st level and an additional one at every even level.' },
-    ],
   },
   {
     id: 'barbarian', name: 'Barbarian', sub: 'Martial · d12 · rage',
@@ -64,10 +61,6 @@ export const CLASSES: ClassDef[] = [
     classSkills: [...CRAFT_ALL, 'handle-animal', 'intimidate', 'know-nature', 'perception', 'ride', 'survival', 'swim', 'climb', 'acrobatics'],
     startingGold: 105, alignment: ['NG', 'CG', 'N', 'CN', 'NE', 'CE'],
     proficiencies: { weapons: ['simple', 'martial'], armor: ['light', 'medium', 'shield'] },
-    features1: [
-      { id: 'barb-rage', name: 'Rage', desc: 'A barbarian can rage for a number of rounds per day, gaining +4 morale to Str and Con, +2 morale on Will saves, and −2 AC.' },
-      { id: 'barb-fast-movement', name: 'Fast Movement', desc: '+10 feet base land speed.' },
-    ],
   },
   {
     id: 'bard', name: 'Bard', sub: 'Arcane · d8 · 6 skills',
@@ -76,10 +69,6 @@ export const CLASSES: ClassDef[] = [
     classSkills: [...CRAFT_ALL, ...KNOW_ALL, 'acrobatics', 'appraise', 'bluff', 'climb', 'diplomacy', 'disguise', 'escape-artist', 'intimidate', 'linguistics', 'perception', 'perform-oratory', 'perform-strings', 'profession-any', 'sense-motive', 'sleight-of-hand', 'spellcraft', 'stealth', 'use-magic-device'],
     startingGold: 105,
     proficiencies: { weapons: ['simple', 'longsword', 'rapier', 'sap', 'shortbow', 'short-sword', 'whip'], armor: ['light', 'shield'] },
-    features1: [
-      { id: 'bard-performance', name: 'Bardic Performance', desc: 'Inspire courage: allies gain a morale bonus on attack and damage rolls and saves against fear.' },
-      { id: 'bard-knowledge', name: 'Bardic Knowledge', desc: 'Add half class level (minimum 1) on all Knowledge checks, and may make them untrained.' },
-    ],
     spellcasting: { kind: 'spontaneous', ability: 'cha', list: 'bard', progression: 'six', slots1: [999, 1], known1: [4, 2] },
   },
   {
@@ -89,10 +78,6 @@ export const CLASSES: ClassDef[] = [
     classSkills: [...CRAFT_ALL, 'appraise', 'diplomacy', 'heal', 'know-arcana', 'know-history', 'know-nobility', 'know-planes', 'know-religion', 'linguistics', 'profession-any', 'sense-motive', 'spellcraft'],
     startingGold: 140,
     proficiencies: { weapons: ['simple'], armor: ['light', 'medium', 'heavy', 'shield'] },
-    features1: [
-      { id: 'cleric-channel', name: 'Channel Energy', desc: 'Release a wave of positive or negative energy to heal or harm, a number of times per day equal to 3 + Cha modifier.' },
-      { id: 'cleric-spontaneous', name: 'Spontaneous Casting', desc: 'Channel stored spell energy into cure or inflict spells not prepared ahead of time.' },
-    ],
     choices: [{ id: 'domains', label: 'Domains', kind: 'cleric-domains', count: 2 }],
     spellcasting: { kind: 'prepared-list', ability: 'wis', list: 'divine', slots1: [3, 1] },
   },
@@ -103,11 +88,6 @@ export const CLASSES: ClassDef[] = [
     classSkills: [...CRAFT_ALL, 'climb', 'fly', 'handle-animal', 'heal', 'know-geography', 'know-nature', 'perception', 'profession-any', 'ride', 'spellcraft', 'survival', 'swim'],
     startingGold: 70, alignment: ['NG', 'LN', 'N', 'CN', 'NE'],
     proficiencies: { weapons: ['club', 'dagger', 'dart', 'quarterstaff', 'scimitar', 'sickle', 'sling', 'spear'], armor: ['light', 'medium', 'shield'] },
-    features1: [
-      { id: 'druid-nature-bond', name: 'Nature Bond', desc: 'Choose an animal companion or a cleric domain.' },
-      { id: 'druid-nature-sense', name: 'Nature Sense', desc: '+2 bonus on Knowledge (nature) and Survival checks.', effects: [{ target: 'skill:know-nature', type: 'untyped', value: 2, note: 'Nature Sense' }, { target: 'skill:survival', type: 'untyped', value: 2, note: 'Nature Sense' }] },
-      { id: 'druid-wild-empathy', name: 'Wild Empathy', desc: 'Improve the attitude of an animal as though using Diplomacy.' },
-    ],
     choices: [
       { id: 'nature-bond', label: 'Nature Bond', kind: 'list', count: 1, options: NATURE_BOND },
       { id: 'animal-companion', label: 'Animal Companion', kind: 'companion', companionKind: 'animal', count: 1, requires: { choiceId: 'nature-bond', value: 'animal-companion' } },
@@ -122,11 +102,6 @@ export const CLASSES: ClassDef[] = [
     classSkills: [...CRAFT_ALL, 'acrobatics', 'climb', 'escape-artist', 'intimidate', 'know-history', 'know-religion', 'perception', 'perform-oratory', 'profession-any', 'ride', 'sense-motive', 'stealth', 'swim'],
     startingGold: 35, alignment: ['LG', 'LN', 'LE'],
     proficiencies: { weapons: ['club', 'dagger', 'light-crossbow', 'handaxe', 'javelin', 'kama', 'nunchaku', 'quarterstaff', 'sai', 'shuriken', 'siangham', 'sling', 'spear'], armor: [] },
-    features1: [
-      { id: 'monk-flurry', name: 'Flurry of Blows', desc: 'As a full attack, make one extra attack with unarmed strikes or special monk weapons at a −1 penalty to all.' },
-      { id: 'monk-unarmed', name: 'Unarmed Strike', desc: 'Deal lethal 1d6 damage with unarmed strikes and are always armed. Gain Improved Unarmed Strike.' },
-      { id: 'monk-stunning-fist', name: 'Stunning Fist', desc: 'Gain Stunning Fist as a bonus feat.' },
-    ],
   },
   {
     id: 'paladin', name: 'Paladin', sub: 'Divine · d10 · LG only',
@@ -135,10 +110,6 @@ export const CLASSES: ClassDef[] = [
     classSkills: [...CRAFT_ALL, 'diplomacy', 'handle-animal', 'heal', 'know-nobility', 'know-religion', 'profession-any', 'ride', 'sense-motive', 'spellcraft'],
     startingGold: 175, alignment: ['LG'],
     proficiencies: { weapons: ['simple', 'martial'], armor: ['light', 'medium', 'heavy', 'shield'] },
-    features1: [
-      { id: 'paladin-smite', name: 'Smite Evil', desc: 'Once per day, add Cha modifier to attack rolls and paladin level to damage against an evil target.' },
-      { id: 'paladin-aura', name: 'Aura of Good / Detect Evil', desc: 'Project a strong aura of good and detect evil at will.' },
-    ],
     // The Divine Bond choice itself lives in CLASS_PROGRESSION (it is gained at 5th); this only
     // adds the creature pick that the mount branch opens.
     choices: [
@@ -156,11 +127,6 @@ export const CLASSES: ClassDef[] = [
     classSkills: [...CRAFT_ALL, 'climb', 'handle-animal', 'heal', 'intimidate', 'know-dungeoneering', 'know-geography', 'know-nature', 'perception', 'profession-any', 'ride', 'spellcraft', 'stealth', 'survival', 'swim'],
     startingGold: 175,
     proficiencies: { weapons: ['simple', 'martial'], armor: ['light', 'medium', 'shield'] },
-    features1: [
-      { id: 'ranger-favored-enemy', name: 'Favored Enemy', desc: '+2 bonus on attack and damage rolls and certain skills against one chosen creature type.' },
-      { id: 'ranger-track', name: 'Track', desc: 'Add half level (minimum 1) to Survival checks to follow tracks.' },
-      { id: 'ranger-wild-empathy', name: 'Wild Empathy', desc: 'Improve the attitude of an animal as though using Diplomacy.' },
-    ],
     choices: [
       { id: 'hunters-bond', label: "Hunter's Bond", kind: 'list', count: 1, levels: [4], options: HUNTERS_BOND },
       { id: 'ranger-companion', label: 'Animal Companion', kind: 'companion', companionKind: 'animal', count: 1, levels: [4], requires: { choiceId: 'hunters-bond', value: 'animal-companion' } },
@@ -177,10 +143,6 @@ export const CLASSES: ClassDef[] = [
     classSkills: [...CRAFT_ALL, 'acrobatics', 'appraise', 'bluff', 'climb', 'diplomacy', 'disable-device', 'disguise', 'escape-artist', 'intimidate', 'know-dungeoneering', 'know-local', 'linguistics', 'perception', 'perform-oratory', 'profession-any', 'sense-motive', 'sleight-of-hand', 'stealth', 'swim', 'use-magic-device'],
     startingGold: 140,
     proficiencies: { weapons: ['simple', 'hand-crossbow', 'rapier', 'sap', 'shortbow', 'short-sword'], armor: ['light'] },
-    features1: [
-      { id: 'rogue-sneak-attack', name: 'Sneak Attack', desc: '+1d6 damage when the target is denied its Dex bonus to AC or is flanked.' },
-      { id: 'rogue-trapfinding', name: 'Trapfinding', desc: 'Add half level to Perception to locate traps and to Disable Device; can disarm magic traps.' },
-    ],
   },
   {
     id: 'sorcerer', name: 'Sorcerer', sub: 'Arcane · d6 · bloodline',
@@ -189,10 +151,6 @@ export const CLASSES: ClassDef[] = [
     classSkills: [...CRAFT_ALL, 'appraise', 'bluff', 'intimidate', 'know-arcana', 'profession-any', 'spellcraft', 'use-magic-device'],
     startingGold: 70,
     proficiencies: { weapons: ['simple'], armor: [] },
-    features1: [
-      { id: 'sorcerer-bloodline', name: 'Bloodline', desc: 'An inborn source of magic granting bonus spells, bonus feats, a bloodline arcana, and bloodline powers.' },
-      { id: 'sorcerer-cantrips', name: 'Cantrips', desc: 'Learn a number of 0-level spells that can be cast at will.' },
-    ],
     choices: [{ id: 'bloodline', label: 'Bloodline', kind: 'sorcerer-bloodline', count: 1 }],
     spellcasting: { kind: 'spontaneous', ability: 'cha', list: 'arcane', slots1: [999, 3], known1: [4, 2] },
   },
@@ -203,12 +161,6 @@ export const CLASSES: ClassDef[] = [
     classSkills: [...CRAFT_ALL, 'climb', 'diplomacy', 'handle-animal', 'heal', 'intimidate', 'know-engineering', 'know-religion', 'profession-any', 'ride', 'sense-motive', 'spellcraft', 'survival', 'swim'],
     startingGold: 175,
     proficiencies: { weapons: ['simple', 'martial'], armor: ['light', 'medium', 'heavy', 'shield'] },
-    features1: [
-      { id: 'warpriest-blessings', name: 'Blessings', desc: 'Choose two blessings from those granted by your deity (matching the deity’s domains). Each grants minor and major powers usable a few times per day.' },
-      { id: 'warpriest-focus-weapon', name: 'Focus Weapon', desc: 'Gain Weapon Focus with your deity’s favored weapon as a bonus feat.' },
-      { id: 'warpriest-sacred-weapon', name: 'Sacred Weapon', desc: 'Deal increased damage with your deity’s favored weapon, and later enhance it with fervor.' },
-      { id: 'warpriest-orisons', name: 'Orisons', desc: 'Prepare a number of 0-level spells that can be cast at will.' },
-    ],
     choices: [{ id: 'blessings', label: 'Blessings', kind: 'warpriest-blessings', count: 2 }],
     spellcasting: { kind: 'prepared-list', ability: 'wis', list: 'divine', slots1: [3, 1] },
   },
@@ -219,10 +171,6 @@ export const CLASSES: ClassDef[] = [
     classSkills: [...CRAFT_ALL, ...KNOW_ALL, 'appraise', 'fly', 'linguistics', 'profession-any', 'spellcraft'],
     startingGold: 70,
     proficiencies: { weapons: ['club', 'dagger', 'light-crossbow', 'heavy-crossbow', 'quarterstaff'], armor: [] },
-    features1: [
-      { id: 'wizard-cantrips', name: 'Cantrips', desc: 'Prepare a number of 0-level spells that can be cast at will (they are not expended).' },
-      { id: 'wizard-scribe-scroll', name: 'Scribe Scroll', desc: 'Gain Scribe Scroll as a bonus feat at 1st level.' },
-    ],
     choices: [
       { id: 'arcane-bond', label: 'Arcane Bond', kind: 'arcane-bond', count: 1 },
       { id: 'familiar', label: 'Familiar', kind: 'companion', companionKind: 'familiar', count: 1, requires: { choiceId: 'arcane-bond', value: 'familiar' } },
@@ -241,12 +189,6 @@ export const CLASSES: ClassDef[] = [
     classSkills: ['appraise', ...CRAFT_ALL, 'disable-device', 'fly', 'heal', 'know-arcana', 'know-nature', 'perception', 'profession-any', 'sleight-of-hand', 'spellcraft', 'survival', 'use-magic-device'],
     startingGold: 105,
     proficiencies: { weapons: ['simple'], armor: ['light'] },
-    features1: [
-      { id: 'alch-alchemy', name: 'Alchemy', desc: 'Prepare Int-based extracts from a formula book (a private, potion-like magic). Begins with two 1st-level formulae plus Int modifier more.' },
-      { id: 'alch-bomb', name: 'Bombs', desc: 'Throw splash bombs dealing 1d6 + Int fire damage, a number per day equal to level + Int modifier.' },
-      { id: 'alch-mutagen', name: 'Mutagen', desc: 'Brew a mutagen granting +4 to one physical ability and +2 natural armor (with a mental penalty).' },
-      { id: 'alch-throw', name: 'Throw Anything', desc: 'Gain Throw Anything as a bonus feat; add Int to splash damage.' },
-    ],
     // Extracts per day use the 6-level "extract" table (no 0-level); no creation-time selection.
     // Its own formulae list, 1st-6th - not the sorcerer/wizard list it used to borrow.
     spellcasting: { kind: 'prepared-list', ability: 'int', list: 'alchemist', slots1: [] },
@@ -258,11 +200,6 @@ export const CLASSES: ClassDef[] = [
     classSkills: ['bluff', 'climb', ...CRAFT_ALL, 'diplomacy', 'handle-animal', 'intimidate', 'profession-any', 'ride', 'sense-motive', 'swim'],
     startingGold: 175,
     proficiencies: { weapons: ['simple', 'martial'], armor: ['light', 'medium', 'heavy', 'shield'] },
-    features1: [
-      { id: 'cav-challenge', name: 'Challenge', desc: 'Once per day, single out a foe for extra damage equal to your level (with an order-specific benefit).' },
-      { id: 'cav-mount', name: 'Mount', desc: 'Gain a mount functioning as a druid’s animal companion.' },
-      { id: 'cav-tactician', name: 'Tactician', desc: 'Gain a teamwork feat and can grant it to nearby allies for a few rounds.' },
-    ],
     choices: [
       { id: 'order', label: 'Order', kind: 'list', count: 1, options: CAVALIER_ORDERS },
       { id: 'mount', label: 'Mount', kind: 'companion', companionKind: 'animal', count: 1 },
@@ -276,11 +213,6 @@ export const CLASSES: ClassDef[] = [
     classSkills: ['acrobatics', 'bluff', 'climb', ...CRAFT_ALL, 'handle-animal', 'heal', 'intimidate', 'know-engineering', 'know-local', 'perception', 'profession-any', 'ride', 'sleight-of-hand', 'survival', 'swim'],
     startingGold: 175,
     proficiencies: { weapons: ['simple', 'martial', 'firearms'], armor: ['light'] },
-    features1: [
-      { id: 'gun-grit', name: 'Grit', desc: 'A pool of Wis-based grit points (regained by crits and killing blows) that fuel deeds.' },
-      { id: 'gun-gunsmith', name: 'Gunsmith', desc: 'Start with a battered firearm and Gunsmithing as a bonus feat.' },
-      { id: 'gun-deeds', name: 'Deeds', desc: 'Deadeye, Gunslinger’s Dodge, and Quick Clear at 1st level.' },
-    ],
     choices: [{ id: 'firearm', label: 'Starting firearm', kind: 'list', count: 1, options: GUNSLINGER_FIREARMS }],
   },
   {
@@ -290,11 +222,6 @@ export const CLASSES: ClassDef[] = [
     classSkills: ['bluff', 'climb', ...CRAFT_ALL, 'diplomacy', 'disguise', 'heal', 'intimidate', 'know-arcana', 'know-dungeoneering', 'know-nature', 'know-planes', 'know-religion', 'perception', 'profession-any', 'ride', 'sense-motive', 'spellcraft', 'stealth', 'survival', 'swim'],
     startingGold: 140,
     proficiencies: { weapons: ['simple', 'hand-crossbow', 'longbow', 'shortbow'], armor: ['light', 'medium', 'shield'] },
-    features1: [
-      { id: 'inq-judgment', name: 'Judgment', desc: 'Once per day, pronounce a combat judgment (destruction, healing, justice, protection, and more) as a swift action.' },
-      { id: 'inq-domain', name: 'Domain', desc: 'Gain one domain from your deity’s list (granted power only, not domain spells).' },
-      { id: 'inq-stern-gaze', name: 'Stern Gaze', desc: 'A morale bonus on Intimidate and Sense Motive equal to half your level.' },
-    ],
     choices: [{ id: 'domain', label: 'Domain', kind: 'cleric-domains', count: 1 }],
     // Its own list, not the cleric's: the inquisitor tops out at 6th level and reaches for spells
     // no cleric gets (Invisibility, Knock, Heroism, Keen Edge).
@@ -307,11 +234,6 @@ export const CLASSES: ClassDef[] = [
     classSkills: ['climb', ...CRAFT_ALL, 'fly', 'intimidate', 'know-arcana', 'know-dungeoneering', 'know-planes', 'profession-any', 'ride', 'spellcraft', 'swim', 'use-magic-device'],
     startingGold: 140,
     proficiencies: { weapons: ['simple', 'martial'], armor: ['light'] },
-    features1: [
-      { id: 'mag-arcane-pool', name: 'Arcane Pool', desc: 'A pool of ½ level + Int points; spend to grant your weapon a temporary enhancement bonus.' },
-      { id: 'mag-spell-combat', name: 'Spell Combat', desc: 'Cast a spell and make all your weapon attacks in the same round, at a penalty.' },
-      { id: 'mag-cantrips', name: 'Cantrips', desc: 'Prepare 0-level magus spells, cast at will.' },
-    ],
     // A narrow, combat-shaped slice of the sorcerer/wizard list, and its own list for that reason:
     // no Wish, no divinations to speak of, and it tops out at 6th level.
     spellcasting: { kind: 'prepared-book', ability: 'int', list: 'magus', slots1: [3, 1], bookPicks1: 'threePlusInt' },
@@ -323,10 +245,6 @@ export const CLASSES: ClassDef[] = [
     classSkills: [...CRAFT_ALL, 'diplomacy', 'heal', 'know-history', 'know-planes', 'know-religion', 'profession-any', 'sense-motive', 'spellcraft'],
     startingGold: 105,
     proficiencies: { weapons: ['simple'], armor: ['light', 'medium', 'shield'] },
-    features1: [
-      { id: 'ora-revelation', name: 'Revelation', desc: 'Gain one revelation from your mystery at 1st level.' },
-      { id: 'ora-orisons', name: 'Orisons', desc: 'Know a number of 0-level divine spells, cast at will.' },
-    ],
     choices: [
       { id: 'mystery', label: 'Mystery', kind: 'list', count: 1, options: ORACLE_MYSTERIES },
       { id: 'curse', label: 'Oracle’s Curse', kind: 'list', count: 1, options: ORACLE_CURSES },
@@ -340,11 +258,6 @@ export const CLASSES: ClassDef[] = [
     classSkills: ['acrobatics', 'climb', ...CRAFT_ALL, 'fly', 'handle-animal', 'heal', 'intimidate', 'know-nature', 'perception', 'profession-any', 'ride', 'survival', 'swim'],
     startingGold: 105, alignment: ['NG', 'LN', 'N', 'CN', 'NE'],
     proficiencies: { weapons: ['club', 'dagger', 'quarterstaff', 'scimitar', 'spear'], armor: ['light', 'medium'] },
-    features1: [
-      { id: 'shf-claws', name: 'Shifter Claws', desc: 'Grow magical claws dealing 1d4 damage as natural attacks.' },
-      { id: 'shf-aspect', name: 'Shifter Aspect', desc: 'Take on a chosen animal aspect for a few minutes per day as a swift action.' },
-      { id: 'shf-wild-empathy', name: 'Wild Empathy', desc: 'Influence animal attitudes as though using Diplomacy.' },
-    ],
     choices: [{ id: 'aspect', label: 'Shifter aspect', kind: 'list', count: 1, options: SHIFTER_ASPECTS }],
   },
   {
@@ -354,11 +267,6 @@ export const CLASSES: ClassDef[] = [
     classSkills: [...CRAFT_ALL, 'fly', 'handle-animal', ...KNOW_ALL, 'linguistics', 'profession-any', 'ride', 'spellcraft', 'use-magic-device'],
     startingGold: 70,
     proficiencies: { weapons: ['simple'], armor: ['light'] },
-    features1: [
-      { id: 'sum-eidolon', name: 'Eidolon', desc: 'Summon and customize an outsider companion using evolution points.' },
-      { id: 'sum-life-link', name: 'Life Link', desc: 'Sacrifice your own hit points to keep your eidolon in the fight.' },
-      { id: 'sum-summon-monster', name: 'Summon Monster I', desc: 'Cast summon monster I as a spell-like ability 3 + Cha modifier times per day.' },
-    ],
     choices: [
       { id: 'eidolon-form', label: 'Eidolon base form', kind: 'companion', companionKind: 'eidolon', count: 1 },
       { id: 'evolutions', label: 'Eidolon evolutions', kind: 'eidolon-evolutions', count: EIDOLON_EVOLUTIONS.length },
@@ -375,10 +283,6 @@ export const CLASSES: ClassDef[] = [
     classSkills: [...CRAFT_ALL, 'fly', 'heal', 'intimidate', 'know-arcana', 'know-history', 'know-nature', 'know-planes', 'profession-any', 'spellcraft', 'use-magic-device'],
     startingGold: 105,
     proficiencies: { weapons: ['simple'], armor: [] },
-    features1: [
-      { id: 'wit-familiar', name: 'Witch’s Familiar', desc: 'A familiar stores your spells; you prepare from it each day.' },
-      { id: 'wit-cantrips', name: 'Cantrips', desc: 'Prepare 0-level witch spells, cast at will.' },
-    ],
     choices: [
       { id: 'patron', label: 'Patron', kind: 'list', count: 1, options: WITCH_PATRONS },
       { id: 'familiar', label: 'Familiar', kind: 'companion', companionKind: 'familiar', count: 1 },
@@ -397,12 +301,6 @@ export const CLASSES: ClassDef[] = [
     classSkills: ['bluff', 'climb', ...CRAFT_ALL, 'handle-animal', 'heal', 'intimidate', 'know-arcana', 'know-geography', 'know-local', 'know-religion', 'perception', 'profession-any', 'ride', 'sense-motive', 'spellcraft', 'stealth', 'survival', 'swim'],
     startingGold: 175,
     proficiencies: { weapons: ['simple', 'martial'], armor: ['light', 'medium', 'shield'] },
-    features1: [
-      { id: 'vh-detect-undead', name: 'Detect Undead', desc: 'Detect undead at will as a spell-like ability.' },
-      { id: 'vh-focus', name: 'Vampiric Focus', desc: 'A pool of focus fueling anti-undead techniques and blessings.' },
-      { id: 'vh-technique', name: 'Technique Feat', desc: 'Gain a bonus combat or technique feat.' },
-      { id: 'vh-track', name: 'Track', desc: 'Add half your level to Survival checks to follow tracks.' },
-    ],
     // Spontaneous divine caster from 4th level, drawing on the inquisitor list: no orisons, and
     // nothing above 4th level. Wisdom-based, with bonus spells per day from a high Wisdom.
     // The inquisitor list, as the comment above has always said - it only became expressible
@@ -418,11 +316,6 @@ export const CLASSES: ClassDef[] = [
     classSkills: ['appraise', ...CRAFT_ALL, 'fly', ...KNOW_ALL, 'linguistics', 'profession-any', 'spellcraft', 'use-magic-device'],
     startingGold: 70,
     proficiencies: { weapons: ['simple'], armor: [] },
-    features1: [
-      { id: 'arc-reservoir', name: 'Arcane Reservoir', desc: 'A daily pool of magic (3 + ½ level points) that fuels exploits and empowers spells.' },
-      { id: 'arc-consume', name: 'Consume Spells', desc: 'Expend a prepared spell slot to refill the reservoir.' },
-      { id: 'arc-cantrips', name: 'Cantrips', desc: 'Prepare 0-level arcanist spells, cast at will.' },
-    ],
     choices: [{ id: 'exploit', label: 'Arcanist exploit', kind: 'list', count: 1, options: ARCANIST_EXPLOITS }],
     spellcasting: { kind: 'prepared-book', ability: 'int', list: 'arcane', slots1: [4, 2], bookPicks1: 'threePlusInt' },
   },
@@ -433,10 +326,6 @@ export const CLASSES: ClassDef[] = [
     classSkills: ['acrobatics', 'climb', ...CRAFT_ALL, 'handle-animal', 'intimidate', 'know-arcana', 'perception', 'ride', 'spellcraft', 'survival', 'swim'],
     startingGold: 105,
     proficiencies: { weapons: ['simple', 'martial'], armor: ['light', 'medium', 'shield'] },
-    features1: [
-      { id: 'blr-bloodrage', name: 'Bloodrage', desc: 'Rage for 4 + Con rounds/day, gaining +4 Str/Con, +2 Will, −2 AC, and triggering bloodline powers.' },
-      { id: 'blr-fast-movement', name: 'Fast Movement', desc: '+10 feet base land speed in light or medium armor.' },
-    ],
     choices: [{ id: 'bloodline', label: 'Bloodline', kind: 'list', count: 1, options: BLOODRAGER_BLOODLINES }],
     // Spontaneous arcane casting from 4th level (caster level = level − 3); no level-1 spells.
     // Its own list: 1st-4th only, and shaped for a raging melee caster.
@@ -449,11 +338,6 @@ export const CLASSES: ClassDef[] = [
     classSkills: ['acrobatics', 'climb', ...CRAFT_ALL, 'escape-artist', 'handle-animal', 'intimidate', 'know-dungeoneering', 'know-local', 'perception', 'profession-any', 'ride', 'sense-motive', 'swim'],
     startingGold: 105,
     proficiencies: { weapons: ['simple', 'handaxe', 'short-sword'], armor: ['light', 'shield'] },
-    features1: [
-      { id: 'brw-unarmed', name: 'Improved Unarmed Strike', desc: 'Deal 1d6 lethal unarmed damage and count as armed; gain Improved Unarmed Strike.' },
-      { id: 'brw-flexibility', name: 'Martial Flexibility', desc: 'As a move action, gain a combat feat you don’t have for a short time, a few times per day.' },
-      { id: 'brw-training', name: 'Martial Training', desc: 'Count as both fighter and monk for feat and item prerequisites.' },
-    ],
   },
   {
     id: 'hunter', name: 'Hunter', sub: 'Hybrid · d8 · animal focus',
@@ -462,11 +346,6 @@ export const CLASSES: ClassDef[] = [
     classSkills: ['climb', ...CRAFT_ALL, 'handle-animal', 'heal', 'intimidate', 'know-dungeoneering', 'know-geography', 'know-nature', 'perception', 'profession-any', 'ride', 'spellcraft', 'stealth', 'survival', 'swim'],
     startingGold: 140, alignment: ['NG', 'LN', 'N', 'CN', 'NE'],
     proficiencies: { weapons: ['simple', 'martial'], armor: ['light', 'medium', 'shield'] },
-    features1: [
-      { id: 'hun-companion', name: 'Animal Companion', desc: 'Gain a companion as a druid of your level.' },
-      { id: 'hun-focus', name: 'Animal Focus', desc: 'Take on an animal’s aspect (and grant one to your companion) for minutes per day.' },
-      { id: 'hun-nature-training', name: 'Nature Training', desc: 'Count as both druid and ranger for feats and options.' },
-    ],
     choices: [{ id: 'animal-companion', label: 'Animal Companion', kind: 'companion', companionKind: 'animal', count: 1 }],
     companions: [{ choiceId: 'animal-companion', kind: 'animal', label: 'Animal Companion' }],
     // Druid spells of 6th and lower plus every ranger spell, at the lower level where a spell is
@@ -480,11 +359,6 @@ export const CLASSES: ClassDef[] = [
     classSkills: ['acrobatics', 'appraise', 'bluff', 'climb', ...CRAFT_ALL, 'diplomacy', 'disable-device', 'disguise', 'escape-artist', 'heal', 'intimidate', ...KNOW_ALL, 'linguistics', 'perception', 'perform-oratory', 'profession-any', 'sense-motive', 'sleight-of-hand', 'spellcraft', 'stealth', 'use-magic-device'],
     startingGold: 105,
     proficiencies: { weapons: ['simple', 'hand-crossbow', 'rapier', 'sap', 'shortbow', 'short-sword'], armor: ['light'] },
-    features1: [
-      { id: 'inv-alchemy', name: 'Alchemy', desc: 'Prepare Int-based extracts from a formula book, like an alchemist.' },
-      { id: 'inv-inspiration', name: 'Inspiration', desc: 'A pool of ½ level + Int; spend to add 1d6 to a check.' },
-      { id: 'inv-trapfinding', name: 'Trapfinding', desc: 'Add half your level to find and disable traps, including magical ones.' },
-    ],
     // Extracts per day use the 6-level "extract" table (no 0-level); no creation-time selection.
     // An investigator's extracts come off the alchemist formulae list, per its Alchemy feature.
     spellcasting: { kind: 'prepared-list', ability: 'int', list: 'alchemist', slots1: [] },
@@ -496,11 +370,6 @@ export const CLASSES: ClassDef[] = [
     classSkills: [...CRAFT_ALL, 'diplomacy', 'fly', 'handle-animal', 'heal', 'know-nature', 'know-planes', 'know-religion', 'profession-any', 'ride', 'spellcraft', 'survival'],
     startingGold: 105,
     proficiencies: { weapons: ['simple'], armor: ['light', 'medium', 'shield'] },
-    features1: [
-      { id: 'sha-spirit-animal', name: 'Spirit Animal', desc: 'A familiar that stores your spells and links you to your spirit.' },
-      { id: 'sha-spirit-magic', name: 'Spirit Magic', desc: 'Spontaneously cast a small set of spells granted by your chosen spirit.' },
-      { id: 'sha-orisons', name: 'Orisons', desc: 'Prepare 0-level shaman spells, cast at will.' },
-    ],
     choices: [
       { id: 'spirit', label: 'Spirit', kind: 'list', count: 1, options: SHAMAN_SPIRITS },
       { id: 'spirit-animal', label: 'Spirit Animal', kind: 'companion', companionKind: 'familiar', count: 1 },
@@ -516,11 +385,6 @@ export const CLASSES: ClassDef[] = [
     classSkills: ['acrobatics', 'appraise', 'bluff', 'climb', ...CRAFT_ALL, 'diplomacy', 'escape-artist', 'handle-animal', 'intimidate', ...KNOW_ALL, 'linguistics', 'perception', 'perform-oratory', 'perform-strings', 'profession-any', 'ride', 'sense-motive', 'spellcraft', 'swim', 'use-magic-device'],
     startingGold: 105,
     proficiencies: { weapons: ['simple', 'martial'], armor: ['light', 'medium', 'shield'] },
-    features1: [
-      { id: 'skd-raging-song', name: 'Raging Song', desc: 'Perform to grant allies a barbarian-like rage or other rousing effects.' },
-      { id: 'skd-knowledge', name: 'Bardic Knowledge', desc: 'Add half your level to all Knowledge checks and make them untrained.' },
-      { id: 'skd-scribe', name: 'Scribe Scroll', desc: 'Gain Scribe Scroll as a bonus feat.' },
-    ],
     spellcasting: { kind: 'spontaneous', ability: 'cha', list: 'bard', progression: 'six', slots1: [999, 1], known1: [4, 2] },
   },
   {
@@ -530,10 +394,6 @@ export const CLASSES: ClassDef[] = [
     classSkills: ['acrobatics', 'bluff', 'climb', ...CRAFT_ALL, 'disable-device', 'disguise', 'escape-artist', 'heal', 'intimidate', 'know-dungeoneering', 'know-geography', 'know-local', 'perception', 'profession-any', 'ride', 'sense-motive', 'sleight-of-hand', 'stealth', 'survival', 'swim'],
     startingGold: 175,
     proficiencies: { weapons: ['simple', 'martial'], armor: ['light', 'medium', 'shield'] },
-    features1: [
-      { id: 'sly-studied-target', name: 'Studied Target', desc: 'Study a foe as a move action to gain scaling bonuses on attacks, damage, and skills against it.' },
-      { id: 'sly-track', name: 'Track', desc: 'Add half your level to Survival checks to follow tracks.' },
-    ],
   },
   {
     id: 'swashbuckler', name: 'Swashbuckler', sub: 'Hybrid · d10 · panache',
@@ -542,16 +402,12 @@ export const CLASSES: ClassDef[] = [
     classSkills: ['acrobatics', 'bluff', 'climb', ...CRAFT_ALL, 'diplomacy', 'escape-artist', 'intimidate', 'know-local', 'know-nobility', 'perception', 'perform-oratory', 'profession-any', 'ride', 'sense-motive', 'sleight-of-hand', 'swim'],
     startingGold: 175,
     proficiencies: { weapons: ['simple', 'martial'], armor: ['light'] },
-    features1: [
-      { id: 'swb-panache', name: 'Panache', desc: 'A Cha-based pool (regained by crits and killing blows with piercing weapons) that fuels deeds.' },
-      { id: 'swb-deeds', name: 'Deeds', desc: 'Derring-Do, Dodging Panache, and Opportune Parry and Riposte at 1st level.' },
-      { id: 'swb-finesse', name: 'Swashbuckler Finesse', desc: 'Use Weapon Finesse for free with light and one-handed piercing weapons.' },
-    ],
   },
 ];
 
-// Attach the Part-B per-level progression (features, bonus feats, per-level subsystem picks).
-// Classes without an entry keep only their level-1 `features1` fallback (the engine handles that).
+// Attach the per-level progression (features, bonus feats, per-level subsystem picks). Every
+// class has an entry, and a golden asserts it: `features` is the single source for what a
+// class grants, so nothing has to agree with a second copy.
 for (const c of CLASSES) {
   const prog = CLASS_PROGRESSION[c.id];
   if (!prog) continue;

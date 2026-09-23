@@ -29,7 +29,7 @@ export function AdvancementStep({ ch }: { ch: CharCtl }) {
     const byClass = new Map<string, Map<string, string>>();
     for (const c of CLASSES) {
       const m = new Map<string, string>();
-      for (const f of [...c.features1, ...(c.features ?? [])]) if (!m.has(f.name)) m.set(f.name, f.desc);
+      for (const f of c.features ?? []) if (!m.has(f.name)) m.set(f.name, f.desc);
       byClass.set(c.id, m);
     }
     return byClass;
