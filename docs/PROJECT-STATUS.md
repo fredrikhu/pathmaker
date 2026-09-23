@@ -6,11 +6,11 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 
 ## ▶ Resume here (last session end)
 
-**Current state** — branch `main`, working tree clean, **1,121 tests** passing; run
+**Current state** — branch `main`, working tree clean, **1,131 tests** passing; run
 `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
 **Latest — every catalogue and rules table has been audited against the published sources.**
-Fifteen passes, `6729349`..`46f216f`. Twelve turned up something to fix and three were
+Sixteen passes, `6729349`..`a385fbf`. Thirteen turned up something to fix and three were
 already clean; the full table and the lessons are in the **Content audit** section below, with a
 detailed paragraph per catalogue further down under *Content breadth*. The worst find was the
 **magus marked full BAB instead of three-quarters**, which inflated every magus attack, CMB, CMD and
@@ -943,8 +943,8 @@ Everything below is the durable detail. When resuming, read this file, then `doc
 ## ▶ Content audit (2026-09-21 → 2026-09-22)
 
 Every content catalogue and every rules table the engine computes from was checked against the
-published source (d20pfsrd, and Archives of Nethys where d20pfsrd is incomplete). Fifteen passes,
-commits `6729349`..`46f216f`. **Twelve turned up something to fix; three were already correct**
+published source (d20pfsrd, and Archives of Nethys where d20pfsrd is incomplete). Sixteen passes,
+commits `6729349`..`a385fbf`. **Thirteen turned up something to fix; three were already correct**
 (races, equipment, magic item pricing).
 
 | Pass | Result |
@@ -964,6 +964,7 @@ commits `6729349`..`46f216f`. **Twelve turned up something to fix; three were al
 | Companions | all 60 table rows clean; **3 animal companions wrong** (octopus, saber-toothed cat, giant scorpion) |
 | Class features | 25 of 31 classes clean; **hunter missing 5 features**, skald 3, shifter 2, plus an invented deed |
 | Archetype swaps | **17 wrong or missing trades** across 125 archetypes, including one that doubled a barbarian's DR |
+| Source features | 241 abilities + 184 bonus spells; **2 cavalier order bugs**, 1 invented aspect name, 1 dropped qualifier |
 
 ### What the pattern was
 
@@ -987,6 +988,11 @@ pass where checking the roster mattered more than checking the rows.
 **My own scope claim was the last thing to verify.** After twelve passes I told the user everything
 auditable had been audited; the companions had not been, and neither had the class features. Treat
 "what is left?" as a question to answer from the file list, not from memory of what was done.
+
+**An unexercised mechanism hides its own content.** The cavalier's order abilities were injected
+into the advancement table by a code path no test touched, so a swapped pair of abilities sat there
+for as long as the data existed. The fix for that is not a better catalogue — it is a test that
+resolves a character and reads what the sheet shows.
 
 **A summary is not a source.** Archives of Nethys prints a "Replaced Features" column beside every
 archetype, which looks like exactly the data this pass needs. It is wrong in both directions — it
@@ -1021,6 +1027,9 @@ Each pass added goldens rather than one-off corrections, so these values are now
 - **All three companion advancement tables** cell by cell, plus every creature's size, natural
   armour and ability scores, and the milestone levels that distinguish the animal companion's
   progression from the eidolon's.
+- **Every source ability and bonus spell**: all 241 abilities across the eight source tables and
+  all 184 bonus spells across the three spell tables, by name and level, plus a resolve-level test
+  that a chosen source's abilities actually reach the advancement table.
 - **Every archetype's swaps, in both directions**: a "Replaces X" claim must name something the
   archetype actually removes, and every feature in `replaces` must have a grant saying what stands
   in its place. The two directions catch different bugs — the first a feature that survives when it
@@ -1594,6 +1603,23 @@ Invulnerability, because only the feature line was replaced and not the DR itsel
 level from 2nd, as published. One went the other way — the **Sniper** was removing a 2nd-level
 slayer talent the published archetype never touches. Two existing tests asserted the Sniper and
 Forester bugs and were corrected with them.
+
+**Source feature audit (2026-09-23). Two cavalier order bugs, one invented aspect name.**
+`source-features.ts` holds what a *chosen source* grants per level — bloodline powers, order
+abilities, spirit abilities, school powers, curses, final revelations, shifter aspects, and the
+bonus-spell series for sorcerers, bloodragers and witches. All 241 abilities and 184 spells were
+checked. **Almost everything was right**: all 30 sorcerer and 60 bloodrager bloodline powers, all 40
+shaman spirit abilities, all 26 wizard school powers (including the one irregular level — Abjuration's
+Energy Absorption at 6th where every other school's third power is at 8th), all 24 oracle curse
+steps, all 10 final revelations, all 40 shifter aspect steps, and every bonus spell. Wrong: the
+**order of the lion had Lion's Call and For the King the wrong way round** (the rally is 2nd, the
+attack bonus 8th), and the **order of the cockatrice's capstone was "Rages of Vanity"**, which is not
+a published cavalier ability at all — it is Moment of Triumph. Also, the shifter aspect list offered
+**"Eagle"** where the published aspect is **Falcon**, a name our own ability table already used; and
+the winter patron's 4th-level spell is *resist energy (cold only)*, a restriction we had dropped.
+**The lion bug is the instructive one**: the abilities were injected by a code path that no test
+exercised, so a swapped pair could sit there indefinitely. A resolve-level test now builds a lion
+cavalier and reads the advancement table, which is how this pass confirmed the fix.
 
 ### Modeling simplifications (fidelity notes)
 - **Per-list spell levels — audited in full.** The per-list level map (`SpellDef.levelByList`, read via
