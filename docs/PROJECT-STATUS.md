@@ -6,14 +6,15 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 
 ## ▶ Resume here (last session end)
 
-**Current state** — branch `main`, working tree clean, **1,192 tests** passing; run
+**Current state** — branch `main`, working tree clean, **1,203 tests** passing; run
 `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
 **Latest — the content, the generated text, the view and now the engine's own arithmetic have all
-been audited against the published rules.** Twenty-three passes, `6729349`..`e73ae75`, covering every
+been audited against the published rules.** Twenty-four passes, `6729349`..`3cd1e6c`, covering every
 catalogue, every rules table, every piece of authored or generated text, the strings the UI
-assembles, the formulas the engine computes, and the state the play sheet keeps. Twenty turned up
-something to fix and three were already clean; the full table and the lessons are in the
+assembles, the formulas the engine computes, the state the play sheet keeps, and the companion stat
+block. Twenty-one turned up something to fix and three were already clean; the full table and the
+lessons are in the
 **Content audit** section below, with a
 detailed paragraph per catalogue further down under *Content breadth*. The worst find was the
 **magus marked full BAB instead of three-quarters**, which inflated every magus attack, CMB, CMD and
@@ -946,8 +947,8 @@ Everything below is the durable detail. When resuming, read this file, then `doc
 ## ▶ Content audit (2026-09-21 → 2026-09-22)
 
 Every content catalogue and every rules table the engine computes from was checked against the
-published source (d20pfsrd, and Archives of Nethys where d20pfsrd is incomplete). Twenty-three
-passes, commits `6729349`..`e73ae75`. **Twenty turned up something to fix; three were already
+published source (d20pfsrd, and Archives of Nethys where d20pfsrd is incomplete). Twenty-four
+passes, commits `6729349`..`3cd1e6c`. **Twenty-one turned up something to fix; three were already
 correct** (races, equipment, magic item pricing). Nothing in `src/content/` is unaudited, and neither
 is the text the engine generates, the strings the UI assembles, the arithmetic behind either, or the
 play state the mat keeps between rolls.
@@ -977,6 +978,7 @@ play state the mat keeps between rolls.
 | UI strings | **2 rules formulas living in the view** (lifting figures, armour speed) + 1 fabricated plural |
 | Engine rules math | attack, progression and pool formulas clean; **7 defects** in AC, CMD, encumbrance, carrying capacity and two rule floors |
 | Play-sheet state math | actions, pools, slots, timers and dice clean; **5 hit-point defects** (death at max hp, two states in one label, nonlethal inert, healing ignoring it, rest a full heal) + Extend Spell ignored |
+| Companion stat block | hp, AC, saves, CMB/CMD, tables and the familiar's derivations clean; **Multiattack applied without its requirement and its alternative missing**, an ability listed at two strengths for 4 creatures, familiar Hit Dice off the wrong level |
 
 ### What the pattern was
 
@@ -1000,6 +1002,13 @@ pass where checking the roster mattered more than checking the rows.
 **My own scope claim was the last thing to verify.** After twelve passes I told the user everything
 auditable had been audited; the companions had not been, and neither had the class features. Treat
 "what is left?" as a question to answer from the file list, not from memory of what was done.
+
+**A rule with a condition on it is two rules.** Multiattack appears in the companion tables as a
+single word, and the engine treated it as one: apply the feat. The published entry is a conditional —
+the feat *if the creature has three or more natural attacks*, and **a second attack with its primary
+natural weapon at −5 if it does not** — so the one word carries two different benefits, and the
+common case (a wolf, a boar, a quadruped eidolon) was the one that had never been implemented. When a
+table cell names an ability, read the ability's own text before believing the cell.
 
 **State math is rules math, and it had been left in the view.** The play mat's hit-point block
 computed its own thresholds, and the one it got wrong was the one nobody checks at the table until it
@@ -1129,6 +1138,10 @@ Each pass added goldens rather than one-off corrections, so these values are now
 - **All three companion advancement tables** cell by cell, plus every creature's size, natural
   armour and ability scores, and the milestone levels that distinguish the animal companion's
   progression from the eidolon's.
+- **The Multiattack rule in both directions**, swept over every published animal companion — the
+  feat exactly when there are three or more natural attacks and the extra attack exactly when there
+  are fewer, never both — plus a no-duplicate-ability invariant over every companion at seven points
+  in its advancement, and the Cat, Common attack line reproduced from the Bestiary.
 - **Every hit-point threshold**, walked across the whole range from undamaged to well past dead, at
   more than one Constitution score — plus the nonlethal staggered/unconscious boundaries with and
   without temporary hit points, the overflow to lethal, and both natural healing rates.
@@ -1175,7 +1188,7 @@ Each pass added goldens rather than one-off corrections, so these values are now
 ### Scope note
 
 **The audit campaign is complete — content, generated text, the view, the engine's own arithmetic,
-and the state the play sheet keeps.** The files that sat on this
+the state the play sheet keeps, and the companion stat block.** The files that sat on this
 list longest had no published source to diff against, and every one of them turned out to be
 checkable anyway. Authored prose still makes rules claims (four of `playstyle.ts`'s were false). An
 override table can be checked against the rule it overrides (seven of `spell-tactics.ts`'s 223 were
@@ -1867,7 +1880,28 @@ heal**, where the rules give 1 hit point per character level (2 for a day and ni
 nonlethal at 1 per hour per level. All of it now lives in `src/engine/vitals.ts` with the rules text
 quoted beside each threshold. One more find alongside: **Extend Spell was tracked per prepared slot
 and ignored by the running-effect timer**, so an extended buff ran the base duration — the same shape
-as the cavalier orders and the `features1` lists, a mechanism whose output nothing consumed..
+as the cavalier orders and the `features1` lists, a mechanism whose output nothing consumed.
+
+**Companion card audit (2026-09-23). Four defects, all in the derivation rather than the card.**
+`CompanionCard.tsx` turned out to be the cleanest file in the sweep: 117 lines, not one of them
+arithmetic — it lays out the `CompanionBlock` the engine derives. So this audited `companion.ts`
+against the three published tables and the rules text around them. Most of it was right, and one
+check is worth stating: a familiar's derived block reproduces its printed stat block exactly — Cat,
+Common comes out "2 claws +4 (1d2−4), bite +4 (1d3−4)" with touch AC 14 at a base attack of +0, both
+attacks primary and the −4 Strength penalty applied in full to each. What was wrong was all about
+one word in the tables. **Multiattack was applied as a feat to every companion that reached its
+row**, though the published entry only grants the feat "if it has three or more natural attacks" —
+so a two-attack creature's secondary was softened from −5 to −2 it had not earned — and **the
+alternative the same sentence grants, "a second attack with its primary natural weapon at a −5
+penalty", was missing entirely**, which is the case for most companions. A wolf now shows its second
+bite from effective level 9, and a saber-toothed cat a third claw (one swing, singular — not another
+pair). **An advancement that restates an ability was listing both strengths**: the giant scorpion's
+poison as 1 Str *and* 1d2 Str, the saber-toothed cat's bite as 1d10 *and* 2d8, plus the big cat's
+rake and the giant crab's constrict. And **a familiar's Hit Dice came from the class level** rather
+than "the master's character level or the familiar's normal HD total, whichever is higher", so a
+wizard 5 / fighter 3 had a 5-HD familiar. One thing is missing rather than wrong, and stays that way
+deliberately: **the card tracks no play state of its own** — a companion's hit points are a computed
+number with nowhere to record damage. That is a feature, not a defect in the arithmetic..
 
 ### Modeling simplifications (fidelity notes)
 - **Per-list spell levels — audited in full.** The per-list level map (`SpellDef.levelByList`, read via
