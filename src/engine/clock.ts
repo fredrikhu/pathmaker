@@ -6,6 +6,7 @@
 // condition it was driving, so timed conditions flow back through resolve() unchanged.
 
 import { normalizePlayState, type PlayState, type Timer } from './types';
+import { naturalHealing } from './vitals';
 
 export const ROUNDS_PER_MINUTE = 10;
 export const ROUNDS_PER_HOUR = 600;
@@ -76,17 +77,29 @@ export function removeTimer(play: PlayState, id: string): PlayState {
   return { ...p, timers: p.timers.filter((t) => t.id !== id) };
 }
 
-/** A night's rest: restore the daily resources, then let 8 hours pass so running effects expire
- *  naturally. Conditions the user set by hand are left alone — clearing them is their call. */
-export function rest(play: PlayState): AdvanceResult {
+/** A night's rest: restore the daily resources, heal at the **natural healing** rates, then let the
+ *  time pass so running effects expire naturally. Conditions the user set by hand are left alone —
+ *  clearing them is their call.
+ *
+ *  A night is not a full heal. "With a full night's rest (8 hours of sleep or more), you recover 1
+ *  hit point per character level", and nonlethal damage goes at 1 per hour per level; `bedRest` is
+ *  the full day and night that pays double. This used to zero `hpDamage`, which quietly removed the
+ *  decision those rates exist to force — whether the party can press on tomorrow.
+ *
+ *  Temporary hit points go, because whatever granted them has expired by morning. */
+export function rest(play: PlayState, level: number, opts: { bedRest?: boolean } = {}): AdvanceResult {
   const p = normalizePlayState(play);
+  const hours = opts.bedRest ? 24 : 8;
+  const healed = naturalHealing(level, hours, opts.bedRest);
   const restored: PlayState = {
     ...p,
-    hpDamage: 0, nonlethal: 0, tempHp: 0,
+    hpDamage: Math.max(0, p.hpDamage - healed.hp),
+    nonlethal: Math.max(0, p.nonlethal - healed.nonlethal),
+    tempHp: 0,
     usedSlots: {}, usedPools: {}, castPrepared: {}, castBonus: {},
     round: 0, initiative: null, initiativeRoll: null, actionsUsed: {},
   };
-  return tick(restored, REST_ROUNDS);
+  return tick(restored, hours * ROUNDS_PER_HOUR);
 }
 
 /** "3 rounds", "2 min", "1 hr 30 min", "2 days" — the shortest honest reading of a round count. */

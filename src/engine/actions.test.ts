@@ -90,6 +90,6 @@ describe('the clock refreshes the budget', () => {
   });
 
   it('a rest clears it too', () => {
-    expect(rest(spent).play.actionsUsed).toEqual({});
+    expect(rest(spent, 5).play.actionsUsed).toEqual({});
   });
 });

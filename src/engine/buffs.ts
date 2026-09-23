@@ -10,8 +10,12 @@ import { iterativeBonuses } from './resolve';
  *
  *  The caster level is a parameter rather than something this reads off the character precisely so
  *  a spell an ally cast on you resolves at *their* caster level; `castBy` then names them in the
- *  label, since a chip reading "Bless (CL 5)" on a fighter's sheet would otherwise be a puzzle. */
-export function spellBuffTimer(spell: SpellDef, casterLevel: number, id: string, param?: string, castBy?: string): Timer | null {
+ *  label, since a chip reading "Bless (CL 5)" on a fighter's sheet would otherwise be a puzzle.
+ *
+ *  `metaIds` is the metamagic the cast was made with. Only Extend Spell changes a running effect —
+ *  it doubles the duration — but it has to be passed in: the play sheet tracks metamagic per
+ *  prepared slot, and an extended buff whose timer ran the base duration was tracked and ignored. */
+export function spellBuffTimer(spell: SpellDef, casterLevel: number, id: string, param?: string, castBy?: string, metaIds: readonly string[] = []): Timer | null {
   if (!spell.buff) return null;
   // Caster level 0 is not a thing you can cast at; guard so a half-built character cannot produce
   // a zero-round timer that expires the instant it starts.
@@ -21,9 +25,13 @@ export function spellBuffTimer(spell: SpellDef, casterLevel: number, id: string,
   const opts = spell.buff.param?.options;
   const chosen = opts ? (opts.find((o) => o.id === param) ?? opts[0]) : undefined;
   const { effects, rounds, dr, resistances, absorb } = spell.buff.at(cl, chosen?.id);
-  const label = `${spell.name} (${[chosen?.name, `CL ${cl}`, castBy].filter(Boolean).join(', ')})`;
+  // "The spell's duration is doubled." A duration of 1 round or longer is all this engine models,
+  // so there is no instantaneous case to exclude.
+  const extended = metaIds.includes('extend-spell');
+  const remaining = extended ? rounds * 2 : rounds;
+  const label = `${spell.name} (${[chosen?.name, extended ? 'Extended' : null, `CL ${cl}`, castBy].filter(Boolean).join(', ')})`;
   return {
-    id, label, remaining: rounds, effects, spellId: spell.id,
+    id, label, remaining, effects, spellId: spell.id,
     ...(dr?.length ? { dr } : {}),
     ...(resistances?.length ? { resistances } : {}),
     ...(absorb ? { absorb: { type: absorb.type, remaining: absorb.amount } } : {}),

@@ -385,6 +385,31 @@ describe('protection from energy — an absorbing pool on a timer', () => {
   });
 });
 
+describe('metamagic on a running effect', () => {
+  it('doubles the duration when the cast was extended, and says so on the chip', () => {
+    // "The spell's duration is doubled." The play sheet tracks metamagic per prepared slot and the
+    // timer used to ignore it, so an Extended Mage Armor ran the base hour per level.
+    const plain = spellBuffTimer(spell('mage-armor'), 5, 'x')!;
+    const extended = spellBuffTimer(spell('mage-armor'), 5, 'x', undefined, undefined, ['extend-spell'])!;
+    expect(extended.remaining).toBe(plain.remaining * 2);
+    expect(extended.label).toBe('Mage Armor (Extended, CL 5)');
+  });
+
+  it('leaves the duration alone for every other metamagic', () => {
+    // Empower, Maximize and the rest change what the spell does, not how long it lasts; they cost a
+    // higher slot, which the slot tracker handles and a timer knows nothing about.
+    const plain = spellBuffTimer(spell('haste'), 6, 'x')!.remaining;
+    for (const m of ['empower-spell', 'maximize-spell', 'quicken-spell', 'silent-spell', 'still-spell', 'widen-spell', 'heighten-spell'])
+      expect(spellBuffTimer(spell('haste'), 6, 'x', undefined, undefined, [m])!.remaining, m).toBe(plain);
+  });
+
+  it('still doubles a resistance duration, and keeps the cast-time choice first in the label', () => {
+    const t = spellBuffTimer(spell('resist-energy'), 5, 'x', 'cold', undefined, ['extend-spell'])!;
+    expect(t.remaining).toBe(5 * 100 * 2); // 10 min/level, doubled
+    expect(t.label).toBe('Resist Energy (Cold, Extended, CL 5)');
+  });
+});
+
 describe("a buff someone else cast on you", () => {
   it("resolves at the ally's caster level, not yours", () => {
     // The same call the play sheet makes for your own casting — only the number differs, which is

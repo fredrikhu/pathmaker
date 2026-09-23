@@ -9,6 +9,7 @@ import {
 import { consume, unconsume, spendCharges, restoreCharges, restock } from '../engine/inventory';
 import { rollAttack, rollCheck, rollDamage, rollSave, rollMissChance, threatRange, CONCEALMENT, type Concealment, type MetamagicDamageMods } from '../engine/dice';
 import { applyDamage, bypassOptions, ENERGY_TYPES } from '../engine/damage';
+import { vitals, takeLethal, takeNonlethal, heal as healHp } from '../engine/vitals';
 import { allyCastableBuffs, spellBuffTimer, spellDamageAt, spellAttackerTimer } from '../engine/buffs';
 import { spendAction, resetActions, COMMON_ACTIONS, type ActionCost } from '../engine/actions';
 import { CONDITIONS, conditionById, SPELLS, spellById, spellLevelOn, classById, skillById, METAMAGIC, effectiveSpellLevel, dcSpellLevel, type MetamagicDef } from '../content/index';
@@ -130,6 +131,9 @@ export function PlaySheet({ id }: { id: string }) {
   const [incomingAmount, setIncomingAmount] = useState('');
   const [incomingKind, setIncomingKind] = useState<DamageKind>('physical');
   const [bypassed, setBypassed] = useState<Record<string, boolean>>({});
+  // Damage reduction applies to nonlethal damage too, so the entry that knows what hit you has to
+  // be able to say it was nonlethal — otherwise the only nonlethal path skips DR entirely.
+  const [incomingNonlethal, setIncomingNonlethal] = useState(false);
   const bypassChoices = bypassOptions(sheet.defenses);
   const takeTypedDamage = () => {
     const n = Number(incomingAmount);
@@ -137,7 +141,7 @@ export function PlaySheet({ id }: { id: string }) {
     const r = applyDamage(n, incomingKind, sheet.defenses, {
       bypassed: bypassChoices.filter((b) => bypassed[b]),
     });
-    damage(r.applied);
+    if (incomingNonlethal) damageNonlethal(r.applied); else damage(r.applied);
     // Protection from energy is stateful: subtract what it absorbed, and end the spell if spent.
     if (r.deplete) {
       const dep = r.deplete;
@@ -148,7 +152,7 @@ export function PlaySheet({ id }: { id: string }) {
           .filter((t) => !t.absorb || t.absorb.remaining > 0),
       }));
     }
-    log({ source: 'Damage taken', detail: r.explain, total: r.applied });
+    log({ source: incomingNonlethal ? 'Nonlethal damage taken' : 'Damage taken', detail: r.explain, total: r.applied });
     setIncomingAmount('');
   };
 
@@ -164,14 +168,15 @@ export function PlaySheet({ id }: { id: string }) {
   const canSpend = (cost: ActionCost) => spendAction(play.actionsUsed, cost).ok;
 
   const maxHp = sheet.stats['hp:max']?.total ?? 0;
-  const currentHp = maxHp - play.hpDamage;
-  const damage = (n: number) => updatePlay((p) => {
-    // Damage hits temp HP first, then real HP; healing reduces hpDamage (never above max).
-    let remaining = n;
-    let temp = p.tempHp;
-    if (n > 0 && temp > 0) { const absorbed = Math.min(temp, remaining); temp -= absorbed; remaining -= absorbed; }
-    return { hpDamage: Math.max(0, p.hpDamage + remaining), tempHp: temp };
-  });
+  // What the numbers mean — disabled, dying, dead, staggered or out cold — is a rule, so the engine
+  // reads it. The death threshold is the Constitution *score*, which is why it is passed in.
+  const conScore = sheet.stats['ability:con']?.total ?? 10;
+  const vit = vitals({ maxHp, hpDamage: play.hpDamage, tempHp: play.tempHp, nonlethal: play.nonlethal, conScore });
+  const currentHp = vit.current;
+  /** Take lethal damage (positive) or heal it (negative). Both go through the engine: temporary hit
+   *  points absorb first, and healing also clears an equal amount of nonlethal damage. */
+  const damage = (n: number) => updatePlay((p) => (n >= 0 ? takeLethal(p, n) : healHp(p, -n)));
+  const damageNonlethal = (n: number) => updatePlay((p) => takeNonlethal(p, n, maxHp));
 
   // Every tracker below is keyed by casting class: a multiclass caster spends, prepares and
   // recovers each class's slots independently, so nothing here is shared between classes.
@@ -264,8 +269,9 @@ export function PlaySheet({ id }: { id: string }) {
     return dcBase + dcLevel + focus;
   };
 
-  // Rest restores the daily resources and lets 8 hours pass, so running effects expire on their own.
-  const rest = () => applyClock((p) => restPlay(p).play);
+  // Rest restores the daily resources, heals at the natural healing rates (1 hp per level a night,
+  // nonlethal 1 per hour per level) and lets the time pass so running effects expire on their own.
+  const rest = (bedRest = false) => applyClock((p) => restPlay(p, doc.level, { bedRest }).play);
 
   // ---- Encounter & time (phase 4) ----
   const initMod = sheet.stats['init']?.total ?? 0;
@@ -359,13 +365,13 @@ export function PlaySheet({ id }: { id: string }) {
 
   /** Start a spell's running effect — a buff, or a self-directed attacker. The engine resolves the
    *  scaling and (for an attacker) the attack bonus from the caster; this only stores the timer. */
-  const castRunning = (spellId: string, param?: string) => {
+  const castRunning = (spellId: string, param?: string, metaIds: readonly string[] = []) => {
     const sp = spellById.get(spellId);
     const block = castingBlockFor(spellId);
     if (!sp || !block) return;
     const id = `t${Date.now()}${Math.random().toString(36).slice(2, 6)}`;
     const timer = sp.buff
-      ? spellBuffTimer(sp, block.casterLevel, id, param)
+      ? spellBuffTimer(sp, block.casterLevel, id, param, undefined, metaIds)
       : spellAttackerTimer(sp, {
           casterLevel: block.casterLevel,
           bab: sheet.stats['bab']?.total ?? 0,
@@ -419,7 +425,10 @@ export function PlaySheet({ id }: { id: string }) {
         <ThemeToggle />
         <button className="btn btn-secondary" style={{ fontSize: 12 }} onClick={() => navigate({ name: 'builder', id })}>Edit build</button>
         <button className="btn btn-secondary" style={{ fontSize: 12 }} onClick={() => navigate({ name: 'sheet', id })}>Sheet</button>
-        <button className="btn btn-primary" style={{ fontSize: 12 }} onClick={rest} title="Restore daily resources and let 8 hours pass">🌙 Rest</button>
+        <button className="btn btn-primary" style={{ fontSize: 12 }} onClick={() => rest()}
+          title={`A night's rest: restore daily resources, heal ${doc.level} hp (1 per level) and ${doc.level * 8} nonlethal, and let 8 hours pass`}>🌙 Rest</button>
+        <button className="btn btn-secondary" style={{ fontSize: 12 }} onClick={() => rest(true)}
+          title={`Complete bed rest for a day and night: heal ${doc.level * 2} hp (2 per level) and all but the worst nonlethal, and let 24 hours pass`}>🛌 Bed rest</button>
       </div>
 
       {/* Encounter & time */}
@@ -634,7 +643,17 @@ export function PlaySheet({ id }: { id: string }) {
               </label>
             </div>
           </div>
-          {currentHp <= 0 && <div style={{ fontSize: 12, color: 'var(--err)', marginTop: 2 }}>{currentHp <= -maxHp ? 'Dead' : 'Dying / disabled'}</div>}
+          {vit.status !== 'healthy' && (
+            <div style={{ fontSize: 12, color: vit.status === 'staggered' ? 'var(--warn-fg)' : 'var(--err)', marginTop: 2 }}>
+              <strong style={{ textTransform: 'capitalize' }}>{vit.status}</strong> — {vit.note}
+              {vit.stabilize && ` DC ${vit.stabilize.dc} Con check to stabilize, at ${fmtMod(vit.stabilize.penalty)}.`}
+            </div>
+          )}
+          {vit.nonlethalIsLethal && vit.status !== 'dead' && (
+            <div className="text-muted" style={{ fontSize: 11, marginTop: 2 }}>
+              Nonlethal damage has reached your maximum — further nonlethal damage counts as lethal.
+            </div>
+          )}
           <div style={{ height: 8, borderRadius: 4, background: 'var(--color-neutral-800)', overflow: 'hidden', margin: '12px 0' }}>
             <div style={{ width: `${Math.max(0, Math.min(100, (currentHp / maxHp) * 100))}%`, height: '100%', background: hpColor, transition: 'width .15s' }} />
           </div>
@@ -643,7 +662,10 @@ export function PlaySheet({ id }: { id: string }) {
             <button className="btn btn-secondary" style={{ fontSize: 12 }} onClick={() => damage(1)}>−1</button>
             <button className="btn btn-secondary" style={{ fontSize: 12 }} onClick={() => damage(-1)}>+1</button>
             <button className="btn btn-secondary" style={{ fontSize: 12 }} onClick={() => damage(-5)}>+5</button>
-            <button className="btn btn-ghost" style={{ fontSize: 11 }} onClick={() => setPlay({ hpDamage: 0 })}>full</button>
+            <button className="btn btn-secondary" style={{ fontSize: 12 }} title="take 5 nonlethal damage — tracked apart from hit points, and lethal once it reaches your maximum"
+              onClick={() => damageNonlethal(5)}>−5 nl</button>
+            <button className="btn btn-ghost" style={{ fontSize: 11 }} title="clear all damage — more than a night's rest heals"
+              onClick={() => setPlay({ hpDamage: 0, nonlethal: 0 })}>full</button>
           </div>
 
           {/* Typed damage. The quick −5/−1 buttons stay for the common case; this is the entry that
@@ -659,6 +681,11 @@ export function PlaySheet({ id }: { id: string }) {
                 {ENERGY_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
                 <option value="untyped">untyped / spell</option>
               </select>
+              <label style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11.5, color: 'var(--color-neutral-400)' }}
+                title="Nonlethal damage is tracked apart from hit points — but reduction still applies to it">
+                <input type="checkbox" checked={incomingNonlethal} onChange={(e) => setIncomingNonlethal(e.target.checked)} />
+                nonlethal
+              </label>
               <button className="btn btn-secondary" style={{ fontSize: 12 }} onClick={takeTypedDamage}>Take</button>
               {/* Only the player knows what struck them, so a bypass is declared rather than derived. */}
               {bypassChoices.map((b) => {
@@ -923,6 +950,7 @@ export function PlaySheet({ id }: { id: string }) {
                 spend={(l) => setUsed(cls, l, usedAt(cls, l) + 1)}
                 rollDamageFor={rollDamageFor}
                 dmgModsFrom={dmgModsFrom}
+                castRunning={castRunning}
                 saveDc={(sp, dcLevel) => spellSaveDcFor(sp, block.dcBase, dcLevel)}
               />
             )}
@@ -999,7 +1027,9 @@ export function PlaySheet({ id }: { id: string }) {
                                   onClick={() => {
                                     // Casting a buff or a self-directed attacker starts its running
                                     // effect as well as spending the casting — always together.
-                                    if (!casted && (sp?.buff || sp?.attacker)) castRunning(sp.id);
+                                    // The metamagic applied to this slot goes with the cast — an
+                                    // Extended buff has to run twice as long.
+                                    if (!casted && (sp?.buff || sp?.attacker)) castRunning(sp.id, undefined, applied);
                                     toggleCast(cls, level, i);
                                   }}>
                                   {casted ? '↺' : 'cast'}
@@ -1294,7 +1324,7 @@ export function PlaySheet({ id }: { id: string }) {
         </div>
       )}
 
-      <p className="text-muted" style={{ fontSize: 11, marginTop: 16 }}>Play state (HP, conditions, resources, prepared/expended spells) is saved with the character. Rest clears damage, resources, and cast spells.</p>
+      <p className="text-muted" style={{ fontSize: 11, marginTop: 16 }}>Play state (HP, conditions, resources, prepared/expended spells) is saved with the character. Rest restores daily resources and cast spells, and heals at the natural rate — 1 hp per level a night, not all of it.</p>
     </div>
   );
 }
@@ -1306,13 +1336,15 @@ export function PlaySheet({ id }: { id: string }) {
 /** Spontaneous casters apply metamagic at cast time: pick a known spell, toggle the metamagic feats
  *  you own, and spend a slot of the raised effective level (blocked when it exceeds your max level
  *  or no such slot is free). */
-function MetamagicSpontaneousTool({ block, ownedMeta, usedAt, spend, rollDamageFor, dmgModsFrom, saveDc }: {
+function MetamagicSpontaneousTool({ block, ownedMeta, usedAt, spend, rollDamageFor, dmgModsFrom, castRunning, saveDc }: {
   block: CastingBlock;
   ownedMeta: MetamagicDef[];
   usedAt: (level: number) => number;
   spend: (level: number) => void;
   rollDamageFor: (source: string, formula: string, meta: MetamagicDamageMods) => void;
   dmgModsFrom: (metaIds: readonly string[]) => MetamagicDamageMods;
+  /** Starts the spell's running effect, with the metamagic this cast applied. */
+  castRunning: (spellId: string, param?: string, metaIds?: readonly string[]) => void;
   saveDc: (sp: (typeof SPELLS)[number], dcLevel: number) => number | null;
 }) {
   const [spellId, setSpellId] = useState('');
@@ -1380,7 +1412,13 @@ function MetamagicSpontaneousTool({ block, ownedMeta, usedAt, spend, rollDamageF
             onRoll={() => rollDamageFor(`${sp!.name} ${dmg.label}${dmg.note ? ` (${dmg.note})` : ''}`, dmg.formula, dmgMods)} />
         )}
         <button className="btn btn-secondary" style={{ fontSize: 11.5 }} disabled={!canCast}
-          onClick={() => { if (eff != null) spend(eff); }}>
+          onClick={() => {
+            if (eff == null) return;
+            spend(eff);
+            // A buff cast here is still a buff: start its running effect, with this cast's
+            // metamagic, rather than spending the slot and leaving nothing on the clock.
+            if (sp && (sp.buff || sp.attacker)) castRunning(sp.id, undefined, applied);
+          }}>
           Spend slot
         </button>
       </div>

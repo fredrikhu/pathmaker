@@ -120,9 +120,7 @@ describe('rest', () => {
       hpDamage: 12, nonlethal: 3, tempHp: 5, round: 4, initiative: 9,
       usedSlots: { wizard: { 1: 2 } }, usedPools: { rage: 4 }, castPrepared: { wizard: { 1: [0] } },
     });
-    const { play: next } = rest(p);
-    expect(next.hpDamage).toBe(0);
-    expect(next.nonlethal).toBe(0);
+    const { play: next } = rest(p, 5);
     expect(next.tempHp).toBe(0);
     expect(next.usedSlots).toEqual({});
     expect(next.usedPools).toEqual({});
@@ -131,9 +129,29 @@ describe('rest', () => {
     expect(next.initiative).toBeNull();
   });
 
+  it('heals at the natural rate rather than clearing the damage', () => {
+    // "With a full night's rest (8 hours of sleep or more), you recover 1 hit point per character
+    // level", and nonlethal damage at 1 per hour per level. This used to zero both, which made
+    // every night a full heal and removed the decision the rates exist to force.
+    const hurt = play({ hpDamage: 12, nonlethal: 30 });
+    const { play: next } = rest(hurt, 5);
+    expect(next.hpDamage).toBe(7); // 12 − 5
+    expect(next.nonlethal).toBe(0); // 5 × 8 hours covers all 30
+    const lowLevel = rest(play({ hpDamage: 12, nonlethal: 30 }), 1).play;
+    expect(lowLevel.hpDamage).toBe(11);
+    expect(lowLevel.nonlethal).toBe(22); // 1 × 8 hours
+  });
+
+  it('pays double for a day and night of complete bed rest, and takes the day', () => {
+    const { play: next } = rest(play({ hpDamage: 12 }), 4, { bedRest: true });
+    expect(next.hpDamage).toBe(4); // 12 − 2 × 4
+    const { expired } = rest(play({ timers: [timer('12hr', 12 * ROUNDS_PER_HOUR)] }), 4, { bedRest: true });
+    expect(expired.map((t) => t.id)).toEqual(['12hr']);
+  });
+
   it('keeps prepared spells (rest clears what was cast, not the preparation)', () => {
     const p = play({ prepared: { wizard: { 1: ['magic-missile'] } }, castPrepared: { wizard: { 1: [0] } } });
-    const { play: next } = rest(p);
+    const { play: next } = rest(p, 5);
     expect(next.prepared).toEqual({ wizard: { 1: ['magic-missile'] } });
     expect(next.castPrepared).toEqual({});
   });
@@ -143,7 +161,7 @@ describe('rest', () => {
       conditions: ['shaken'],
       timers: [timer('1hr-buff', ROUNDS_PER_HOUR, 'shaken'), timer('day-buff', 14400)],
     });
-    const { play: next, expired } = rest(p);
+    const { play: next, expired } = rest(p, 5);
     expect(expired.map((t) => t.id)).toEqual(['1hr-buff']);
     expect(next.conditions).toEqual([]);
     expect(next.timers.map((t) => t.id)).toEqual(['day-buff']);
@@ -179,6 +197,6 @@ describe('initiative provenance', () => {
   it('clears the die with the total when combat ends or the night passes', () => {
     const fighting = startEncounter(play(), 17, 12);
     expect(endEncounter(fighting).initiativeRoll).toBeNull();
-    expect(rest(fighting).play.initiativeRoll).toBeNull();
+    expect(rest(fighting, 5).play.initiativeRoll).toBeNull();
   });
 });
