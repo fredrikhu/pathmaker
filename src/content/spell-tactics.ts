@@ -163,11 +163,11 @@ export const SPELL_ROLE_OVERRIDES: Record<string, SpellRole> = {
   dream: 'utility',
   'shadow-walk': 'utility',
   simulacrum: 'utility',
-  'shadow-conjuration': 'blaster',
-  'greater-shadow-conjuration': 'blaster',
+  // The shadow spells inherit the role of whatever they mimic, so only the two that copy an
+  // evocation are blasts. Shadow conjuration, its greater version and shades copy conjurations,
+  // which is control — the Illusion default already — so they need no entry.
   'shadow-evocation': 'blaster',
   'greater-shadow-evocation': 'blaster',
-  shades: 'blaster',
 
   // --- Necromancy defaults to control, correct for the fear and enfeeblement half; the other
   // half kills outright ---
@@ -175,11 +175,11 @@ export const SPELL_ROLE_OVERRIDES: Record<string, SpellRole> = {
   'finger-of-death': 'blaster',
   destruction: 'blaster',
   'slay-living': 'blaster',
-  'circle-of-death': 'blaster',
-  'undeath-to-death': 'blaster',
-  'wail-of-the-banshee': 'blaster',
+  // Circle of death, undeath to death, wail of the banshee and symbol of death are NOT listed:
+  // their saves negate outright, so they behave like control rather than damage, and Necromancy's
+  // default is already control. Only the ones that leave damage behind on a successful save are
+  // overridden to blaster.
   'energy-drain': 'blaster',
-  'symbol-of-death': 'blaster',
   bleed: 'blaster',
   blight: 'blaster',
   'mass-inflict-light-wounds': 'blaster',

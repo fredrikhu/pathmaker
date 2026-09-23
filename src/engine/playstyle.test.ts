@@ -5,6 +5,8 @@ import { playstyleBrief } from './playstyle';
 import { newCharacter, withDecision } from './character';
 import type { CharacterDoc } from './types';
 import { CLASSES } from '../content/classes';
+import { SPELLS } from '../content/spells';
+import { SPELL_ROLE_OVERRIDES } from '../content/spell-tactics';
 import {
   CLASS_PLAYSTYLE, GAP_TEXT, LEAN_TEXT, PARTY_TEXT, POOL_PACING_TEXT, POOL_TEXT, POSTURE_TEXT,
   ROLE_TEXT, STRENGTH_TEXT, STYLE_TEXT, THEME_TEXT,
@@ -146,6 +148,68 @@ describe('house rules: the prose may not misstate the rules', () => {
     // The mirror is a soft expectation: a pool with no entry falls back to POOL_PACING_TEXT, which
     // is deliberate. Assert the fallback exists rather than demanding an entry for every pool.
     expect(Object.keys(POOL_PACING_TEXT).sort()).toEqual(['discrete', 'duration']);
+  });
+});
+
+describe('spell-role overrides: every one must be real, needed and defensible', () => {
+  // `spell-tactics.ts` exists to correct the structural classifier where school misleads. Three
+  // things can go wrong in a table like that, and all three are checkable.
+
+  /** spellLean with the override step removed: what structure alone would say. */
+  const structural = (sp: (typeof SPELLS)[number]): string => {
+    if (sp.damage?.label) return /heal/i.test(sp.damage.label) ? 'healer' : 'buffer';
+    if (/^(cure|mass cure|heal\b|breath of life|lesser restoration|restoration)/i.test(sp.name)) return 'healer';
+    if (sp.buff) return 'buffer';
+    if (sp.damage || sp.attacker) return 'blaster';
+    if (/\(harmless\)/i.test(sp.save) || /^personal/i.test(sp.range)) return 'buffer';
+    switch (sp.school) {
+      case 'Evocation': return 'blaster';
+      case 'Enchantment': case 'Illusion': case 'Necromancy': case 'Conjuration': return 'controller';
+      case 'Abjuration': case 'Transmutation': return 'buffer';
+      default: return 'utility';
+    }
+  };
+
+  it('names only spells the catalogue has', () => {
+    // A typo here is silent: the spell simply keeps the classification this file exists to correct.
+    const ids = new Set(SPELLS.map((s) => s.id));
+    expect(Object.keys(SPELL_ROLE_OVERRIDES).filter((id) => !ids.has(id))).toEqual([]);
+  });
+
+  it('overrides nothing that the structural rules already get right', () => {
+    // The file's own promise: it lists only the spells the rules misplace. An override that agrees
+    // with the fallback is noise, and it hides the fact that the fallback handles that case.
+    const byId = new Map(SPELLS.map((s) => [s.id, s]));
+    const pointless = Object.entries(SPELL_ROLE_OVERRIDES)
+      .filter(([id, role]) => { const sp = byId.get(id); return sp && structural(sp) === role; })
+      .map(([id, role]) => `${id} is already ${role}`);
+    expect(pointless, pointless.join(' | ')).toEqual([]);
+  });
+
+  it('never calls an all-or-nothing death effect a blast', () => {
+    // The blaster paragraph promises that a successful save still leaves half the damage. For a
+    // spell whose save negates outright it leaves nothing, and the advice it wants is the
+    // controller's — aim at the save you can guess. Four spells were on the wrong side of this.
+    const byId = new Map(SPELLS.map((s) => [s.id, s]));
+    const bad: string[] = [];
+    for (const [id, role] of Object.entries(SPELL_ROLE_OVERRIDES)) {
+      if (role !== 'blaster') continue;
+      const sp = byId.get(id);
+      if (!sp) continue;
+      const negates = /negates/i.test(sp.save) && !/partial|half/i.test(sp.save);
+      const kills = /\b(slays?|slain|destroys?|destroyed)\b/i.test(`${sp.summary} ${sp.desc}`);
+      if (negates && kills) bad.push(`${id}: save "${sp.save}" leaves nothing, so this is control`);
+    }
+    expect(bad, bad.join(' | ')).toEqual([]);
+  });
+
+  it('gives every role in the union at least one spell, so no lean text is unreachable', () => {
+    const used = new Set(Object.values(SPELL_ROLE_OVERRIDES));
+    // Every lean with authored text must be producible; the overrides alone cover four of five, and
+    // the fifth (buffer) is the structural default for a harmless save.
+    for (const role of ['blaster', 'controller', 'healer', 'utility'])
+      expect(used.has(role as never), `no override produces ${role}`).toBe(true);
+    expect(Object.keys(LEAN_TEXT).sort()).toEqual(['blaster', 'buffer', 'controller', 'healer', 'utility']);
   });
 });
 
