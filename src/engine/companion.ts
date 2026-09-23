@@ -24,6 +24,10 @@ import {
 export interface CompanionContext {
   /** The master's maximum hit points; a familiar has half, rounded down. */
   masterHp: number;
+  /** The master's *character* level. A familiar's Hit Dice are "the master's character level or the
+   *  familiar's normal HD total, whichever is higher" — the character level, not the level of the
+   *  class that granted it, which is what a multiclass wizard's familiar was being given. */
+  masterLevel: number;
   /** The master's base attack bonus from all classes. */
   masterBab: number;
   /** The master's *base* save bonuses from all classes, before ability modifiers. */
@@ -45,19 +49,43 @@ function specialsUpTo(rows: { special: string[] }[], level: number): string[] {
 
 const ABILITY_INCREASE = 'Ability score increase';
 
+/** The name of a special ability, without the numbers in brackets — "poison (1d2 Str damage)" and
+ *  "poison (1 Str damage)" are the same ability at two different strengths. */
+const specialName = (s: string): string => s.split('(')[0].trim().toLowerCase();
+
+/** The creature's special abilities once its advancement is applied. An advancement *restates* an
+ *  ability whose numbers changed (the giant scorpion's poison goes 1 Str → 1d2 Str, the
+ *  saber-toothed cat's bite 1d10 → 2d8), so a restated entry replaces the starting one instead of
+ *  being listed beside it — which had the card printing both strengths of four creatures' abilities
+ *  as if they were separate things. Genuinely new abilities (pounce, ferocity) simply add. */
+function mergeSpecials(start: string[], advanced: string[]): string[] {
+  const replaced = new Set(advanced.map(specialName));
+  return [...start.filter((s) => !replaced.has(specialName(s))), ...advanced];
+}
+
 /** Format an attack line's name with its count ("2 claws", "bite"). Only the regular plurals the
  *  companion catalogue actually uses are handled — every name in it takes a bare -s. */
 const attackName = (name: string, count: number): string => (count === 1 ? name : `${count} ${name}s`);
 
 /** Build the attack lines for a companion. `sole` — whether the creature has exactly one natural
  *  attack, which earns 1½× Strength — is a property of the whole set, so the lines are built
- *  together rather than one at a time. */
+ *  together rather than one at a time.
+ *
+ *  `gainsMultiattack` is the table entry, which is not the same as having the feat: "an animal
+ *  companion gains Multiattack as a bonus feat **if it has three or more natural attacks**… if it
+ *  does not have the requisite three or more natural attacks, the animal companion instead gains a
+ *  second attack with its primary natural weapon, albeit at a −5 penalty." Most companions — a wolf,
+ *  a horse, a boar — have one or two, so the *alternative* is the common case, and it was missing. */
 function buildAttacks(
   attacks: C.CompanionAttackDef[], bab: number, attackMod: number, strMod: number,
-  sizeAcMod: number, hasMultiattack: boolean,
+  sizeAcMod: number, gainsMultiattack: boolean,
 ): CompanionAttackLine[] {
   const total = attacks.reduce((n, a) => n + a.count, 0);
-  return attacks.map((a) => {
+  // The feat only lands with three or more natural attacks; below that the creature gets the extra
+  // primary attack instead, and its secondary attacks keep the full −5.
+  const hasMultiattack = gainsMultiattack && total >= 3;
+  const extraPrimary = gainsMultiattack && total < 3;
+  const lines = attacks.map((a) => {
     const ctx: NaturalAttackContext = {
       primary: !a.secondary, sole: total === 1, withWeapon: false, hasMultiattack,
     };
@@ -73,6 +101,23 @@ function buildAttacks(
     if (ctx.sole && !a.secondary) notes.push('1½× Str (sole natural attack)');
     return { name: attackName(a.name, a.count), bonus, damage, notes };
   });
+  if (extraPrimary) {
+    // One more swing with the primary weapon, at −5 — *one*, whatever the count on that line, so a
+    // creature with two claws gets a third claw attack and not another pair. The creature still has
+    // the same natural weapons, so the damage (including any sole-attack 1½× Strength) is unchanged.
+    const index = Math.max(0, attacks.findIndex((a) => !a.secondary));
+    const def = attacks[index];
+    const line = lines[index];
+    if (def && line) {
+      lines.push({
+        name: `${def.name} (second attack)`,
+        bonus: line.bonus - 5,
+        damage: line.damage,
+        notes: ['Multiattack with fewer than three natural attacks: one more attack with this natural weapon at −5.'],
+      });
+    }
+  }
+  return lines;
 }
 
 /** Hit points for a creature with its own hit dice: the Bestiary convention of the die's average
@@ -158,8 +203,10 @@ function resolveAnimal(
     speed: def.start.speed, skillRanks: row.skills, feats: row.feats,
     special: [
       ...specials.filter((s) => s !== ABILITY_INCREASE),
-      ...(def.start.specialAttacks ?? []), ...(def.start.specialQualities ?? []),
-      ...(adv?.specialAttacks ?? []), ...(adv?.specialQualities ?? []),
+      ...mergeSpecials(
+        [...(def.start.specialAttacks ?? []), ...(def.start.specialQualities ?? [])],
+        [...(adv?.specialAttacks ?? []), ...(adv?.specialQualities ?? [])],
+      ),
     ],
     senses: def.start.senses ?? [], notes,
     hasMultiattack: specials.includes('Multiattack'),
@@ -305,7 +352,11 @@ function resolveFamiliar(
 
   const block = assemble({
     slotId, kind: 'familiar', label, name: def.name, className, level: lvl,
-    hd: Math.max(1, lvl), size: def.start.size,
+    // "For the purpose of effects related to number of Hit Dice, use the master's character level or
+    // the familiar's normal HD total, whichever is higher." Every published familiar animal is a
+    // 1-HD (or fractional) creature, so the character level is what decides it — and it is the
+    // *character* level, where this used to use the level of the class that granted the familiar.
+    hd: Math.max(1, ctx.masterLevel), size: def.start.size,
     naturalArmor: def.start.naturalArmor + row.naturalArmor,
     abilities,
     hp: Math.max(1, Math.floor(ctx.masterHp / 2)),
@@ -351,7 +402,7 @@ export function resolveCompanion(args: {
       return resolveEidolon(def, slotId, label, className, level, args.evolutions ?? []);
     case 'familiar':
       return resolveFamiliar(def, slotId, label, className, level,
-        args.context ?? { masterHp: 0, masterBab: 0, masterSaves: { fort: 0, ref: 0, will: 0 } });
+        args.context ?? { masterHp: 0, masterLevel: level, masterBab: 0, masterSaves: { fort: 0, ref: 0, will: 0 } });
     default:
       return resolveAnimal(def, slotId, label, className, level);
   }

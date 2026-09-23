@@ -1508,6 +1508,7 @@ export function resolve(doc: CharacterDoc): Resolution {
     // own hit points, base attack and base saves are settled.
     companions: resolveCompanions(dec, level, {
       masterHp: stats['hp:max']?.total ?? 0,
+      masterLevel: level,
       masterBab: bab,
       masterSaves: {
         fort: sumSave('fort', saveInput), ref: sumSave('ref', saveInput), will: sumSave('will', saveInput),
@@ -2583,7 +2584,7 @@ function evolutionPool(summonerLevel: number): number {
  *  own scores, so it can be resolved before the character's abilities are settled and then feed
  *  them. Returns undefined for everyone else, which is almost everyone. */
 function fusedCompanion(dec: Decisions, level: number): CompanionBlock | undefined {
-  return resolveCompanions(dec, level, { masterHp: 0, masterBab: 0, masterSaves: { fort: 0, ref: 0, will: 0 } })
+  return resolveCompanions(dec, level, { masterHp: 0, masterLevel: level, masterBab: 0, masterSaves: { fort: 0, ref: 0, will: 0 } })
     .find((c) => c.fused);
 }
 

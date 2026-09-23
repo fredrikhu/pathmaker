@@ -7012,3 +7012,162 @@ describe('Fly, the other size-modified skill', () => {
     expect(resolve(flier('human')).sheet.classSkillIds).not.toContain('fly');
   });
 });
+
+describe('the companion card, where a table entry is not the same as a feat', () => {
+  // "An animal companion gains Multiattack as a bonus feat **if it has three or more natural
+  // attacks** … if it does not have the requisite three or more natural attacks, the animal
+  // companion instead gains a second attack with its primary natural weapon, albeit at a −5
+  // penalty." The eidolon's wording is the same. Both halves were missing: the feat was applied to
+  // every companion regardless of how many attacks it had, and the alternative to none of them.
+  const withCompanion = (level: number, animal: string): CharacterDoc => {
+    let d = newCharacter('t-comp');
+    d = withDecision(d, 'ability-base', { str: 12, dex: 12, con: 12, int: 10, wis: 16, cha: 10 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'class', 'druid');
+    d = withDecision(d, 'class-choices', { 'nature-bond': ['animal-companion'], 'animal-companion': [animal] });
+    return { ...d, level };
+  };
+  const companion = (level: number, animal: string) => resolve(withCompanion(level, animal)).sheet.companions[0]!;
+
+  it('gives a one-attack companion a second attack at −5, and does not soften anything', () => {
+    const wolf8 = companion(8, 'wolf');
+    const wolf9 = companion(9, 'wolf'); // Multiattack lands at effective level 9
+    expect(wolf8.attacks).toHaveLength(1);
+    expect(wolf9.attacks).toHaveLength(2);
+    const [bite, second] = wolf9.attacks;
+    expect(second.name).toBe('bite (second attack)');
+    expect(second.bonus).toBe(bite.bonus - 5);
+    expect(second.damage).toBe(bite.damage);
+  });
+
+  it('gives the feat to a three-attack companion instead, which lifts its secondaries to −2', () => {
+    // A horse has a bite and two hooves — three natural attacks, so it qualifies.
+    const before = companion(8, 'horse');
+    const after = companion(9, 'horse');
+    expect(after.attacks.map((a) => a.name)).toEqual(before.attacks.map((a) => a.name));
+    const hoofBefore = before.attacks.find((a) => a.name.includes('hoof'))!;
+    const hoofAfter = after.attacks.find((a) => a.name.includes('hoof'))!;
+    const biteBefore = before.attacks.find((a) => a.name === 'bite')!;
+    const biteAfter = after.attacks.find((a) => a.name === 'bite')!;
+    // The secondary penalty goes from −5 to −2 relative to the primary; nothing else changes it.
+    expect(biteBefore.bonus - hoofBefore.bonus).toBe(5);
+    expect(biteAfter.bonus - hoofAfter.bonus).toBe(2);
+  });
+
+  it('adds one swing, not another pair, for a companion that attacks with two of something', () => {
+    // A saber-toothed cat has two claws. The rule gives "a second attack with its primary natural
+    // weapon" — a third claw, which is why the line is singular.
+    const cat = companion(9, 'saber-toothed-cat');
+    const extra = cat.attacks.find((a) => a.name.includes('second attack'))!;
+    expect(extra.name).toBe('claw (second attack)');
+    expect(cat.attacks.find((a) => a.name === '2 claws')!.bonus - extra.bonus).toBe(5);
+  });
+
+  it('never gives one companion both the feat and the extra attack', () => {
+    const wrong: string[] = [];
+    for (const def of C.COMPANIONS.filter((c) => c.kind === 'animal')) {
+      const c = companion(20, def.id);
+      const attackCount = c.attacks.filter((a) => !a.name.includes('second attack'))
+        .reduce((n, a) => n + (Number(a.name.match(/^(\d+) /)?.[1]) || 1), 0);
+      const hasExtra = c.attacks.some((a) => a.name.includes('second attack'));
+      if (hasExtra !== attackCount < 3) wrong.push(`${def.id}: ${attackCount} attacks, extra=${hasExtra}`);
+    }
+    expect(wrong).toEqual([]);
+  });
+
+  it('puts a genuinely secondary natural attack at −5, and adds no Strength to a damageless one', () => {
+    // The octopus's tentacles only grab: the printed block gives them no damage dice, and they are
+    // secondary, so they sit −5 from its bite and carry no Strength modifier.
+    const octopus = companion(1, 'octopus');
+    const bite = octopus.attacks.find((a) => a.name === 'bite')!;
+    const tentacle = octopus.attacks.find((a) => a.name.startsWith('tentacle'))!;
+    expect(bite.bonus - tentacle.bonus).toBe(5);
+    expect(tentacle.damage).toBe(C.NO_DAMAGE);
+
+    // At effective level 9 it reaches the Multiattack row with only two natural attacks, so it
+    // gains the extra attack and its secondary keeps the full −5 — the feat, which would soften
+    // that to −2, is exactly what it does *not* get.
+    const grown = companion(9, 'octopus');
+    const grownBite = grown.attacks.find((a) => a.name === 'bite')!;
+    const grownTentacle = grown.attacks.find((a) => a.name.startsWith('tentacle'))!;
+    expect(grownBite.bonus - grownTentacle.bonus).toBe(5);
+    expect(grown.attacks.some((a) => a.name === 'bite (second attack)')).toBe(true);
+  });
+
+  it('keeps only the advanced version of an ability the advancement restates', () => {
+    // The giant scorpion's poison goes 1 Str → 1d2 Str and the saber-toothed cat's bite 1d10 → 2d8.
+    // Both strengths used to be listed side by side, as if they were two different abilities.
+    const scorpion = companion(7, 'scorpion-giant');
+    expect(scorpion.special).toContain('poison (1d2 Str damage)');
+    expect(scorpion.special).not.toContain('poison (1 Str damage)');
+    const cat = companion(7, 'saber-toothed-cat');
+    expect(cat.special.filter((s) => s.startsWith('saber-toothed bite'))).toEqual(
+      ['saber-toothed bite (2d8, only on a grapple check to deal damage)']);
+    // A genuinely new ability still simply adds.
+    expect(cat.special).toContain('pounce');
+  });
+
+  it('lists no ability twice, for any companion at any point in its advancement', () => {
+    const name = (s: string) => s.split('(')[0].trim().toLowerCase();
+    const wrong: string[] = [];
+    for (const def of C.COMPANIONS.filter((c) => c.kind === 'animal')) {
+      for (const level of [1, 3, 4, 6, 7, 10, 20]) {
+        const seen = new Set<string>();
+        for (const s of companion(level, def.id).special) {
+          if (seen.has(name(s))) wrong.push(`${def.id} L${level}: ${s}`);
+          seen.add(name(s));
+        }
+      }
+    }
+    expect(wrong).toEqual([]);
+  });
+});
+
+describe('a familiar, which is mostly its master', () => {
+  const master = (level: number, arcaneLevels: number, familiar: string): CharacterDoc => {
+    let d = newCharacter('t-fam');
+    d = withDecision(d, 'ability-base', { str: 10, dex: 12, con: 12, int: 16, wis: 10, cha: 10 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'class', 'wizard');
+    if (arcaneLevels < level)
+      d = withDecision(d, 'class-levels',
+        Array.from({ length: level }, (_, i) => (i < arcaneLevels ? 'wizard' : 'fighter')));
+    d = withDecision(d, 'class-choices', { 'arcane-bond': ['familiar'], familiar: [familiar] });
+    return { ...d, level };
+  };
+  const familiarOf = (level: number, arcaneLevels: number, id = 'cat') =>
+    resolve(master(level, arcaneLevels, id)).sheet.companions[0]!;
+
+  it('takes its Hit Dice from the master\'s character level, not from the class that granted it', () => {
+    // "For the purpose of effects related to number of Hit Dice, use the master's character level or
+    // the familiar's normal HD total, whichever is higher." A wizard 5 / fighter 3 has a familiar of
+    // 8 HD; it used to report 5, the level of the granting class.
+    expect(familiarOf(5, 5).hd).toBe(5);
+    expect(familiarOf(8, 5).hd).toBe(8);
+    expect(familiarOf(12, 6).hd).toBe(12);
+  });
+
+  it('still reads its natural armour and Intelligence off the granting class\'s level', () => {
+    // Those come from the familiar table's "Master Class Level" column, which is the arcane level —
+    // so a wizard 5 / fighter 3 has the familiar of a 5th-level wizard in every way but Hit Dice.
+    const single = familiarOf(5, 5);
+    const multi = familiarOf(8, 5);
+    expect(multi.intelligence).toBe(single.intelligence);
+    expect(multi.naturalArmor).toBe(single.naturalArmor);
+    expect(multi.hp).toBe(Math.floor((resolve(master(8, 5, 'cat')).sheet.stats['hp:max'].total) / 2));
+  });
+
+  it('reproduces the published stat block\'s attack line', () => {
+    // Cat, Common (Bestiary): "Melee 2 claws +4 (1d2–4), bite +4 (1d3–4)", touch AC 14 — at a
+    // master with base attack +0. Both attacks are primary in the printed block, and the Strength
+    // penalty of −4 applies in full to each, never doubled or halved.
+    const cat = familiarOf(1, 1);
+    expect(cat.attacks.map((a) => `${a.name} ${a.bonus >= 0 ? '+' : '−'}${Math.abs(a.bonus)} (${a.damage})`))
+      .toEqual(['2 claws +4 (1d2−4)', 'bite +4 (1d3−4)']);
+    expect(cat.touch).toBe(14);
+  });
+
+  it('gives its master the benefit the creature prints', () => {
+    expect(familiarOf(1, 1).notes.some((n) => /Stealth/.test(n))).toBe(true);
+  });
+});
