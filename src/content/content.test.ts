@@ -1634,6 +1634,214 @@ describe('companion creatures', () => {
   });
 });
 
+describe('archetype swaps: the prose and the machine list must agree', () => {
+  // Every archetype ability ends its description with what it costs ("Replaces bravery."). That
+  // sentence and the `replaces` list hold the same fact twice, so they can be diffed — the shape
+  // that found the unenforced feat prerequisites, and here eleven wrong or missing swaps.
+
+  /** Collapse a rank marker and the wrapper words, so "the 6th-level mercy" -> "mercy". */
+  const base = (s: string): string =>
+    s.toLowerCase().replace(/’/g, "'").replace(/[–—]/g, '-')
+      .replace(/\([^)]*\)/g, ' ')
+      .replace(/\b\d+\s*-\s*\d+\b/g, ' ')
+      .replace(/\+?\d+d\d+|\+\d+/g, ' ')
+      .replace(/\b\d+(st|nd|rd|th)?\b/g, ' ')
+      .replace(/[^a-z' ]/g, ' ')
+      .replace(/\b(the|a|an|all|and|of|its|his|her|every|improvement|improvements|to|it|level|levels|class|feature|features|ability|abilities|gained|at|normal|standard)\b/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      // Stem a trailing plural, so the prose's "bonus tricks" reaches the "Bonus Trick" feature.
+      .split(' ').map((w) => w.replace(/(\w\w)s$/, '$1')).join(' ');
+
+  /** A claim that is paid for by something other than a feature id. */
+  const NON_FEATURE = [
+    { re: /proficienc/, kind: 'proficiency' },
+    { re: /^bonus (combat )?feats?$/, kind: 'bonus-feat' },
+    { re: /^teamwork feats?$/, kind: 'bonus-feat' },
+    { re: /^combat style feats?$/, kind: 'bonus-feat' },
+    { re: /^technique feats?$/, kind: 'bonus-feat' },
+    { re: /^spells?$|^spellcasting$|^spells known$/, kind: 'spellcasting' },
+    { re: /^damage reduction$/, kind: 'damage-reduction' },
+    { re: /^class skills?$/, kind: 'class-skills' },
+    { re: /^alignment$/, kind: 'alignment' },
+  ] as const;
+
+  type Mechanism = 'proficiency' | 'bonus-feat' | 'spellcasting' | 'damage-reduction' | 'class-skills' | 'alignment';
+
+  /** What an archetype actually takes away, by mechanism. */
+  function removals(a: C.ArchetypeDef, klass: C.ClassDef) {
+    const prog = C.CLASS_PROGRESSION[klass.id];
+    const featureName = new Map<string, string>();
+    for (const f of prog.features) featureName.set(f.id, base(f.name));
+    const choiceLabel = new Map<string, string>();
+    for (const ch of [...(klass.choices ?? []), ...(prog.choices ?? [])]) choiceLabel.set(ch.id, base(ch.label));
+    const mech = new Set<Mechanism>();
+    if (a.proficiencies?.armor?.remove?.length || a.proficiencies?.weapons?.remove?.length) mech.add('proficiency');
+    if (a.bonusFeatSlots?.remove?.length) mech.add('bonus-feat');
+    if (a.spellcasting === null || a.spellcastingMod?.diminished) mech.add('spellcasting');
+    // Either direction counts: the Invulnerable Rager swaps the standard progression for its own.
+    if (a.damageReduction !== undefined) mech.add('damage-reduction');
+    if (a.classSkills?.remove?.length) mech.add('class-skills');
+    if (a.alignment !== undefined) mech.add('alignment');
+    // A recurring pick trimmed to fewer levels counts as taking that level away.
+    const removedChoices = new Set(a.choices?.remove ?? []);
+    const readded = new Map<string, number[] | undefined>();
+    for (const ch of a.choices?.add ?? []) readded.set(ch.id, ch.levels);
+    return { featureName, choiceLabel, mech, removedChoices, readded };
+  }
+
+  /** Feature ids an archetype may hold in `replaces` without any grant naming them. */
+  const UNCLAIMED_OK: Record<string, string[]> = {
+    // Archaeologist's Luck replaces bardic performance wholesale; our model lists each performance
+    // separately, so one claim stands for the whole family.
+    'bard/archaeologist': ['bard-performance', 'bard-inspire-courage', 'bard-countersong', 'bard-inspire-competence',
+      'bard-suggestion', 'bard-dirge-of-doom', 'bard-inspire-greatness', 'bard-soothing-performance',
+      'bard-frightening-tune', 'bard-inspire-heroics', 'bard-mass-suggestion', 'bard-deadly-performance'],
+    // Both give up spellcasting entirely; the feature line goes with the spells.
+    'ranger/skirmisher': ['ranger-spells'],
+    'ranger/trapper': ['ranger-spells'],
+    'paladin/warrior-of-the-holy-light': ['paladin-spells'],
+    // The Freebooter's bond is a different bond, stated on the bond grant rather than per feature.
+    'ranger/freebooter': ['ranger-companion'],
+    // Kensai's diminished casting and lost proficiencies are noted in the archetype comment.
+    'magus/kensai': ['magus-greater-spell-access'],
+  };
+
+  it('every "Replaces …" claim names something the archetype actually removes', () => {
+    // Only the dangerous direction is asserted: prose that says a whole feature is replaced while
+    // the feature survives in the build. A claim naming one *level* of a recurring pick ("the
+    // 3rd-level exploit") cannot be a whole-feature removal, so it is satisfied by any of the
+    // partial mechanisms instead — a trimmed pick line, a dropped bonus-feat slot, or a suppressed
+    // source power. Prose wording itself is not policed here.
+    const bad: string[] = [];
+    for (const klass of C.CLASSES) {
+      const prog = C.CLASS_PROGRESSION[klass.id];
+      for (const a of klass.archetypes ?? []) {
+        const { featureName, choiceLabel, mech, removedChoices } = removals(a, klass);
+        const replaces = new Set(a.replaces ?? []);
+        const partial = removedChoices.size > 0 || (a.bonusFeatSlots?.remove?.length ?? 0) > 0
+          || (a.suppressSourcePowers?.length ?? 0) > 0 || (a.conditionalSuppress?.length ?? 0) > 0;
+        for (const grant of a.grants ?? []) {
+          for (const m of grant.desc.matchAll(/(?:Replaces|replaces) ([^.]+)\./g)) {
+            // "Replaces X and alters Y" — the alteration is not a removal, so stop at the verb.
+            const scope = m[1].split(/\band alters\b|\balters\b|\bmodifies\b/)[0];
+            for (const raw of scope.split(/,| and /)) {
+              const phrase = base(raw);
+              if (!phrase) continue;
+              const perLevel = /\d+(st|nd|rd|th)|daily use/.test(raw);
+              const nf = NON_FEATURE.find((x) => x.re.test(phrase));
+              if (nf) {
+                if (!mech.has(nf.kind as Mechanism) && !(perLevel && partial))
+                  bad.push(`${klass.id}/${a.id}: "${raw.trim()}" is claimed replaced, but nothing removes it`);
+                continue;
+              }
+              // An exact feature-name match is the strong case.
+              const exact = [...featureName].find(([, n]) => n === phrase)?.[0];
+              if (exact && !perLevel) {
+                if (!replaces.has(exact))
+                  bad.push(`${klass.id}/${a.id}: "${raw.trim()}" is claimed replaced, but ${exact} is not in \`replaces\``);
+                continue;
+              }
+              const cid = [...choiceLabel].find(([, n]) => n === phrase)?.[0];
+              if (cid) {
+                if (!removedChoices.has(cid) && !partial)
+                  bad.push(`${klass.id}/${a.id}: "${raw.trim()}" is claimed replaced, but the ${cid} pick survives`);
+                continue;
+              }
+              // A loose feature match only counts when the archetype has no partial mechanism at
+              // all — otherwise the claim is most likely about one level of a recurring pick.
+              // The longest match wins, so "dodging panache" lands on the deed, not on Panache.
+              const loose = [...featureName]
+                .filter(([, n]) => n && (phrase.includes(n) || n.includes(phrase)))
+                .sort((x, y) => y[1].length - x[1].length)[0]?.[0];
+              if (loose && !perLevel && !partial && !replaces.has(loose))
+                bad.push(`${klass.id}/${a.id}: "${raw.trim()}" is claimed replaced, but ${loose} is not in \`replaces\``);
+            }
+          }
+        }
+        void prog;
+      }
+    }
+    expect(bad, bad.join(' | ')).toEqual([]);
+  });
+
+  it('every feature an archetype removes is accounted for in its prose', () => {
+    // The other direction: a feature quietly dropped from the build with nothing saying why. Names
+    // are compared as word sets, because a deed reads "Deed: Quick Clear" in the catalogue and
+    // "the quick clear deed" in the prose.
+    const words = (s: string) => new Set(base(s).split(' ').filter((w) => w.length > 2));
+    // Either direction: a claim may name part of a combined feature ("Countersong / Distraction /
+    // Fascinate") or wrap the name in extra words ("the deadeye deed").
+    const covers = (claim: Set<string>, name: Set<string>) =>
+      name.size > 0 && ([...name].every((w) => claim.has(w)) || [...claim].every((w) => name.has(w)));
+    const bad: string[] = [];
+    for (const klass of C.CLASSES) {
+      const prog = C.CLASS_PROGRESSION[klass.id];
+      for (const a of klass.archetypes ?? []) {
+        const exempt = new Set(UNCLAIMED_OK[`${klass.id}/${a.id}`] ?? []);
+        const claimed = new Set<string>();
+        for (const grant of a.grants ?? [])
+          for (const m of grant.desc.matchAll(/(?:Replaces|replaces|Alters|alters) ([^.]+)\./g))
+            // One sentence can name several features ("Replaces trapfinding, poison lore and trap
+            // sense"), so each part is matched on its own as well as the whole.
+            for (const part of [m[1], ...m[1].split(/,| and /)]) {
+              const claim = words(part);
+              // A parenthetical in a feature name is part of the name here: the skald's
+              // "Raging Song (Inspired Rage)" is what the prose calls inspired rage.
+              for (const f of prog.features) if (covers(claim, words(f.name.replace(/[()]/g, ' ')))) claimed.add(f.id);
+            }
+        for (const fid of a.replaces ?? [])
+          if (!claimed.has(fid) && !exempt.has(fid))
+            bad.push(`${klass.id}/${a.id}: removes ${fid}, but no grant says what stands in its place`);
+      }
+    }
+    expect(bad, bad.join(' | ')).toEqual([]);
+  });
+
+  it('the swaps this audit corrected stay corrected', () => {
+    const arch = (classId: string, id: string) =>
+      C.CLASSES.find((c) => c.id === classId)!.archetypes!.find((a) => a.id === id)!;
+    const replaces = (classId: string, id: string) => arch(classId, id).replaces ?? [];
+    const grantIds = (classId: string, id: string) => (arch(classId, id).grants ?? []).map((g) => g.id);
+
+    // A skirmisher has no spells, so the Spellcasting line goes with them.
+    expect(replaces('ranger', 'skirmisher')).toContain('ranger-spells');
+    // The Warrior of the Holy Light's 14th-level light replaces aura of faith.
+    expect(replaces('paladin', 'warrior-of-the-holy-light')).toContain('paladin-aura-faith');
+    expect(grantIds('paladin', 'warrior-of-the-holy-light')).toContain('wohl-shining-light');
+    // The Divine Hunter redirects the bond to a ranged weapon and takes the 6th-level mercy.
+    expect(arch('paladin', 'divine-hunter').choices?.remove).toEqual(['divine-bond', 'mercy']);
+    expect(arch('paladin', 'divine-hunter').choices?.add?.[0].levels).toEqual([3, 9, 12, 15, 18]);
+    expect(grantIds('paladin', 'divine-hunter')).toContain('dh-distant-mercy');
+    // The Arcane Duelist's heavy armour replaces jack of all trades.
+    expect(replaces('bard', 'arcane-duelist')).toContain('bard-jack-of-all-trades');
+    // Escape Corruption's Grasp replaces discern lies.
+    expect(replaces('inquisitor', 'abolisher')).toContain('inq-discern-lies');
+    // The Storm Druid's Eyes of the Storm replaces resist nature's lure.
+    expect(replaces('druid', 'storm-druid')).toContain('druid-resist-natures-lure');
+    // The Gravewalker's poppet replaces the familiar, so the familiar pick goes.
+    expect(arch('witch', 'gravewalker').choices?.remove).toContain('familiar');
+    // The Sniper trades away only track — Deadly Range is a straight gain.
+    expect(replaces('slayer', 'sniper')).toEqual(['slay-track']);
+    expect(arch('slayer', 'sniper').choices).toBeUndefined();
+    // Song of Questing takes the song of the fallen too.
+    expect(replaces('skald', 'battle-scion')).toContain('skald-song-of-the-fallen');
+    // The three shifter archetypes that replace greater chimeric aspect.
+    for (const id of ['rageshaper', 'fiendflesh-shifter', 'verdant-shifter'])
+      expect(replaces('shifter', id), id).toContain('shifter-greater-chimeric-aspect');
+    // A companionless hunter loses everything the companion carried.
+    for (const id of ['forester', 'feral-hunter'])
+      for (const fid of ['hunter-improved-empathic-link', 'hunter-bonus-trick', 'hunter-raise-companion',
+        'hunter-greater-empathic-link'])
+        expect(replaces('hunter', id), `${id}/${fid}`).toContain(fid);
+    // The Forester's published ability list, in level order.
+    expect((arch('hunter', 'forester').grants ?? []).map((g) => `${g.level} ${g.name}`).sort()).toEqual([
+      '1 Animal Focus (self only)', '10 Breath of Life', '11 Improved Evasion', '14 Hide in Plain Sight',
+      '2 Bonus Feat', '3 Tactician', '4 Evasion', '5 Favored Terrain', '7 Camouflage',
+    ].sort());
+  });
+});
+
 describe('class progression, verified against every published class table', () => {
   // The Special column of each class's own table, read off Archives of Nethys (and d20pfsrd for the
   // Vampire Hunter and the gunslinger's deeds) on 2026-09-23. One string per class level, verbatim

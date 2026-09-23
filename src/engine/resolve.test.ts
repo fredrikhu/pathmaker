@@ -4455,13 +4455,15 @@ describe('archetypes — second archetype per base/hybrid class (batch A)', () =
     expect(featsAt(p, 20)).not.toContain('Master Hunter');
   });
 
-  it('Slayer Sniper (its first archetype) replaces track and the 2nd-level talent', () => {
+  it('Slayer Sniper replaces track and nothing else', () => {
     const s = build('slayer', 'sniper', 8);
     expect(featsAt(s, 1)).toContain('Accuracy');
     expect(featsAt(s, 1)).not.toContain('Track');
     expect(featsAt(s, 2)).toContain('Deadly Range');
+    // Deadly Range is a straight gain in the published archetype, so every talent slot survives
+    // — this test asserted the opposite until the swaps were checked against the source.
     const talents = resolve(s).slots.filter((x) => x.step === 'class' && x.id.startsWith('slayer-talent')).map((x) => x.id);
-    expect(talents).not.toContain('slayer-talent-L2');
+    expect(talents).toContain('slayer-talent-L2');
     expect(talents).toContain('slayer-talent-L4');
   });
 
@@ -6124,8 +6126,12 @@ describe('archetypes — fourth-per-class batch 5 (divine and investigative)', (
     expect(featsAt(fo, 1)).toContain('Animal Focus (self only)');
     expect(featsAt(fo, 1)).not.toContain('Animal Companion');
     expect(featsAt(fo, 5)).toContain('Favored Terrain');
-    expect(featsAt(fo, 11)).toContain('Breath of Life');
+    expect(featsAt(fo, 10)).toContain('Breath of Life');
+    expect(featsAt(fo, 11)).toContain('Improved Evasion');
     expect(featsAt(fo, 11)).not.toContain('Speak with Master');
+    // With no companion, nothing the companion carries survives either.
+    for (const gone of ['Improved Empathic Link', 'Bonus Trick', 'Raise Animal Companion', 'Greater Empathic Link'])
+      expect(featsAt(fo, 20), gone).not.toContain(gone);
     // A plain hunter still has one.
     expect(resolve(build('hunter', undefined, 11, { 'animal-companion': ['wolf'] })).sheet.companions).toHaveLength(1);
   });

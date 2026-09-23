@@ -6,7 +6,7 @@
 // replaces "Armor Training 1–4" replaces that one id and grants its own abilities in their place.
 
 import type { ArchetypeDef, LeveledFeatureDef } from './model';
-import { ROGUE_TALENTS, ROGUE_ADVANCED_TALENTS, MAGUS_ARCANA, WITCH_HEXES, ARCANIST_EXPLOITS, BARBARIAN_RAGE_POWERS, SLAYER_TALENTS, SLAYER_ADVANCED_TALENTS, SHAMAN_HEXES, INVESTIGATOR_TALENTS } from './subsystems';
+import { ROGUE_TALENTS, ROGUE_ADVANCED_TALENTS, MAGUS_ARCANA, WITCH_HEXES, ARCANIST_EXPLOITS, BARBARIAN_RAGE_POWERS, SLAYER_TALENTS, SLAYER_ADVANCED_TALENTS, SHAMAN_HEXES, INVESTIGATOR_TALENTS, PALADIN_MERCIES } from './subsystems';
 
 // The advanced slayer-talent line lets you pick a basic or an advanced talent (mirrors class-features).
 const SLAYER_TALENTS_ALL = [...SLAYER_TALENTS, ...SLAYER_ADVANCED_TALENTS];
@@ -109,7 +109,8 @@ export const RANGER_ARCHETYPES: ArchetypeDef[] = [
   {
     id: 'skirmisher', classId: 'ranger', name: 'Skirmisher',
     desc: 'A ranger who forgoes spellcasting entirely, relying on wits and instinct — trading spells for hunter’s tricks.',
-    replaces: [],
+    // No spells at all, so the Spellcasting line goes with them, as it does for the Trapper.
+    replaces: ['ranger-spells'],
     spellcasting: null, // a skirmisher has no spells
     grants: [
       g(5, 'skirmisher-hunters-tricks', 'Hunter’s Tricks', 'Learns a hunter’s trick at 5th level and another at 7th and every two levels after; usable a number of times per day equal to 1/2 the ranger’s level + Wisdom modifier. Replaces the ranger’s spellcasting.'),
@@ -196,6 +197,9 @@ export const BARBARIAN_ARCHETYPES: ArchetypeDef[] = [
     id: 'invulnerable-rager', classId: 'barbarian', name: 'Invulnerable Rager',
     desc: 'A barbarian who shrugs off mortal wounds, turning raw punishment into fuel for her rage.',
     replaces: ['barb-uncanny-dodge', 'barb-improved-uncanny-dodge', 'barb-dr', 'barb-trap-sense'],
+    // DR/- equal to half barbarian level from 2nd, in place of the standard 7th-level progression:
+    // the amount is how many listed levels you have reached, so every even level is one point.
+    damageReduction: { levels: [2, 4, 6, 8, 10, 12, 14, 16, 18, 20], bypass: '—' },
     grants: [
       g(2, 'ir-invulnerability', 'Invulnerability', 'DR/— equal to half your barbarian level, doubled against nonlethal damage. Replaces Uncanny Dodge, Improved Uncanny Dodge, and Damage Reduction.'),
       g(3, 'ir-extreme-endurance', 'Extreme Endurance', 'Inured to a hot or cold climate (choose one) as endure elements, plus 1 point of fire or cold resistance for every three levels beyond 3rd. Replaces Trap Sense.'),
@@ -255,9 +259,10 @@ export const PALADIN_ARCHETYPES: ArchetypeDef[] = [
   {
     id: 'warrior-of-the-holy-light', classId: 'paladin', name: 'Warrior of the Holy Light',
     desc: 'A paladin who forgoes spellcasting to channel her faith into radiant light and greater healing.',
-    replaces: ['paladin-spells'],
+    replaces: ['paladin-spells', 'paladin-aura-faith'],
     spellcasting: null, // no spells, no caster level
     grants: [
+      g(14, 'wohl-shining-light', 'Shining Light', 'Once per day — and again at 17th and 20th level — call down a burst of light that harms evil creatures and heals your allies. Replaces aura of faith.'),
       g(4, 'wohl-power-of-faith', 'Power of Faith', 'You gain no spells or caster level. Instead you gain one extra use of Lay on Hands per day (and another per four levels beyond 4th); spend one as a standard action to raise a 30-ft nimbus of light that grants you and nearby allies a +1 morale bonus to AC and on attack rolls, damage rolls, and saves vs fear for 1 minute (adds healing at 8th, daylight + energy resistance 10 at 12th, crit protection at 16th, and a larger, stronger nimbus at 20th). Replaces the paladin’s spellcasting.'),
     ],
   },
@@ -267,8 +272,16 @@ export const PALADIN_ARCHETYPES: ArchetypeDef[] = [
     replaces: ['paladin-aura-courage', 'paladin-aura-resolve', 'paladin-aura-justice', 'paladin-aura-faith'],
     // Trades heavy armor for a focus on ranged combat.
     proficiencies: { armor: { remove: ['heavy'] } },
+    // The bond binds a ranged weapon instead of a melee weapon or mount, and Distant Mercy takes
+    // the mercy gained at 6th — so the recurring mercy line is re-offered without that one level.
+    choices: {
+      remove: ['divine-bond', 'mercy'],
+      add: [{ id: 'mercy', label: 'Mercy', kind: 'list', count: 1, levels: [3, 9, 12, 15, 18], options: PALADIN_MERCIES }],
+    },
     grants: [
       g(1, 'dh-precise-shot', 'Precise Shot', 'Gain Precise Shot as a bonus feat. Replaces heavy armor proficiency.'),
+      g(5, 'dh-divine-bond-ranged', 'Divine Bond (ranged weapon)', 'Your divine bond binds a spirit into a bow, crossbow or firearm rather than a melee weapon or a mount, granting it a scaling enhancement bonus and weapon special abilities. Replaces divine bond.'),
+      g(6, 'dh-distant-mercy', 'Distant Mercy', 'Use lay on hands at a range of 30 feet; it has no effect on creatures harmed by positive energy. Replaces the 6th-level mercy.'),
       g(3, 'dh-shared-precision', 'Shared Precision', 'Grant allies within 10 feet the benefit of your Precise Shot for a number of rounds per day. Replaces aura of courage.'),
       g(8, 'dh-aura-of-care', 'Aura of Care', 'Your lay on hands and mercies can reach a target at range. Replaces aura of resolve.'),
       g(11, 'dh-hunters-blessing', 'Hunter’s Blessing', 'Grant an ally the use of your smite evil against a target at range. Replaces aura of justice.'),
@@ -341,13 +354,15 @@ export const BARD_ARCHETYPES: ArchetypeDef[] = [
   {
     id: 'arcane-duelist', classId: 'bard', name: 'Arcane Duelist',
     desc: 'A bard who fights as a martial spellblade — weaving combat feats and enchanted steel into every performance.',
-    replaces: ['bard-knowledge', 'bard-countersong', 'bard-versatile-performance', 'bard-well-versed', 'bard-lore-master', 'bard-suggestion', 'bard-mass-suggestion'],
+    replaces: ['bard-knowledge', 'bard-countersong', 'bard-versatile-performance', 'bard-well-versed',
+      'bard-lore-master', 'bard-suggestion', 'bard-mass-suggestion', 'bard-jack-of-all-trades'],
     grants: [
       g(1, 'ad-arcane-strike', 'Arcane Strike', 'Gain Arcane Strike as a bonus feat. Replaces bardic knowledge.'),
       g(1, 'ad-rallying-cry', 'Rallying Cry', 'A performance that lets allies use your save bonus against fear and reroll a failed save each round. Replaces countersong.'),
       g(2, 'ad-combat-casting', 'Combat Casting', 'Gain Combat Casting as a bonus feat. Replaces versatile performance and well-versed.'),
       g(5, 'ad-arcane-bond', 'Arcane Bond', 'Gain an arcane bond with a bonded object, as a wizard. Replaces lore master.'),
       g(6, 'ad-bladethirst', 'Bladethirst', 'A performance that grants an ally’s weapon a scaling enhancement bonus. Replaces suggestion.'),
+      g(10, 'ad-arcane-armor', 'Arcane Armor', 'Gain Heavy Armor Proficiency and cast bard spells in heavy armor with no arcane spell failure. Replaces jack of all trades.'),
       g(18, 'ad-mass-bladethirst', 'Mass Bladethirst', 'Bladethirst empowers the weapons of many allies at once. Replaces mass suggestion.'),
     ],
   },
@@ -420,7 +435,7 @@ export const MAGUS_ARCHETYPES: ArchetypeDef[] = [
     desc: 'A magus bonded to a sentient black blade — an intelligent weapon that shares (and covets) his arcane power.',
     replaces: ['magus-arcane-pool'],
     grants: [
-      g(1, 'bladebound-arcane-pool', 'Arcane Pool (black blade)', 'Your arcane pool holds points equal to 1/3 your magus level (minimum 1) + your Intelligence bonus, rather than the standard 1/2 level + Int. Changes the Arcane Pool feature.'),
+      g(1, 'bladebound-arcane-pool', 'Arcane Pool (black blade)', 'Your arcane pool holds points equal to 1/3 your magus level (minimum 1) + your Intelligence bonus, rather than the standard 1/2 level + Int. Alters the arcane pool.'),
       g(3, 'bladebound-black-blade', 'Black Blade', 'You bond with a sentient black blade of a chosen weapon type — an intelligent partner whose Intelligence, Wisdom, Charisma, and ego rise as you level, with its own arcane pool and powers. You cannot take the familiar magus arcana or have a familiar of any kind. Replaces the 3rd-level magus arcana.'),
     ],
     // The 3rd-level arcana pick becomes the black blade; the rest remain.
@@ -434,6 +449,7 @@ export const MAGUS_ARCHETYPES: ArchetypeDef[] = [
     desc: 'A magus who bends his arcane pool toward witchcraft — hexing foes and cursing those he strikes.',
     replaces: ['magus-spell-recall'], // Hex Magus replaces spell recall at 4th
     grants: [
+      g(1, 'hexcrafter-hex-magus-feature', 'Hex Magus', 'You may take a witch hex in place of a magus arcana, using your magus level as your witch level, and gain a dedicated hex at 4th level. Replaces spell recall.'),
       g(1, 'hexcrafter-accursed-strike', 'Accursed Strike', 'You add bestow curse, major curse, and other curse-descriptor spells of 6th level or lower to your magus spell list, and can deliver such spells through Spellstrike even when they are not touch attack spells.'),
     ],
     // Hexes may be taken in place of a magus arcana, plus a dedicated Hex Magus pick at 4th.
@@ -704,12 +720,12 @@ export const INQUISITOR_ARCHETYPES: ArchetypeDef[] = [
   {
     id: 'abolisher', classId: 'inquisitor', name: 'Abolisher',
     desc: 'An incorruptible inquisitor who hunts the alien and the unnatural, exposing aberrations for what they are.',
-    replaces: ['inq-stern-gaze', 'inq-detect-alignment'],
+    replaces: ['inq-stern-gaze', 'inq-detect-alignment', 'inq-discern-lies'],
     grants: [
       g(1, 'ab-sworn-to-purity', 'Sworn to Purity', 'You must select the Air, Animal, Earth, Fire, Plant, Water, or Weather domain. Changing to a deity offering none of them costs you the archetype. Alters domains.'),
       g(1, 'ab-revealing-gaze', 'Revealing Gaze', 'Gain a morale bonus equal to half your inquisitor level (minimum +1) on opposed Perception checks against Disguise and Stealth, and grant that bonus to all adjacent allies. Replaces stern gaze.'),
       g(2, 'ab-expose-aberration', 'Expose Aberration', 'Use detect aberration at will, and know on a weapon hit whether the creature is an aberration. From 5th level you may activate bane as an immediate action after hitting an aberration but before damage is rolled. Replaces detect alignment and alters bane.'),
-      g(5, 'ab-escape-corruptions-grasp', "Escape Corruption's Grasp", 'For rounds per day equal to your inquisitor level, ignore impediments to movement as freedom of movement.'),
+      g(5, 'ab-escape-corruptions-grasp', "Escape Corruption's Grasp", 'For rounds per day equal to your inquisitor level, ignore impediments to movement as freedom of movement. Replaces discern lies.'),
     ],
   },
   {
@@ -758,7 +774,8 @@ export const DRUID_ARCHETYPES: ArchetypeDef[] = [
   {
     id: 'storm-druid', classId: 'druid', name: 'Storm Druid',
     desc: 'A druid whose eyes have ever been cast to the sky rather than the earth, channelling the rawest and most untamed aspects of nature.',
-    replaces: ['druid-woodland-stride', 'druid-trackless-step', 'druid-venom-immunity', 'druid-thousand-faces'],
+    replaces: ['druid-woodland-stride', 'druid-trackless-step', 'druid-resist-natures-lure',
+      'druid-venom-immunity', 'druid-thousand-faces'],
     // A storm druid may not take an animal companion at all: Nature Bond becomes a domain-only
     // choice, which drops the companion branch (and with it the creature pick that hangs off it).
     choices: {
@@ -787,7 +804,7 @@ export const DRUID_ARCHETYPES: ArchetypeDef[] = [
       g(2, 'cave-tunnelrunner', 'Tunnelrunner', 'Move through rubble and passages that require squeezing at your normal speed and without penalty. Replaces woodland stride.'),
       g(3, 'cave-lightfoot', 'Lightfoot', 'You cannot be detected by tremorsense. Replaces trackless step.'),
       g(4, 'cave-resist-corruption', 'Resist Subterranean Corruption', '+2 on saves against the extraordinary, supernatural, and spell-like abilities of oozes and aberrations. Replaces resist nature’s lure.'),
-      g(6, 'cave-wild-shape', 'Wild Shape (cave)', 'Gain wild shape at 6th level using your druid level −2, and you cannot take plant forms. From 10th you can become a Small or Medium ooze (beast shape III) and from 12th a Tiny or Large ooze (beast shape IV); in ooze form you are immune to poison, sneak attacks, and critical hits. Also: your nature bond may take the Darkness domain but not Air or Weather, and your wild empathy influences oozes at −4 rather than magical beasts.'),
+      g(6, 'cave-wild-shape', 'Wild Shape (cave)', 'Gain wild shape at 6th level using your druid level −2, and you cannot take plant forms. From 10th you can become a Small or Medium ooze (beast shape III) and from 12th a Tiny or Large ooze (beast shape IV); in ooze form you are immune to poison, sneak attacks, and critical hits. Alters wild shape. Also: your nature bond may take the Darkness domain but not Air or Weather, and your wild empathy influences oozes at −4 rather than magical beasts.'),
     ],
   },
   {
@@ -895,16 +912,17 @@ export const WITCH_ARCHETYPES: ArchetypeDef[] = [
   {
     id: 'gravewalker', classId: 'witch', name: 'Gravewalker',
     desc: 'A witch whose patron is death itself — she binds the dead as thralls and wears corpses like gloves.',
-    replaces: [],
+    replaces: ['witch-familiar'],
     // Aura of Desecration / Bonethrall / Possess Undead take the hexes at 1st, 4th, and 8th; re-add the
     // rest of the recurring hex line (the 1st-level hex is gone entirely).
     choices: {
-      remove: ['hex'],
+      // The spell poppet is an effigy rather than an animal, so the familiar pick goes with it.
+      remove: ['hex', 'familiar'],
       add: [{ id: 'hex', label: 'Hex', kind: 'list', count: 1, levels: [2, 6, 10, 12, 14, 16, 18, 20], options: WITCH_HEXES }],
     },
     grants: [
       g(1, 'gw-aura-desecration', 'Aura of Desecration', 'Emit a 20-foot aura that functions as desecrate, strengthening the undead you command. Replaces the 1st-level hex.'),
-      g(3, 'gw-spell-poppet', 'Spell Poppet', 'Your familiar is a small effigy that stores your spells and through which you deliver touch spells. Replaces the witch’s familiar.'),
+      g(1, 'gw-spell-poppet', 'Spell Poppet', 'Your familiar is a small effigy rather than an animal: it stores your spells, and you cannot prepare a spell that is not in the poppet. Replaces the witch’s familiar.'),
       g(4, 'gw-bonethrall', 'Bonethrall', 'Seize control of an undead creature, binding it to your will as a thrall. Replaces the 4th-level hex.'),
       g(8, 'gw-possess-undead', 'Possess Undead', 'Project your consciousness into an undead you control, acting through its body. Replaces the 8th-level hex.'),
     ],
@@ -1122,7 +1140,8 @@ export const BRAWLER_ARCHETYPES: ArchetypeDef[] = [
   {
     id: 'exemplar', classId: 'brawler', name: 'Exemplar',
     desc: 'A brawler who leads by example — her prowess an inspiration that lifts everyone fighting beside her.',
-    replaces: ['brawl-unarmed', 'brawl-close-weapon-mastery', 'brawl-maneuver-training', 'brawl-ac-bonus'],
+    replaces: ['brawl-unarmed', 'brawl-close-weapon-mastery', 'brawl-maneuver-training',
+      'brawl-ac-bonus', 'brawl-strike'],
     grants: [
       g(1, 'ex-call-to-arms', 'Call to Arms', 'Gain a scaling bonus with a chosen group of weapons rather than relying on unarmed strikes. Replaces unarmed strike and close weapon mastery.'),
       g(3, 'ex-inspiring-prowess', 'Inspiring Prowess', 'Use bardic performance — inspire courage (3rd), inspire greatness (11th), and inspire heroics (15th) — with rounds per day based on Charisma. Replaces maneuver training and AC bonus.'),
@@ -1332,7 +1351,7 @@ export const BLOODRAGER_ARCHETYPES: ArchetypeDef[] = [
     proficiencies: { armor: { add: ['heavy'] } },
     damageReduction: null,
     grants: [
-      g(1, 'sb-heavy-armor', 'Heavy Armor Training', 'Gain proficiency with heavy armor and cast bloodrager spells in heavy armor without arcane spell failure. Replaces the bloodrager’s armor proficiency.'),
+      g(1, 'sb-heavy-armor', 'Heavy Armor Training', 'Gain proficiency with heavy armor and cast bloodrager spells in heavy armor without arcane spell failure. Alters the bloodrager’s armor proficiency.'),
       g(1, 'sb-indomitable-stance', 'Indomitable Stance', '+1 on combat maneuver checks, CMD vs overrun, Reflex saves vs trample, AC vs charges, and attack/damage against charging foes. Replaces fast movement.'),
       g(2, 'sb-armored-swiftness', 'Armored Swiftness', 'Move at full speed in medium or heavy armor. Replaces uncanny dodge.'),
       g(5, 'sb-armor-training', 'Armor Training', 'Reduce your armor’s check penalty and raise its maximum Dexterity bonus, improving as you level. Replaces improved uncanny dodge.'),
@@ -1410,15 +1429,25 @@ export const HUNTER_ARCHETYPES: ArchetypeDef[] = [
   {
     id: 'forester', classId: 'hunter', name: 'Forester',
     desc: 'A hunter bound to the land itself rather than to any beast on it — a guardian of the wild who walks alone.',
-    replaces: ['hunter-animal-companion', 'hunter-precise-companion', 'hunter-tactics', 'hunter-speak-with-master'],
+    replaces: ['hunter-animal-companion', 'hunter-precise-companion', 'hunter-tactics',
+      'hunter-improved-empathic-link', 'hunter-bonus-trick', 'hunter-raise-companion',
+      'hunter-speak-with-master', 'hunter-greater-empathic-link'],
     // No companion at all: the animal focus turns inward instead, as it does when a hunter's
-    // companion dies.
+    // companion dies — and everything the companion carries goes with it.
     choices: { remove: ['animal-companion'] },
     companions: [],
+    // A forester's own combat feats at 2nd, 7th, 13th and 19th stand in for precise companion.
+    bonusFeatSlots: { add: [2, 7, 13, 19] },
     grants: [
       g(1, 'fo-animal-focus', 'Animal Focus (self only)', "With no animal companion, every aspect this ability grants applies to you, exactly as when a hunter's companion is dead. Alters animal focus."),
-      g(5, 'fo-favored-terrain', 'Favored Terrain', "Gain the ranger's favored terrain, choosing your first at 5th level and another every four levels after, with the bonus in one chosen terrain rising each time. Replaces precise companion and hunter tactics."),
-      g(11, 'fo-breath-of-life', 'Breath of Life', 'Call the land’s vitality back into a fallen ally as a spell-like ability. Replaces speak with master.'),
+      g(2, 'fo-bonus-feat', 'Bonus Feat', 'Gain one bonus combat feat, and another at 7th, 13th and 19th level; you must meet its prerequisites. Replaces precise companion.'),
+      g(3, 'fo-tactician', 'Tactician', 'As a standard action, grant one teamwork feat to all allies within 30 feet who can see and hear you, for 3 rounds + 1 per 2 levels; usable once per day at 3rd and once more at 7th and every 5 levels after. Replaces hunter tactics.'),
+      g(4, 'fo-evasion', 'Evasion', 'Take no damage on a successful Reflex save against an effect that deals half damage on a save, while in light or no armor. Replaces improved empathic link.'),
+      g(5, 'fo-favored-terrain', 'Favored Terrain', "Gain the ranger's favored terrain, choosing your first at 5th level and another every four levels after, with the bonus in one chosen terrain rising each time. Replaces animal companion."),
+      g(7, 'fo-camouflage', 'Camouflage', 'Use Stealth to hide in any of your favored terrains, even where the terrain offers no cover or concealment. Replaces bonus tricks.'),
+      g(11, 'fo-improved-evasion', 'Improved Evasion', 'Your evasion improves: you still take no damage on a successful Reflex save, and only half damage on a failed one. Replaces speak with master.'),
+      g(14, 'fo-hide-in-plain-sight', 'Hide in Plain Sight', 'While in any of your favored terrains, use Stealth even while being observed. Replaces greater empathic link.'),
+      g(10, 'fo-breath-of-life', 'Breath of Life', 'Call the land’s vitality back into a fallen ally as a spell-like ability. Replaces speak with master.'),
     ],
   },
   {
@@ -1436,13 +1465,15 @@ export const HUNTER_ARCHETYPES: ArchetypeDef[] = [
   {
     id: 'feral-hunter', classId: 'hunter', name: 'Feral Hunter',
     desc: 'A hunter who becomes the beast rather than keeping one — wearing animal aspects like a second skin.',
-    replaces: ['hunter-animal-companion', 'hunter-precise-companion', 'hunter-tactics', 'hunter-speak-with-master'],
+    replaces: ['hunter-animal-companion', 'hunter-precise-companion', 'hunter-tactics',
+      'hunter-bonus-trick', 'hunter-improved-empathic-link', 'hunter-speak-with-master',
+      'hunter-raise-companion', 'hunter-greater-empathic-link', 'hunter-one-with-the-wild'],
     // Summon Pack takes the place of the teamwork feats gained at 6th/9th/12th/15th/18th (3rd remains).
     bonusFeatSlots: { remove: [6, 9, 12, 15, 18] },
     grants: [
       g(1, 'fh-feral-focus', 'Feral Focus', 'You gain no animal companion; instead you can apply your animal focus to yourself an unlimited number of times per day, and eventually keep several active at once. Alters animal focus; replaces hunter tactics and speak with master.'),
       g(3, 'fh-precise-summoned', 'Precise Summoned Animal', 'Apply your Precise Companion teamwork feat to creatures you summon rather than to a companion. Alters precise companion.'),
-      g(4, 'fh-wild-shape', 'Wild Shape', 'Assume animal forms as a druid of your hunter level − 3. Replaces the animal-companion improvements.'),
+      g(4, 'fh-wild-shape', 'Wild Shape', 'Assume animal forms as a druid of your hunter level − 3. Replaces the bonus tricks, improved and greater empathic link, one with the wild, and raise animal companion.'),
       g(6, 'fh-summon-pack', 'Summon Pack', 'Summon a pack of natural creatures that share your active animal focus. Replaces the teamwork feats gained at 6th, 9th, 12th, 15th, and 18th.'),
     ],
   },
@@ -1564,7 +1595,7 @@ export const SKALD_ARCHETYPES: ArchetypeDef[] = [
     // RAW also replaces "song of the fallen", which our skald progression does not model as its own
     // feature; Courtly Presence and Battle Prowess *alter* bardic knowledge and the rage-power line
     // rather than replacing them, so both are granted alongside the abilities they modify.
-    replaces: ['skald-dirge-of-doom', 'skald-master'],
+    replaces: ['skald-dirge-of-doom', 'skald-song-of-the-fallen', 'skald-master'],
     grants: [
       g(1, 'bscion-courtly-presence', 'Courtly Presence', 'Add half your character level on Intimidate checks and begin any verbal duel with an extra edge for the presence tactic. Your bardic knowledge applies only to Knowledge (geography, history, local, nobility). Alters bardic knowledge.'),
       g(3, 'bscion-battle-prowess', 'Battle Prowess', 'Whenever you would gain a rage power, you may instead take a combat or teamwork feat you qualify for, and grant it to allies under inspired rage for 2 rounds of raging song per round granted. Alters the rage power ability.'),
@@ -1605,7 +1636,7 @@ export const SHAMAN_ARCHETYPES: ArchetypeDef[] = [
   {
     id: 'unsworn-shaman', classId: 'shaman', name: 'Unsworn Shaman',
     desc: 'A shaman who never binds herself to one spirit, striking a new bargain each day for whatever the circumstances demand.',
-    replaces: ['shaman-spirit-feature'],
+    replaces: ['shaman-spirit-feature', 'shaman-wandering-hex'],
     // No sworn spirit at all — the spirit pick goes, and hexes come from whatever she bonds today.
     choices: { remove: ['spirit'] },
     grants: [
@@ -1638,7 +1669,7 @@ export const SHAMAN_ARCHETYPES: ArchetypeDef[] = [
     replaces: ['shaman-spirit-animal', 'shaman-wandering-spirit', 'shaman-wandering-hex'],
     classSkills: { add: ['linguistics', 'know-history', 'know-local', 'perception', 'use-magic-device'] },
     grants: [
-      g(1, 'sfp-mysteries-of-past', 'Mysteries of the Past', 'You gain no spirit familiar; instead add the Ancestor and Time oracle-mystery spells to your list and gain Linguistics, Knowledge (history), Knowledge (local), Perception, and Use Magic Device as class skills. Replaces the shaman’s familiar.'),
+      g(1, 'sfp-mysteries-of-past', 'Mysteries of the Past', 'You gain no spirit familiar; instead add the Ancestor and Time oracle-mystery spells to your list and gain Linguistics, Knowledge (history), Knowledge (local), Perception, and Use Magic Device as class skills. Replaces the spirit animal (the shaman’s familiar).'),
       g(4, 'sfp-revelations-of-past', 'Revelations of the Past', 'At 4th, 6th, 12th, 14th, and 20th level, select a revelation from the Ancestor or Time mystery, using your shaman level as your oracle level and Wisdom in place of Charisma. Replaces wandering spirit and wandering hex.'),
     ],
   },
@@ -1667,7 +1698,8 @@ export const SHIFTER_ARCHETYPES: ArchetypeDef[] = [
     alignment: ['NG', 'CG', 'N', 'CN', 'NE', 'CE'],
     replaces: [
       'shifter-wild-shape', 'shifter-aspect', 'shifter-defensive-instinct',
-      'shifter-chimeric-aspect', 'shifter-woodland-stride', 'shifter-trackless-step',
+      'shifter-chimeric-aspect', 'shifter-greater-chimeric-aspect', 'shifter-woodland-stride',
+      'shifter-trackless-step',
     ],
     // The aspect pick goes with shifter aspect itself.
     choices: { remove: ['aspect'] },
@@ -1684,8 +1716,9 @@ export const SHIFTER_ARCHETYPES: ArchetypeDef[] = [
     desc: 'A shifter who bargained with the Outer Planes instead of the wild — wearing daemon, demon, and devil rather than beast. (RAW requires an evil alignment; not enforced here.)',
     // Fiendish Aspect replaces wild shape, shifter aspect and every improvement to it — so both aspect
     // picks go, and with them (via the engine's choice-removal guard) the aspect source powers. RAW also
-    // replaces "greater chimeric aspect", which our shifter does not model as its own feature.
-    replaces: ['shifter-aspect', 'shifter-wild-shape', 'shifter-defensive-instinct', 'shifter-chimeric-aspect'],
+    // Greater chimeric aspect goes too — Greater Chimeric Fiend stands in for it at 14th.
+    replaces: ['shifter-aspect', 'shifter-wild-shape', 'shifter-defensive-instinct',
+      'shifter-chimeric-aspect', 'shifter-greater-chimeric-aspect'],
     choices: { remove: ['aspect', 'shifter-aspect-extra'] },
     grants: [
       g(1, 'ff-infernal-claws', 'Infernal Claws', 'Your shifter claws count as evil weapons for overcoming damage reduction; otherwise they work as normal. Alters shifter claws.'),
@@ -1709,11 +1742,13 @@ export const SHIFTER_ARCHETYPES: ArchetypeDef[] = [
   {
     id: 'verdant-shifter', classId: 'shifter', name: 'Verdant Shifter',
     desc: 'A shifter attuned to root and vine rather than fang and claw, taking on the resilient body of a plant.',
-    replaces: ['shifter-wild-empathy', 'shifter-aspect', 'shifter-defensive-instinct', 'shifter-chimeric-aspect'],
+    replaces: ['shifter-wild-empathy', 'shifter-aspect', 'shifter-defensive-instinct',
+      'shifter-chimeric-aspect', 'shifter-greater-chimeric-aspect'],
     grants: [
       g(1, 'vs-speak-plants', 'Speak with Plants', 'Communicate with plants at will, as speak with plants. Replaces wild empathy.'),
       g(1, 'vs-verdant-body', 'Verdant Body', 'Take on a plantlike body in place of an animal aspect, gaining a scaling Constitution bonus and, later, resistance to critical hits and other plant traits. Replaces shifter aspect.'),
       g(2, 'vs-wild-armor', 'Wild Armor', 'Gain a natural armor bonus that improves as you level. Replaces defensive instinct.'),
+      g(14, 'vs-greater-plant-shape', 'Greater Plant Shape', 'Your plant wild shape improves, as the shifter’s greater chimeric form. Replaces greater chimeric aspect.'),
       g(6, 'vs-plant-shape', 'Plant Shape', 'Your wild shape assumes plant forms (plant shape I, then II and III) rather than animal forms. Alters wild shape; replaces chimeric aspect.'),
     ],
   },
@@ -1924,20 +1959,18 @@ export const SLAYER_ARCHETYPES: ArchetypeDef[] = [
     id: 'sniper', classId: 'slayer', name: 'Sniper',
     desc: 'A slayer who kills from the shadows at a distance — patient, precise, and gone before the body falls.',
     replaces: ['slay-track'],
-    // Deadly Range takes the slayer talent gained at 2nd level.
-    choices: {
-      remove: ['slayer-talent'],
-      add: [{ id: 'slayer-talent', label: 'Slayer talent', kind: 'list', count: 1, levels: [4, 6, 8], options: SLAYER_TALENTS }],
-    },
+    // Deadly Range is a straight gain: the published archetype trades away only track.
     grants: [
       g(1, 'sniper-accuracy', 'Accuracy', 'Halve all range increment penalties when attacking with a bow, crossbow, or firearm. Replaces track.'),
-      g(2, 'sniper-deadly-range', 'Deadly Range', 'Against a target within the first range increment who is unaware of you, ignore the 30-foot limit on ranged sneak attacks and add your slayer level to the sneak-attack damage. Replaces the 2nd-level slayer talent.'),
+      g(2, 'sniper-deadly-range', 'Deadly Range', 'Against a target within the first range increment who is unaware of you, ignore the 30-foot limit on ranged sneak attacks and add your slayer level to the sneak-attack damage.'),
     ],
   },
   {
     id: 'bounty-hunter', classId: 'slayer', name: 'Bounty Hunter',
     desc: 'A slayer who brings the mark back alive — trading a few tricks of the trade for the tools of capture.',
     replaces: [],
+    // Manhunter's Training narrows the armour: light only, and no heavy or tower shields.
+    proficiencies: { armor: { remove: ['medium'] } },
     // Dirty Trick / Submission Hold take the slayer talents at 2nd and 6th; Incapacitate takes the
     // advanced talent at 10th. Re-add the remaining talent picks on each line.
     choices: {
