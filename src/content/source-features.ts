@@ -63,7 +63,7 @@ export const CAVALIER_ORDER_ABILITIES: Record<string, SourceFeature[]> = {
   cockatrice: [
     { level: 2, name: 'Braggart', desc: 'Demoralize foes; gain a bonus to hit those who are shaken.' },
     { level: 8, name: 'Steal Glory', desc: 'When an ally crits a challenged foe, make an attack of opportunity.' },
-    { level: 15, name: 'Rages of Vanity', desc: 'Goad a foe into attacking you at a penalty.' },
+    { level: 15, name: 'Moment of Triumph', desc: 'Once per day as a free action, gain a competence bonus equal to your Charisma modifier on ability checks, attacks, damage, saves, skill checks and AC for 1 round, and automatically confirm every critical threat.' },
   ],
   dragon: [
     { level: 2, name: 'Aid Allies', desc: 'Your aid another grants a larger bonus.' },
@@ -76,8 +76,10 @@ export const CAVALIER_ORDER_ABILITIES: Record<string, SourceFeature[]> = {
     { level: 15, name: 'Blaze of Glory', desc: 'Once per combat, surge with speed and a large attack bonus, ignoring difficult terrain as you charge.' },
   ],
   lion: [
-    { level: 2, name: 'For the King', desc: "Grant allies a bonus on attack and damage when you issue a challenge." },
-    { level: 8, name: "Lion's Call", desc: 'Rally allies against fear with a rousing shout.' },
+    { level: 2, name: "Lion's Call", desc: 'As a standard action, grant allies within 60 feet a competence '
+      + 'bonus equal to your Charisma modifier on saves against fear and +1 on attack rolls for rounds equal to your level.' },
+    { level: 8, name: 'For the King', desc: 'As a swift action, grant allies within 30 feet a competence bonus '
+      + 'equal to your Charisma modifier on attack and damage rolls for 1 round, once per combat.' },
     { level: 15, name: 'Shield of the Liege', desc: 'Redirect attacks aimed at an adjacent ally to yourself.' },
   ],
   shield: [
@@ -445,7 +447,7 @@ export const WITCH_PATRON_SPELLS: Record<string, SourceFeature[]> = {
   plague: patron('Detect Undead', 'Command Undead', 'Contagion', 'Animate Dead', 'Giant Vermin', 'Create Undead', 'Control Undead', 'Create Greater Undead', 'Energy Drain'),
   shadow: patron('Silent Image', 'Darkness', 'Deeper Darkness', 'Shadow Conjuration', 'Shadow Evocation', 'Shadow Walk', 'Greater Shadow Conjuration', 'Greater Shadow Evocation', 'Shades'),
   strength: patron('Divine Favor', "Bull's Strength", 'Greater Magic Weapon', 'Divine Power', 'Righteous Might', "Mass Bull's Strength", 'Giant Form I', 'Giant Form II', 'Shapechange'),
-  winter: patron('Unshakable Chill', 'Resist Energy', 'Ice Storm', 'Wall of Ice', 'Cone of Cold', 'Freezing Sphere', 'Control Weather', 'Polar Ray', 'Polar Midnight'),
+  winter: patron('Unshakable Chill', 'Resist Energy (cold only)', 'Ice Storm', 'Wall of Ice', 'Cone of Cold', 'Freezing Sphere', 'Control Weather', 'Polar Ray', 'Polar Midnight'),
 };
 
 /** Sorcerer bloodline arcana + bonus spells, keyed by bloodline id. The arcana (a passive) is

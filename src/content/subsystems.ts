@@ -538,7 +538,8 @@ export const BLOODRAGER_BLOODLINES: Opt[] = [
 export const SHIFTER_ASPECTS: Opt[] = [
   opt('bear', 'Bear', 'Might and toughness; a bonus to Strength and Con-like resilience.'),
   opt('bull', 'Bull', 'Powerful build and charging force.'),
-  opt('eagle', 'Eagle', 'Keen sight and, later, flight (falcon/owl aspects).'),
+  // The published aspect is Falcon; the id stays `eagle` so saved characters keep their choice.
+  opt('eagle', 'Falcon', 'Keen sight and, later, flight.'),
   opt('frog', 'Frog', 'Reach with a grabbing tongue and swimming.'),
   opt('lion', 'Lion', 'Pounce and pack tactics.'),
   opt('monkey', 'Monkey', 'Climbing and dexterous grace.'),

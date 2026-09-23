@@ -3618,6 +3618,20 @@ describe('archetypes — additional classes', () => {
     expect(featsAt(t, 3)).toContain('Brutal Beating');
   });
 
+  it("a lion cavalier gains Lion's Call at 2nd and For the King at 8th", () => {
+    // The two were the wrong way round until the source features were checked against the source,
+    // and nothing exercised the injection, so the swap went unnoticed.
+    let d = build('cavalier', undefined, 8);
+    d = withDecision(d, 'class-choices', { order: ['lion'] });
+    expect(featsAt(d, 2)).toContain("Lion's Call");
+    expect(featsAt(d, 8)).toContain('For the King');
+    expect(featsAt(d, 2)).not.toContain('For the King');
+    // And the cockatrice's capstone order ability is Moment of Triumph, not the invented name.
+    let c = build('cavalier', undefined, 15);
+    c = withDecision(c, 'class-choices', { order: ['cockatrice'] });
+    expect(featsAt(c, 15)).toContain('Moment of Triumph');
+  });
+
   it('Barbarian Invulnerable Rager swaps DR / uncanny dodge for Invulnerability', () => {
     const ir = build('barbarian', 'invulnerable-rager', 7);
     expect(featsAt(ir, 2)).toContain('Invulnerability');

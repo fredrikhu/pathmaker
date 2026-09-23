@@ -1634,6 +1634,189 @@ describe('companion creatures', () => {
   });
 });
 
+describe('source features, verified against the published sources', () => {
+  // Read off Archives of Nethys (bloodlines, schools, mysteries, curses, shifter aspects) and
+  // d20pfsrd (cavalier orders, shaman spirits, the witch patron table) on 2026-09-23. Each line is
+  // one source: "level:Ability" in level order.
+  const signature = (feats: C.SourceFeature[]) =>
+    feats.map((f) => `${f.level}:${f.name}`).join(' | ');
+
+  const check = (table: Record<string, C.SourceFeature[]>, expected: Record<string, string>, label: string) => {
+    expect(Object.keys(table).sort(), `${label}: sources`).toEqual(Object.keys(expected).sort());
+    const bad: string[] = [];
+    for (const [id, feats] of Object.entries(table)) {
+      const got = signature(feats);
+      if (got !== expected[id]) bad.push(`${label}/${id}: ${got}  ≠  ${expected[id]}`);
+    }
+    expect(bad, bad.join(' || ')).toEqual([]);
+  };
+
+  it('sorcerer bloodline powers land on 1/3/9/15/20 with the published names', () => {
+    check(C.SORCERER_BLOODLINE_POWERS, {
+      draconic: '1:Claws | 3:Dragon Resistances | 9:Breath Weapon | 15:Wings | 20:Power of Wyrms',
+      arcane: '1:Arcane Bond | 3:Metamagic Adept | 9:New Arcana | 15:School Power | 20:Arcane Apotheosis',
+      celestial: '1:Heavenly Fire | 3:Celestial Resistances | 9:Wings of Heaven | 15:Conviction | 20:Ascension',
+      infernal: '1:Corrupting Touch | 3:Infernal Resistances | 9:Hellfire | 15:On Dark Wings | 20:Power of the Pit',
+      abyssal: '1:Claws | 3:Demon Resistances | 9:Strength of the Abyss | 15:Added Summonings | 20:Demonic Might',
+      fey: '1:Laughing Touch | 3:Woodland Stride | 9:Fleeting Glance | 15:Fey Magic | 20:Soul of the Fey',
+    }, 'sorcerer bloodline');
+  });
+
+  it('bloodrager bloodline powers land on 1/4/8/12/16/20 with the published names', () => {
+    check(C.BLOODRAGER_BLOODLINE_POWERS, {
+      aberrant: '1:Staggering Strike | 4:Abnormal Reach | 8:Aberrant Fortitude | 12:Unusual Anatomy | 16:Aberrant Resistance | 20:Aberrant Form',
+      abyssal: '1:Claws | 4:Demonic Bulk | 8:Demon Resistances | 12:Abyssal Bloodrage | 16:Demonic Aura | 20:Demonic Immunities',
+      arcane: "1:Disruptive Bloodrage | 4:Arcane Bloodrage | 8:Greater Arcane Bloodrage | 12:Caster's Scourge | 16:True Arcane Bloodrage | 20:Caster's Bane",
+      celestial: '1:Angelic Attacks | 4:Celestial Resistances | 8:Conviction | 12:Wings of Heaven | 16:Angelic Protection | 20:Ascension',
+      destined: '1:Destined Strike | 4:Fated Bloodrager | 8:Certain Strike | 12:Defy Death | 16:Unstoppable | 20:Victory or Death',
+      draconic: '1:Claws | 4:Draconic Resistance | 8:Breath Weapon | 12:Dragon Wings | 16:Dragon Form | 20:Power of Wyrms',
+      elemental: '1:Elemental Strikes | 4:Elemental Resistance | 8:Elemental Movement | 12:Power of the Elements | 16:Elemental Form | 20:Elemental Body',
+      fey: '1:Confusing Critical | 4:Leaping Charger | 8:Blurring Movement | 12:Quickling Bloodrage | 16:One with Nature | 20:Fury of the Fey',
+      infernal: '1:Hellfire Strike | 4:Infernal Resistance | 8:Diabolical Arrogance | 12:Dark Wings | 16:Hellfire Charge | 20:Fiend of the Pit',
+      undead: "1:Frightful Charger | 4:Ghost Strike | 8:Death's Gift | 12:Frightful Strikes | 16:Incorporeal Bloodrager | 20:One Foot in the Grave",
+    }, 'bloodrager bloodline');
+  });
+
+  it('cavalier order abilities land on 2/8/15 with the published names', () => {
+    check(C.CAVALIER_ORDER_ABILITIES, {
+      // Braggart, Steal Glory, Moment of Triumph — the 15th-level ability was named "Rages of
+      // Vanity" here until the swaps were checked; no such order ability is published.
+      cockatrice: '2:Braggart | 8:Steal Glory | 15:Moment of Triumph',
+      dragon: '2:Aid Allies | 8:Strategy | 15:Act as One',
+      flame: '2:Foolhardy Rush | 8:Daunting Success | 15:Blaze of Glory',
+      // Lion's Call is the 2nd-level rally and For the King the 8th-level bonus; ours had them
+      // the other way round.
+      lion: "2:Lion's Call | 8:For the King | 15:Shield of the Liege",
+      shield: '2:Resolute | 8:Stem the Tide | 15:Protect the Meek',
+      star: '2:Calling | 8:For the Faith | 15:Retribution',
+      sword: "2:By My Honor | 8:Mounted Mastery | 15:Knight's Challenge",
+    }, 'cavalier order');
+  });
+
+  it('shaman spirit abilities land on 1/8/16 with the published names, plus a manifestation at 20', () => {
+    check(C.SHAMAN_SPIRIT_ABILITIES, {
+      battle: "1:Battle Spirit | 8:Enemies' Bane | 16:Paragon of Battle | 20:Manifestation",
+      bones: '1:Touch of the Grave | 8:Shard Soul | 16:Shedding Form | 20:Manifestation',
+      flame: '1:Touch of Flames | 8:Fiery Soul | 16:Elemental Form | 20:Manifestation',
+      heavens: '1:Stardust | 8:Void Adaptation | 16:Phantasmagoric Display | 20:Manifestation',
+      life: "1:Channel | 8:Healer's Touch | 16:Quick Healing | 20:Manifestation",
+      lore: '1:Monstrous Insight | 8:Automatic Writing | 16:Perfect Knowledge | 20:Manifestation',
+      nature: '1:Storm Burst | 8:Spirit of Nature | 16:Companion Animal | 20:Manifestation',
+      stone: '1:Touch of Acid | 8:Body of Earth | 16:Elemental Form | 20:Manifestation',
+      waves: '1:Wave Strike | 8:Fluid Mastery | 16:Elemental Form | 20:Manifestation',
+      wind: '1:Shocking Touch | 8:Spark Soul | 16:Elemental Form | 20:Manifestation',
+    }, 'shaman spirit');
+  });
+
+  it('wizard school powers land on the published levels', () => {
+    check(C.SCHOOL_POWERS, {
+      // Abjuration is the one school whose third power arrives at 6th rather than 8th.
+      abjuration: '1:Resistance | 1:Protective Ward | 6:Energy Absorption',
+      conjuration: "1:Summoner's Charm | 1:Acid Dart | 8:Dimensional Steps",
+      divination: "1:Forewarned | 1:Diviner's Fortune | 8:Scrying Adept",
+      enchantment: '1:Enchanting Smile | 1:Dazing Touch | 8:Aura of Despair',
+      evocation: '1:Intense Spells | 1:Force Missile | 8:Elemental Wall',
+      illusion: '1:Extended Illusions | 1:Blinding Ray | 8:Invisibility Field',
+      necromancy: '1:Power over Undead | 1:Grave Touch | 8:Life Sight',
+      transmutation: '1:Physical Enhancement | 1:Telekinetic Fist | 8:Change Shape',
+      universalist: '1:Hand of the Apprentice | 8:Metamagic Mastery',
+    }, 'school power');
+  });
+
+  it('shifter aspects step at 1/4/8/15, and the published aspect is Falcon', () => {
+    const bad: string[] = [];
+    for (const [id, feats] of Object.entries(C.SHIFTER_ASPECT_ABILITIES)) {
+      if (feats.map((f) => f.level).join(',') !== '1,4,8,15') bad.push(`${id}: levels ${feats.map((f) => f.level)}`);
+      const animal = id === 'eagle' ? 'Falcon' : id[0].toUpperCase() + id.slice(1);
+      const want = [`${animal} Aspect (Minor)`, `${animal} Aspect (Major)`,
+        `Greater ${animal} Aspect`, `True ${animal} Aspect`];
+      if (feats.map((f) => f.name).join('|') !== want.join('|')) bad.push(`${id}: ${feats.map((f) => f.name).join('|')}`);
+    }
+    expect(bad, bad.join(' || ')).toEqual([]);
+    // The aspect the option list offers must be named as published — it read "Eagle" until this pass.
+    expect(S.SHIFTER_ASPECTS.find((a) => a.id === 'eagle')?.name).toBe('Falcon');
+    expect(S.SHIFTER_ASPECTS.map((a) => a.id).sort()).toEqual(Object.keys(C.SHIFTER_ASPECT_ABILITIES).sort());
+  });
+
+  it('oracle curses and final revelations arrive on the published levels', () => {
+    for (const [id, feats] of Object.entries(C.ORACLE_CURSE_ABILITIES))
+      expect(feats.map((f) => f.level).join(','), `curse ${id}`).toBe('1,5,10,15');
+    for (const [id, feats] of Object.entries(C.ORACLE_FINAL_REVELATIONS)) {
+      expect(feats, `mystery ${id}`).toHaveLength(1);
+      expect(feats[0].level, `mystery ${id}`).toBe(20);
+    }
+    // Every mystery with revelations has a final revelation, and vice versa.
+    expect(Object.keys(C.ORACLE_FINAL_REVELATIONS).sort())
+      .toEqual(C.ORACLE_MYSTERIES.map((m) => m.id).sort());
+    expect(Object.keys(C.ORACLE_CURSE_ABILITIES).sort()).toEqual(C.ORACLE_CURSES.map((c) => c.id).sort());
+  });
+
+  it('every bonus-spell series matches the published list, at the published levels', () => {
+    // The spell is carried in the feature name after the colon.
+    const spells = (feats: C.SourceFeature[]) => feats
+      .filter((f) => f.name.includes(': '))
+      .map((f) => `${f.level}:${f.name.split(': ')[1]}`);
+    const SORC: Record<string, string> = {
+      draconic: 'Mage Armor, Resist Energy, Fly, Fear, Spell Resistance, Form of the Dragon I, Form of the Dragon II, Form of the Dragon III, Wish',
+      arcane: 'Identify, Invisibility, Dispel Magic, Dimension Door, Overland Flight, True Seeing, Greater Teleport, Power Word Stun, Wish',
+      celestial: 'Bless, Resist Energy, Magic Circle against Evil, Remove Curse, Flame Strike, Greater Dispel Magic, Banishment, Sunburst, Gate',
+      infernal: 'Protection from Good, Scorching Ray, Suggestion, Charm Monster, Dominate Person, Planar Binding, Greater Teleport, Power Word Stun, Meteor Swarm',
+      abyssal: "Cause Fear, Bull's Strength, Rage, Stoneskin, Dismissal, Transformation, Greater Teleport, Unholy Aura, Summon Monster IX",
+      fey: 'Entangle, Hideous Laughter, Deep Slumber, Poison, Tree Stride, Mislead, Phase Door, Irresistible Dance, Shapechange',
+    };
+    const BR: Record<string, string> = {
+      aberrant: 'Enlarge Person, See Invisibility, Displacement, Black Tentacles',
+      abyssal: "Ray of Enfeeblement, Bull's Strength, Rage, Stoneskin",
+      arcane: 'Magic Missile, Invisibility, Lightning Bolt, Dimension Door',
+      celestial: 'Bless, Resist Energy, Heroism, Holy Smite',
+      destined: 'Shield, Blur, Protection from Energy, Freedom of Movement',
+      draconic: 'Shield, Resist Energy, Fly, Fear',
+      elemental: 'Burning Hands, Scorching Ray, Protection from Energy, Elemental Body I',
+      fey: 'Entangle, Hideous Laughter, Haste, Confusion',
+      infernal: 'Protection from Good, Scorching Ray, Suggestion, Fire Shield',
+      undead: 'Chill Touch, False Life, Vampiric Touch, Enervation',
+    };
+    const PATRON: Record<string, string> = {
+      agility: "Jump, Cat's Grace, Haste, Freedom of Movement, Polymorph, Mass Cat's Grace, Ethereal Jaunt, Animal Shapes, Shapechange",
+      animals: "Charm Animal, Speak with Animals, Dominate Animal, Summon Nature's Ally IV, Animal Growth, Antilife Shell, Beast Shape IV, Animal Shapes, Summon Nature's Ally IX",
+      deception: 'Ventriloquism, Invisibility, Blink, Confusion, Passwall, Programmed Image, Mass Invisibility, Scintillating Pattern, Time Stop',
+      elements: 'Shocking Grasp, Flaming Sphere, Fireball, Wall of Ice, Flame Strike, Freezing Sphere, Vortex, Fire Storm, Meteor Swarm',
+      endurance: "Endure Elements, Bear's Endurance, Protection from Energy, Spell Immunity, Spell Resistance, Mass Bear's Endurance, Greater Restoration, Iron Body, Miracle",
+      healing: 'Remove Fear, Lesser Restoration, Remove Disease, Restoration, Cleanse, Pillar of Life, Greater Restoration, Mass Cure Critical Wounds, True Resurrection',
+      plague: 'Detect Undead, Command Undead, Contagion, Animate Dead, Giant Vermin, Create Undead, Control Undead, Create Greater Undead, Energy Drain',
+      shadow: 'Silent Image, Darkness, Deeper Darkness, Shadow Conjuration, Shadow Evocation, Shadow Walk, Greater Shadow Conjuration, Greater Shadow Evocation, Shades',
+      strength: "Divine Favor, Bull's Strength, Greater Magic Weapon, Divine Power, Righteous Might, Mass Bull's Strength, Giant Form I, Giant Form II, Shapechange",
+      // The winter patron's 4th-level spell is resist energy restricted to cold.
+      winter: 'Unshakable Chill, Resist Energy (cold only), Ice Storm, Wall of Ice, Cone of Cold, Freezing Sphere, Control Weather, Polar Ray, Polar Midnight',
+    };
+    const bad: string[] = [];
+    const cmp = (table: Record<string, C.SourceFeature[]>, expected: Record<string, string>, levels: number[], label: string) => {
+      expect(Object.keys(table).sort(), `${label}: sources`).toEqual(Object.keys(expected).sort());
+      for (const [id, feats] of Object.entries(table)) {
+        const want = expected[id].split(', ').map((s, i) => `${levels[i]}:${s}`);
+        const got = spells(feats);
+        if (got.join(' | ') !== want.join(' | ')) bad.push(`${label}/${id}: ${got.join(' | ')}  ≠  ${want.join(' | ')}`);
+      }
+    };
+    cmp(C.SORCERER_BLOODLINE_SPELLS, SORC, [3, 5, 7, 9, 11, 13, 15, 17, 19], 'sorcerer bonus spell');
+    cmp(C.BLOODRAGER_BLOODLINE_SPELLS, BR, [7, 10, 13, 16], 'bloodrager bonus spell');
+    cmp(C.WITCH_PATRON_SPELLS, PATRON, [2, 4, 6, 8, 10, 12, 14, 16, 18], 'witch patron spell');
+    expect(bad, bad.join(' || ')).toEqual([]);
+  });
+
+  it('every sorcerer bloodline states its arcana, and no bloodrager bloodline does', () => {
+    // Only sorcerers have bloodline arcana; a bloodrager's bloodline grants powers and spells only.
+    for (const [id, feats] of Object.entries(C.SORCERER_BLOODLINE_SPELLS)) {
+      const arcana = feats.find((f) => f.name === 'Bloodline Arcana');
+      expect(arcana, `${id}: no arcana`).toBeTruthy();
+      expect(arcana!.level, `${id}: arcana level`).toBe(1);
+      expect(arcana!.desc.length, `${id}: arcana text`).toBeGreaterThan(40);
+    }
+    for (const [id, feats] of Object.entries(C.BLOODRAGER_BLOODLINE_SPELLS))
+      expect(feats.some((f) => f.name === 'Bloodline Arcana'), `${id}: bloodragers have no arcana`).toBe(false);
+  });
+});
+
 describe('archetype swaps: the prose and the machine list must agree', () => {
   // Every archetype ability ends its description with what it costs ("Replaces bravery."). That
   // sentence and the `replaces` list hold the same fact twice, so they can be diffed — the shape
