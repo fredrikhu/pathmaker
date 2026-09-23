@@ -6,11 +6,11 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 
 ## ▶ Resume here (last session end)
 
-**Current state** — branch `main`, working tree clean, **1,131 tests** passing; run
+**Current state** — branch `main`, working tree clean, **1,134 tests** passing; run
 `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
 **Latest — every catalogue and rules table has been audited against the published sources.**
-Sixteen passes, `6729349`..`a385fbf`. Thirteen turned up something to fix and three were
+Seventeen passes, `6729349`..`b3daaa9`. Fourteen turned up something to fix and three were
 already clean; the full table and the lessons are in the **Content audit** section below, with a
 detailed paragraph per catalogue further down under *Content breadth*. The worst find was the
 **magus marked full BAB instead of three-quarters**, which inflated every magus attack, CMB, CMD and
@@ -943,8 +943,8 @@ Everything below is the durable detail. When resuming, read this file, then `doc
 ## ▶ Content audit (2026-09-21 → 2026-09-22)
 
 Every content catalogue and every rules table the engine computes from was checked against the
-published source (d20pfsrd, and Archives of Nethys where d20pfsrd is incomplete). Sixteen passes,
-commits `6729349`..`a385fbf`. **Thirteen turned up something to fix; three were already correct**
+published source (d20pfsrd, and Archives of Nethys where d20pfsrd is incomplete). Seventeen passes,
+commits `6729349`..`b3daaa9`. **Fourteen turned up something to fix; three were already correct**
 (races, equipment, magic item pricing).
 
 | Pass | Result |
@@ -965,6 +965,7 @@ commits `6729349`..`a385fbf`. **Thirteen turned up something to fix; three were 
 | Class features | 25 of 31 classes clean; **hunter missing 5 features**, skald 3, shifter 2, plus an invented deed |
 | Archetype swaps | **17 wrong or missing trades** across 125 archetypes, including one that doubled a barbarian's DR |
 | Source features | 241 abilities + 184 bonus spells; **2 cavalier order bugs**, 1 invented aspect name, 1 dropped qualifier |
+| `features1` fallback | **drifted in 26 of 31 classes and was on screen**; deleted, and the warpriest gained its orisons |
 
 ### What the pattern was
 
@@ -988,6 +989,20 @@ pass where checking the roster mattered more than checking the rows.
 **My own scope claim was the last thing to verify.** After twelve passes I told the user everything
 auditable had been audited; the companions had not been, and neither had the class features. Treat
 "what is left?" as a question to answer from the file list, not from memory of what was done.
+
+**A second copy of the truth is worse than no copy, and "the engine ignores it" is not the same as
+"nobody sees it".** `ClassDef.features1` was a level-1-only duplicate of each class's features from
+before the per-level progressions existed. `resolve()` had long stopped reading it — but the Class
+step still showed it as the level-1 preview, and the Advancement tooltips preferred its text. It had
+drifted in **26 of 31 classes**, including twelve that used different ids in the two lists, so the
+copies could not even be compared mechanically. The remedy for a duplicate is deletion, not
+reconciliation: when a field is "the fallback", check who actually reads it before assuming it is
+dead, then remove it and let one list be the answer.
+
+**An exemption in a golden is a place bugs live.** The class-feature golden skipped "orisons" and
+"cantrips" globally as engine-owned. That exemption is what hid the warpriest having no Orisons
+feature while its table prints one and it casts three of them. A whitelist entry should be as narrow
+as the reason for it.
 
 **An unexercised mechanism hides its own content.** The cavalier's order abilities were injected
 into the advancement table by a code path no test touched, so a swapped pair of abilities sat there
@@ -1027,6 +1042,9 @@ Each pass added goldens rather than one-off corrections, so these values are now
 - **All three companion advancement tables** cell by cell, plus every creature's size, natural
   armour and ability scores, and the milestone levels that distinguish the animal companion's
   progression from the eidolon's.
+- **One list of features per class**: `features` equals its progression exactly, every class has
+  level-1 features, nothing may reintroduce a level-1-only duplicate, and any class casting 0-level
+  spells at 1st must name its cantrips or orisons.
 - **Every source ability and bonus spell**: all 241 abilities across the eight source tables and
   all 184 bonus spells across the three spell tables, by name and level, plus a resolve-level test
   that a chosen source's abilities actually reach the advancement table.
@@ -1620,6 +1638,21 @@ the winter patron's 4th-level spell is *resist energy (cold only)*, a restrictio
 **The lion bug is the instructive one**: the abilities were injected by a code path that no test
 exercised, so a swapped pair could sit there indefinitely. A resolve-level test now builds a lion
 cavalier and reads the advancement table, which is how this pass confirmed the fix.
+
+**`features1` audit (2026-09-23). Drifted in 26 of 31 classes, visible on screen, now deleted.**
+`ClassDef.features1` held a second, level-1-only copy of each class's features, dating from before
+the per-level progressions were authored. `resolve()` stopped reading it once every class had a
+progression — but **the Class step's "Level 1 features" preview was reading it**, and the Advancement
+tooltips preferred its description text over the real feature's. So the drift was on screen: a
+cleric's preview named **Channel Energy and Spontaneous Casting** where the character gains five
+features (no Aura, no Domains, no Orisons); a wizard's omitted Arcane Bond and Arcane School; a
+brawler's called its unarmed strike "Improved Unarmed Strike"; and twelve classes used entirely
+different feature ids in the two lists. The field is gone from the model and from all 31 classes,
+`resolve()` falls back to an empty list, and both UI sites now read the progression — the list the
+Advancement and Sheet views already used. Deleting it surfaced one real gap: the **warpriest had no
+Orisons feature** although it casts three at 1st level and its published table lists them. The
+class-feature golden had been exempting "orisons" and "cantrips" globally, which is exactly what hid
+it; that exemption is gone, so any class casting 0-level spells at 1st must now name them.
 
 ### Modeling simplifications (fidelity notes)
 - **Per-list spell levels — audited in full.** The per-list level map (`SpellDef.levelByList`, read via
