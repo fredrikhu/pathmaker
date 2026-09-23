@@ -6,12 +6,14 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 
 ## ▶ Resume here (last session end)
 
-**Current state** — branch `main`, working tree clean, **1,141 tests** passing; run
+**Current state** — branch `main`, working tree clean, **1,149 tests** passing; run
 `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
 **Latest — every catalogue and rules table has been audited against the published sources.**
-Nineteen passes, `6729349`..`09749ed`. Sixteen turned up something to fix and three were
-already clean; the full table and the lessons are in the **Content audit** section below, with a
+Twenty passes, `6729349`..`c0895b0`, and the campaign is **finished**: every catalogue, every
+rules table, and every piece of authored or generated text has been checked. Seventeen passes turned
+up something to fix and three were already clean; the full table and the lessons are in the
+**Content audit** section below, with a
 detailed paragraph per catalogue further down under *Content breadth*. The worst find was the
 **magus marked full BAB instead of three-quarters**, which inflated every magus attack, CMB, CMD and
 BAB-gated prerequisite — and which survived because **a test asserted it**. Each pass left a golden
@@ -943,9 +945,10 @@ Everything below is the durable detail. When resuming, read this file, then `doc
 ## ▶ Content audit (2026-09-21 → 2026-09-22)
 
 Every content catalogue and every rules table the engine computes from was checked against the
-published source (d20pfsrd, and Archives of Nethys where d20pfsrd is incomplete). Nineteen passes,
-commits `6729349`..`09749ed`. **Sixteen turned up something to fix; three were already correct**
-(races, equipment, magic item pricing). **Nothing in `src/content/` is now unaudited.**
+published source (d20pfsrd, and Archives of Nethys where d20pfsrd is incomplete). Twenty passes,
+commits `6729349`..`c0895b0`. **Seventeen turned up something to fix; three were already correct**
+(races, equipment, magic item pricing). **The campaign is complete**: nothing in `src/content/` is
+unaudited, and neither is the text the app generates itself.
 
 | Pass | Result |
 | --- | --- |
@@ -968,6 +971,7 @@ commits `6729349`..`09749ed`. **Sixteen turned up something to fix; three were a
 | `features1` fallback | **drifted in 26 of 31 classes and was on screen**; deleted, and the warpriest gained its orisons |
 | Playstyle prose | **4 false rules claims** in authored advice, two contradicting our own data |
 | Spell tactics | 223 overrides, all real and all load-bearing; **7 mis-roled**, incl. 4 death spells called blasts |
+| Generated text | export numbers match the sheet; **3 plural/agreement defects** in issue messages |
 
 ### What the pattern was
 
@@ -991,6 +995,18 @@ pass where checking the roster mattered more than checking the rows.
 **My own scope claim was the last thing to verify.** After twelve passes I told the user everything
 auditable had been audited; the companions had not been, and neither had the class features. Treat
 "what is left?" as a question to answer from the file list, not from memory of what was done.
+
+**A guard that never fires is not a guard.** The first version of the plural checks swept a set of
+builds for badly-worded messages and passed — while never producing the over-full spellbook whose
+message was one of the two known defects. Mutating the source proved the check was vacuous. Any test
+that searches a generated corpus needs a companion test asserting the corpus contains the cases,
+or it quietly becomes decoration.
+
+**An invariant nobody tests is one refactor from being false.** The player's real name is excluded
+from the AI export by a `privateToSheet` flag and two call sites passing `includePrivate: false`.
+That was correct — and nothing enforced it, so a third export path would have leaked a real person's
+name into text pasted into someone else's service. Privacy properties deserve a test precisely
+because they are invisible when they work.
 
 **When a correction table agrees with the thing it corrects, delete the row.** `spell-tactics.ts`
 exists to override a structural classifier where school misleads it, and it promises to list only
@@ -1064,6 +1080,10 @@ Each pass added goldens rather than one-off corrections, so these values are now
 - **All three companion advancement tables** cell by cell, plus every creature's size, natural
   armour and ability scores, and the milestone levels that distinguish the animal companion's
   progression from the eidolon's.
+- **The generated text's own properties**: the player's name never leaves the sheet in any export
+  format (with a mirror test that the filter keeps the character's description), and no issue
+  message writes a plural noun after a count of one, a singular after a count above one, a lazy
+  "(s)", or a singular verb on a plural subject.
 - **Every spell-role override**: the id must exist, the override may not agree with the structural
   rule it exists to correct, and no all-or-nothing death effect may be classed as a blast — the
   blaster advice promises half damage on a successful save, which those spells do not give.
@@ -1088,12 +1108,14 @@ Each pass added goldens rather than one-off corrections, so these values are now
 
 ### Scope note
 
-**Nothing in `src/content/` is unaudited any more.** The two files that sat on this list longest —
-`playstyle.ts` and `spell-tactics.ts` — have no published source to diff against, and both turned
-out to be checkable anyway: authored prose still makes rules claims (four of playstyle's were false),
-and an override table can be checked against the rule it overrides (seven of spell-tactics' 223 were
-on the wrong side of it). What is left is the descriptive text the app generates itself, which is
-tested where it is mechanical. The reusable method, the per-source lookup traps and
+**The audit campaign is complete — there is no unaudited content left.** The files that sat on this
+list longest had no published source to diff against, and every one of them turned out to be
+checkable anyway. Authored prose still makes rules claims (four of `playstyle.ts`'s were false). An
+override table can be checked against the rule it overrides (seven of `spell-tactics.ts`'s 223 were
+on the wrong side of it). Generated text can be checked for the properties it must have whatever it
+says — plural agreement, no leaked ids, no private data. **"No source to check against" turned out to
+mean "no line-by-line diff", never "no audit".** What would extend this now is new content, not
+further checking of what is here. The reusable method, the per-source lookup traps and
 the scraper pitfalls are recorded in the `content-audit-method` memory note.
 
 ## Phase 1 — Level-1 character creator: **complete**
@@ -1713,6 +1735,19 @@ conjurations, which this taxonomy calls control; only the two that copy an evoca
 seven were **deleted rather than re-roled**, because Illusion and Necromancy already fall back to
 control. The ones that keep a damage floor on a save — harm, finger of death, destruction, slay
 living, energy drain, the mass inflicts — stay blasts.
+
+**Generated text audit (2026-09-23). Export numbers exact; three agreement defects in the messages.**
+The last surface: the AI export in `engine/portrait.ts`, the description block, and the `Issue`
+messages the engine writes. The export came out well — every number in it is read from the
+resolution rather than recomputed, so the stated skill totals and ability scores match the sheet
+exactly; nothing prints a raw internal id where a name lookup should have happened; the pronoun line
+tells a model to use the recorded pronouns and they/them when none are recorded, rather than
+guessing; and the player's real name is already dropped from all three formats. The defects were all
+in the issue messages: **"Choose 2 more 1st-level spell(s)"** was the one message that punted on the
+plural, and **"2 ranks exceeds the max"** and **"8 spells exceeds your 5"** disagreed with their own
+plural subjects. What this pass mainly leaves behind is the enforcement: the privacy rule had nothing
+testing it, and the plural checks needed a guard of their own after the first version passed without
+ever producing the message it was meant to catch.
 
 ### Modeling simplifications (fidelity notes)
 - **Per-list spell levels — audited in full.** The per-list level map (`SpellDef.levelByList`, read via
