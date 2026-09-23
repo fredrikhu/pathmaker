@@ -6,8 +6,8 @@ import { newCharacter, withDecision } from './character';
 import type { CharacterDoc } from './types';
 import { CLASSES } from '../content/classes';
 import {
-  CLASS_PLAYSTYLE, GAP_TEXT, LEAN_TEXT, PARTY_TEXT, POOL_TEXT, POSTURE_TEXT, ROLE_TEXT,
-  STRENGTH_TEXT, STYLE_TEXT, THEME_TEXT,
+  CLASS_PLAYSTYLE, GAP_TEXT, LEAN_TEXT, PARTY_TEXT, POOL_PACING_TEXT, POOL_TEXT, POSTURE_TEXT,
+  ROLE_TEXT, STRENGTH_TEXT, STYLE_TEXT, THEME_TEXT,
 } from '../content/playstyle';
 
 // Coverage of the tag-keyed tables is enforced by the compiler: they are declared as
@@ -83,6 +83,69 @@ describe('house style: prose describes intent, the sheet states facts', () => {
 
   it('ends every paragraph as a sentence', () => {
     expect(prose.filter((t) => !/[.!?]$/.test(t.trim()))).toEqual([]);
+  });
+});
+
+describe('house rules: the prose may not misstate the rules', () => {
+  // The prose is opinion and quotes no numbers, but it still makes rules claims, and those can be
+  // wrong. Three of them were: rage was said to lower the Will save it actually raises, lay on
+  // hands was a "fast action", and bombs were described as inexhaustible when they are a daily pool.
+  const all = [
+    ...Object.values(CLASS_PLAYSTYLE).flatMap((c) => [c.identity, c.approach]),
+    ...Object.values(STYLE_TEXT).flatMap((s) => [s.clause, s.round]),
+    ...Object.values(POSTURE_TEXT), ...Object.values(ROLE_TEXT), ...Object.values(LEAN_TEXT),
+    ...Object.values(THEME_TEXT), ...Object.values(STRENGTH_TEXT), ...Object.values(GAP_TEXT),
+    ...Object.values(PARTY_TEXT), ...Object.values(POOL_TEXT),
+  ];
+
+  it('names only action types that exist in the rules', () => {
+    // "fast action" is not one of them, and was describing lay on hands, which is a swift action.
+    const REAL = new Set(['standard', 'move', 'swift', 'immediate', 'free', 'full-round']);
+    const bad: string[] = [];
+    // Only "as a <kind> action" names an action type; "the best action economy" does not.
+    for (const t of all)
+      for (const m of t.matchAll(/\ban? ([a-z-]+) action\b/g))
+        if (!REAL.has(m[1])) bad.push(`"${m[0]}" in "${t.slice(0, 60)}…"`);
+    expect(bad, bad.join(' | ')).toEqual([]);
+  });
+
+  it('never calls a save weak that the class is actually good at', () => {
+    // A class's own text may name its weak save; it must be a save the class does not have.
+    const bad: string[] = [];
+    const SAVES = [['will', /\bWill\b/], ['ref', /\bReflex\b/], ['fort', /\bFortitude\b/]] as const;
+    for (const c of CLASSES) {
+      const text = [CLASS_PLAYSTYLE[c.id].identity, CLASS_PLAYSTYLE[c.id].approach].join(' ');
+      for (const [save, re] of SAVES) {
+        if (!re.test(text)) continue;
+        // Only sentences that call it weak count.
+        const weak = text.split(/(?<=[.;])\s+/).some((sent) =>
+          re.test(sent) && /weak|worst|lowest|trails|never fixes|poor/.test(sent));
+        if (weak && c.goodSaves.includes(save))
+          bad.push(`${c.id}: calls ${save} weak, but it is a good save`);
+      }
+    }
+    expect(bad, bad.join(' | ')).toEqual([]);
+  });
+
+  it('has a pool paragraph for every pool the engine can emit, and none for any it cannot', () => {
+    // A POOL_TEXT key that no class produces is a paragraph nobody will ever read.
+    const emitted = new Set<string>();
+    for (const c of CLASSES) {
+      let d = newCharacter('t-ps-pool', 'P');
+      d = withDecision(d, 'ability-base', { str: 14, dex: 14, con: 14, int: 14, wis: 14, cha: 14 });
+      d = withDecision(d, 'race', 'human');
+      d = withDecision(d, 'alignment', c.id === 'paladin' ? 'LG' : 'N');
+      d = withDecision(d, 'class', c.id);
+      // Two levels, because a pool can exist only in a window: the druid's wild shape uses run out
+      // at 20th, where it becomes at-will.
+      for (const lvl of [12, 20])
+        for (const p of resolve({ ...d, level: lvl }).sheet.pools) emitted.add(p.id);
+    }
+    const authored = new Set(Object.keys(POOL_TEXT));
+    expect([...authored].filter((k) => !emitted.has(k)), 'authored but never emitted').toEqual([]);
+    // The mirror is a soft expectation: a pool with no entry falls back to POOL_PACING_TEXT, which
+    // is deliberate. Assert the fallback exists rather than demanding an entry for every pool.
+    expect(Object.keys(POOL_PACING_TEXT).sort()).toEqual(['discrete', 'duration']);
   });
 });
 

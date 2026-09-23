@@ -34,7 +34,7 @@ export const CLASS_PLAYSTYLE: Record<string, ClassPlaystyle> = {
   },
   barbarian: {
     identity: 'a damage engine on a timer',
-    approach: 'Rage is the class. It is also a budget for the entire adventuring day rather than for one fight, so the real skill is deciding which fights deserve it and staying out of rage for the ones that do not. While raging you hit far harder and think far worse: your Will save is at its lowest exactly when enemies most want to turn you around.',
+    approach: 'Rage is the class. It is also a budget for the entire adventuring day rather than for one fight, so the real skill is deciding which fights deserve it and staying out of rage for the ones that do not. While raging you hit far harder and defend worse — rage costs you Armor Class and locks you out of most Charisma-, Dexterity- and Intelligence-based skills. Will is the save the class never fixes, and the enemy who turns you around does its damage with you rather than to you.',
   },
   bard: {
     identity: "the party's force multiplier",
@@ -46,7 +46,7 @@ export const CLASS_PLAYSTYLE: Record<string, ClassPlaystyle> = {
   },
   druid: {
     identity: 'three characters in one',
-    approach: 'You are a full caster, a shapechanger and an animal handler, and trying to be all three in the same round is how druids stall. Pick a mode per fight: cast if the battlefield needs shaping, shift if it needs a body in the way. Your companion acts every round regardless, which quietly gives you the best action economy in the party.',
+    approach: 'You are a full caster, a shapechanger and an animal handler, and trying to be all three in the same round is how druids stall. Pick a mode per fight: cast if the battlefield needs shaping, shift if it needs a body in the way. If your nature bond bought a companion, it acts every round regardless, which quietly gives you the best action economy in the party.',
   },
   monk: {
     identity: 'a mobile skirmisher',
@@ -78,7 +78,7 @@ export const CLASS_PLAYSTYLE: Record<string, ClassPlaystyle> = {
   },
   alchemist: {
     identity: 'a self-buffing artillerist',
-    approach: 'Bombs are a reliable ranged attack you never run out of mid-fight, and extracts are spells you can only cast on yourself. That combination makes you self-sufficient in a way no other class is: you buff yourself in advance, then throw. Mutagen turns you into a passable melee combatant for a while, which is worth remembering when the enemy closes.',
+    approach: 'Bombs are a ranged attack that needs no weapon, and extracts are spells you can only cast on yourself. That combination makes you self-sufficient in a way no other class is: you buff yourself in advance, then throw. Mutagen turns you into a passable melee combatant for a while, which is worth remembering when the enemy closes.',
   },
   cavalier: {
     identity: 'a mounted charger and a battlefield leader',
@@ -122,7 +122,7 @@ export const CLASS_PLAYSTYLE: Record<string, ClassPlaystyle> = {
   },
   bloodrager: {
     identity: 'rage that casts',
-    approach: 'You rage like a barbarian and cast a short list of arcane spells while doing it — mostly personal buffs that make the rage hit harder. The bloodline is the character: it decides what your rage actually does. Like any rage class you are on a daily timer, and your Will save is worst while it is running.',
+    approach: 'You rage like a barbarian and cast a short list of arcane spells while doing it — mostly personal buffs that make the rage hit harder. The bloodline is the character: it decides what your rage actually does. Like any rage class you are on a daily timer, and Will is the save the class never fixes — which matters most in exactly the fights where being turned around would be worst.',
   },
   brawler: {
     identity: 'an unarmed fighter who rewrites their build mid-fight',
@@ -221,7 +221,7 @@ export const ROLE_TEXT: Record<CombatRole, string> = {
 };
 
 export const LEAN_TEXT: Record<CastingLean, string> = {
-  blaster: 'Your list is built to hurt things. Damage is the most reliable thing magic does — it never fails outright — but it is also the least efficient, so pick spells that hit several enemies where you can and save single-target damage for what actually needs killing.',
+  blaster: 'Your list is built to hurt things. Damage is the most reliable thing magic does — a successful save usually still leaves half of it — but it is also the least efficient, so pick spells that hit several enemies where you can and save single-target damage for what actually needs killing.',
   controller: 'Your list is built to take enemies out of the fight rather than to kill them. That is the strongest thing casting does, and it is also the most fragile: most of it hangs on a save, so aim at the enemy whose weak save you can guess rather than the one that looks most dangerous.',
   buffer: 'Your list is built to improve people. Most of it is worth casting before anything starts, so knowing that a fight is coming is worth an entire spell slot to you. The buffs cast in the first round are the ones that matter; the ones cast in the last were wasted.',
   healer: 'Your list can put people back on their feet. In the middle of a fight that rarely keeps pace with the damage arriving, so the healing that counts is the kind that stops someone dropping this round, and everything else is better done afterwards.',
@@ -287,7 +287,7 @@ export const POOL_TEXT: Record<string, string> = {
   'stunning-fist': 'Stunning Fist can take an enemy out of the fight for a round. Against a single dangerous opponent that is worth far more than the damage you skipped.',
   channel: 'Channel energy reaches everyone at once, which makes it the most efficient healing available to anyone. Keep at least one use back for the moment two people are down.',
   fervor: 'Fervor lets you heal or buff and still act, which is what makes fighting and casting in the same round possible.',
-  'lay-on-hands': 'Lay on hands works on yourself as a fast action, so it is as much a way to stay standing mid-fight as it is a way to heal others afterwards.',
+  'lay-on-hands': 'Lay on hands works on yourself as a swift action, so it is as much a way to stay standing mid-fight as it is a way to heal others afterwards.',
   'smite-evil': 'Smite is a small number of enormous turns. Spend one on the most dangerous evil creature in the room; spending them on minions wastes the class.',
   'wild-shape': 'Wild shape changes what kind of character you are for a whole fight, so the decision is made before initiative rather than during.',
   performance: 'Performance is rounds per day across every fight. Starting it costs you a round and is almost always worth it — the party is getting more from that round than you would have.',
@@ -296,7 +296,7 @@ export const POOL_TEXT: Record<string, string> = {
   panache: 'Panache comes back on critical hits and on dropping enemies, so running out is usually a sign you stopped taking chances.',
   'arcane-pool': 'The arcane pool sharpens the weapon you are already swinging, which is almost always a better use than anything more exotic.',
   reservoir: 'The reservoir pays for bending spells as you cast them, which is what separates you from an ordinary prepared caster.',
-  bombs: 'Bombs are a ranged attack you can rely on all day, which makes you useful in fights where your spells are the wrong answer.',
+  bombs: 'Bombs are a daily allowance of ranged attacks, which makes you useful in fights where your extracts are the wrong answer — but they are counted, so the last fight of the day is the one to keep some back for.',
   inspiration: 'Inspiration buys certainty on the rolls that matter. It is worth spending on the check the party is depending on rather than the one you would probably pass anyway.',
   judgment: 'Judgement is declared after you see the enemy, so it is worth taking the moment to look before choosing.',
   challenge: 'A challenge marks one enemy as yours for the rest of the fight, so pick the one you actually intend to stay next to.',
