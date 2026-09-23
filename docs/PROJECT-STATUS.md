@@ -6,13 +6,14 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 
 ## ▶ Resume here (last session end)
 
-**Current state** — branch `main`, working tree clean, **1,152 tests** passing; run
+**Current state** — branch `main`, working tree clean, **1,169 tests** passing; run
 `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
-**Latest — every catalogue and rules table has been audited against the published sources.**
-Twenty-one passes, `6729349`..`7fe0057`, covering every catalogue, every rules table, every piece
-of authored or generated text, and the strings the UI assembles. Eighteen turned up something to fix
-and three were already clean; the full table and the lessons are in the
+**Latest — the content, the generated text, the view and now the engine's own arithmetic have all
+been audited against the published rules.** Twenty-two passes, `6729349`..`9e20da2`, covering every
+catalogue, every rules table, every piece of authored or generated text, the strings the UI
+assembles, and the formulas the engine computes. Nineteen turned up something to fix and three were
+already clean; the full table and the lessons are in the
 **Content audit** section below, with a
 detailed paragraph per catalogue further down under *Content breadth*. The worst find was the
 **magus marked full BAB instead of three-quarters**, which inflated every magus attack, CMB, CMD and
@@ -945,10 +946,10 @@ Everything below is the durable detail. When resuming, read this file, then `doc
 ## ▶ Content audit (2026-09-21 → 2026-09-22)
 
 Every content catalogue and every rules table the engine computes from was checked against the
-published source (d20pfsrd, and Archives of Nethys where d20pfsrd is incomplete). Twenty-one passes,
-commits `6729349`..`7fe0057`. **Eighteen turned up something to fix; three were already correct**
+published source (d20pfsrd, and Archives of Nethys where d20pfsrd is incomplete). Twenty-two passes,
+commits `6729349`..`9e20da2`. **Nineteen turned up something to fix; three were already correct**
 (races, equipment, magic item pricing). Nothing in `src/content/` is unaudited, and neither is the
-text the engine generates or the strings the UI assembles.
+text the engine generates, the strings the UI assembles, or the arithmetic behind either.
 
 | Pass | Result |
 | --- | --- |
@@ -973,6 +974,7 @@ text the engine generates or the strings the UI assembles.
 | Spell tactics | 223 overrides, all real and all load-bearing; **7 mis-roled**, incl. 4 death spells called blasts |
 | Generated text | export numbers match the sheet; **3 plural/agreement defects** in issue messages |
 | UI strings | **2 rules formulas living in the view** (lifting figures, armour speed) + 1 fabricated plural |
+| Engine rules math | attack, progression and pool formulas clean; **7 defects** in AC, CMD, encumbrance, carrying capacity and two rule floors |
 
 ### What the pattern was
 
@@ -996,6 +998,25 @@ pass where checking the roster mattered more than checking the rows.
 **My own scope claim was the last thing to verify.** After twelve passes I told the user everything
 auditable had been audited; the companions had not been, and neither had the class features. Treat
 "what is left?" as a question to answer from the file list, not from memory of what was done.
+
+**A rule the code knows in one place and forgets in another.** Two of the AC defects were not
+ignorance of the rule — the engine applies "you lose your Dexterity *bonus*, not your penalty"
+correctly for blinded and stunned, and then flat-footed AC dropped the modifier outright, so a
+clumsy character's flat-footed AC came out *better* than their real AC. When the same rule is
+expressed twice, check both expressions; the second one is where it is wrong.
+
+**A whitelist of what survives is a bug waiting for new content.** Touch AC listed the two bonus
+types that carry over, which silently dropped every AC *penalty*: a blinded character was exactly as
+hard to touch as an alert one. The published rule is the other shape — "your AC doesn't include any
+armor bonus, shield bonus, or natural armor bonus … all other modifiers apply normally" — so the code
+now excludes three types and keeps whatever else exists. The same shape of find recurs through this
+campaign: a warpriest lost its orisons to a whitelist, and a cavalier's orders were hidden behind
+one.
+
+**Half a rule is the easiest kind to ship.** A medium or heavy load slowed the character, which is
+the visible third of Table: Encumbrance Effects; the max-Dex cap and the check penalty in the same
+two rows were simply absent, as was the "use the worse figure, do not stack" clause that governs
+them. Nothing looked missing, because what *was* there was right.
 
 **The architecture rule is only as good as the sweep that checks it.** "The UI does zero rules
 math" has been a stated invariant since the first design note, and two violations had been sitting in
@@ -1089,6 +1110,17 @@ Each pass added goldens rather than one-off corrections, so these values are now
 - **All three companion advancement tables** cell by cell, plus every creature's size, natural
   armour and ability scores, and the milestone levels that distinguish the animal companion's
   progression from the eidolon's.
+- **Every published row of Table: Carrying Capacity** (Strength 1–29, all three columns),
+  Tremendous Strength above it, Small ×¾, and the three lifting multipliers at a Strength the old
+  table could not reach.
+- **The AC invariants**: an AC penalty reaches touch AC; flat-footed AC never exceeds AC at any
+  Dexterity, with or without a condition; armour and shield stay out of touch AC.
+- **CMD's miscellaneous modifiers**: a dodge bonus adds, an armour bonus does not, an AC penalty
+  does.
+- **Encumbrance in both directions**: a load's cap and penalty when it is the worse figure, and the
+  armour's when *it* is — which is what proves they do not stack.
+- **Both floors**: 1 hit point a level at Constitution 3, and a human's extra skill rank surviving
+  the 1-rank minimum.
 - **The two formulas that were in the view**: the lifting figures against the published multipliers
   (over head ×1, off the ground ×2, drag ×5), and `armorSlowedSpeed` at 30→20 and 20→15, including
   that the resolved speed and the Equipment preview now come from the same helper.
@@ -1120,15 +1152,17 @@ Each pass added goldens rather than one-off corrections, so these values are now
 
 ### Scope note
 
-**The audit campaign is complete — there is no unaudited content left, and the view has been swept
-too.** The files that sat on this
+**The audit campaign is complete — content, generated text, the view, and the engine's own
+arithmetic.** The files that sat on this
 list longest had no published source to diff against, and every one of them turned out to be
 checkable anyway. Authored prose still makes rules claims (four of `playstyle.ts`'s were false). An
 override table can be checked against the rule it overrides (seven of `spell-tactics.ts`'s 223 were
 on the wrong side of it). Generated text can be checked for the properties it must have whatever it
 says — plural agreement, no leaked ids, no private data. **"No source to check against" turned out to
-mean "no line-by-line diff", never "no audit".** What would extend this now is new content, not
-further checking of what is here. The reusable method, the per-source lookup traps and
+mean "no line-by-line diff", never "no audit".** The last pass turned the method on the engine
+itself, where the source to diff against is the rules text rather than a table, and found seven
+defects in the places where a rule is expressed twice, listed as a whitelist, or implemented a third
+of the way. What would extend this now is new content, not further checking of what is here. The reusable method, the per-source lookup traps and
 the scraper pitfalls are recorded in the `content-audit-method` memory note.
 
 ## Phase 1 — Level-1 character creator: **complete**
@@ -1773,6 +1807,26 @@ wrong number gets reported, a misplaced one does not. `sheet.load` now carries `
 using it. The third finding was a fabricated word: the Basics hint pluralised a race name by
 appending an *s*, so a half-elf read **"Half-elfs gain +2 to one ability"**. It now says "A Half-elf
 gains…", which cannot invent a plural for any race added later.
+
+**Engine rules-math audit (2026-09-23). Seven formula defects, and the attack maths was clean.**
+The last unaudited layer was the arithmetic itself: not what the catalogues say, but what `resolve`
+computes from them. Much of it held up under the published rules — iterative attacks appear at BAB
+6/11/16 in −5 steps, Power Attack scales −1/+2 per four points of BAB with the two-handed 1½×, the
+two-weapon penalties match all four rows of their table (and Improved/Greater add off-hand attacks at
+−5 and −10), the BAB/save/bonus-spell/wealth-by-level formulas reproduce their tables, and every class
+resource pool computes its published maximum. Seven things did not hold up.
+**Carrying capacity stopped at Strength 25**, so every score above it silently received the
+Strength-25 allowance — an ordinary place for a high-level character to be; it is now the published
+ten-row cycle with the Tremendous Strength ×4, which works at any score. **Touch AC whitelisted the bonus types that carry
+over**, dropping every AC penalty. **Flat-footed AC dropped the Dexterity modifier outright** rather
+than only the bonus, so a clumsy character's flat-footed AC beat their real AC. **CMD ignored the AC
+bonuses and penalties the rules hand it.** **A medium or heavy load only slowed the character**, with
+neither the max-Dex cap (+3 / +1) nor the check penalty (−3 / −6), and so never had to implement
+"use the worse figure from armour or load, do not stack". **There was no minimum 1 hit point a
+level**, reachable with a rolled or manual Constitution of 3 in a d6 class. **The 1-rank-per-level
+skill floor swallowed a human's extra rank** instead of the rank being added on top of it. And
+**Fly** had neither its Small size modifier nor its class-skill status for a winged race, where
+Stealth's +4 had been there all along. All ten fixes were mutation-tested against the new goldens.
 
 ### Modeling simplifications (fidelity notes)
 - **Per-list spell levels — audited in full.** The per-list level map (`SpellDef.levelByList`, read via
