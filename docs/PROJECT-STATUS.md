@@ -6,14 +6,14 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 
 ## ▶ Resume here (last session end)
 
-**Current state** — branch `main`, working tree clean, **1,169 tests** passing; run
+**Current state** — branch `main`, working tree clean, **1,192 tests** passing; run
 `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
 **Latest — the content, the generated text, the view and now the engine's own arithmetic have all
-been audited against the published rules.** Twenty-two passes, `6729349`..`9e20da2`, covering every
+been audited against the published rules.** Twenty-three passes, `6729349`..`e73ae75`, covering every
 catalogue, every rules table, every piece of authored or generated text, the strings the UI
-assembles, and the formulas the engine computes. Nineteen turned up something to fix and three were
-already clean; the full table and the lessons are in the
+assembles, the formulas the engine computes, and the state the play sheet keeps. Twenty turned up
+something to fix and three were already clean; the full table and the lessons are in the
 **Content audit** section below, with a
 detailed paragraph per catalogue further down under *Content breadth*. The worst find was the
 **magus marked full BAB instead of three-quarters**, which inflated every magus attack, CMB, CMD and
@@ -946,10 +946,11 @@ Everything below is the durable detail. When resuming, read this file, then `doc
 ## ▶ Content audit (2026-09-21 → 2026-09-22)
 
 Every content catalogue and every rules table the engine computes from was checked against the
-published source (d20pfsrd, and Archives of Nethys where d20pfsrd is incomplete). Twenty-two passes,
-commits `6729349`..`9e20da2`. **Nineteen turned up something to fix; three were already correct**
-(races, equipment, magic item pricing). Nothing in `src/content/` is unaudited, and neither is the
-text the engine generates, the strings the UI assembles, or the arithmetic behind either.
+published source (d20pfsrd, and Archives of Nethys where d20pfsrd is incomplete). Twenty-three
+passes, commits `6729349`..`e73ae75`. **Twenty turned up something to fix; three were already
+correct** (races, equipment, magic item pricing). Nothing in `src/content/` is unaudited, and neither
+is the text the engine generates, the strings the UI assembles, the arithmetic behind either, or the
+play state the mat keeps between rolls.
 
 | Pass | Result |
 | --- | --- |
@@ -975,6 +976,7 @@ text the engine generates, the strings the UI assembles, or the arithmetic behin
 | Generated text | export numbers match the sheet; **3 plural/agreement defects** in issue messages |
 | UI strings | **2 rules formulas living in the view** (lifting figures, armour speed) + 1 fabricated plural |
 | Engine rules math | attack, progression and pool formulas clean; **7 defects** in AC, CMD, encumbrance, carrying capacity and two rule floors |
+| Play-sheet state math | actions, pools, slots, timers and dice clean; **5 hit-point defects** (death at max hp, two states in one label, nonlethal inert, healing ignoring it, rest a full heal) + Extend Spell ignored |
 
 ### What the pattern was
 
@@ -998,6 +1000,23 @@ pass where checking the roster mattered more than checking the rows.
 **My own scope claim was the last thing to verify.** After twelve passes I told the user everything
 auditable had been audited; the companions had not been, and neither had the class features. Treat
 "what is left?" as a question to answer from the file list, not from memory of what was done.
+
+**State math is rules math, and it had been left in the view.** The play mat's hit-point block
+computed its own thresholds, and the one it got wrong was the one nobody checks at the table until it
+matters: it called a character dead at −(maximum hit points) rather than at a negative total equal to
+the Constitution score, so a 10th-level fighter was reported alive at −50 when they had died at −14.
+The lesson is the same one the UI-string pass taught, one layer deeper: a number the view derives is
+a rule the engine does not own.
+
+**A field nobody reads is a rule nobody implements.** Nonlethal damage had a labelled input, was
+saved with the character, and drove nothing at all — no staggering, no knockout, no becoming lethal
+at maximum hit points, and no removal by a cure. The tell was that the *only* thing it did was
+display itself.
+
+**A convenience that quietly replaces a rule.** Rest zeroed the damage, which is a generous bug: it
+never looks wrong on screen, and it deletes the decision natural healing exists to force — whether
+the party can press on tomorrow. 1 hit point per level a night is the rule, and "clear all damage"
+is still one click away where it belongs.
 
 **A rule the code knows in one place and forgets in another.** Two of the AC defects were not
 ignorance of the rule — the engine applies "you lose your Dexterity *bonus*, not your penalty"
@@ -1110,6 +1129,9 @@ Each pass added goldens rather than one-off corrections, so these values are now
 - **All three companion advancement tables** cell by cell, plus every creature's size, natural
   armour and ability scores, and the milestone levels that distinguish the animal companion's
   progression from the eidolon's.
+- **Every hit-point threshold**, walked across the whole range from undamaged to well past dead, at
+  more than one Constitution score — plus the nonlethal staggered/unconscious boundaries with and
+  without temporary hit points, the overflow to lethal, and both natural healing rates.
 - **Every published row of Table: Carrying Capacity** (Strength 1–29, all three columns),
   Tremendous Strength above it, Small ×¾, and the three lifting multipliers at a Strength the old
   table could not reach.
@@ -1152,8 +1174,8 @@ Each pass added goldens rather than one-off corrections, so these values are now
 
 ### Scope note
 
-**The audit campaign is complete — content, generated text, the view, and the engine's own
-arithmetic.** The files that sat on this
+**The audit campaign is complete — content, generated text, the view, the engine's own arithmetic,
+and the state the play sheet keeps.** The files that sat on this
 list longest had no published source to diff against, and every one of them turned out to be
 checkable anyway. Authored prose still makes rules claims (four of `playstyle.ts`'s were false). An
 override table can be checked against the rule it overrides (seven of `spell-tactics.ts`'s 223 were
@@ -1826,7 +1848,26 @@ neither the max-Dex cap (+3 / +1) nor the check penalty (−3 / −6), and so ne
 level**, reachable with a rolled or manual Constitution of 3 in a d6 class. **The 1-rank-per-level
 skill floor swallowed a human's extra rank** instead of the rank being added on top of it. And
 **Fly** had neither its Small size modifier nor its class-skill status for a winged race, where
-Stealth's +4 had been there all along. All ten fixes were mutation-tested against the new goldens.
+Stealth's +4 had been there all along. All ten fixes were mutation-tested against the new goldens
+
+**Play-sheet state-math audit (2026-09-23). Five hit-point defects, and a rule tracked but never
+applied.** The mat keeps state between rolls — damage, temporary and nonlethal hit points,
+conditions, timers, pools, slots, charges, the action budget — and most of it was already in the
+engine and already right: the action economy including the move-in-place-of-standard downgrade, the
+pool and charge clamps, the timer clock and its condition links, the metamagic slot levels, the
+natural-20 rules (attacks and saves only, never a skill check) and the concealment percentages, and
+the damage-reduction pipeline. The hit-point block was not, and it was the one piece still living in
+the view. **It called a character dead at −(maximum hit points)** instead of at a negative total
+equal to the Constitution score — off by nearly a factor of four for a high-level fighter — and
+**lumped "dying / disabled" into one label** where the rules have a conscious, acting disabled
+character at exactly 0 and an unconscious dying one below it. **Nonlethal damage was inert**: no
+staggering when it equalled hit points, no knockout when it exceeded them, no becoming lethal once it
+reached the maximum, and no removal when a cure healed damage. **And a night's rest was a full
+heal**, where the rules give 1 hit point per character level (2 for a day and night of bed rest) and
+nonlethal at 1 per hour per level. All of it now lives in `src/engine/vitals.ts` with the rules text
+quoted beside each threshold. One more find alongside: **Extend Spell was tracked per prepared slot
+and ignored by the running-effect timer**, so an extended buff ran the base duration — the same shape
+as the cavalier orders and the `features1` lists, a mechanism whose output nothing consumed..
 
 ### Modeling simplifications (fidelity notes)
 - **Per-list spell levels — audited in full.** The per-list level map (`SpellDef.levelByList`, read via
