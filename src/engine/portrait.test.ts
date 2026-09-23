@@ -6,6 +6,7 @@ import { DEITIES } from '../content/deities';
 import { DEITY_SYMBOL, RACE_LOOK } from '../content/iconography';
 import { RACES } from '../content/races';
 import type { CharacterDoc } from './types';
+import { DESCRIPTION_KEY } from './description';
 
 const facts = (d: CharacterDoc) => characterFacts(d, resolve(d));
 const portrait = (d: CharacterDoc, f?: PortraitFormat) => characterPortrait(d, resolve(d), f);
@@ -332,4 +333,130 @@ describe('the text never leaks a template hole', () => {
       expect(facts(doc)).not.toMatch(/^[A-Za-z][A-Za-z ]*:\s*$/m);
     });
   }
+});
+
+describe("generated text: the player's own name never leaves the sheet", () => {
+  // The export is meant to be pasted into somebody else's assistant. The character's details are
+  // the point; the player's real name is not, and `player` is marked privateToSheet for that
+  // reason. Nothing enforced it before, and a second export path would not have been noticed.
+  const withPlayer = (): CharacterDoc => {
+    let d = newCharacter('t-priv', 'Seelah');
+    d = withDecision(d, 'ability-base', { str: 16, dex: 12, con: 14, int: 10, wis: 12, cha: 14 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['str']);
+    d = withDecision(d, 'alignment', 'LG');
+    d = withDecision(d, 'class', 'paladin');
+    return withDecision(d, DESCRIPTION_KEY, {
+      gender: 'woman', pronouns: 'she/her', age: '27', height: "6'1\"", weight: '190 lb',
+      hair: 'black', eyes: 'amber', homeland: 'Lastwall', player: 'Jane Q. Private',
+    });
+  };
+
+  it('keeps it out of every export format', () => {
+    const doc = withPlayer();
+    const res = resolve(doc);
+    for (const format of ['prompt', 'data', 'image'] as const)
+      expect(characterPortrait(doc, res, format), format).not.toContain('Jane Q. Private');
+    expect(characterFacts(doc, res)).not.toContain('Jane Q. Private');
+  });
+
+  it('still carries the details that are the character', () => {
+    // The privacy filter must not take the description with it.
+    const facts = characterFacts(withPlayer(), resolve(withPlayer()));
+    expect(facts).toContain('she/her');
+    expect(facts).toContain('Lastwall');
+  });
+});
+
+describe('generated text: counts agree with their nouns', () => {
+  // Every issue that states a count has to read correctly at one and at many. Rather than
+  // constructing each message, sweep a spread of half-finished builds and check the invariant on
+  // whatever they produce: no "1 things", and no "3 thing".
+  const SINGULARS = ['rank', 'point', 'trait', 'spell', 'decision', 'feat', 'item', 'level'];
+
+  const messages = (): string[] => {
+    const out: string[] = [];
+    const base = (id: string) => {
+      let d = newCharacter(id);
+      d = withDecision(d, 'ability-base', { str: 10, dex: 10, con: 10, int: 14, wis: 10, cha: 10 });
+      return d;
+    };
+    // A sweep of shapes: nothing chosen, a caster mid-selection, an over-spent skill sheet, a
+    // wizard whose spellbook no longer fits, and a trait list that is too long.
+    const docs: CharacterDoc[] = [];
+    docs.push(base('t-p1'));
+    for (const cls of ['wizard', 'cleric', 'fighter', 'barbarian', 'summoner']) {
+      let d = withDecision(base(`t-p-${cls}`), 'race', 'human');
+      d = withDecision(d, 'floating-bonus', ['int']);
+      d = withDecision(d, 'class', cls);
+      docs.push(d, { ...d, level: 5 });
+      docs.push(withDecision(d, 'skill-ranks', { spellcraft: 1 }));
+      docs.push(withDecision(d, 'traits', ['fates-favored']));
+      docs.push(withDecision(d, 'spell-picks', { 1: ['magic-missile'] }));
+    }
+    // Over-full and over-spent shapes, so the messages that scold a count are actually produced —
+    // without these the checks below pass by never seeing them.
+    let book = withDecision(base('t-p-book'), 'race', 'human');
+    book = withDecision(book, 'class', 'wizard');
+    docs.push(withDecision(book, 'spell-picks',
+      ['magic-missile', 'mage-armor', 'shield', 'burning-hands', 'grease', 'identify', 'sleep', 'charm-person']));
+    let ranks = withDecision(base('t-p-ranks'), 'race', 'human');
+    ranks = withDecision(ranks, 'class', 'rogue');
+    docs.push(withDecision(ranks, 'skill-ranks', { stealth: 4, acrobatics: 3 }));
+    let extra = withDecision(base('t-p-traits'), 'race', 'human');
+    extra = withDecision(extra, 'class', 'fighter');
+    docs.push(withDecision(extra, 'traits', ['fates-favored', 'reactionary', 'magical-lineage', 'bruising-intellect']));
+    for (const d of docs) for (const i of resolve(d).issues) out.push(i.message);
+    return out;
+  };
+
+  it('produces the messages these checks are about', () => {
+    // A guard on the guards: if the sweep stops triggering them, the checks below go quiet.
+    const all = messages().join(' | ');
+    expect(all, 'no spellbook complaint').toMatch(/Spellbook: \d+ spells exceed/);
+    expect(all, 'no rank complaint').toMatch(/ranks exceed the max/);
+    expect(all, 'no unspent-rank count').toMatch(/skill ranks? (unspent|over)/);
+  });
+
+  it('never writes a plural noun after a count of one', () => {
+    const bad = messages().filter((m) => SINGULARS.some((w) => new RegExp(`\\b1 ${w}s\\b`).test(m)));
+    expect([...new Set(bad)], bad.join(' | ')).toEqual([]);
+  });
+
+  it('never writes a singular noun after a count above one', () => {
+    // The lookahead also rules out a hyphenated compound: "15 point-buy points" is not "15 point".
+    const bad = messages().filter((m) => SINGULARS.some((w) => new RegExp(`\\b(?!1\\b)\\d+ ${w}(?![\\w-])`).test(m)));
+    expect([...new Set(bad)], bad.join(' | ')).toEqual([]);
+  });
+
+  it('never punts on the plural with "(s)"', () => {
+    // One message used to read "Choose 2 more 1st-level spell(s)".
+    const lazy = messages().filter((m) => m.includes('(s)'));
+    expect([...new Set(lazy)], lazy.join(' | ')).toEqual([]);
+  });
+
+  it('agrees the verb with a plural subject', () => {
+    // "2 ranks exceeds the max" — the subject is plural, so the verb must be too.
+    const bad = messages().filter((m) => /\b(ranks|spells|points|traits|feats|items) exceeds\b/.test(m));
+    expect([...new Set(bad)], bad.join(' | ')).toEqual([]);
+  });
+});
+
+describe('generated text: nothing leaks an internal id', () => {
+  it('names skills, feats and spells rather than printing their ids', () => {
+    let d = newCharacter('t-ids', 'Ezren');
+    d = withDecision(d, 'ability-base', { str: 8, dex: 14, con: 12, int: 17, wis: 12, cha: 10 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'floating-bonus', ['int']);
+    d = withDecision(d, 'class', 'wizard');
+    d = withDecision(d, 'skill-ranks', { 'know-arcana': 3, 'know-religion': 2, spellcraft: 3 });
+    d = withDecision(d, 'spell-picks', { 1: ['magic-missile', 'mage-armor'] });
+    const facts = characterFacts({ ...d, level: 3 }, resolve({ ...d, level: 3 }));
+    // A lookup that misses falls back to the raw id, which is how a kebab-case token would appear.
+    const kebab = [...facts.matchAll(/(?<![\w"'(/-])[a-z]+(?:-[a-z]+){1,3}(?![\w-])/g)]
+      .map((m) => m[0])
+      .filter((w) => !['half-orc', 'half-elf', 'sword-and-board', 'two-handed', 'one-handed',
+        'two-weapon', 'well-versed', 'she-her', 'they-them', 'non-combat'].includes(w));
+    expect(kebab, kebab.join(', ')).toEqual([]);
+  });
 });

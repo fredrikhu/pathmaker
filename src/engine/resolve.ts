@@ -2139,7 +2139,7 @@ function buildSlotsAndIssues(
     if (ranksLeft > 0) issues.push({ severity: 'warning', step: 'skills', slot: 'skill-ranks', message: `${ranksLeft} skill rank${ranksLeft === 1 ? '' : 's'} unspent` });
     if (ranksLeft < 0) issues.push({ severity: 'error', step: 'skills', slot: 'skill-ranks', message: `${-ranksLeft} skill rank${ranksLeft === -1 ? '' : 's'} over budget` });
     for (const [sid, r] of Object.entries(dec.skillRanks)) {
-      if (r > ctx.level) issues.push({ severity: 'error', step: 'skills', slot: `skill:${sid}`, message: `${displayName(sid)}: ${r} ranks exceeds the max of ${ctx.level} (character level)` });
+      if (r > ctx.level) issues.push({ severity: 'error', step: 'skills', slot: `skill:${sid}`, message: `${displayName(sid)}: ${r} ranks exceed the max of ${ctx.level} (character level)` });
     }
   }
 
@@ -2263,7 +2263,7 @@ function buildSlotsAndIssues(
           count: cnt, multi: true, selected: sel, options: spellsAt(L).map(optFor),
         });
         if (sel.length < cnt)
-          issues.push({ severity: 'info', step: 'spells', slot: `spell-picks-L${L}`, message: `Choose ${cnt - sel.length} more ${spellLevelLabel(L).toLowerCase()} spell(s)` });
+          issues.push({ severity: 'info', step: 'spells', slot: `spell-picks-L${L}`, message: `Choose ${cnt - sel.length} more ${spellLevelLabel(L).toLowerCase()} spell${cnt - sel.length === 1 ? '' : 's'}` });
       }
     } else if (sc.kind === 'prepared-book') {
       // Spellbook: cantrips are all known; 1st..M are a free-distribution book with a total budget
@@ -2281,7 +2281,7 @@ function buildSlotsAndIssues(
       }
       const budget = 3 + Math.max(0, ctx.mods.int) + 2 * Math.max(0, ctx.level - 1);
       if (totalPicked > budget)
-        issues.push({ severity: 'error', step: 'spells', slot: 'spell-picks-L1', message: `Spellbook: ${totalPicked} spells exceeds your ${budget} — remove ${totalPicked - budget}` });
+        issues.push({ severity: 'error', step: 'spells', slot: 'spell-picks-L1', message: `Spellbook: ${totalPicked} spells exceed your ${budget} — remove ${totalPicked - budget}` });
       else if (totalPicked < budget)
         issues.push({ severity: 'info', step: 'spells', slot: 'spell-picks-L1', message: `Spellbook: ${totalPicked}/${budget} spells — add ${budget - totalPicked} more (any accessible level)` });
       for (const [L, ids] of Object.entries(dec.spellPicks)) for (const pid of ids) {

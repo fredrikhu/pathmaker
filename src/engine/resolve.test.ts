@@ -424,7 +424,7 @@ describe('Dual Talent and the over-selection bug class', () => {
     d = withDecision(d, 'race', 'human'); // no Int bonus → Int 15 → mod +2 → book of 5
     d = withDecision(d, 'floating-bonus', []); // don't re-add Int
     const r = resolve(d);
-    expect(r.issues.some((i) => i.severity === 'error' && /exceeds your 5/.test(i.message))).toBe(true);
+    expect(r.issues.some((i) => i.severity === 'error' && /exceed your 5/.test(i.message))).toBe(true);
   });
 });
 
