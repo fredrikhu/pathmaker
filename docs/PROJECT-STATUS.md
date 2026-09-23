@@ -6,11 +6,11 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 
 ## ▶ Resume here (last session end)
 
-**Current state** — branch `main`, working tree clean, **1,137 tests** passing; run
+**Current state** — branch `main`, working tree clean, **1,141 tests** passing; run
 `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
 **Latest — every catalogue and rules table has been audited against the published sources.**
-Eighteen passes, `6729349`..`798e912`. Fifteen turned up something to fix and three were
+Nineteen passes, `6729349`..`09749ed`. Sixteen turned up something to fix and three were
 already clean; the full table and the lessons are in the **Content audit** section below, with a
 detailed paragraph per catalogue further down under *Content breadth*. The worst find was the
 **magus marked full BAB instead of three-quarters**, which inflated every magus attack, CMB, CMD and
@@ -943,9 +943,9 @@ Everything below is the durable detail. When resuming, read this file, then `doc
 ## ▶ Content audit (2026-09-21 → 2026-09-22)
 
 Every content catalogue and every rules table the engine computes from was checked against the
-published source (d20pfsrd, and Archives of Nethys where d20pfsrd is incomplete). Eighteen passes,
-commits `6729349`..`798e912`. **Fifteen turned up something to fix; three were already correct**
-(races, equipment, magic item pricing).
+published source (d20pfsrd, and Archives of Nethys where d20pfsrd is incomplete). Nineteen passes,
+commits `6729349`..`09749ed`. **Sixteen turned up something to fix; three were already correct**
+(races, equipment, magic item pricing). **Nothing in `src/content/` is now unaudited.**
 
 | Pass | Result |
 | --- | --- |
@@ -967,6 +967,7 @@ commits `6729349`..`798e912`. **Fifteen turned up something to fix; three were a
 | Source features | 241 abilities + 184 bonus spells; **2 cavalier order bugs**, 1 invented aspect name, 1 dropped qualifier |
 | `features1` fallback | **drifted in 26 of 31 classes and was on screen**; deleted, and the warpriest gained its orisons |
 | Playstyle prose | **4 false rules claims** in authored advice, two contradicting our own data |
+| Spell tactics | 223 overrides, all real and all load-bearing; **7 mis-roled**, incl. 4 death spells called blasts |
 
 ### What the pattern was
 
@@ -990,6 +991,13 @@ pass where checking the roster mattered more than checking the rows.
 **My own scope claim was the last thing to verify.** After twelve passes I told the user everything
 auditable had been audited; the companions had not been, and neither had the class features. Treat
 "what is left?" as a question to answer from the file list, not from memory of what was done.
+
+**When a correction table agrees with the thing it corrects, delete the row.** `spell-tactics.ts`
+exists to override a structural classifier where school misleads it, and it promises to list only
+the cases the rules get wrong. Fixing seven mis-roled spells turned every one of them into an
+override that agreed with the fallback — so the fix was to remove them, not to re-role them. A
+correction that corrects nothing is worse than absent: it hides the fact that the general rule
+already handles that case.
 
 **Prose with no source is still checkable.** `playstyle.ts` is authored opinion — there is no book
 to diff it against, which is why it sat on the "unauditable" list for seventeen passes. But advice
@@ -1056,6 +1064,9 @@ Each pass added goldens rather than one-off corrections, so these values are now
 - **All three companion advancement tables** cell by cell, plus every creature's size, natural
   armour and ability scores, and the milestone levels that distinguish the animal companion's
   progression from the eidolon's.
+- **Every spell-role override**: the id must exist, the override may not agree with the structural
+  rule it exists to correct, and no all-or-nothing death effect may be classed as a blast — the
+  blaster advice promises half damage on a successful save, which those spells do not give.
 - **The playstyle prose's rules vocabulary**: only real action types may be named, and no class may
   call a save weak that it is actually good at. Both checks would have caught a bug in this pass.
 - **One list of features per class**: `features` equals its progression exactly, every class has
@@ -1077,11 +1088,12 @@ Each pass added goldens rather than one-off corrections, so these values are now
 
 ### Scope note
 
-What remains unaudited is the authored prose in `spell-tactics.ts` and the descriptive text the app
-writes itself. Everything with a book value behind it has been verified — and `playstyle.ts`, which
-sat on this list for seventeen passes because it has no published source, turned out to be
-checkable after all: prose with no source still makes rules claims, and four of its claims were
-false. The reusable method, the per-source lookup traps and
+**Nothing in `src/content/` is unaudited any more.** The two files that sat on this list longest —
+`playstyle.ts` and `spell-tactics.ts` — have no published source to diff against, and both turned
+out to be checkable anyway: authored prose still makes rules claims (four of playstyle's were false),
+and an override table can be checked against the rule it overrides (seven of spell-tactics' 223 were
+on the wrong side of it). What is left is the descriptive text the app generates itself, which is
+tested where it is mechanical. The reusable method, the per-source lookup traps and
 the scraper pitfalls are recorded in the `content-audit-method` memory note.
 
 ## Phase 1 — Level-1 character creator: **complete**
@@ -1686,6 +1698,21 @@ resistance disproves. Everything else held up: all 19 pool paragraphs match a po
 no tag's prose is unreachable (`light`, `weak-ref` and `weak-fort` are produced by the armour category
 and a template literal, so a literal-based scan flags them falsely), nothing refers to content renamed
 this week, and the mechanical claims in the other 29 class entries are sound.
+
+**Spell tactics audit (2026-09-23). 223 overrides, all real; seven spells on the wrong side of the
+line.** `content/spell-tactics.ts` corrects `spellLean` where a spell's school misleads it. Two of
+its three checkable properties were already perfect: **every one of the 223 override ids exists** in
+the 642-spell catalogue, and **not one override is redundant** — each really does change the
+classification, exactly as the file's header claims. The judgements were nearly all sound too. The
+exception was a cluster of seven, and the reason is the advice attached: the brief's blaster
+paragraph promises that "a successful save usually still leaves half of it". **Circle of death,
+undeath to death, wail of the banshee and symbol of death** all say *negates* — a successful save
+leaves nothing, so they behave like control and want the controller's advice, "aim at the save you
+can guess". **Shadow conjuration, its greater version and shades** were blasts although they mimic
+conjurations, which this taxonomy calls control; only the two that copy an evocation are blasts. All
+seven were **deleted rather than re-roled**, because Illusion and Necromancy already fall back to
+control. The ones that keep a damage floor on a save — harm, finger of death, destruction, slay
+living, energy drain, the mass inflicts — stay blasts.
 
 ### Modeling simplifications (fidelity notes)
 - **Per-list spell levels — audited in full.** The per-list level map (`SpellDef.levelByList`, read via
