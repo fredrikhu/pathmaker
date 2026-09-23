@@ -6,11 +6,11 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 
 ## ▶ Resume here (last session end)
 
-**Current state** — branch `main`, working tree clean, **1,118 tests** passing; run
+**Current state** — branch `main`, working tree clean, **1,121 tests** passing; run
 `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
 **Latest — every catalogue and rules table has been audited against the published sources.**
-Fourteen passes, `6729349`..`b131d9e`. Eleven turned up something to fix and three were
+Fifteen passes, `6729349`..`46f216f`. Twelve turned up something to fix and three were
 already clean; the full table and the lessons are in the **Content audit** section below, with a
 detailed paragraph per catalogue further down under *Content breadth*. The worst find was the
 **magus marked full BAB instead of three-quarters**, which inflated every magus attack, CMB, CMD and
@@ -943,8 +943,8 @@ Everything below is the durable detail. When resuming, read this file, then `doc
 ## ▶ Content audit (2026-09-21 → 2026-09-22)
 
 Every content catalogue and every rules table the engine computes from was checked against the
-published source (d20pfsrd, and Archives of Nethys where d20pfsrd is incomplete). Fourteen passes,
-commits `6729349`..`b131d9e`. **Eleven turned up something to fix; three were already correct**
+published source (d20pfsrd, and Archives of Nethys where d20pfsrd is incomplete). Fifteen passes,
+commits `6729349`..`46f216f`. **Twelve turned up something to fix; three were already correct**
 (races, equipment, magic item pricing).
 
 | Pass | Result |
@@ -963,6 +963,7 @@ commits `6729349`..`b131d9e`. **Eleven turned up something to fix; three were al
 | Skills / conditions / metamagic | skills and metamagic clean; **`panicked` wrong in both directions** |
 | Companions | all 60 table rows clean; **3 animal companions wrong** (octopus, saber-toothed cat, giant scorpion) |
 | Class features | 25 of 31 classes clean; **hunter missing 5 features**, skald 3, shifter 2, plus an invented deed |
+| Archetype swaps | **17 wrong or missing trades** across 125 archetypes, including one that doubled a barbarian's DR |
 
 ### What the pattern was
 
@@ -987,6 +988,19 @@ pass where checking the roster mattered more than checking the rows.
 auditable had been audited; the companions had not been, and neither had the class features. Treat
 "what is left?" as a question to answer from the file list, not from memory of what was done.
 
+**A summary is not a source.** Archives of Nethys prints a "Replaced Features" column beside every
+archetype, which looks like exactly the data this pass needs. It is wrong in both directions — it
+omits the Kensai's greater spell access and the Beast Rider's armour, and invents a sneak-attack
+swap for the Knife Master and an aura of righteousness for the Divine Hunter. Every finding here had
+to be confirmed against the archetype's own "This ability replaces X" sentence. **Where a site
+offers a digest and the full text, audit against the text.**
+
+**Fixing one catalogue can break another.** Four of the seventeen findings existed only because the
+class-feature pass the day before had *added* features — the skald's song of the fallen, the
+shifter's greater chimeric aspect, the hunter's companion-linked abilities. Nothing removed them, so
+archetypes that should trade them away silently kept them. **After adding a class feature, grep the
+archetypes for what should now be giving it up.**
+
 **A gap is quieter than an error, and needs a different check.** Every earlier pass compared values
 we held against values the book prints. The class-feature pass found almost nothing wrong with what
 we held — it found eleven features we had never written down, which no value-for-value diff can
@@ -1007,6 +1021,10 @@ Each pass added goldens rather than one-off corrections, so these values are now
 - **All three companion advancement tables** cell by cell, plus every creature's size, natural
   armour and ability scores, and the milestone levels that distinguish the animal companion's
   progression from the eidolon's.
+- **Every archetype's swaps, in both directions**: a "Replaces X" claim must name something the
+  archetype actually removes, and every feature in `replaces` must have a grant saying what stands
+  in its place. The two directions catch different bugs — the first a feature that survives when it
+  should not, the second a feature that vanishes with nothing explaining why.
 - **All 31 published class tables**, as the Special column verbatim, checked so that every ability
   appears at the level it is first published at and every repeated pick falls on exactly the
   published levels. Where our data compresses a published line, a `FOLDED` map names the feature it
@@ -1558,6 +1576,24 @@ is unusable here, because our data deliberately holds a scaling ability as one e
 description names the later steps. The comparison that works comes in three parts — first
 appearance, repeated-pick levels, and what the description claims — and the residue after those
 three is exactly the set of deliberate compressions, which the golden now names one by one.
+
+**Archetype swap audit (2026-09-23). Seventeen wrong or missing trades across 125 archetypes.**
+The earlier archetype pass checked that every `replaces` id *resolved*; this one checked that the
+ids are the *right* ones, against each archetype's own published text. Most were right. The
+dangerous shape was a feature an archetype should take away and did not: the **Skirmisher** kept a
+Spellcasting line with no spells behind it, the **Warrior of the Holy Light** kept aura of faith
+(and was missing the ability that pays for it), the **Divine Hunter** kept the standard divine bond
+and its 6th-level mercy, the **Arcane Duelist** kept jack of all trades, the **Abolisher** kept
+discern lies, the **Storm Druid** kept resist nature's lure, the **Gravewalker** kept the familiar
+the spell poppet replaces, the **Exemplar** kept brawler's strike, the **Unsworn Shaman** kept the
+wandering hex, and the **Bounty Hunter** kept medium armour. The **Forester** and **Feral Hunter**,
+which have no animal companion at all, kept every feature the companion carries — and the Forester
+was missing five of its nine published abilities besides. One finding was a real number: the
+**Invulnerable Rager** was receiving the standard barbarian damage reduction *on top of*
+Invulnerability, because only the feature line was replaced and not the DR itself; it is now half
+level from 2nd, as published. One went the other way — the **Sniper** was removing a 2nd-level
+slayer talent the published archetype never touches. Two existing tests asserted the Sniper and
+Forester bugs and were corrected with them.
 
 ### Modeling simplifications (fidelity notes)
 - **Per-list spell levels — audited in full.** The per-list level map (`SpellDef.levelByList`, read via
