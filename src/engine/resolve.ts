@@ -1,6 +1,6 @@
 import * as C from '../content/index';
 import type {
-  Ability, Alignment, CharacterDoc, ChoiceSlot, Effect, Issue, Resolution,
+  Ability, Alignment, BonusType, CharacterDoc, ChoiceSlot, Effect, Issue, Resolution,
   Sheet, SlotOption, Stat,
 } from './types';
 import { armorSlowedSpeed } from './types';
@@ -19,6 +19,20 @@ import {
   casterLevel, spellSlotsPerDay, spellsKnownPerLevel, startingWealth, sumBab, sumSave, spellsPreparedPerLevel, type SpellTable,
 } from './progression';
 import { powerAttackAmounts, strengthDamage, weaponDamageForSize, twoWeaponPenalties, offHandAttackBonuses, naturalAttackDamageDie, naturalStrMultiplier, naturalAttackPenalty, naturalPowerAttackScale, type PowerAttackScale, type NaturalAttackContext } from './combat';
+
+/** The AC bonus types that also count towards CMD: "a creature can also add any circumstance,
+ *  deflection, dodge, insight, luck, morale, profane, and sacred bonuses to AC to its CMD" (profane
+ *  is not a bonus type this model uses). Armour, shield and natural armour do not carry over, and
+ *  neither does anything outside the published list. Penalties are handled separately — "any
+ *  penalties to a creature's AC also apply to its CMD" — so they are not listed here. */
+const CMD_AC_TYPES: ReadonlySet<BonusType> = new Set([
+  'circumstance', 'deflection', 'dodge', 'insight', 'luck', 'morale', 'sacred',
+]);
+
+/** The bonus types a touch attack ignores: the armour, shield and natural-armour bonuses, plus the
+ *  enhancement bonus that improves an armour or shield (the only source of an enhancement bonus to
+ *  AC). Everything else — dodge, deflection, size, Dexterity, and every penalty — still counts. */
+export const TOUCH_AC_EXCLUDED: ReadonlySet<BonusType> = new Set(['armor', 'shield', 'natural-armor', 'enhancement']);
 
 const POINT_BUY_COST: Record<number, number> = {
   7: -4, 8: -2, 9: -1, 10: 0, 11: 1, 12: 2, 13: 3, 14: 5, 15: 7, 16: 10, 17: 13, 18: 17,
@@ -728,7 +742,18 @@ export function propertyPrice(id: string): PropertyPrice {
   return { equivalent: 0, flat: 0 };
 }
 
-function armorCheckPenalty(doc: CharacterDoc): { total: number; sources: string[] } {
+/** Table: Encumbrance Effects — what a medium or heavy load does to a character beyond slowing
+ *  them. A load caps Dexterity to AC and carries a check penalty exactly as armour does. Armour and
+ *  load never stack: "if your character is wearing armor, use the worse figure (from armor or from
+ *  load) for each category. Do not stack the penalties." Carrying more than a heavy load is off the
+ *  table, so it is treated as heavy rather than as nothing. */
+const LOAD_LIMITS: Record<string, { maxDex: number; acp: number }> = {
+  Medium: { maxDex: 3, acp: -3 },
+  Heavy: { maxDex: 1, acp: -6 },
+  Overloaded: { maxDex: 1, acp: -6 },
+};
+
+function armorCheckPenalty(doc: CharacterDoc, loadLabel: string): { total: number; sources: string[] } {
   let total = 0;
   const sources: string[] = [];
   const quality = itemQuality(doc);
@@ -739,12 +764,22 @@ function armorCheckPenalty(doc: CharacterDoc): { total: number; sources: string[
     const reduced = Math.min(0, a.acp + armorCheckPenaltyReduction(quality[slot!]));
     if (reduced < 0) { total += reduced; sources.push(a.name); }
   }
+  // The load's own check penalty replaces the armour's when it is the worse of the two; it never
+  // adds to it. (Armour and shield penalties do add — they are both "from armor".)
+  const fromLoad = LOAD_LIMITS[loadLabel]?.acp ?? 0;
+  if (fromLoad < total) return { total: fromLoad, sources: [`${loadLabel.toLowerCase()} load`] };
   return { total, sources };
 }
 
-function maxDexBonus(doc: CharacterDoc): number | null {
+/** The cap on Dexterity to AC: the lower of the armour's maximum and the load's, or null when
+ *  neither caps it. */
+function maxDexBonus(doc: CharacterDoc, loadLabel: string): number | null {
   const a = doc.equipped.armor ? C.armorById.get(doc.equipped.armor) : null;
-  return a && a.maxDex !== null ? a.maxDex : null;
+  const fromArmor = a && a.maxDex !== null ? a.maxDex : null;
+  const fromLoad = LOAD_LIMITS[loadLabel]?.maxDex ?? null;
+  if (fromArmor === null) return fromLoad;
+  if (fromLoad === null) return fromArmor;
+  return Math.min(fromArmor, fromLoad);
 }
 
 // ---------- Multiclass: which class was taken at each character level ----------
@@ -1019,19 +1054,46 @@ export function resolve(doc: CharacterDoc): Resolution {
   }
   const hpLevels = klass ? level : 1;
   hpContribs.push({ type: 'base', value: mods.con * hpLevels, note: hpLevels > 1 ? `Con modifier × ${hpLevels}` : 'Con modifier' });
+  // "A character always gains at least 1 hit point per level", whatever their Constitution. A d6
+  // class with a −4 Constitution modifier gains 1 a level, not 0 — reachable with rolled or manually
+  // entered scores, which go down to 3. The floor is its own line rather than folded into the die
+  // total, so the breakdown still reads as hit die + Constitution for everyone it does not bite.
+  if (firstClass) {
+    let floored = 0;
+    let raw = 0;
+    for (let l = 1; l <= level; l++) {
+      const kl = classAt(l);
+      if (!kl) continue;
+      const die = dec.hpRolls[l] ?? (l === 1 ? kl.hitDie : fixedHpPerLevel(kl.hitDie));
+      raw += die + mods.con;
+      floored += Math.max(1, die + mods.con);
+    }
+    const lift = floored - raw;
+    if (lift > 0) hpContribs.push({ type: 'base', value: lift, note: 'Minimum 1 hp per level' });
+  }
   if (fcbHpCount) hpContribs.push({ type: 'base', value: fcbHpCount, note: `Favored class bonus${fcbHpCount > 1 ? ` × ${fcbHpCount}` : ''}` });
   hpContribs.push(...unconds('hp:max'));
   stats['hp:max'] = makeStat('hp:max', 'Hit Points', hpContribs);
+
+  // ---- Inventory & encumbrance ----
+  // Load comes from what is still carried, so consuming items in play lightens the character. It is
+  // resolved here, before AC and the skills, because a medium or heavy load caps Dexterity to AC and
+  // carries a check penalty just as armour does.
+  const carry = carryingCapacity(abilities.str, size);
+  const inventory = buildInventory(doc);
+  const load = Math.round(inventory.reduce((n, it) => n + it.weight, 0) * 100) / 100;
+  const loadLabel = load <= carry.light ? 'Light' : load <= carry.medium ? 'Medium' : load <= carry.heavy ? 'Heavy' : 'Overloaded';
 
   // AC. Some play-sheet conditions (flat-footed, blinded, stunned, paralyzed…) make you lose your
   // Dexterity bonus to AC — you keep a Dex penalty but not a positive bonus.
   const loseDexToAc = (doc.play?.conditions ?? []).some((cid) => C.conditionById.get(cid)?.loseDexToAc);
   const dexToAc = (() => {
-    const cap = maxDexBonus(doc);
+    const cap = maxDexBonus(doc, loadLabel);
     const capped = cap === null ? mods.dex : Math.min(mods.dex, cap);
     return loseDexToAc ? Math.min(0, capped) : capped;
   })();
-  const dexNote = loseDexToAc && mods.dex > 0 ? 'Dex modifier (lost)' : 'Dex modifier' + (dexToAc !== mods.dex ? ' (capped by armor)' : '');
+  const capSource = LOAD_LIMITS[loadLabel] && maxDexBonus(doc, loadLabel) === LOAD_LIMITS[loadLabel].maxDex ? 'load' : 'armor';
+  const dexNote = loseDexToAc && mods.dex > 0 ? 'Dex modifier (lost)' : 'Dex modifier' + (dexToAc !== mods.dex ? ` (capped by ${capSource})` : '');
   const acContribs: Contribution[] = [
     { type: 'base', value: 10, note: 'Base' },
     ...unconds('ac'),
@@ -1039,16 +1101,24 @@ export function resolve(doc: CharacterDoc): Resolution {
     { type: 'size', value: sizeAcAtk, note: 'Size' },
   ];
   stats['ac'] = makeStat('ac', 'Armor Class', acContribs, conds('ac'));
-  // Touch = no armor/shield/natural
+  // Touch AC drops the armour, shield and natural-armour bonuses — and nothing else. Every other
+  // kind of bonus *and every penalty* still applies, so this excludes those three types rather than
+  // listing the ones that survive: a whitelist silently dropped condition penalties (a blinded
+  // character's −2) and would drop any bonus type added later. An armour or shield enhancement is
+  // part of the armour bonus it improves, which is why 'enhancement' is excluded too — nothing else
+  // grants an enhancement bonus to AC.
   stats['ac:touch'] = makeStat('ac:touch', 'Touch AC', [
     { type: 'base', value: 10, note: 'Base' },
     { type: 'base', value: dexToAc, note: dexNote },
     { type: 'size', value: sizeAcAtk, note: 'Size' },
-    ...unconds('ac').filter((c) => c.type === 'dodge' || c.type === 'deflection'),
+    ...unconds('ac').filter((c) => !TOUCH_AC_EXCLUDED.has(c.type)),
   ]);
-  // Flat-footed = no Dex, no dodge
+  // Flat-footed AC loses the Dexterity *bonus* and any dodge bonus. A Dexterity penalty is not a
+  // bonus and is still paid — dropping the modifier outright made a clumsy character's flat-footed
+  // AC one point better than their real AC, which no condition can do.
   stats['ac:ff'] = makeStat('ac:ff', 'Flat-footed AC', [
     { type: 'base', value: 10, note: 'Base' },
+    ...(dexToAc < 0 ? [{ type: 'base' as const, value: dexToAc, note: 'Dex modifier' }] : []),
     ...unconds('ac').filter((c) => c.type !== 'dodge'),
     { type: 'size', value: sizeAcAtk, note: 'Size' },
   ]);
@@ -1096,6 +1166,9 @@ export function resolve(doc: CharacterDoc): Resolution {
     { type: 'base', value: mods.str, note: 'Str modifier' },
     { type: 'base', value: cmdDex, note: loseDexToAc && mods.dex > 0 ? 'Dex modifier (lost)' : 'Dex modifier' },
     { type: 'size', value: cmbSize, note: 'Size' },
+    // The listed AC bonuses carry over to CMD, and every AC penalty does. A ring of protection and
+    // the Dodge feat defend against a trip attempt; being blinded makes one easier.
+    ...unconds('ac').filter((c) => CMD_AC_TYPES.has(c.type) || c.type === 'penalty'),
     ...unconds('cmd'),
   ], conds('cmd'));
 
@@ -1120,9 +1193,12 @@ export function resolve(doc: CharacterDoc): Resolution {
   ], conds('damage:weapon'));
 
   // ---- Skills ----
-  const acp = armorCheckPenalty(doc);
+  const acp = armorCheckPenalty(doc, loadLabel);
   // Class skills are the union across every class the character has levels in.
   const classSkillSet = new Set<string>(classes.flatMap((c) => c.klass.classSkills));
+  // "Creatures with a fly speed treat the Fly skill as a class skill" — a property of having wings,
+  // not of the class, so no class list carries it.
+  if (race?.speeds?.fly) classSkillSet.add('fly');
   // Bloodline / trait class-skill grants. The bloodline's class skill belongs to the *native*
   // bloodline classes (sorcerer, bloodrager) — an archetype that merely borrows the bloodline's
   // powers does not confer it (RAW: the Blood Arcanist gains no class skill from its bloodline).
@@ -1151,7 +1227,11 @@ export function resolve(doc: CharacterDoc): Resolution {
       const kl = classAt(l);
       if (!kl) continue;
       const intAtL = abilityMod(finalAbilities(dec, l).int);
-      total += Math.max(1, kl.skillRanks + intAtL + racialSkillPerLevel);
+      // The "at least 1 rank per level" floor applies to the class-plus-Intelligence figure; a
+      // racial extra rank (human's Skilled) is an *additional* rank on top of whatever that comes
+      // to, so it is added after the floor. Inside it, a low-Intelligence human lost their racial
+      // rank to the minimum they would have had anyway.
+      total += Math.max(1, kl.skillRanks + intAtL) + racialSkillPerLevel;
     }
     return total + fcbSkillCount;
   })();
@@ -1186,6 +1266,9 @@ export function resolve(doc: CharacterDoc): Resolution {
     if (isClass && ranks > 0) contribs.push({ type: 'base', value: 3, note: 'Class skill' });
     if (sk.acp && acp.total < 0) contribs.push({ type: 'penalty', value: acp.total, note: `Armor check penalty (${acp.sources.join(', ')})` });
     if (sk.id === 'stealth' && size === 'small') contribs.push({ type: 'size', value: 4, note: 'Size (Small)' });
+    // Fly is the other size-modified skill (Small +2, per the skill's own Modifiers table). Stealth
+    // had its size line and Fly did not, which is the sort of gap one-of-a-pair invites.
+    if (sk.id === 'fly' && size === 'small') contribs.push({ type: 'size', value: 2, note: 'Size (Small)' });
     // Intimidating Prowess adds the Strength modifier to Intimidate on top of Charisma — an ability
     // *modifier* the flat-bonus effect model can't express, so it is gated here where mods are known.
     if (sk.id === 'intimidate' && featIds.includes('intimidating-prowess') && mods.str !== 0)
@@ -1204,14 +1287,6 @@ export function resolve(doc: CharacterDoc): Resolution {
     }
   }
   const skillRanksSpent = Object.values(dec.skillRanks).reduce((a, b) => a + b, 0);
-
-  // ---- Inventory & encumbrance ----
-  // Load comes from what is still carried, so consuming items in play lightens the character.
-  const strScore = abilities.str;
-  const carry = carryingCapacity(strScore, size);
-  const inventory = buildInventory(doc);
-  const load = Math.round(inventory.reduce((n, it) => n + it.weight, 0) * 100) / 100;
-  const loadLabel = load <= carry.light ? 'Light' : load <= carry.medium ? 'Medium' : load <= carry.heavy ? 'Heavy' : 'Overloaded';
 
   // Land speed reduction from medium/heavy armor or a medium/heavy load (PF1e), unless the race
   // is exempt (Slow and Steady). Reduction = round-down-to-5(base / 3); e.g. 30→20, 20→15.
@@ -1926,14 +2001,25 @@ function naturalAttacks(dec: Decisions, stats: Record<string, Stat>, bab: number
   return lines;
 }
 
+/** Heavy load (the maximum load) for a Medium biped, from Table: Carrying Capacity.
+ *  Up to 10 it is ten pounds per point. From 11 the table runs in a cycle of ten that repeats
+ *  multiplied by four — which is exactly the published "Tremendous Strength" rule: find the score
+ *  between 20 and 29 with the same ones digit and multiply that row by 4 for every 10 points above
+ *  it. Writing it as the cycle rather than as a literal table is what makes Strength 30+ work; the
+ *  table used to stop at 25, and every score above that silently got the Strength-25 figure. */
+const HEAVY_LOAD_CYCLE = [115, 130, 150, 175, 200, 230, 260, 300, 350, 400]; // Strength 11–20
+
+export function heavyLoadFor(str: number): number {
+  const s = Math.max(1, Math.floor(str));
+  if (s <= 10) return s * 10;
+  const tens = Math.floor((s - 11) / 10);
+  return HEAVY_LOAD_CYCLE[(s - 11) % 10] * 4 ** tens;
+}
+
 function carryingCapacity(str: number, size: 'small' | 'medium'): { light: number; medium: number; heavy: number } {
-  // Core carrying-capacity table (heavy load column), medium/light = /2, /3 rounded.
-  const table: Record<number, number> = {
-    1: 10, 2: 20, 3: 30, 4: 40, 5: 50, 6: 60, 7: 70, 8: 80, 9: 90, 10: 100,
-    11: 115, 12: 130, 13: 150, 14: 175, 15: 200, 16: 230, 17: 260, 18: 300, 19: 350, 20: 400,
-    21: 460, 22: 520, 23: 600, 24: 700, 25: 800,
-  };
-  const heavy = table[Math.max(1, Math.min(25, str))] ?? 100;
+  // Light and medium are a third and two thirds of the maximum, rounded down — which reproduces
+  // every row of the published table exactly.
+  const heavy = heavyLoadFor(str);
   const caps = { light: Math.floor(heavy / 3), medium: Math.floor((heavy * 2) / 3), heavy };
   // A Small biped carries ¾ of a Medium creature's amounts, applied per column and rounded down.
   if (size === 'small')

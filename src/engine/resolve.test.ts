@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { resolve, doubleThreatRange, effectiveClass, readDecisions } from './resolve';
+import { resolve, doubleThreatRange, effectiveClass, readDecisions, heavyLoadFor } from './resolve';
 import { newCharacter, withDecision } from './character';
 import { armorSlowedSpeed } from './types';
 import type { CharacterDoc } from './types';
@@ -6753,5 +6753,262 @@ describe('figures the printed sheet used to compute for itself', () => {
     const sp = resolve(heavy).sheet.speed;
     expect(sp.base).toBe(armorSlowedSpeed(30));
     expect(sp.reducedFrom).toBe(30);
+  });
+});
+
+// Table: Carrying Capacity, transcribed from d20pfsrd (Strength 1–29, light/medium/heavy). The
+// "+10 = ×4" row below the table is the Tremendous Strength rule, checked separately.
+const CARRY_TABLE: [number, number, number, number][] = [
+  [1, 3, 6, 10], [2, 6, 13, 20], [3, 10, 20, 30], [4, 13, 26, 40], [5, 16, 33, 50],
+  [6, 20, 40, 60], [7, 23, 46, 70], [8, 26, 53, 80], [9, 30, 60, 90], [10, 33, 66, 100],
+  [11, 38, 76, 115], [12, 43, 86, 130], [13, 50, 100, 150], [14, 58, 116, 175], [15, 66, 133, 200],
+  [16, 76, 153, 230], [17, 86, 173, 260], [18, 100, 200, 300], [19, 116, 233, 350], [20, 133, 266, 400],
+  [21, 153, 306, 460], [22, 173, 346, 520], [23, 200, 400, 600], [24, 233, 466, 700], [25, 266, 533, 800],
+  [26, 306, 613, 920], [27, 346, 693, 1040], [28, 400, 800, 1200], [29, 466, 933, 1400],
+];
+
+/** A character with nothing but the given Strength, so the load figures stand on their own. */
+function carrier(str: number, raceId = 'human'): CharacterDoc {
+  let d = newCharacter('t-carry');
+  d = withDecision(d, 'ability-base', { str, dex: 10, con: 10, int: 10, wis: 10, cha: 10 });
+  d = withDecision(d, 'race', raceId);
+  d = withDecision(d, 'class', 'fighter');
+  return { ...d, abilityMethod: 'manual' };
+}
+
+describe('carrying capacity, every published row', () => {
+  it('reproduces Table: Carrying Capacity from Strength 1 to 29', () => {
+    const wrong: string[] = [];
+    for (const [str, light, medium, heavy] of CARRY_TABLE) {
+      const c = resolve(carrier(str)).sheet.load;
+      if (c.light !== light || c.medium !== medium || c.heavy !== heavy)
+        wrong.push(`Str ${str}: got ${c.light}/${c.medium}/${c.heavy}, table says ${light}/${medium}/${heavy}`);
+    }
+    expect(wrong).toEqual([]);
+  });
+
+  it('applies Tremendous Strength above 29 rather than stopping at the end of the table', () => {
+    // "Find the Strength score between 20 and 29 that has the same number in the ones digit … and
+    // multiply the numbers in that row by 4 for every 10 points above." The table used to stop at
+    // 25, so every score above it silently received the Strength-25 figures.
+    expect(heavyLoadFor(30)).toBe(400 * 4);
+    expect(heavyLoadFor(31)).toBe(460 * 4);
+    expect(heavyLoadFor(39)).toBe(1400 * 4);
+    expect(heavyLoadFor(40)).toBe(400 * 16);
+    for (const str of [26, 27, 30, 33, 41]) {
+      const heavy = resolve(carrier(str)).sheet.load.heavy;
+      expect(heavy, `Str ${str} heavy load`).toBe(heavyLoadFor(str));
+      expect(heavy).toBeGreaterThan(resolve(carrier(str - 1)).sheet.load.heavy);
+    }
+  });
+
+  it('gives a Small character three quarters of the figures', () => {
+    // "A smaller creature can carry less weight … Small ×3/4." A halfling's −2 Strength means a
+    // base 16 lands on the Strength-14 row.
+    const small = resolve(carrier(16, 'halfling')).sheet.load;
+    expect(small.heavy).toBe(Math.floor(175 * 3 / 4));
+    expect(small.light).toBe(Math.floor(58 * 3 / 4));
+  });
+
+  it('derives the lifting figures from the maximum load, at any Strength', () => {
+    const load = resolve(carrier(33)).sheet.load;
+    expect(load.liftOverHead).toBe(load.heavy);
+    expect(load.liftOffGround).toBe(load.heavy * 2);
+    expect(load.dragPush).toBe(load.heavy * 5);
+  });
+});
+
+describe('what a touch attack and being flat-footed actually ignore', () => {
+  // "When you are the target of a touch attack, your AC doesn't include any armor bonus, shield
+  // bonus, or natural armor bonus. All other modifiers … apply normally." And: "You can't use your
+  // Dexterity bonus to AC (if any) while flat-footed."
+  const armoured = (dex: number, conditions: string[] = []): CharacterDoc => {
+    let d = newCharacter('t-ac');
+    d = withDecision(d, 'ability-base', { str: 12, dex, con: 12, int: 10, wis: 10, cha: 10 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'class', 'fighter');
+    return { ...d, abilityMethod: 'manual', purchases: { 'chain-shirt': 1, 'heavy-shield': 1 },
+      equipped: { armor: 'chain-shirt', mainHand: null, offHand: 'heavy-shield' },
+      play: { ...emptyPlayState(), conditions } };
+  };
+
+  it('leaves armor and shield out of touch AC and nothing else', () => {
+    const s = resolve(armoured(14)).sheet.stats;
+    expect(s['ac'].total).toBe(18); // 10 + 2 Dex + 4 chain shirt + 2 heavy shield
+    expect(s['ac:touch'].total).toBe(12); // 10 + 2 Dex
+  });
+
+  it('still applies an AC penalty to touch AC', () => {
+    // A whitelist of surviving bonus types dropped these: a blinded character was as hard to touch
+    // as an alert one.
+    const s = resolve(armoured(14, ['blinded'])).sheet.stats;
+    expect(s['ac'].total).toBe(14); // Dex bonus lost, −2 blinded
+    expect(s['ac:touch'].total).toBe(8); // 10 − 2, no Dex
+  });
+
+  it('keeps a Dexterity penalty when flat-footed, so flat-footed AC never beats AC', () => {
+    const wrong: string[] = [];
+    for (const dex of [6, 8, 10, 12, 14, 18]) {
+      for (const conditions of [[], ['blinded']]) {
+        const s = resolve(armoured(dex, conditions)).sheet.stats;
+        if (s['ac:ff'].total > s['ac'].total)
+          wrong.push(`Dex ${dex}${conditions.length ? ' blinded' : ''}: ff ${s['ac:ff'].total} > ac ${s['ac'].total}`);
+      }
+    }
+    expect(wrong).toEqual([]);
+    const clumsy = resolve(armoured(8)).sheet.stats;
+    expect(clumsy['ac'].total).toBe(15);
+    expect(clumsy['ac:ff'].total).toBe(15);
+  });
+});
+
+describe('CMD picks up the bonuses and penalties the rules say it does', () => {
+  // "A creature can also add any circumstance, deflection, dodge, insight, luck, morale, profane,
+  // and sacred bonuses to AC to its CMD. Any penalties to a creature's AC also apply to its CMD."
+  const brawler = (extra: Partial<CharacterDoc> = {}, feats?: Record<string, string>): CharacterDoc => {
+    let d = newCharacter('t-cmd');
+    d = withDecision(d, 'ability-base', { str: 16, dex: 14, con: 12, int: 10, wis: 10, cha: 10 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'class', 'fighter');
+    if (feats) d = withDecision(d, 'feats', feats);
+    return { ...d, level: 5, ...extra };
+  };
+
+  it('adds a dodge bonus but not an armor bonus', () => {
+    const plain = resolve(brawler()).sheet.stats['cmd'].total;
+    expect(plain).toBe(10 + 5 + 3 + 2); // 10 + BAB + Str + Dex
+    const dodging = resolve(brawler({}, { 'feat-1': 'dodge' })).sheet.stats['cmd'].total;
+    expect(dodging).toBe(plain + 1);
+    const armoured = resolve(brawler({
+      purchases: { 'chain-shirt': 1 }, equipped: { armor: 'chain-shirt', mainHand: null, offHand: null },
+    })).sheet.stats['cmd'].total;
+    expect(armoured).toBe(plain);
+  });
+
+  it('applies an AC penalty to CMD as well', () => {
+    const blinded = resolve(brawler({ play: { ...emptyPlayState(), conditions: ['blinded'] } })).sheet.stats['cmd'];
+    // Blinded is −2 to AC and costs the Dexterity bonus, both of which reach CMD.
+    expect(blinded.total).toBe(10 + 5 + 3 - 2);
+  });
+});
+
+describe('a medium or heavy load encumbers like armor', () => {
+  // Table: Encumbrance Effects — Medium +3 max Dex / −3 check penalty, Heavy +1 / −6 — and
+  // "if your character is wearing armor, use the worse figure (from armor or from load) for each
+  // category. Do not stack the penalties."
+  /** A nimble character carrying `weight` pounds of torches, and whatever armour is named. */
+  const loaded = (str: number, weight: number, armor: string | null = null): CharacterDoc => {
+    let d = newCharacter('t-load');
+    d = withDecision(d, 'ability-base', { str, dex: 18, con: 12, int: 10, wis: 10, cha: 10 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'class', 'fighter');
+    const purchases: Record<string, number> = { torch: weight };
+    if (armor) purchases[armor] = 1;
+    return { ...d, abilityMethod: 'manual', purchases, equipped: { armor, mainHand: null, offHand: null } };
+  };
+
+  it('caps Dexterity to AC at +3 under a medium load and +1 under a heavy one', () => {
+    const light = resolve(loaded(10, 10)).sheet;
+    expect(light.load.label).toBe('Light');
+    expect(light.stats['ac'].total).toBe(14); // full +4 Dex
+
+    const medium = resolve(loaded(10, 50)).sheet;
+    expect(medium.load.label).toBe('Medium');
+    expect(medium.stats['ac'].total).toBe(13); // Dex capped at +3
+
+    const heavy = resolve(loaded(10, 80)).sheet;
+    expect(heavy.load.label).toBe('Heavy');
+    expect(heavy.stats['ac'].total).toBe(11); // Dex capped at +1
+  });
+
+  /** The armour check penalty as it reaches a penalised skill — the only place the sheet shows it. */
+  const checkPenalty = (d: CharacterDoc): { value: number; label: string } => {
+    const line = resolve(d).sheet.stats['skill:climb'].lines.find((l) => l.label.startsWith('Armor check penalty'));
+    return line ? { value: line.value, label: line.label } : { value: 0, label: '' };
+  };
+
+  it('charges the load its own check penalty', () => {
+    expect(checkPenalty(loaded(10, 10)).value).toBe(0);
+    expect(checkPenalty(loaded(10, 50))).toEqual({ value: -3, label: 'Armor check penalty (medium load)' });
+    expect(checkPenalty(loaded(10, 80))).toEqual({ value: -6, label: 'Armor check penalty (heavy load)' });
+  });
+
+  it('uses the worse of armor and load rather than both', () => {
+    // A chain shirt is −2 check penalty, max Dex +4; a heavy load is −6 and +1. The heavy figures
+    // win outright, and the penalties must not add up to −8. (The chain shirt's own 25 lb counts
+    // towards the load, which is why 60 lb of torches make a heavy load and not an overloaded one.)
+    const both = resolve(loaded(10, 60, 'chain-shirt')).sheet;
+    expect(both.load.label).toBe('Heavy');
+    expect(checkPenalty(loaded(10, 60, 'chain-shirt')).value).toBe(-6);
+    expect(both.stats['ac'].total).toBe(10 + 1 + 4); // Dex +1, chain shirt +4
+
+    // The other direction: full plate (−6, max Dex +1) under a merely medium load keeps the
+    // armour's worse figures rather than the load's.
+    const plated = resolve(loaded(16, 60, 'full-plate')).sheet;
+    expect(plated.load.label).toBe('Medium');
+    expect(checkPenalty(loaded(16, 60, 'full-plate')).value).toBe(-6);
+    expect(plated.stats['ac'].total).toBe(10 + 1 + 9); // Dex capped at +1 by the armour, +9 full plate
+  });
+
+  it('slows the character as well, which it always did', () => {
+    expect(resolve(loaded(10, 50)).sheet.speed.reducedFrom).toBe(30);
+    expect(resolve(loaded(10, 50)).sheet.speed.base).toBe(armorSlowedSpeed(30));
+  });
+});
+
+describe('the two floors the rules put under a weak character', () => {
+  const weakling = (con: number, int: number, level: number, classId: string, raceId: string): CharacterDoc => {
+    let d = newCharacter('t-floor');
+    d = withDecision(d, 'ability-base', { str: 10, dex: 10, con, int, wis: 10, cha: 10 });
+    d = withDecision(d, 'race', raceId);
+    d = withDecision(d, 'class', classId);
+    return { ...d, level, abilityMethod: 'manual' };
+  };
+
+  it('gives at least 1 hit point a level, whatever Constitution says', () => {
+    // A wizard with Constitution 3 (−4) would otherwise gain 4 − 4 = 0 a level. Rolled and manual
+    // scores go down to 3, so this is reachable without any house rule.
+    const s = resolve(weakling(3, 10, 5, 'wizard', 'human')).sheet.stats['hp:max'];
+    // Level 1: max(1, 6 − 4) = 2. Levels 2–5: max(1, 4 − 4) = 1 each.
+    expect(s.total).toBe(2 + 4);
+    expect(s.lines.some((l) => l.label === 'Minimum 1 hp per level')).toBe(true);
+    // A Constitution the floor never bites leaves no such line.
+    expect(resolve(weakling(10, 10, 5, 'wizard', 'human')).sheet.stats['hp:max']
+      .lines.some((l) => l.label === 'Minimum 1 hp per level')).toBe(false);
+  });
+
+  it('adds a racial extra skill rank on top of the 1-rank minimum, not inside it', () => {
+    // "At least 1 skill rank per level" floors the class-plus-Intelligence figure; the human's
+    // extra rank is additional to whatever that comes to. A fighter (2 ranks) with Intelligence 6
+    // (−2) is floored to 1, and Skilled makes it 2 — inside the floor it collapsed back to 1.
+    const human = resolve(weakling(10, 6, 4, 'fighter', 'human')).sheet;
+    const elf = resolve(weakling(10, 6, 4, 'fighter', 'elf')).sheet;
+    expect(elf.skillRanksTotal).toBe(4); // floored to 1 a level
+    expect(human.skillRanksTotal).toBe(8); // plus the human's rank each level
+  });
+});
+
+describe('Fly, the other size-modified skill', () => {
+  const flier = (raceId: string): CharacterDoc => {
+    let d = newCharacter('t-fly');
+    d = withDecision(d, 'ability-base', { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 });
+    d = withDecision(d, 'race', raceId);
+    d = withDecision(d, 'class', 'fighter');
+    return d;
+  };
+
+  it('gives a Small character +2 on Fly checks, as it gives +4 on Stealth', () => {
+    // The skill's own Modifiers table: Fine +8, Diminutive +6, Tiny +4, Small +2, Large −2 …
+    const halfling = resolve(flier('halfling')).sheet.stats;
+    expect(halfling['skill:fly'].lines.some((l) => l.label === 'Size (Small)' && l.value === 2)).toBe(true);
+    expect(halfling['skill:stealth'].lines.some((l) => l.label === 'Size (Small)' && l.value === 4)).toBe(true);
+    const human = resolve(flier('human')).sheet.stats;
+    expect(human['skill:fly'].lines.some((l) => l.label.startsWith('Size'))).toBe(false);
+  });
+
+  it('treats Fly as a class skill for a race that has wings', () => {
+    // "Creatures with a fly speed treat the Fly skill as a class skill."
+    expect(resolve(flier('strix')).sheet.classSkillIds).toContain('fly');
+    expect(resolve(flier('human')).sheet.classSkillIds).not.toContain('fly');
   });
 });
