@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { resolve, doubleThreatRange, effectiveClass, readDecisions } from './resolve';
 import { newCharacter, withDecision } from './character';
+import { armorSlowedSpeed } from './types';
 import type { CharacterDoc } from './types';
 import { emptyPlayState } from './types';
 import * as C from '../content/index';
@@ -6712,5 +6713,45 @@ describe('a race-locked archetype raises an Issue but still applies', () => {
   it('an unrestricted archetype on any race raises nothing', () => {
     expect(archIssues(wizardWith('human', 'scrollmaster'))).toHaveLength(0);
     expect(archIssues(wizardWith('human', null))).toHaveLength(0);
+  });
+});
+
+describe('figures the printed sheet used to compute for itself', () => {
+  // Two rules formulas were in the view: the printed sheet multiplied the maximum load for the
+  // lifting rows, and the Equipment step kept its own copy of the armour speed reduction. Both are
+  // in the engine now, which is the only reason they can be tested.
+
+  it('derives the lifting figures from the maximum load by the published multipliers', () => {
+    // "A character can lift as much as his maximum load over his head… double his maximum load off
+    // the ground… push or drag five times his maximum load." (Lifting and Dragging.)
+    let d = newCharacter('t-load');
+    d = withDecision(d, 'ability-base', { str: 14, dex: 10, con: 10, int: 10, wis: 10, cha: 10 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'class', 'fighter');
+    const load = resolve(d).sheet.load;
+    expect(load.heavy, 'Str 14 heavy load').toBe(175);
+    expect(load.liftOverHead).toBe(load.heavy);
+    expect(load.liftOffGround).toBe(load.heavy * 2);
+    expect(load.dragPush).toBe(load.heavy * 5);
+  });
+
+  it('slows a speed by a third, rounded down to a five-foot step', () => {
+    // 30 → 20 and 20 → 15 are the two the rules name; the rest follow the same step.
+    expect(armorSlowedSpeed(30)).toBe(20);
+    expect(armorSlowedSpeed(20)).toBe(15);
+    expect(armorSlowedSpeed(40)).toBe(30);
+    expect(armorSlowedSpeed(60)).toBe(40);
+  });
+
+  it('applies that same helper to the resolved speed, so the preview cannot disagree', () => {
+    let d = newCharacter('t-slow');
+    d = withDecision(d, 'ability-base', { str: 16, dex: 10, con: 10, int: 10, wis: 10, cha: 10 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'class', 'fighter');
+    const heavy = { ...d, purchases: { 'full-plate': 1 },
+      equipped: { armor: 'full-plate', mainHand: null, offHand: null } };
+    const sp = resolve(heavy).sheet.speed;
+    expect(sp.base).toBe(armorSlowedSpeed(30));
+    expect(sp.reducedFrom).toBe(30);
   });
 });

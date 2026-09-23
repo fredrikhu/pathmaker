@@ -1,7 +1,7 @@
 import { useRef, type ReactNode } from 'react';
 import type { CharCtl } from '../../Builder';
 import { WEAPONS, ARMORS, GEAR, weaponById, armorById, anyItemById, gearById } from '../../../content/index';
-import type { CharacterDoc } from '../../../engine/types';
+import { armorSlowedSpeed, type CharacterDoc } from '../../../engine/types';
 import { TermSpan, useTip, type TipCard } from '../../Tooltip';
 import { qualityCost, qualityPrefix, strRatingCost, totalBonus, MAX_ENHANCEMENT, MAX_STR_RATING, MAX_TOTAL_BONUS, type ItemQuality } from '../../../engine/items';
 import { propertyPrice } from '../../../engine/resolve';
@@ -19,7 +19,7 @@ const propertiesFor = (id: string) => {
 
 /** Medium and heavy armor (and a medium/heavy load) reduce land speed: 30 → 20, 20 → 15.
  *  Same round-down-to-5(base/3) rule the engine applies; stated here for the tooltip. */
-const speedAfterArmor = (base: number) => base - Math.floor(base / 3 / 5) * 5;
+// The rule lives in the engine; the preview only needs to show what it will do.
 
 /** A rich tooltip for a shop/owned item: what it actually does, so effects like a breastplate's
  *  speed penalty are visible without cross-referencing a rulebook. */
@@ -31,7 +31,7 @@ function itemCard(id: string): TipCard | null {
     if (a.acp) parts.push(`check penalty −${Math.abs(a.acp)}`);
     if (a.asf) parts.push(`${a.asf}% arcane spell failure`);
     const slows = a.category === 'medium' || a.category === 'heavy';
-    const speed = slows ? ` It slows you: 30 ft → ${speedAfterArmor(30)} ft (a 20-ft base drops to ${speedAfterArmor(20)} ft).` : '';
+    const speed = slows ? ` It slows you: 30 ft → ${armorSlowedSpeed(30)} ft (a 20-ft base drops to ${armorSlowedSpeed(20)} ft).` : '';
     const cap = a.slot === 'shield' ? 'Shield' : `${a.category[0].toUpperCase()}${a.category.slice(1)} armor`;
     return { kicker: cap, title: a.name, body: `${parts.join(' · ')}.${speed}` };
   }
@@ -54,7 +54,7 @@ function basicInfo(id: string): string | null {
   if (a) {
     const bits = [`+${a.acBonus} AC`];
     if (a.acp) bits.push(`check −${Math.abs(a.acp)}`);
-    if (a.category === 'medium' || a.category === 'heavy') bits.push(`speed 30→${speedAfterArmor(30)}`);
+    if (a.category === 'medium' || a.category === 'heavy') bits.push(`speed 30→${armorSlowedSpeed(30)}`);
     return bits.join(' · ');
   }
   const w = weaponById.get(id);

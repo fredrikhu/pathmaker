@@ -3,6 +3,7 @@ import type {
   Ability, Alignment, CharacterDoc, ChoiceSlot, Effect, Issue, Resolution,
   Sheet, SlotOption, Stat,
 } from './types';
+import { armorSlowedSpeed } from './types';
 import type { AttackLine, BreakdownLine, CastingBlock, CompanionBlock, ConditionalBonus, DamageReduction, Defenses, EnergyAbsorption, EnergyResistance, GrantedFeat, InventoryItem, PlayState, ProgressionRow, ResourcePool, SpellLikeAbility } from './types';
 import { resolveCompanion, type CompanionContext } from './companion';
 import { ABILITIES, abilityMod } from './types';
@@ -1219,7 +1220,7 @@ export function resolve(doc: CharacterDoc): Resolution {
   const encumberingLoad = loadLabel === 'Medium' || loadLabel === 'Heavy' || loadLabel === 'Overloaded';
   const baseSpeed = race?.speed ?? 30;
   const speedReduced = !race?.speedNeverReduced && (encumberingArmor || encumberingLoad);
-  const reducedSpeed = speedReduced ? baseSpeed - Math.floor(baseSpeed / 3 / 5) * 5 : baseSpeed;
+  const reducedSpeed = speedReduced ? armorSlowedSpeed(baseSpeed) : baseSpeed;
   // Speed-boosting items (boots of striding and springing) add on top, after any armor/load
   // reduction — the reduction is computed from base land speed, not from the boosted figure.
   const speedBonus = stack(unconds('speed')).total;
@@ -1232,7 +1233,7 @@ export function resolve(doc: CharacterDoc): Resolution {
   const effectiveSpeed = reducedSpeed + speedBonus + fleetBonus;
   // Medium/heavy armour or load slows every movement mode, not just the land speed, by the same
   // one-third step (fly 60 → 40, swim 30 → 20). Display only, like the land figure.
-  const reduceMode = (v: number) => (speedReduced ? v - Math.floor(v / 3 / 5) * 5 : v);
+  const reduceMode = (v: number) => (speedReduced ? armorSlowedSpeed(v) : v);
   const otherSpeeds: Record<string, number> = race?.speeds
     ? Object.fromEntries(Object.entries(race.speeds).map(([k, v]) => [k, reduceMode(v)]))
     : {};
@@ -1397,7 +1398,12 @@ export function resolve(doc: CharacterDoc): Resolution {
     skillRanksTotal, skillRanksSpent,
     ...(favoredClassAlt ? { favoredClassAlt } : {}),
     gold,
-    load: { current: load, light: carry.light, medium: carry.medium, heavy: carry.heavy, label: loadLabel },
+    // The three lifting figures come straight off the maximum load by the published
+    // multipliers, so the printed sheet never has to multiply anything itself.
+    load: {
+      current: load, light: carry.light, medium: carry.medium, heavy: carry.heavy, label: loadLabel,
+      liftOverHead: carry.heavy, liftOffGround: carry.heavy * 2, dragPush: carry.heavy * 5,
+    },
     speed: { base: effectiveSpeed, ...(speedReduced ? { reducedFrom: baseSpeed + speedBonus } : {}), ...otherSpeeds },
     spellFocus,
     casting,

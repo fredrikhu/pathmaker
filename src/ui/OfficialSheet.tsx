@@ -678,11 +678,11 @@ function PageTwo({ doc, sheet }: { doc: CharacterDoc; sheet: Sheet }) {
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 3, marginTop: 5 }}>
             <LoadBox cap="Light Load" v={`${sheet.load.light} lb`} />
-            <LoadBox cap="Lift Over Head" v={`${sheet.load.heavy} lb`} />
+            <LoadBox cap="Lift Over Head" v={`${sheet.load.liftOverHead} lb`} />
             <LoadBox cap="Medium Load" v={`${sheet.load.medium} lb`} />
-            <LoadBox cap="Lift off Ground" v={`${sheet.load.heavy * 2} lb`} />
+            <LoadBox cap="Lift off Ground" v={`${sheet.load.liftOffGround} lb`} />
             <LoadBox cap="Heavy Load" v={`${sheet.load.heavy} lb`} />
-            <LoadBox cap="Drag or Push" v={`${sheet.load.heavy * 5} lb`} />
+            <LoadBox cap="Drag or Push" v={`${sheet.load.dragPush} lb`} />
           </div>
 
           <Banner style={{ marginTop: 6, fontSize: 9, textAlign: 'center' }}>Money</Banner>

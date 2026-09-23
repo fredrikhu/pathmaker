@@ -526,7 +526,12 @@ export interface Sheet {
    *  divided by `fraction`, floored, for +1/N bonuses). */
   favoredClassAlt?: { className: string; desc: string; count: number; fraction?: number; whole: number };
   gold: number;
-  load: { current: number; light: number; medium: number; heavy: number; label: string };
+  /** `heavy` is the maximum load; the three lifting figures are derived from it by the
+   *  published multipliers (over head ×1, off the ground ×2, drag or push ×5). */
+  load: {
+    current: number; light: number; medium: number; heavy: number; label: string;
+    liftOverHead: number; liftOffGround: number; dragPush: number;
+  };
   /** Effective land speed plus any special movement modes (feet). `reducedFrom` is the
    *  unencumbered land speed when armor/load has slowed it. Display only in phase 1. */
   speed: { base: number; reducedFrom?: number; fly?: number; swim?: number; climb?: number; burrow?: number };
@@ -600,6 +605,11 @@ export interface Resolution {
 export const abilityMod = (score: number): number => Math.floor((score - 10) / 2);
 
 export const fmtMod = (v: number): string => (v >= 0 ? `+${v}` : `−${Math.abs(v)}`);
+
+/** Land speed under medium/heavy armour or load: a third off, rounded down to a 5-foot step
+ *  (30 → 20, 20 → 15). Exported because the Equipment step previews it before anything is
+ *  equipped, and a second copy of the formula in the view is a second copy of the rule. */
+export const armorSlowedSpeed = (base: number): number => base - Math.floor(base / 3 / 5) * 5;
 
 /** Non-land movement modes, e.g. "fly 60 ft, swim 30 ft" (empty if none). */
 export const speedExtra = (s: Sheet['speed']): string => {

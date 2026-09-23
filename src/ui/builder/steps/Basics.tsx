@@ -229,7 +229,8 @@ export function BasicsStep({ ch }: { ch: CharCtl }) {
         </div>
         <p className="text-muted" style={{ fontSize: 11.5, marginTop: 12, maxWidth: 560 }}>
           {race?.abilityMods === 'choice'
-            ? `${race.name}s gain +2 to ${dualTalent ? 'two abilities' : 'one ability'} — click a racial cell to move it. `
+            // Singular, because appending an s to a race name invents words: "Half-elfs".
+            ? `A ${race.name} gains +2 to ${dualTalent ? 'two abilities' : 'one ability'} — click a racial cell to move it. `
             : race ? `${race.name} racial modifiers are applied automatically. ` : 'Pick a race to see racial modifiers. '}
           Watch the strip above react — nothing is locked, come back anytime.
         </p>
