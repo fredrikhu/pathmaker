@@ -3,7 +3,7 @@ import {
   advanceTime, nextRound, startEncounter, endEncounter, addTimer, removeTimer, rest,
   durationLabel, ROUNDS_PER_MINUTE, ROUNDS_PER_HOUR, REST_ROUNDS,
 } from './clock';
-import { emptyPlayState, type PlayState, type Timer } from './types';
+import { emptyPlayState, normalizePlayState, type PlayState, type Timer } from './types';
 
 const timer = (id: string, remaining: number, conditionId?: string): Timer =>
   ({ id, label: id, remaining, conditionId });
@@ -114,6 +114,16 @@ describe('timers', () => {
   });
 });
 
+describe('older saved documents', () => {
+  it('fills in the companion hit-point map that predates it', () => {
+    // Play state is persisted with the character, so a document saved before companions had hit
+    // points of their own arrives without the field; every reader goes through normalizePlayState.
+    const old = { hpDamage: 4, tempHp: 0, nonlethal: 0, usedSlots: {}, conditions: [], usedPools: {} };
+    expect(normalizePlayState(old as unknown as PlayState).companions).toEqual({});
+    expect(rest(old as unknown as PlayState, 2).play.companions).toEqual({});
+  });
+});
+
 describe('rest', () => {
   it('restores daily resources and ends any encounter', () => {
     const p = play({
@@ -147,6 +157,37 @@ describe('rest', () => {
     expect(next.hpDamage).toBe(4); // 12 − 2 × 4
     const { expired } = rest(play({ timers: [timer('12hr', 12 * ROUNDS_PER_HOUR)] }), 4, { bedRest: true });
     expect(expired.map((t) => t.id)).toEqual(['12hr']);
+  });
+
+  it("heals a companion on its own hit dice, not on its master's level", () => {
+    // A companion is a separate creature: an 8-HD animal companion recovers 8 hit points a night
+    // whatever its master's level, and its nonlethal damage goes at 8 an hour.
+    const p = play({
+      hpDamage: 20,
+      companions: { 'animal-companion': { hpDamage: 30, tempHp: 4, nonlethal: 90 } },
+    });
+    const { play: next } = rest(p, 3, { companionHd: { 'animal-companion': 8 } });
+    expect(next.hpDamage).toBe(17); // the master heals 3, for 3 levels
+    expect(next.companions['animal-companion']).toEqual({
+      hpDamage: 22, // 30 − 8 hit dice
+      nonlethal: 26, // 90 − 8 × 8 hours
+      tempHp: 0, // whatever granted them has expired by morning
+    });
+  });
+
+  it('heals a companion double for a day of bed rest, like anyone else', () => {
+    const p = play({ companions: { eidolon: { hpDamage: 30, tempHp: 0, nonlethal: 0 } } });
+    const { play: next } = rest(p, 5, { bedRest: true, companionHd: { eidolon: 6 } });
+    expect(next.companions.eidolon.hpDamage).toBe(18); // 30 − 2 × 6
+  });
+
+  it('leaves a companion alone when the caller does not say what it is', () => {
+    // No hit dice for that slot means no healing rather than a guess — and a companion with nothing
+    // recorded has nothing to heal in the first place.
+    const p = play({ companions: { familiar: { hpDamage: 5, tempHp: 0, nonlethal: 3 } } });
+    const { play: next } = rest(p, 5);
+    expect(next.companions.familiar).toEqual({ hpDamage: 5, nonlethal: 3, tempHp: 0 });
+    expect(rest(play(), 5).play.companions).toEqual({});
   });
 
   it('keeps prepared spells (rest clears what was cast, not the preparation)', () => {

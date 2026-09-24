@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { resolve, doubleThreatRange, effectiveClass, readDecisions, heavyLoadFor } from './resolve';
 import { newCharacter, withDecision } from './character';
 import { armorSlowedSpeed } from './types';
+import { vitals } from './vitals';
 import type { CharacterDoc } from './types';
 import { emptyPlayState } from './types';
 import * as C from '../content/index';
@@ -7120,6 +7121,38 @@ describe('the companion card, where a table entry is not the same as a feat', ()
       }
     }
     expect(wrong).toEqual([]);
+  });
+});
+
+describe("a companion's own hit points", () => {
+  // The play sheet tracks a companion's damage against the creature's own numbers: its maximum hit
+  // points and its own Constitution score, never the master's. This pins the composition the card
+  // relies on, so the tracker cannot quietly start measuring the wrong creature.
+  const cat = () => {
+    let d = newCharacter('t-comp-hp');
+    d = withDecision(d, 'ability-base', { str: 12, dex: 12, con: 20, int: 10, wis: 16, cha: 10 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'class', 'druid');
+    d = withDecision(d, 'class-choices', { 'nature-bond': ['animal-companion'], 'animal-companion': ['saber-toothed-cat'] });
+    return resolve({ ...d, level: 12 }).sheet.companions[0]!;
+  };
+
+  it("dies at its own Constitution score, which is not its master's", () => {
+    const c = cat();
+    const at = (hpDamage: number) => vitals({ maxHp: c.hp, hpDamage, tempHp: 0, nonlethal: 0, conScore: c.abilities.con });
+    expect(c.abilities.con).toBe(17);
+    expect(at(c.hp).status).toBe('disabled');
+    expect(at(c.hp + 16).status).toBe('dying');
+    expect(at(c.hp + 17).status).toBe('dead');
+    // The master's Constitution is 20 here, so a threshold read off the master would have kept the
+    // cat alive for three more points.
+    expect(at(c.hp + 17).deathAt).toBe(-17);
+  });
+
+  it('measures nonlethal damage against its own hit points', () => {
+    const c = cat();
+    const v = vitals({ maxHp: c.hp, hpDamage: c.hp - 5, tempHp: 0, nonlethal: 5, conScore: c.abilities.con });
+    expect(v.status).toBe('staggered');
   });
 });
 

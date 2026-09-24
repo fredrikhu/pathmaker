@@ -87,15 +87,32 @@ export function removeTimer(play: PlayState, id: string): PlayState {
  *  decision those rates exist to force — whether the party can press on tomorrow.
  *
  *  Temporary hit points go, because whatever granted them has expired by morning. */
-export function rest(play: PlayState, level: number, opts: { bedRest?: boolean } = {}): AdvanceResult {
+export function rest(
+  play: PlayState, level: number,
+  opts: { bedRest?: boolean; companionHd?: Record<string, number> } = {},
+): AdvanceResult {
   const p = normalizePlayState(play);
   const hours = opts.bedRest ? 24 : 8;
   const healed = naturalHealing(level, hours, opts.bedRest);
+  // A companion sleeps too, and heals on its own hit dice rather than its master's level — it is a
+  // separate creature. Its hit dice come in from the caller, which is the only thing that knows the
+  // resolved companion blocks. A companion with no entry heals nothing, which is right: a slot with
+  // no damage recorded has nothing to heal.
+  const companions = Object.fromEntries(Object.entries(p.companions).map(([slotId, st]) => {
+    const hd = opts.companionHd?.[slotId];
+    const rate = hd ? naturalHealing(hd, hours, opts.bedRest) : { hp: 0, nonlethal: 0 };
+    return [slotId, {
+      hpDamage: Math.max(0, st.hpDamage - rate.hp),
+      nonlethal: Math.max(0, st.nonlethal - rate.nonlethal),
+      tempHp: 0,
+    }];
+  }));
   const restored: PlayState = {
     ...p,
     hpDamage: Math.max(0, p.hpDamage - healed.hp),
     nonlethal: Math.max(0, p.nonlethal - healed.nonlethal),
     tempHp: 0,
+    companions,
     usedSlots: {}, usedPools: {}, castPrepared: {}, castBonus: {},
     round: 0, initiative: null, initiativeRoll: null, actionsUsed: {},
   };

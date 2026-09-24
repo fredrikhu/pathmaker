@@ -9,7 +9,7 @@ import {
 import { consume, unconsume, spendCharges, restoreCharges, restock } from '../engine/inventory';
 import { rollAttack, rollCheck, rollDamage, rollSave, rollMissChance, threatRange, CONCEALMENT, type Concealment, type MetamagicDamageMods } from '../engine/dice';
 import { applyDamage, bypassOptions, ENERGY_TYPES } from '../engine/damage';
-import { vitals, takeLethal, takeNonlethal, heal as healHp } from '../engine/vitals';
+import { vitals, takeLethal, takeNonlethal, heal as healHp, type HpState } from '../engine/vitals';
 import { allyCastableBuffs, spellBuffTimer, spellDamageAt, spellAttackerTimer } from '../engine/buffs';
 import { spendAction, resetActions, COMMON_ACTIONS, type ActionCost } from '../engine/actions';
 import { CONDITIONS, conditionById, SPELLS, spellById, spellLevelOn, classById, skillById, METAMAGIC, effectiveSpellLevel, dcSpellLevel, type MetamagicDef } from '../content/index';
@@ -271,7 +271,17 @@ export function PlaySheet({ id }: { id: string }) {
 
   // Rest restores the daily resources, heals at the natural healing rates (1 hp per level a night,
   // nonlethal 1 per hour per level) and lets the time pass so running effects expire on their own.
-  const rest = (bedRest = false) => applyClock((p) => restPlay(p, doc.level, { bedRest }).play);
+  // A companion heals alongside its master, on its own hit dice rather than the master's level.
+  const companionHd = Object.fromEntries(sheet.companions.map((c) => [c.slotId, c.hd]));
+  const rest = (bedRest = false) => applyClock((p) => restPlay(p, doc.level, { bedRest, companionHd }).play);
+
+  // ---- A companion's own hit points ----
+  // Its damage belongs to the creature, not to a share of the master's, so it is keyed by the
+  // companion's slot id. An untouched companion has no entry at all.
+  const NO_DAMAGE_YET: HpState = { hpDamage: 0, tempHp: 0, nonlethal: 0 };
+  const companionHp = (slotId: string): HpState => play.companions[slotId] ?? NO_DAMAGE_YET;
+  const setCompanionHp = (slotId: string, next: HpState) =>
+    updatePlay((p) => ({ companions: { ...p.companions, [slotId]: next } }));
 
   // ---- Encounter & time (phase 4) ----
   const initMod = sheet.stats['init']?.total ?? 0;
@@ -1248,7 +1258,12 @@ export function PlaySheet({ id }: { id: string }) {
       </div>
 
       {/* Companions — a second creature to run at the table, so its block lives right on the mat. */}
-      {sheet.companions.length > 0 && sheet.companions.map((c) => <CompanionCard key={c.slotId} c={c} />)}
+      {sheet.companions.length > 0 && sheet.companions.map((c) => (
+        <CompanionCard key={c.slotId} c={c}
+          // A fused eidolon has no hit points of its own — they are the master's temporary hit points,
+          // tracked in the block above — so it gets the static card.
+          hp={c.fused ? undefined : { state: companionHp(c.slotId), onChange: (next) => setCompanionHp(c.slotId, next) }} />
+      ))}
 
       {/* Skills (trained) */}
       {trainedSkills.length > 0 && (

@@ -6,10 +6,21 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 
 ## ▶ Resume here (last session end)
 
-**Current state** — branch `main`, working tree clean, **1,203 tests** passing; run
+**Current state** — branch `main`, working tree clean, **1,209 tests** passing; run
 `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
-**Latest — the content, the generated text, the view and now the engine's own arithmetic have all
+**Latest — a companion tracks its own hit points.** The one thing the companion audit found missing
+rather than wrong is now built: `PlayState.companions` keys a companion's own `{hpDamage, tempHp,
+nonlethal}` by its slot id, and the card on the play sheet spends and heals it through the same
+`vitals` rules as the character's — temporary hit points first, healing that also clears nonlethal
+damage, and a death threshold at the **companion's** Constitution score (a wolf with Con 19 dies at
+−19 whatever its master's Constitution). Rest heals it on **its own hit dice**, not the master's level:
+a 10-HD companion recovers 10 hit points a night while its 12th-level druid recovers 12. A fused
+(Synthesist) eidolon deliberately gets the static card — its hit points *are* the master's temporary
+hit points — and so does the builder's Advancement step, where the creature is a preview rather than
+in play.
+
+**Prior — the content, the generated text, the view and the engine's own arithmetic have all
 been audited against the published rules.** Twenty-four passes, `6729349`..`3cd1e6c`, covering every
 catalogue, every rules table, every piece of authored or generated text, the strings the UI
 assembles, the formulas the engine computes, the state the play sheet keeps, and the companion stat
@@ -1899,9 +1910,10 @@ pair). **An advancement that restates an ability was listing both strengths**: t
 poison as 1 Str *and* 1d2 Str, the saber-toothed cat's bite as 1d10 *and* 2d8, plus the big cat's
 rake and the giant crab's constrict. And **a familiar's Hit Dice came from the class level** rather
 than "the master's character level or the familiar's normal HD total, whichever is higher", so a
-wizard 5 / fighter 3 had a 5-HD familiar. One thing is missing rather than wrong, and stays that way
-deliberately: **the card tracks no play state of its own** — a companion's hit points are a computed
-number with nowhere to record damage. That is a feature, not a defect in the arithmetic..
+wizard 5 / fighter 3 had a 5-HD familiar. One thing was missing rather than wrong — **the card
+tracked no play state of its own**, so a companion's hit points were a computed number with nowhere
+to record damage. That was a feature rather than a defect in the arithmetic, and it shipped straight
+afterwards (see *Resume here*).
 
 ### Modeling simplifications (fidelity notes)
 - **Per-list spell levels — audited in full.** The per-list level map (`SpellDef.levelByList`, read via

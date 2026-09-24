@@ -1,14 +1,27 @@
 // The companion stat block, rendered as a compact creature card. Shared by the builder's
 // Advancement step and the play sheet so the two never drift — the engine has already done every
 // piece of arithmetic, and this only lays it out.
+//
+// On the play sheet it also tracks the creature's hit points, because a companion takes damage of
+// its own. That state belongs to the companion (`PlayState.companions[slotId]`) and runs through the
+// same `vitals` rules as the character's: temporary hit points first, healing that also clears
+// nonlethal damage, and a death threshold at the *companion's* Constitution score.
 
 import { ABILITIES, fmtMod, speedLabel, type CompanionBlock } from '../engine/types';
+import { vitals, takeLethal, takeNonlethal, heal, type HpState } from '../engine/vitals';
 
 const KIND_KICKER: Record<CompanionBlock['kind'], string> = {
   animal: 'Animal companion',
   eidolon: 'Eidolon',
   familiar: 'Familiar',
 };
+
+/** The companion's own hit-point state plus the way to change it. Absent in the builder, where the
+ *  card is a preview of a creature that is not in play yet. */
+export interface CompanionHpTracker {
+  state: HpState;
+  onChange: (next: HpState) => void;
+}
 
 /** A label/number pair, the unit this card is built out of. */
 function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
@@ -20,12 +33,20 @@ function Stat({ label, value, hint }: { label: string; value: string; hint?: str
   );
 }
 
-export function CompanionCard({ c }: { c: CompanionBlock }) {
+export function CompanionCard({ c, hp }: { c: CompanionBlock; hp?: CompanionHpTracker }) {
   // The class's own name for the companion leads; the kind is only added when it says something
   // more ("Mount · Animal companion"), never when the label already contains it ("Fused Eidolon").
   const kind = KIND_KICKER[c.kind];
   const kicker = c.label.toLowerCase().includes(kind.toLowerCase()) ? c.label : `${c.label} · ${kind}`;
   const evo = c.evolutions;
+  // Every rule about what the numbers mean is the engine's; this reads the verdict.
+  const vit = hp
+    ? vitals({ maxHp: c.hp, hpDamage: hp.state.hpDamage, tempHp: hp.state.tempHp, nonlethal: hp.state.nonlethal, conScore: c.abilities.con })
+    : null;
+  const damage = (n: number) => hp?.onChange(n >= 0 ? takeLethal(hp.state, n) : heal(hp.state, -n));
+  const hpColor = !vit ? undefined
+    : vit.status === 'healthy' ? undefined
+      : vit.status === 'staggered' ? 'var(--warn-fg)' : 'var(--err)';
 
   return (
     <div className="mat-panel" style={{ marginTop: 14 }}>
@@ -39,7 +60,8 @@ export function CompanionCard({ c }: { c: CompanionBlock }) {
 
       {/* The numbers you reach for at the table, in the order a stat block prints them. */}
       <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', marginBottom: 14 }}>
-        <Stat label="HP" value={String(c.hp)} />
+        <Stat label="HP" value={vit ? `${vit.current}/${c.hp}` : String(c.hp)}
+          hint={vit ? `maximum ${c.hp}; dead at ${vit.deathAt} (its Constitution score)` : undefined} />
         <Stat label="AC" value={String(c.ac)} hint={`touch ${c.touch}, flat-footed ${c.flatFooted}, natural armour +${c.naturalArmor}`} />
         <Stat label="Touch" value={String(c.touch)} />
         <Stat label="Flat" value={String(c.flatFooted)} />
@@ -61,6 +83,49 @@ export function CompanionCard({ c }: { c: CompanionBlock }) {
           </div>
         ))}
       </div>
+
+      {hp && vit && (
+        <div style={{ marginBottom: 14, paddingBottom: 12, borderBottom: '1px solid var(--color-divider)' }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+            <span className="micro" style={{ marginRight: 2 }}>Hit points</span>
+            <span className="num" style={{ fontSize: 20, fontWeight: 700, color: hpColor }}>{vit.current}</span>
+            <span className="text-muted" style={{ fontSize: 12 }}>/ {c.hp}</span>
+            {hp.state.tempHp > 0 && <span style={{ fontSize: 11.5, color: 'var(--color-accent-300)' }}>+{hp.state.tempHp} temp</span>}
+            <button className="btn btn-secondary" style={{ fontSize: 11.5 }} onClick={() => damage(5)}>−5</button>
+            <button className="btn btn-secondary" style={{ fontSize: 11.5 }} onClick={() => damage(1)}>−1</button>
+            <button className="btn btn-secondary" style={{ fontSize: 11.5 }} onClick={() => damage(-1)}>+1</button>
+            <button className="btn btn-secondary" style={{ fontSize: 11.5 }} onClick={() => damage(-5)}>+5</button>
+            <button className="btn btn-secondary" style={{ fontSize: 11.5 }}
+              title="take 5 nonlethal damage — tracked apart from hit points, and lethal once it reaches its maximum"
+              onClick={() => hp.onChange(takeNonlethal(hp.state, 5, c.hp))}>−5 nl</button>
+            <label style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11.5 }}>
+              <span className="text-muted">Temp</span>
+              <input className="input" style={{ width: 46, padding: '2px 4px', textAlign: 'center', fontSize: 11.5 }}
+                type="number" min={0} value={hp.state.tempHp}
+                onChange={(e) => hp.onChange({ ...hp.state, tempHp: Math.max(0, Math.round(Number(e.target.value) || 0)) })} />
+            </label>
+            <label style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11.5 }}>
+              <span className="text-muted">Nonlethal</span>
+              <input className="input" style={{ width: 46, padding: '2px 4px', textAlign: 'center', fontSize: 11.5 }}
+                type="number" min={0} value={hp.state.nonlethal}
+                onChange={(e) => hp.onChange({ ...hp.state, nonlethal: Math.max(0, Math.round(Number(e.target.value) || 0)) })} />
+            </label>
+            <button className="btn btn-ghost" style={{ fontSize: 11 }} title="clear all damage — more than a night's rest heals"
+              onClick={() => hp.onChange({ hpDamage: 0, tempHp: hp.state.tempHp, nonlethal: 0 })}>full</button>
+          </div>
+          {vit.status !== 'healthy' && (
+            <div style={{ fontSize: 11.5, marginTop: 5, color: vit.status === 'staggered' ? 'var(--warn-fg)' : 'var(--err)' }}>
+              <strong style={{ textTransform: 'capitalize' }}>{vit.status}</strong> — {vit.note}
+              {vit.stabilize && ` DC ${vit.stabilize.dc} Con check to stabilize, at ${fmtMod(vit.stabilize.penalty)}.`}
+            </div>
+          )}
+          {vit.nonlethalIsLethal && vit.status !== 'dead' && (
+            <div className="text-muted" style={{ fontSize: 11, marginTop: 4 }}>
+              Nonlethal damage has reached its maximum — further nonlethal damage counts as lethal.
+            </div>
+          )}
+        </div>
+      )}
 
       <div style={{ fontSize: 12.5, marginBottom: 10 }}>
         <span className="micro" style={{ marginRight: 8 }}>Speed</span>{speedLabel(c.speed)}

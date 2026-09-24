@@ -1,5 +1,7 @@
 // Core model shared by engine, content, and UI. See docs/DESIGN.md.
 
+import type { HpState } from './vitals';
+
 export type Ability = 'str' | 'dex' | 'con' | 'int' | 'wis' | 'cha';
 export const ABILITIES: Ability[] = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
 
@@ -162,6 +164,11 @@ export interface PlayState {
   hpDamage: number;
   tempHp: number;
   nonlethal: number;
+  /** A companion creature's own hit-point state, keyed by its slot id (`CompanionBlock.slotId`).
+   *  A companion takes damage of its own, absorbs it with its own temporary hit points, and heals
+   *  on its own hit dice — so it needs its own three numbers rather than a share of the master's.
+   *  Absent for a companion that has taken nothing yet, which is the common case. */
+  companions: Record<string, HpState>;
   /** Spell slots expended so far: casting class id → spell level → count. Keyed by class
    *  because a multiclass caster spends each class's slots independently. */
   usedSlots: Record<string, Record<number, number>>;
@@ -214,7 +221,7 @@ export interface PlayState {
 export type ActionType = 'standard' | 'move' | 'swift';
 
 export const emptyPlayState = (): PlayState => ({
-  hpDamage: 0, tempHp: 0, nonlethal: 0, usedSlots: {}, conditions: [], usedPools: {},
+  hpDamage: 0, tempHp: 0, nonlethal: 0, companions: {}, usedSlots: {}, conditions: [], usedPools: {},
   prepared: {}, castPrepared: {}, preparedBonus: {}, castBonus: {}, round: 0, initiative: null, initiativeRoll: null, timers: [],
   consumed: {}, usedCharges: {}, powerAttack: false, twoWeapon: false, actionsUsed: {},
 });
