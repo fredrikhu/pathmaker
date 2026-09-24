@@ -6,19 +6,31 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 
 ## ▶ Resume here (last session end)
 
-**Current state** — branch `main`, working tree clean, **1,209 tests** passing; run
+**Current state** — branch `main`, working tree clean, **1,217 tests** passing; run
 `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
-**Latest — a companion tracks its own hit points.** The one thing the companion audit found missing
-rather than wrong is now built: `PlayState.companions` keys a companion's own `{hpDamage, tempHp,
-nonlethal}` by its slot id, and the card on the play sheet spends and heals it through the same
-`vitals` rules as the character's — temporary hit points first, healing that also clears nonlethal
-damage, and a death threshold at the **companion's** Constitution score (a wolf with Con 19 dies at
-−19 whatever its master's Constitution). Rest heals it on **its own hit dice**, not the master's level:
-a 10-HD companion recovers 10 hit points a night while its 12th-level druid recovers 12. A fused
-(Synthesist) eidolon deliberately gets the static card — its hit points *are* the master's temporary
-hit points — and so does the builder's Advancement step, where the creature is a preview rather than
-in play.
+**Latest — a companion is a creature in play: it tracks its own hit points and its own conditions.**
+The one thing the companion audit found missing rather than wrong is now built.
+`PlayState.companions[slotId]` holds the creature's `{hpDamage, tempHp, nonlethal, conditions}`, and
+the card on the play sheet drives both.
+
+*Hit points* run through the same `vitals` rules as the character's — temporary hit points first,
+healing that also clears nonlethal damage, and a death threshold at the **companion's** Constitution
+score (a wolf with Con 19 dies at −19 whatever its master's Constitution). Rest heals it on **its own
+hit dice**: a 10-HD companion recovers 10 hit points a night while its 12th-level druid recovers 12.
+
+*Conditions* are its own — a wolf can be entangled while its druid is not — and
+`resolveCompanion` folds them into the block from the same catalogue the character uses: ability
+penalties land before any modifier is derived (so a fatigued companion's −2 Strength reaches attack,
+damage, CMB and CMD once), then AC/touch/flat-footed/CMD take the AC penalties and the lost Dexterity
+bonus, and saves, attack and damage take theirs. The two penalties a stat block cannot show — on skill
+checks and on initiative, neither of which it prints — are **named on the card** instead of dropped.
+`abilitiesWithEffects` is now shared with the character and carries a rule neither had: "penalties
+cannot decrease your ability score to less than 1".
+
+A fused (Synthesist) eidolon deliberately gets the static card — it *is* the character, whose own
+block carries both — and so does the builder's Advancement step, where the creature is a preview
+rather than in play.
 
 **Prior — the content, the generated text, the view and the engine's own arithmetic have all
 been audited against the published rules.** Twenty-four passes, `6729349`..`3cd1e6c`, covering every
