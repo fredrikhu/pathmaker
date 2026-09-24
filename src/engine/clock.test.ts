@@ -241,3 +241,83 @@ describe('initiative provenance', () => {
     expect(rest(fighting, 5).play.initiativeRoll).toBeNull();
   });
 });
+
+describe('a timer on a companion', () => {
+  // The clock is one clock — a companion's timers count down with the character's — but a condition
+  // it drives belongs to that creature. A wolf's Entangled running out has nothing to do with its
+  // druid's, and two companions in the same fight are on their own clocks.
+  const petTimer = (id: string, remaining: number, conditionId: string, companionSlot: string): Timer =>
+    ({ id, label: id, remaining, conditionId, companionSlot });
+
+  const withPets = (patch: Partial<PlayState> = {}): PlayState => play({
+    conditions: ['entangled'],
+    companions: {
+      'animal-companion': { hpDamage: 0, tempHp: 0, nonlethal: 0, conditions: ['entangled', 'shaken'] },
+      familiar: { hpDamage: 0, tempHp: 0, nonlethal: 0, conditions: ['entangled'] },
+    },
+    ...patch,
+  });
+
+  it('clears the condition on that companion and on nobody else', () => {
+    const p = withPets({ timers: [petTimer('t1', 1, 'entangled', 'animal-companion')] });
+    const { play: next, expired } = advanceTime(p, 1);
+    expect(expired.map((t) => t.id)).toEqual(['t1']);
+    expect(next.companions['animal-companion'].conditions).toEqual(['shaken']);
+    // The familiar is still entangled, and so is the druid: neither was on this timer.
+    expect(next.companions.familiar.conditions).toEqual(['entangled']);
+    expect(next.conditions).toEqual(['entangled']);
+  });
+
+  it("does not let the character's timer clear a companion's condition", () => {
+    const p = withPets({ timers: [timer('own', 1, 'entangled')] });
+    const { play: next } = advanceTime(p, 1);
+    expect(next.conditions).toEqual([]);
+    expect(next.companions['animal-companion'].conditions).toEqual(['entangled', 'shaken']);
+    expect(next.companions.familiar.conditions).toEqual(['entangled']);
+  });
+
+  it('keeps a condition that another timer on the same creature still drives', () => {
+    const p = withPets({
+      timers: [
+        petTimer('short', 1, 'entangled', 'animal-companion'),
+        petTimer('long', 5, 'entangled', 'animal-companion'),
+      ],
+    });
+    const { play: next } = advanceTime(p, 1);
+    expect(next.companions['animal-companion'].conditions).toEqual(['entangled', 'shaken']);
+    // And once the long one goes too, the condition goes with it.
+    const after = advanceTime(next, 4).play;
+    expect(after.companions['animal-companion'].conditions).toEqual(['shaken']);
+  });
+
+  it('is not kept alive by a live timer on a different creature', () => {
+    const p = withPets({
+      timers: [
+        petTimer('pet', 1, 'entangled', 'animal-companion'),
+        petTimer('other', 9, 'entangled', 'familiar'),
+        timer('mine', 9, 'entangled'),
+      ],
+    });
+    const { play: next } = advanceTime(p, 1);
+    expect(next.companions['animal-companion'].conditions).toEqual(['shaken']);
+    expect(next.companions.familiar.conditions).toEqual(['entangled']);
+  });
+
+  it('counts down with the round and through a rest, like every other timer', () => {
+    const p = withPets({ timers: [petTimer('t1', 3, 'shaken', 'animal-companion')] });
+    const afterRound = nextRound(p).play;
+    expect(afterRound.timers[0].remaining).toBe(2);
+    expect(afterRound.companions['animal-companion'].conditions).toEqual(['entangled', 'shaken']);
+    // Eight hours is longer than three rounds, so the night takes it.
+    const afterRest = rest(p, 5, { companionHd: { 'animal-companion': 8 } }).play;
+    expect(afterRest.timers).toEqual([]);
+    expect(afterRest.companions['animal-companion'].conditions).toEqual(['entangled']);
+  });
+
+  it('leaves the untimed conditions alone, whoever holds them', () => {
+    // Conditions set by hand are the player's to clear — a rest does not sweep them up.
+    const { play: next } = rest(withPets(), 5);
+    expect(next.conditions).toEqual(['entangled']);
+    expect(next.companions['animal-companion'].conditions).toEqual(['entangled', 'shaken']);
+  });
+});

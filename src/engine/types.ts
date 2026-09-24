@@ -141,6 +141,10 @@ export interface Timer {
   remaining: number;
   /** When set, expiring this timer also clears that condition from `conditions`. */
   conditionId?: string;
+  /** The companion this timer runs on (`CompanionBlock.slotId`); absent for the character. A
+   *  condition cleared by an expiring timer is cleared on *that* creature — a wolf's Entangled
+   *  running out has nothing to do with its druid's. */
+  companionSlot?: string;
   /** Numeric effects this running buff applies for as long as it lasts. Resolved from the caster
    *  level at cast time and stored as plain data, so a running spell survives a reload and the
    *  sheet does not have to re-derive it. Expiring the timer removes them. */

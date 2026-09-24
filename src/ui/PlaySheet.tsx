@@ -282,6 +282,17 @@ export function PlaySheet({ id }: { id: string }) {
   const companionPlay = (slotId: string): CompanionPlayState => play.companions[slotId] ?? UNTOUCHED;
   const setCompanionPlay = (slotId: string, next: CompanionPlayState) =>
     updatePlay((p) => ({ companions: { ...p.companions, [slotId]: next } }));
+  /** Put one of a companion's conditions on the clock. The timer joins the character's own running
+   *  effects — one clock for the table — but it is scoped to the creature, so when it runs out it
+   *  clears the condition on the companion and not on anyone else. */
+  const startCompanionTimer = (c: { slotId: string; name: string }, conditionId: string, rounds: number) =>
+    applyClock((p) => addTimer(p, {
+      id: `t${Date.now()}${Math.random().toString(36).slice(2, 6)}`,
+      label: `${conditionById.get(conditionId)?.name ?? conditionId} (${c.name})`,
+      remaining: rounds,
+      conditionId,
+      companionSlot: c.slotId,
+    }));
 
   // ---- Encounter & time (phase 4) ----
   const initMod = sheet.stats['init']?.total ?? 0;
@@ -1262,7 +1273,12 @@ export function PlaySheet({ id }: { id: string }) {
         <CompanionCard key={c.slotId} c={c}
           // A fused eidolon has no hit points or conditions of its own — it *is* the character, whose
           // own block above carries both — so it gets the static card.
-          play={c.fused ? undefined : { state: companionPlay(c.slotId), onChange: (next) => setCompanionPlay(c.slotId, next) }} />
+          play={c.fused ? undefined : {
+            state: companionPlay(c.slotId),
+            onChange: (next) => setCompanionPlay(c.slotId, next),
+            timers: play.timers.filter((t) => t.companionSlot === c.slotId),
+            startTimer: (conditionId, rounds) => startCompanionTimer(c, conditionId, rounds),
+          }} />
       ))}
 
       {/* Skills (trained) */}

@@ -9,8 +9,10 @@
 // threshold at the *companion's* Constitution score — and its conditions are folded into the block
 // by `resolveCompanion`, so the numbers above the chips already include them.
 
-import { ABILITIES, fmtMod, speedLabel, type CompanionBlock, type CompanionPlayState } from '../engine/types';
+import { useState } from 'react';
+import { ABILITIES, fmtMod, speedLabel, type CompanionBlock, type CompanionPlayState, type Timer } from '../engine/types';
 import { vitals, takeLethal, takeNonlethal, heal } from '../engine/vitals';
+import { durationLabel, ROUNDS_PER_MINUTE, ROUNDS_PER_HOUR } from '../engine/clock';
 import { CONDITIONS, conditionById } from '../content/index';
 
 const KIND_KICKER: Record<CompanionBlock['kind'], string> = {
@@ -24,6 +26,48 @@ const KIND_KICKER: Record<CompanionBlock['kind'], string> = {
 export interface CompanionTracker {
   state: CompanionPlayState;
   onChange: (next: CompanionPlayState) => void;
+  /** The timers running on this creature (the clock is the character's, scoped by slot id). */
+  timers?: Timer[];
+  /** Put a condition on a clock: it counts down with everything else and clears itself. */
+  startTimer?: (conditionId: string, rounds: number) => void;
+}
+
+/** How many rounds a unit is worth — the clock counts in rounds and nothing else. */
+const UNIT_ROUNDS = { rounds: 1, minutes: ROUNDS_PER_MINUTE, hours: ROUNDS_PER_HOUR };
+
+/** Put one of the creature's active conditions on a clock. Kept apart from the card so its own
+ *  three pieces of form state do not re-render the stat block on every keystroke. */
+function ConditionTimerForm({ active, onStart }: {
+  active: readonly string[];
+  onStart: (conditionId: string, rounds: number) => void;
+}) {
+  const [conditionId, setConditionId] = useState('');
+  const [amount, setAmount] = useState(1);
+  const [unit, setUnit] = useState<keyof typeof UNIT_ROUNDS>('rounds');
+  // The pick has to stay one of the conditions the creature actually has: dropping a condition while
+  // its name sat in this box must not leave a timer aimed at nothing.
+  const pick = active.includes(conditionId) ? conditionId : '';
+  return (
+    <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', alignItems: 'center', marginTop: 7 }}>
+      <span className="text-muted" style={{ fontSize: 11 }}>⏱ for</span>
+      <input className="input" style={{ width: 46, padding: '2px 4px', textAlign: 'center', fontSize: 11.5 }}
+        type="number" min={1} value={amount}
+        onChange={(e) => setAmount(Math.max(1, Math.round(Number(e.target.value) || 1)))} />
+      <select className="input" style={{ width: 'auto', fontSize: 11.5, padding: '2px 4px' }} value={unit}
+        onChange={(e) => setUnit(e.target.value as keyof typeof UNIT_ROUNDS)}>
+        <option value="rounds">rounds</option>
+        <option value="minutes">minutes</option>
+        <option value="hours">hours</option>
+      </select>
+      <select className="input" style={{ width: 'auto', fontSize: 11.5, padding: '2px 4px' }} value={pick}
+        onChange={(e) => setConditionId(e.target.value)}>
+        <option value="">— which condition —</option>
+        {active.map((id) => <option key={id} value={id}>{conditionById.get(id)?.name ?? id}</option>)}
+      </select>
+      <button className="btn btn-secondary" style={{ fontSize: 11 }} disabled={!pick}
+        onClick={() => { if (pick) onStart(pick, amount * UNIT_ROUNDS[unit]); }}>Start</button>
+    </div>
+  );
 }
 
 /** A label/number pair, the unit this card is built out of. */
@@ -52,6 +96,10 @@ export function CompanionCard({ c, play }: { c: CompanionBlock; play?: Companion
     : vit.status === 'healthy' ? undefined
       : vit.status === 'staggered' ? 'var(--warn-fg)' : 'var(--err)';
   const active = play?.state.conditions ?? [];
+  /** The shortest timer driving a condition on this creature, for the badge on its chip. */
+  const timerFor = (conditionId: string): Timer | undefined =>
+    (play?.timers ?? []).filter((t) => t.conditionId === conditionId)
+      .sort((a, b) => a.remaining - b.remaining)[0];
   const toggleCondition = (id: string) => play?.onChange({
     ...play.state,
     conditions: active.includes(id) ? active.filter((x) => x !== id) : [...active, id],
@@ -147,10 +195,20 @@ export function CompanionCard({ c, play }: { c: CompanionBlock; play?: Companion
                     background: on ? 'var(--warn)' : 'transparent',
                     color: on ? 'var(--warn-fg)' : 'var(--color-neutral-400)' }}>
                   {cond.name}
+                  {on && timerFor(cond.id) && (
+                    <span className="num" style={{ marginLeft: 5, fontSize: 9.5, opacity: 0.85 }}>
+                      ⏱ {durationLabel(timerFor(cond.id)!.remaining)}
+                    </span>
+                  )}
                 </button>
               );
             })}
           </div>
+          {/* A duration for one of them. The clock is the character's, so a companion's timer counts
+              down with every other running effect and shows up in that panel too. */}
+          {play.startTimer && active.length > 0 && (
+            <ConditionTimerForm active={active} onStart={play.startTimer} />
+          )}
           {active.length > 0 && (
             <div style={{ fontSize: 11, color: 'var(--color-neutral-400)', marginTop: 6, lineHeight: 1.6 }}>
               <span style={{ color: 'var(--warn-fg)' }}>Folded into the numbers above.</span>{' '}

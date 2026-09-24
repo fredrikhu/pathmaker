@@ -32,11 +32,24 @@ function tick(play: PlayState, rounds: number): AdvanceResult {
     if (remaining <= 0) expired.push(t);
     else kept.push({ ...t, remaining });
   }
-  // Expiring a linked timer clears its condition — unless another live timer still drives it.
-  const stillDriven = new Set(kept.map((t) => t.conditionId).filter(Boolean) as string[]);
-  const cleared = new Set(expired.map((t) => t.conditionId).filter((c): c is string => !!c && !stillDriven.has(c)));
-  const conditions = cleared.size > 0 ? play.conditions.filter((c) => !cleared.has(c)) : play.conditions;
-  return { play: { ...play, timers: kept, conditions }, expired };
+  // Expiring a linked timer clears its condition — on the creature it was running on, and only when
+  // no other live timer on that same creature still drives it. The scope is part of the key because
+  // a wolf and its druid can both be entangled, on their own clocks.
+  // Slot ids and condition ids are both kebab-case catalogue ids, so "::" cannot occur in either
+  // and the pair round-trips as one string.
+  const key = (slot: string | undefined, conditionId: string) => `${slot ?? ''}::${conditionId}`;
+  const stillDriven = new Set(kept.filter((t) => t.conditionId).map((t) => key(t.companionSlot, t.conditionId!)));
+  const cleared = new Set(expired.filter((t) => t.conditionId)
+    .map((t) => key(t.companionSlot, t.conditionId!))
+    .filter((k) => !stillDriven.has(k)));
+  if (cleared.size === 0) return { play: { ...play, timers: kept }, expired };
+  const conditions = play.conditions.filter((c) => !cleared.has(key(undefined, c)));
+  // Only the companions whose conditions actually changed are rebuilt.
+  const companions = Object.fromEntries(Object.entries(play.companions).map(([slot, st]) => {
+    const left = (st.conditions ?? []).filter((c) => !cleared.has(key(slot, c)));
+    return [slot, left.length === (st.conditions ?? []).length ? st : { ...st, conditions: left }];
+  }));
+  return { play: { ...play, timers: kept, conditions, companions }, expired };
 }
 
 /** Advance out-of-combat time (exploration, downtime). Leaves the round counter alone. */
@@ -101,7 +114,10 @@ export function rest(
   const companions = Object.fromEntries(Object.entries(p.companions).map(([slotId, st]) => {
     const hd = opts.companionHd?.[slotId];
     const rate = hd ? naturalHealing(hd, hours, opts.bedRest) : { hp: 0, nonlethal: 0 };
+    // Spread the rest of the creature's state: a night heals it, it does not clear the conditions
+    // someone set by hand — the same courtesy the character's own conditions get.
     return [slotId, {
+      ...st,
       hpDamage: Math.max(0, st.hpDamage - rate.hp),
       nonlethal: Math.max(0, st.nonlethal - rate.nonlethal),
       tempHp: 0,
