@@ -6,7 +6,7 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 
 ## ▶ Resume here (last session end)
 
-**Current state** — branch `main`, working tree clean, **1,223 tests** passing; run
+**Current state** — branch `main`, working tree clean, **1,230 tests** passing; run
 `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
 **Latest — a companion is a creature in play: it tracks its own hit points and its own conditions.**
@@ -35,9 +35,17 @@ that creature and nowhere else, and a live timer on one creature never holds ano
 open. (A test caught `rest` quietly dropping a companion's conditions while healing it; a night heals
 a companion, it does not clear what someone set by hand.)
 
+*Its turn* is its own as well: `CompanionPlayState.actionsUsed` is spent through the same
+`spendAction` the character's mat uses (a move can be paid for by downgrading the standard action; a
+full-round action needs both), and `freshBudgets` hands every creature a new turn together — next
+round, either end of an encounter, and a rest. The quick buttons are a companion's own short list,
+because a wolf casts nothing and draws nothing: attack, full attack, charge, move, withdraw, run,
+three of which cost the whole turn. The row appears only in combat, and a staggered or unconscious
+creature is *told* it has fewer actions rather than being stopped — the mat tracks, the table decides.
+
 A fused (Synthesist) eidolon deliberately gets the static card — it *is* the character, whose own
-block carries both — and so does the builder's Advancement step, where the creature is a preview
-rather than in play.
+block carries all of this — and so does the builder's Advancement step, where the creature is a
+preview rather than in play.
 
 **Prior — the content, the generated text, the view and the engine's own arithmetic have all
 been audited against the published rules.** Twenty-four passes, `6729349`..`3cd1e6c`, covering every
