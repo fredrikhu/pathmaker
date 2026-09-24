@@ -6,7 +6,7 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 
 ## ▶ Resume here (last session end)
 
-**Current state** — branch `main`, working tree clean, **1,217 tests** passing; run
+**Current state** — branch `main`, working tree clean, **1,223 tests** passing; run
 `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
 **Latest — a companion is a creature in play: it tracks its own hit points and its own conditions.**
@@ -27,6 +27,13 @@ bonus, and saves, attack and damage take theirs. The two penalties a stat block 
 checks and on initiative, neither of which it prints — are **named on the card** instead of dropped.
 `abilitiesWithEffects` is now shared with the character and carries a rule neither had: "penalties
 cannot decrease your ability score to less than 1".
+
+*Durations* work too: a condition on a companion can carry a timer in rounds, minutes or hours.
+There is still one clock for the table — the timer joins the character's running effects, labelled
+"Entangled (Wolf)" — but `Timer.companionSlot` scopes it, so when it expires the condition clears on
+that creature and nowhere else, and a live timer on one creature never holds another's condition
+open. (A test caught `rest` quietly dropping a companion's conditions while healing it; a night heals
+a companion, it does not clear what someone set by hand.)
 
 A fused (Synthesist) eidolon deliberately gets the static card — it *is* the character, whose own
 block carries both — and so does the builder's Advancement step, where the creature is a preview
