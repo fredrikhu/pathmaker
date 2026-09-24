@@ -21,6 +21,16 @@ export interface AdvanceResult {
   expired: Timer[];
 }
 
+/** Every creature's action budget, cleared. A companion acts on its own initiative with its own
+ *  standard, move and swift action, so a new round hands one to each of them as well. */
+function freshBudgets(p: PlayState): Pick<PlayState, 'actionsUsed' | 'companions'> {
+  return {
+    actionsUsed: {},
+    companions: Object.fromEntries(Object.entries(p.companions)
+      .map(([slot, st]) => [slot, st.actionsUsed && Object.keys(st.actionsUsed).length ? { ...st, actionsUsed: {} } : st])),
+  };
+}
+
 /** Count every timer down by `rounds`, dropping those that run out and clearing the conditions
  *  they drove. Never advances the round counter — callers decide whether this is combat time. */
 function tick(play: PlayState, rounds: number): AdvanceResult {
@@ -61,8 +71,8 @@ export function advanceTime(play: PlayState, rounds: number): AdvanceResult {
 export function nextRound(play: PlayState): AdvanceResult {
   const p = normalizePlayState(play);
   const { play: ticked, expired } = tick(p, 1);
-  // A new round is a new turn: the action budget refreshes.
-  return { play: { ...ticked, round: p.round + 1, actionsUsed: {} }, expired };
+  // A new round is a new turn: every creature's action budget refreshes.
+  return { play: { ...ticked, round: p.round + 1, ...freshBudgets(ticked) }, expired };
 }
 
 /** Begin an encounter at round 1 with the given initiative. `roll` is the d20 face behind that
@@ -70,12 +80,14 @@ export function nextRound(play: PlayState): AdvanceResult {
  *  initiative was entered rather than rolled. Timers carry over — a buff cast before the fight is
  *  still running. */
 export function startEncounter(play: PlayState, initiative: number, roll: number | null = null): PlayState {
-  return { ...normalizePlayState(play), round: 1, initiative, initiativeRoll: roll, actionsUsed: {} };
+  const p = normalizePlayState(play);
+  return { ...p, round: 1, initiative, initiativeRoll: roll, ...freshBudgets(p) };
 }
 
 /** Leave combat. Durations keep running (they're tracked in rounds either way). */
 export function endEncounter(play: PlayState): PlayState {
-  return { ...normalizePlayState(play), round: 0, initiative: null, initiativeRoll: null, actionsUsed: {} };
+  const p = normalizePlayState(play);
+  return { ...p, round: 0, initiative: null, initiativeRoll: null, ...freshBudgets(p) };
 }
 
 export function addTimer(play: PlayState, timer: Timer): PlayState {
@@ -132,7 +144,7 @@ export function rest(
     usedSlots: {}, usedPools: {}, castPrepared: {}, castBonus: {},
     round: 0, initiative: null, initiativeRoll: null, actionsUsed: {},
   };
-  return tick(restored, hours * ROUNDS_PER_HOUR);
+  return tick({ ...restored, ...freshBudgets(restored) }, hours * ROUNDS_PER_HOUR);
 }
 
 /** "3 rounds", "2 min", "1 hr 30 min", "2 days" — the shortest honest reading of a round count. */

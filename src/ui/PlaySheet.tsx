@@ -1278,6 +1278,7 @@ export function PlaySheet({ id }: { id: string }) {
             onChange: (next) => setCompanionPlay(c.slotId, next),
             timers: play.timers.filter((t) => t.companionSlot === c.slotId),
             startTimer: (conditionId, rounds) => startCompanionTimer(c, conditionId, rounds),
+            inEncounter,
           }} />
       ))}
 

@@ -10,9 +10,10 @@
 // by `resolveCompanion`, so the numbers above the chips already include them.
 
 import { useState } from 'react';
-import { ABILITIES, fmtMod, speedLabel, type CompanionBlock, type CompanionPlayState, type Timer } from '../engine/types';
+import { ABILITIES, fmtMod, speedLabel, type ActionType, type CompanionBlock, type CompanionPlayState, type Timer } from '../engine/types';
 import { vitals, takeLethal, takeNonlethal, heal } from '../engine/vitals';
 import { durationLabel, ROUNDS_PER_MINUTE, ROUNDS_PER_HOUR } from '../engine/clock';
+import { spendAction, resetActions, COMPANION_ACTIONS, type ActionCost } from '../engine/actions';
 import { CONDITIONS, conditionById } from '../content/index';
 
 const KIND_KICKER: Record<CompanionBlock['kind'], string> = {
@@ -30,6 +31,9 @@ export interface CompanionTracker {
   timers?: Timer[];
   /** Put a condition on a clock: it counts down with everything else and clears itself. */
   startTimer?: (conditionId: string, rounds: number) => void;
+  /** Whether a fight is on. A turn's budget only means anything in combat, so the row is shown only
+   *  then — as it is for the character. */
+  inEncounter?: boolean;
 }
 
 /** How many rounds a unit is worth — the clock counts in rounds and nothing else. */
@@ -96,6 +100,26 @@ export function CompanionCard({ c, play }: { c: CompanionBlock; play?: Companion
     : vit.status === 'healthy' ? undefined
       : vit.status === 'staggered' ? 'var(--warn-fg)' : 'var(--err)';
   const active = play?.state.conditions ?? [];
+  // The creature's own turn. It acts on its own initiative, so the budget is its own, and the rules
+  // that let one slot cover another (a move in place of a standard; a full-round action needing both)
+  // are the engine's — the same call the character's mat makes.
+  const used = play?.state.actionsUsed ?? {};
+  const spend = (cost: ActionCost) => {
+    const r = spendAction(used, cost);
+    if (r.ok) play?.onChange({ ...play.state, actionsUsed: r.used });
+  };
+  const canSpend = (cost: ActionCost) => spendAction(used, cost).ok;
+  const toggleAction = (a: ActionType) => {
+    const next = { ...used };
+    if (next[a]) delete next[a]; else next[a] = true;
+    play?.onChange({ ...play.state, actionsUsed: next });
+  };
+  // A staggered, disabled or unconscious creature does not get a full turn. The rule is stated rather
+  // than enforced, exactly as it is on the character's mat: the mat tracks, the table decides.
+  const actionLimit = !vit ? null
+    : vit.status === 'staggered' || vit.status === 'disabled' ? 'a single move or standard action this round'
+      : vit.status === 'unconscious' || vit.status === 'dying' ? 'no actions at all'
+        : vit.status === 'dead' ? null : null;
   /** The shortest timer driving a condition on this creature, for the badge on its chip. */
   const timerFor = (conditionId: string): Timer | undefined =>
     (play?.timers ?? []).filter((t) => t.conditionId === conditionId)
@@ -213,6 +237,40 @@ export function CompanionCard({ c, play }: { c: CompanionBlock; play?: Companion
             <div style={{ fontSize: 11, color: 'var(--color-neutral-400)', marginTop: 6, lineHeight: 1.6 }}>
               <span style={{ color: 'var(--warn-fg)' }}>Folded into the numbers above.</span>{' '}
               {active.map((id) => conditionById.get(id)?.desc).filter(Boolean).join(' ')}
+            </div>
+          )}
+
+          {/* Its own turn, while a fight is on. */}
+          {play.inEncounter && (
+            <div style={{ marginTop: 10, paddingTop: 9, borderTop: '1px solid var(--color-divider)', display: 'flex', gap: 5, flexWrap: 'wrap', alignItems: 'center' }}>
+              <span className="micro" style={{ marginRight: 2 }}>This turn</span>
+              {(['standard', 'move', 'swift'] as const).map((a) => {
+                const spent = used[a] === true;
+                return (
+                  <button key={a} onClick={() => toggleAction(a)}
+                    title={spent ? `${a} action spent — click to give it back` : `${a} action available — click to mark spent`}
+                    style={{
+                      fontSize: 10.5, padding: '2px 9px', borderRadius: 999, cursor: 'pointer', fontFamily: 'inherit',
+                      textTransform: 'capitalize',
+                      border: `1px solid ${spent ? 'var(--color-divider)' : 'var(--color-accent-300)'}`,
+                      background: spent ? 'transparent' : 'color-mix(in srgb, var(--color-accent) 14%, transparent)',
+                      color: spent ? 'var(--color-neutral-500)' : 'var(--color-text)',
+                      textDecoration: spent ? 'line-through' : 'none',
+                    }}>
+                    {a}
+                  </button>
+                );
+              })}
+              {COMPANION_ACTIONS.map((act) => (
+                <button key={act.id} className="btn btn-ghost" style={{ fontSize: 10.5 }} disabled={!canSpend(act.cost)}
+                  title={`${act.name} — ${act.cost === 'full-round' ? 'full-round action' : `${act.cost} action`}${act.note ? ` (${act.note})` : ''}`}
+                  onClick={() => spend(act.cost)}>{act.name}</button>
+              ))}
+              <button className="btn btn-ghost" style={{ fontSize: 10.5 }} title="Start a fresh turn for this creature"
+                onClick={() => play.onChange({ ...play.state, actionsUsed: resetActions() })}>↺ New turn</button>
+              {actionLimit && (
+                <span style={{ fontSize: 10.5, color: 'var(--warn-fg)' }}>— {actionLimit}</span>
+              )}
             </div>
           )}
         </div>

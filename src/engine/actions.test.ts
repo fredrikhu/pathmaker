@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { spendAction, resetActions, COMMON_ACTIONS, type ActionsUsed } from './actions';
+import { spendAction, resetActions, COMMON_ACTIONS, COMPANION_ACTIONS, type ActionsUsed } from './actions';
 import { nextRound, startEncounter, endEncounter, rest } from './clock';
-import { emptyPlayState } from './types';
+import { emptyPlayState, type PlayState } from './types';
 
 describe('spendAction', () => {
   const fresh: ActionsUsed = {};
@@ -91,5 +91,79 @@ describe('the clock refreshes the budget', () => {
 
   it('a rest clears it too', () => {
     expect(rest(spent, 5).play.actionsUsed).toEqual({});
+  });
+});
+
+/** A play state with the given patch over the empty one. */
+function play(patch: Partial<PlayState> = {}): PlayState {
+  return { ...emptyPlayState(), ...patch };
+}
+
+describe("a companion's own turn", () => {
+  // A companion acts on its own initiative with its own standard, move and swift action, so the
+  // budget cannot be a share of its master's — and the round hands one to every creature at once.
+  const inFight = (): PlayState => play({
+    round: 3,
+    actionsUsed: { standard: true, move: true },
+    companions: {
+      'animal-companion': { hpDamage: 0, tempHp: 0, nonlethal: 0, actionsUsed: { standard: true } },
+      familiar: { hpDamage: 0, tempHp: 0, nonlethal: 0, actionsUsed: { move: true, swift: true } },
+    },
+  });
+
+  it('refreshes every creature on the next round', () => {
+    const { play: next } = nextRound(inFight());
+    expect(next.round).toBe(4);
+    expect(next.actionsUsed).toEqual({});
+    expect(next.companions['animal-companion'].actionsUsed).toEqual({});
+    expect(next.companions.familiar.actionsUsed).toEqual({});
+  });
+
+  it('refreshes them when a fight starts and when it ends', () => {
+    expect(startEncounter(inFight(), 17).companions['animal-companion'].actionsUsed).toEqual({});
+    expect(endEncounter(inFight()).companions.familiar.actionsUsed).toEqual({});
+  });
+
+  it('keeps everything else about the creature while clearing the budget', () => {
+    const p = play({
+      companions: { familiar: { hpDamage: 9, tempHp: 2, nonlethal: 3, conditions: ['shaken'], actionsUsed: { swift: true } } },
+    });
+    const next = nextRound(p).play.companions.familiar;
+    expect(next).toEqual({ hpDamage: 9, tempHp: 2, nonlethal: 3, conditions: ['shaken'], actionsUsed: {} });
+  });
+
+  it('leaves a creature that has not acted untouched, rather than writing an empty budget', () => {
+    // A companion nothing has happened to keeps its single entry unchanged, so the document does not
+    // grow a field per creature per round.
+    const p = play({ companions: { familiar: { hpDamage: 0, tempHp: 0, nonlethal: 0 } } });
+    expect(nextRound(p).play.companions.familiar).toEqual({ hpDamage: 0, tempHp: 0, nonlethal: 0 });
+  });
+
+  it('hands out a fresh turn after a rest as well', () => {
+    const next = rest(inFight(), 5, { companionHd: { 'animal-companion': 8 } }).play;
+    expect(next.actionsUsed).toEqual({});
+    expect(next.companions['animal-companion'].actionsUsed).toEqual({});
+  });
+
+  it('spends a companion action by the same rules as anyone else', () => {
+    // The budget is spent through `spendAction`, so the rule that a move can be paid for by
+    // downgrading the standard action, and the one that a full-round action needs both, hold for a
+    // wolf exactly as they do for its druid.
+    const start = inFight().companions['animal-companion'].actionsUsed!;
+    expect(spendAction(start, 'standard').ok).toBe(false);
+    expect(spendAction(start, 'move')).toEqual({ used: { standard: true, move: true }, ok: true, note: 'move action' });
+    expect(spendAction(start, 'full-round').ok).toBe(false);
+    expect(spendAction({}, 'full-round').used).toEqual({ standard: true, move: true });
+  });
+
+  it('offers only actions a creature can take, and marks the three that cost a whole turn', () => {
+    // A wolf casts nothing and draws nothing; charging, withdrawing and running are all full-round
+    // actions, which is the thing a handler forgets.
+    const byId = Object.fromEntries(COMPANION_ACTIONS.map((a) => [a.id, a.cost]));
+    expect(byId).toEqual({
+      attack: 'standard', 'full-attack': 'full-round', charge: 'full-round',
+      move: 'move', withdraw: 'full-round', run: 'full-round',
+    });
+    expect(COMPANION_ACTIONS.every((a) => a.note)).toBe(true);
   });
 });

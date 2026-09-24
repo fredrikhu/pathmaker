@@ -66,6 +66,19 @@ export interface ActionDef {
   note?: string;
 }
 
+/** What a companion creature does with its turn. A wolf casts nothing and draws nothing, so its
+ *  buttons are its own list rather than the character's — and the three that cost a whole turn are
+ *  the ones a handler forgets: charging, withdrawing and running are all full-round actions.
+ *  Verified against d20pfsrd (Combat → Full-Round Actions, and Special Attacks → Charge). */
+export const COMPANION_ACTIONS: ActionDef[] = [
+  { id: 'attack', name: 'Attack', cost: 'standard', note: 'a single attack' },
+  { id: 'full-attack', name: 'Full attack', cost: 'full-round', note: 'every attack it has, standing still' },
+  { id: 'charge', name: 'Charge', cost: 'full-round', note: 'up to twice its speed in a straight line, then one melee attack at +2 — and −2 to its AC until its next turn' },
+  { id: 'move', name: 'Move', cost: 'move', note: 'up to its speed' },
+  { id: 'withdraw', name: 'Withdraw', cost: 'full-round', note: 'up to double speed; the square it leaves is not threatened' },
+  { id: 'run', name: 'Run', cost: 'full-round', note: 'four times its speed in a straight line, and it loses its Dex bonus to AC' },
+];
+
 /** Common turn actions offered as quick buttons on the mat. Not exhaustive — the buttons cover the
  *  frequent cases, and the bare standard/move/swift toggles handle anything not listed. */
 export const COMMON_ACTIONS: ActionDef[] = [

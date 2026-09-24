@@ -167,6 +167,9 @@ export interface CompanionPlayState extends HpState {
   /** Condition ids active on the creature itself — a wolf can be entangled while its druid is not.
    *  Their numeric effects are folded into the companion's resolved block. */
   conditions?: string[];
+  /** The creature's own turn: it acts on its own initiative with its own standard, move and swift
+   *  action, so the budget cannot be shared with its master's. Refreshed by the round, like theirs. */
+  actionsUsed?: Partial<Record<ActionType, boolean>>;
 }
 
 /** Session state that changes during play, kept separate from the build `decisions`. */
