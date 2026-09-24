@@ -12,8 +12,8 @@
 //   familiar — almost nothing of its own: hit points, base attack and base saves are the master's
 
 import * as C from '../content';
-import type { Ability, CompanionAttackLine, CompanionBlock, Sheet } from './types';
-import { abilityMod, ABILITIES } from './types';
+import type { Ability, CompanionAttackLine, CompanionBlock, Effect, Sheet } from './types';
+import { abilityMod, abilitiesWithEffects, ABILITIES } from './types';
 import {
   naturalAttackDieUp, naturalAttackPenalty, naturalPowerAttackScale, strengthDamage, type NaturalAttackContext,
 } from './combat';
@@ -35,6 +35,74 @@ export interface CompanionContext {
 }
 
 const clampLevel = (level: number): number => Math.min(20, Math.max(1, level));
+
+/** What a companion's own conditions do to its block. A companion is a creature in its own right —
+ *  a wolf can be entangled while its druid is not — so the conditions on it are its own, and the
+ *  same catalogue drives them as drives the character's.
+ *
+ *  Only the targets a companion block actually prints are folded in. Two that it does not print are
+ *  named on the card instead of being silently dropped: a condition's penalty to skill checks (the
+ *  block prints a rank count, not per-skill numbers) and to initiative (it prints none). */
+interface ConditionEffects {
+  /** Penalty to AC, touch AC, flat-footed AC and CMD. */
+  ac: number;
+  /** Penalty to every attack roll. */
+  attack: number;
+  /** Penalty to the damage of every attack. */
+  damage: number;
+  /** Penalty to each save. */
+  saves: { fort: number; ref: number; will: number };
+  /** The creature loses its Dexterity *bonus* to AC and CMD (a penalty still applies). */
+  loseDexToAc: boolean;
+  /** Ability-score effects, applied before any modifier is derived. */
+  abilityEffects: Effect[];
+  /** Effects this block cannot show, as "Shaken's −2 on skill checks" phrases. */
+  unshown: string[];
+}
+
+/** The targets a companion block has nowhere to print, and what to call them on the card. */
+const UNSHOWN_TARGETS: Record<string, string> = {
+  'skill:all': 'skill checks',
+  init: 'initiative',
+};
+
+function conditionEffects(conditionIds: readonly string[]): ConditionEffects {
+  const out: ConditionEffects = {
+    ac: 0, attack: 0, damage: 0, saves: { fort: 0, ref: 0, will: 0 },
+    loseDexToAc: false, abilityEffects: [], unshown: [],
+  };
+  for (const id of conditionIds) {
+    const cond = C.conditionById.get(id);
+    if (!cond) continue;
+    if (cond.loseDexToAc) out.loseDexToAc = true;
+    for (const e of cond.effects) {
+      // A conditional effect ("+2 vs fear") is an annotation on a character sheet and has nowhere to
+      // live on this block, so it is left out rather than folded in as if it always applied.
+      if (e.condition) continue;
+      if (e.target.startsWith('ability:')) { out.abilityEffects.push(e); continue; }
+      if (e.target === 'ac') { out.ac += e.value; continue; }
+      // A companion attacks only with natural weapons, so the melee line is the one that reaches it.
+      if (e.target === 'attack:melee') { out.attack += e.value; continue; }
+      if (e.target === 'attack:ranged') continue;
+      if (e.target === 'damage:weapon') { out.damage += e.value; continue; }
+      if (e.target === 'save:all') {
+        out.saves.fort += e.value; out.saves.ref += e.value; out.saves.will += e.value;
+        continue;
+      }
+      if (e.target.startsWith('save:')) {
+        const sv = e.target.slice('save:'.length) as 'fort' | 'ref' | 'will';
+        if (sv in out.saves) out.saves[sv] += e.value;
+        continue;
+      }
+      const label = UNSHOWN_TARGETS[e.target];
+      if (label) {
+        const phrase = `${cond.name}'s ${e.value > 0 ? '+' : '\u2212'}${Math.abs(e.value)} on ${label}`;
+        if (!out.unshown.includes(phrase)) out.unshown.push(phrase);
+      }
+    }
+  }
+  return out;
+}
 
 /** Size categories smallest-first, so a change of size can be counted in steps. */
 const SIZE_ORDER: C.CreatureSize[] = ['diminutive', 'tiny', 'small', 'medium', 'large'];
@@ -78,7 +146,7 @@ const attackName = (name: string, count: number): string => (count === 1 ? name 
  *  a horse, a boar — have one or two, so the *alternative* is the common case, and it was missing. */
 function buildAttacks(
   attacks: C.CompanionAttackDef[], bab: number, attackMod: number, strMod: number,
-  sizeAcMod: number, gainsMultiattack: boolean,
+  sizeAcMod: number, gainsMultiattack: boolean, penalty: { attack: number; damage: number } = { attack: 0, damage: 0 },
 ): CompanionAttackLine[] {
   const total = attacks.reduce((n, a) => n + a.count, 0);
   // The feat only lands with three or more natural attacks; below that the creature gets the extra
@@ -89,11 +157,11 @@ function buildAttacks(
     const ctx: NaturalAttackContext = {
       primary: !a.secondary, sole: total === 1, withWeapon: false, hasMultiattack,
     };
-    const bonus = bab + attackMod + sizeAcMod + naturalAttackPenalty(ctx);
+    const bonus = bab + attackMod + sizeAcMod + naturalAttackPenalty(ctx) + penalty.attack;
     const scale = naturalPowerAttackScale(ctx);
     // An attack with no damage dice (an octopus's grabbing tentacles) deals no damage at all, so
-    // there is nothing for Strength to modify.
-    const dmgMod = /\d+d\d+/.test(a.damage) ? strengthDamage(strMod, scale) : 0;
+    // there is nothing for Strength to modify — or for a condition to penalise.
+    const dmgMod = /\d+d\d+/.test(a.damage) ? strengthDamage(strMod, scale) + penalty.damage : 0;
     const damage = dmgMod === 0 ? a.damage : `${a.damage}${dmgMod > 0 ? '+' : '−'}${Math.abs(dmgMod)}`;
     const notes: string[] = [];
     if (a.note) notes.push(a.note);
@@ -141,31 +209,55 @@ function assemble(args: {
   attacks: C.CompanionAttackDef[]; attackAbility: 'str' | 'best';
   speed: C.CompanionSpeedDef; skillRanks: number; feats: number; special: string[];
   senses: string[]; notes: string[]; hasMultiattack: boolean;
+  /** Conditions on the creature itself, folded into every number they touch. */
+  conditions?: readonly string[];
 }): CompanionBlock {
-  const mods = Object.fromEntries(ABILITIES.map((a) => [a, abilityMod(args.abilities[a])])) as Record<Ability, number>;
+  const conditions = args.conditions ?? [];
+  const cond = conditionEffects(conditions);
+  // Ability penalties land before the modifiers are derived, so a fatigued companion's −2 Strength
+  // reaches its attack, its damage, its CMB and its CMD without being applied four times.
+  const abilities = abilitiesWithEffects(args.abilities, cond.abilityEffects);
+  const mods = Object.fromEntries(ABILITIES.map((a) => [a, abilityMod(abilities[a])])) as Record<Ability, number>;
   const size = C.SIZE_MODIFIERS[args.size];
-  const ac = 10 + size.ac + mods.dex + args.naturalArmor;
+  // A creature that has lost its Dexterity bonus to AC keeps a Dexterity *penalty*.
+  const dexToAc = cond.loseDexToAc ? Math.min(0, mods.dex) : mods.dex;
+  const ac = 10 + size.ac + dexToAc + args.naturalArmor + cond.ac;
   const attackMod = args.attackAbility === 'best' ? Math.max(mods.str, mods.dex) : mods.str;
+  const notes = [
+    ...args.notes,
+    ...(cond.unshown.length
+      ? [`Not in these numbers (this block prints neither): ${cond.unshown.join(', ')}.`]
+      : []),
+  ];
   return {
     slotId: args.slotId, kind: args.kind, label: args.label, name: args.name, className: args.className,
     level: args.level, hd: args.hd, hitDie: args.hitDie, size: C.SIZE_LABEL[args.size],
-    abilities: args.abilities, mods,
+    abilities, mods,
     hp: args.hp,
-    ac, touch: 10 + size.ac + mods.dex, flatFooted: ac - Math.max(0, mods.dex),
+    // Touch AC drops armour and natural armour, never a condition's penalty; flat-footed AC drops
+    // the Dexterity bonus and keeps a penalty. Both follow the character's sheet exactly.
+    ac, touch: 10 + size.ac + dexToAc + cond.ac, flatFooted: ac - Math.max(0, dexToAc),
     naturalArmor: args.naturalArmor,
-    fort: args.saves.fort + mods.con, ref: args.saves.ref + mods.dex, will: args.saves.will + mods.wis,
+    fort: args.saves.fort + mods.con + cond.saves.fort,
+    ref: args.saves.ref + mods.dex + cond.saves.ref,
+    will: args.saves.will + mods.wis + cond.saves.will,
     bab: args.bab,
+    // CMB is base attack plus Strength plus size: a penalty on attack rolls is added to the roll
+    // rather than baked in ("add any bonuses you currently have on attack rolls"), exactly as on the
+    // character's sheet. CMD does take every penalty to AC, and loses the Dexterity bonus with it.
     cmb: args.bab + mods.str + size.cmb,
-    cmd: 10 + args.bab + mods.str + mods.dex + size.cmb,
+    cmd: 10 + args.bab + mods.str + dexToAc + size.cmb + cond.ac,
     speed: speedOf(args.speed),
-    attacks: buildAttacks(args.attacks, args.bab, attackMod, mods.str, size.ac, args.hasMultiattack),
+    attacks: buildAttacks(args.attacks, args.bab, attackMod, mods.str, size.ac, args.hasMultiattack,
+      { attack: cond.attack, damage: cond.damage }),
     skillRanks: args.skillRanks, feats: args.feats,
     // The eidolon table lists "Darkvision" as a special while the base form already states the
     // range as a sense. Drop the bare table entry rather than print the same thing twice.
     special: args.special.filter((s) => !args.senses.some((n) => n.toLowerCase().startsWith(s.toLowerCase()))),
     senses: args.senses,
     pendingAbilityIncreases: 0,
-    notes: args.notes,
+    notes,
+    ...(conditions.length ? { conditions: [...conditions] } : {}),
   };
 }
 
@@ -173,6 +265,7 @@ function assemble(args: {
  *  with the creature's printed 4th- or 7th-level advancement applied once it is reached. */
 function resolveAnimal(
   def: C.CompanionDef, slotId: string, label: string, className: string, level: number,
+  conditions: readonly string[],
 ): CompanionBlock {
   const lvl = clampLevel(level);
   const row = C.ANIMAL_COMPANION_TABLE[lvl - 1];
@@ -210,6 +303,7 @@ function resolveAnimal(
     ],
     senses: def.start.senses ?? [], notes,
     hasMultiattack: specials.includes('Multiattack'),
+    conditions,
   });
   return { ...block, tricks: row.tricks, pendingAbilityIncreases: increases };
 }
@@ -269,7 +363,7 @@ function evolutionTotals(taken: string[], base: C.CompanionSpeedDef): EvolutionT
  *  evolution pool — so the bought evolutions are folded in before anything is computed. */
 function resolveEidolon(
   def: C.CompanionDef, slotId: string, label: string, className: string, level: number,
-  taken: string[],
+  taken: string[], conditions: readonly string[],
 ): CompanionBlock {
   const lvl = clampLevel(level);
   const row = C.EIDOLON_TABLE[lvl - 1];
@@ -323,6 +417,7 @@ function resolveEidolon(
     special: [...specials.filter((s) => s !== ABILITY_INCREASE), ...(def.start.specialQualities ?? []), ...evo.special],
     senses: [...(def.start.senses ?? []), ...evo.senses], notes,
     hasMultiattack: specials.includes('Multiattack'),
+    conditions,
   });
   return {
     ...block,
@@ -339,7 +434,7 @@ function resolveEidolon(
  *  ability modifiers still apply on top, and its attack uses the better of Strength and Dexterity. */
 function resolveFamiliar(
   def: C.CompanionDef, slotId: string, label: string, className: string, level: number,
-  ctx: CompanionContext,
+  ctx: CompanionContext, conditions: readonly string[],
 ): CompanionBlock {
   const lvl = clampLevel(level);
   const row = C.FAMILIAR_TABLE[lvl - 1];
@@ -379,6 +474,7 @@ function resolveFamiliar(
       ...(def.masterBenefit ? [def.masterBenefit] : []),
     ],
     hasMultiattack: false,
+    conditions,
   });
   return { ...block, intelligence: row.int };
 }
@@ -395,15 +491,19 @@ export function resolveCompanion(args: {
   evolutions?: string[];
   /** Familiars: what their master brings. */
   context?: CompanionContext;
+  /** Conditions active on the creature itself, from its own play state. */
+  conditions?: readonly string[];
 }): CompanionBlock {
   const { def, slotId, label, className, level } = args;
+  const conditions = args.conditions ?? [];
   switch (def.kind) {
     case 'eidolon':
-      return resolveEidolon(def, slotId, label, className, level, args.evolutions ?? []);
+      return resolveEidolon(def, slotId, label, className, level, args.evolutions ?? [], conditions);
     case 'familiar':
       return resolveFamiliar(def, slotId, label, className, level,
-        args.context ?? { masterHp: 0, masterLevel: level, masterBab: 0, masterSaves: { fort: 0, ref: 0, will: 0 } });
+        args.context ?? { masterHp: 0, masterLevel: level, masterBab: 0, masterSaves: { fort: 0, ref: 0, will: 0 } },
+        conditions);
     default:
-      return resolveAnimal(def, slotId, label, className, level);
+      return resolveAnimal(def, slotId, label, className, level, conditions);
   }
 }

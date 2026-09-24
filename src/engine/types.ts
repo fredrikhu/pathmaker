@@ -158,17 +158,24 @@ export interface Timer {
   absorb?: { type: EnergyType; remaining: number };
 }
 
+/** One companion creature's play state: its hit points, and the conditions on it. */
+export interface CompanionPlayState extends HpState {
+  /** Condition ids active on the creature itself — a wolf can be entangled while its druid is not.
+   *  Their numeric effects are folded into the companion's resolved block. */
+  conditions?: string[];
+}
+
 /** Session state that changes during play, kept separate from the build `decisions`. */
 export interface PlayState {
   /** Damage taken from maximum HP; current HP = max − hpDamage. */
   hpDamage: number;
   tempHp: number;
   nonlethal: number;
-  /** A companion creature's own hit-point state, keyed by its slot id (`CompanionBlock.slotId`).
-   *  A companion takes damage of its own, absorbs it with its own temporary hit points, and heals
-   *  on its own hit dice — so it needs its own three numbers rather than a share of the master's.
-   *  Absent for a companion that has taken nothing yet, which is the common case. */
-  companions: Record<string, HpState>;
+  /** A companion creature's own play state, keyed by its slot id (`CompanionBlock.slotId`). A
+   *  companion takes damage of its own, absorbs it with its own temporary hit points, heals on its
+   *  own hit dice, and is shaken or entangled on its own — so it needs its own numbers rather than a
+   *  share of the master's. Absent for a companion that nothing has happened to yet. */
+  companions: Record<string, CompanionPlayState>;
   /** Spell slots expended so far: casting class id → spell level → count. Keyed by class
    *  because a multiclass caster spends each class's slots independently. */
   usedSlots: Record<string, Record<number, number>>;
@@ -512,6 +519,9 @@ export interface CompanionBlock {
    *  fused eidolon): its physical ability scores, natural armour and hit points have already been
    *  folded into the character's own stats, and `hp` here is the character's temporary hit points. */
   fused?: boolean;
+  /** Conditions active on the creature, whose numeric effects are already in the numbers above.
+   *  Absent when it has none. */
+  conditions?: string[];
   /** Rules caveats not folded into the numbers. */
   notes: string[];
 }
@@ -610,6 +620,25 @@ export interface Resolution {
 }
 
 export const abilityMod = (score: number): number => Math.floor((score - 10) / 2);
+
+/** Ability scores after the unconditional ability-score effects — a Fatigued creature's −2 Strength
+ *  and Dexterity, a bear's endurance +4 Constitution. Applied before any modifier is derived, so the
+ *  change reaches every number that leans on it.
+ *
+ *  Floored at 1: "penalties cannot decrease your ability score to less than 1", so an exhausted
+ *  Strength-3 familiar is at Strength 1 with a −5 modifier, not at −3 with a −7. */
+export function abilitiesWithEffects(
+  base: Record<Ability, number>, effects: readonly Effect[],
+): Record<Ability, number> {
+  const out = { ...base };
+  for (const e of effects) {
+    if (e.condition || !e.target.startsWith('ability:')) continue;
+    const ab = e.target.slice('ability:'.length);
+    if (ab in out) out[ab as Ability] += e.value;
+  }
+  for (const ab of ABILITIES) out[ab] = Math.max(1, out[ab]);
+  return out;
+}
 
 export const fmtMod = (v: number): string => (v >= 0 ? `+${v}` : `−${Math.abs(v)}`);
 

@@ -7204,3 +7204,125 @@ describe('a familiar, which is mostly its master', () => {
     expect(familiarOf(1, 1).notes.some((n) => /Stealth/.test(n))).toBe(true);
   });
 });
+
+describe('conditions on the companion itself', () => {
+  // A companion is a creature in its own right: a wolf can be entangled while its druid is not. Its
+  // conditions live in its own play state and are folded into its block by the same catalogue that
+  // drives the character's, so the chips on the card change the numbers rather than just being
+  // recorded — which is the difference between tracking a condition and noting it.
+  const druid = (conditions: string[] = [], animal = 'wolf', masterConditions: string[] = []): CharacterDoc => {
+    let d = newCharacter('t-comp-cond');
+    d = withDecision(d, 'ability-base', { str: 12, dex: 12, con: 12, int: 10, wis: 16, cha: 10 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'class', 'druid');
+    d = withDecision(d, 'class-choices', { 'nature-bond': ['animal-companion'], 'animal-companion': [animal] });
+    return {
+      ...d, level: 12,
+      play: {
+        ...emptyPlayState(),
+        conditions: masterConditions,
+        companions: { 'animal-companion': { hpDamage: 0, tempHp: 0, nonlethal: 0, conditions } },
+      },
+    };
+  };
+  const wolf = (conditions: string[] = [], animal = 'wolf') =>
+    resolve(druid(conditions, animal)).sheet.companions[0]!;
+
+  it('leaves a companion with no conditions exactly as it was', () => {
+    const plain = wolf();
+    expect(plain.conditions).toBeUndefined();
+    expect(plain.notes.some((n) => n.startsWith('Not in these numbers'))).toBe(false);
+  });
+
+  it('runs a Strength and Dexterity penalty through everything that leans on it', () => {
+    // Fatigued is −2 Strength and −2 Dexterity. One penalty, applied once, reaching the attack roll,
+    // the damage (at the sole-attack 1½×), AC, Reflex, CMB and CMD.
+    const before = wolf();
+    const after = wolf(['fatigued']);
+    expect(after.abilities.str).toBe(before.abilities.str - 2);
+    expect(after.mods.str).toBe(before.mods.str - 1);
+    expect(after.attacks[0].bonus).toBe(before.attacks[0].bonus - 1);
+    expect(after.attacks[0].damage).toBe('1d8+9'); // 1½× a +6 Strength, down from +7
+    expect(after.ac).toBe(before.ac - 1);
+    expect(after.ref).toBe(before.ref - 1);
+    expect(after.cmb).toBe(before.cmb - 1);
+    expect(after.cmd).toBe(before.cmd - 2); // Strength and Dexterity both
+    expect(after.conditions).toEqual(['fatigued']);
+  });
+
+  it('never lets a penalty take a score below 1', () => {
+    // "Penalties cannot decrease your ability score to less than 1." A cat's Strength is 3, and
+    // exhausted is −6: Strength 1 and a −5 modifier, not −3 and a −7.
+    let d = newCharacter('t-fam-exhausted');
+    d = withDecision(d, 'ability-base', { str: 10, dex: 12, con: 12, int: 16, wis: 10, cha: 10 });
+    d = withDecision(d, 'race', 'human');
+    d = withDecision(d, 'class', 'wizard');
+    d = withDecision(d, 'class-choices', { 'arcane-bond': ['familiar'], familiar: ['cat'] });
+    const doc: CharacterDoc = {
+      ...d, level: 3,
+      play: { ...emptyPlayState(), companions: { familiar: { hpDamage: 0, tempHp: 0, nonlethal: 0, conditions: ['exhausted'] } } },
+    };
+    const cat = resolve(doc).sheet.companions[0]!;
+    expect(cat.abilities.str).toBe(1);
+    expect(cat.mods.str).toBe(-5);
+  });
+
+  it('applies an attack penalty to the attack roll and a damage penalty to the damage', () => {
+    const before = wolf();
+    const shaken = wolf(['shaken']);
+    expect(shaken.attacks[0].bonus).toBe(before.attacks[0].bonus - 2);
+    expect(shaken.attacks[0].damage).toBe(before.attacks[0].damage); // shaken does not touch damage
+    expect(shaken.fort).toBe(before.fort - 2);
+    expect(shaken.ref).toBe(before.ref - 2);
+    expect(shaken.will).toBe(before.will - 2);
+
+    // Sickened is the one that also costs damage: "−2 on attack rolls, weapon damage, saves…".
+    const sickened = wolf(['sickened']);
+    expect(sickened.attacks[0].bonus).toBe(before.attacks[0].bonus - 2);
+    expect(sickened.attacks[0].damage).toBe('1d8+8'); // +10 less 2
+  });
+
+  it('only penalises melee attacks when the condition only names them', () => {
+    // Prone is −4 on melee attacks and nothing else the block prints.
+    const before = wolf();
+    const prone = wolf(['prone']);
+    expect(prone.attacks[0].bonus).toBe(before.attacks[0].bonus - 4);
+    expect(prone.fort).toBe(before.fort);
+    expect(prone.ac).toBe(before.ac);
+  });
+
+  it('takes the Dexterity bonus off AC, touch AC and CMD when the condition says so', () => {
+    // Blinded is −2 AC *and* the loss of the Dexterity bonus; flat-footed AC was already without it,
+    // so it only takes the −2.
+    const before = wolf();
+    const blind = wolf(['blinded']);
+    const dex = before.mods.dex;
+    expect(dex).toBeGreaterThan(0);
+    expect(blind.ac).toBe(before.ac - dex - 2);
+    expect(blind.touch).toBe(before.touch - dex - 2);
+    expect(blind.flatFooted).toBe(before.flatFooted - 2);
+    expect(blind.cmd).toBe(before.cmd - dex - 2);
+  });
+
+  it('names the penalties the block has nowhere to print, rather than dropping them silently', () => {
+    // Shaken's −2 on skill checks and Deafened's −4 on initiative have no home on a stat block that
+    // prints a rank count and no initiative. They are said out loud instead.
+    const note = (ids: string[]) => wolf(ids).notes.find((n) => n.startsWith('Not in these numbers'));
+    expect(note(['shaken'])).toContain('skill checks');
+    expect(note(['deafened'])).toContain('initiative');
+    expect(note(['prone'])).toBeUndefined();
+  });
+
+  it('keeps the two creatures\' conditions apart', () => {
+    // The master's conditions are the master's: a shaken druid does not shake their wolf, and an
+    // entangled wolf does not entangle the druid.
+    const masterShaken = resolve(druid([], 'wolf', ['shaken']));
+    expect(masterShaken.sheet.companions[0]!.attacks[0].bonus).toBe(wolf().attacks[0].bonus);
+    expect(masterShaken.sheet.stats['attack:melee'].total)
+      .toBe(resolve(druid()).sheet.stats['attack:melee'].total - 2);
+
+    const petEntangled = resolve(druid(['entangled']));
+    expect(petEntangled.sheet.stats['attack:melee'].total).toBe(resolve(druid()).sheet.stats['attack:melee'].total);
+    expect(petEntangled.sheet.companions[0]!.attacks[0].bonus).toBeLessThan(wolf().attacks[0].bonus);
+  });
+});

@@ -1,12 +1,12 @@
 import * as C from '../content/index';
 import type {
-  Ability, Alignment, BonusType, CharacterDoc, ChoiceSlot, Effect, Issue, Resolution,
-  Sheet, SlotOption, Stat,
+  Ability, Alignment, BonusType, CharacterDoc, ChoiceSlot, CompanionPlayState, Effect, Issue,
+  Resolution, Sheet, SlotOption, Stat,
 } from './types';
 import { armorSlowedSpeed } from './types';
 import type { AttackLine, BreakdownLine, CastingBlock, CompanionBlock, ConditionalBonus, DamageReduction, Defenses, EnergyAbsorption, EnergyResistance, GrantedFeat, InventoryItem, PlayState, ProgressionRow, ResourcePool, SpellLikeAbility } from './types';
 import { resolveCompanion, type CompanionContext } from './companion';
-import { ABILITIES, abilityMod } from './types';
+import { ABILITIES, abilityMod, abilitiesWithEffects } from './types';
 import { evalPredicate, explainFailure, type PredicateCtx } from './predicates';
 import { stack, type Contribution } from './stack';
 import {
@@ -927,12 +927,10 @@ export function resolve(doc: CharacterDoc): Resolution {
   if (fused && fused.naturalArmor > 0)
     effects.push({ target: 'ac', type: 'natural-armor', value: fused.naturalArmor, note: `Fused eidolon (${fused.name})` });
   // Apply unconditional ability-score effects (conditions like Fatigued, and future items) to the
-  // ability scores before deriving modifiers, so the penalty flows to everything.
-  for (const e of effects) {
-    if (e.condition || !e.target.startsWith('ability:')) continue;
-    const ab = e.target.slice('ability:'.length);
-    if (ab in abilities) abilities[ab as Ability] += e.value;
-  }
+  // ability scores before deriving modifiers, so the penalty flows to everything. The helper is
+  // shared with the companion pipeline, and carries the "no penalty takes a score below 1" floor.
+  const withEffects = abilitiesWithEffects(abilities, effects);
+  for (const ab of ABILITIES) abilities[ab] = withEffects[ab];
   const mods: Record<Ability, number> = Object.fromEntries(
     ABILITIES.map((a) => [a, abilityMod(abilities[a])]),
   ) as Record<Ability, number>;
@@ -1513,7 +1511,7 @@ export function resolve(doc: CharacterDoc): Resolution {
       masterSaves: {
         fort: sumSave('fort', saveInput), ref: sumSave('ref', saveInput), will: sumSave('will', saveInput),
       },
-    }),
+    }, doc.play?.companions ?? {}),
     summaryLine,
   };
   return { sheet, slots, issues, steps };
@@ -2591,7 +2589,11 @@ function fusedCompanion(dec: Decisions, level: number): CompanionBlock | undefin
 /** Every companion creature the character's classes grant, resolved to a stat block. A class only
  *  produces one once its `minLevel` is reached and the creature has actually been picked — an
  *  unfilled companion slot already raises its own "choose…" issue, so nothing is emitted here. */
-function resolveCompanions(dec: Decisions, level: number, master: CompanionContext): CompanionBlock[] {
+function resolveCompanions(
+  dec: Decisions, level: number, master: CompanionContext,
+  /** Each companion's own play state, keyed by slot id — the conditions on the creature itself. */
+  companionPlay: Record<string, CompanionPlayState> = {},
+): CompanionBlock[] {
   const out: CompanionBlock[] = [];
   for (const entry of classBreakdown(dec, level)) {
     const klass = effectiveClass(entry.klass, dec);
@@ -2616,6 +2618,9 @@ function resolveCompanions(dec: Decisions, level: number, master: CompanionConte
         level: Math.max(1, entry.levels - (src.levelOffset ?? 0)),
         ...(src.kind === 'eidolon' ? { evolutions: dec.classChoices['evolutions'] ?? [] } : {}),
         ...(src.kind === 'familiar' ? { context: master } : {}),
+        // A fused eidolon is the character's own body, so the character's conditions already apply
+        // to it; it never carries a set of its own.
+        ...(arch?.fusedCompanion ? {} : { conditions: companionPlay[src.choiceId]?.conditions ?? [] }),
       });
       out.push(arch?.fusedCompanion
         ? {

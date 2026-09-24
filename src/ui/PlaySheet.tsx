@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { loadCharacter } from '../storage/store';
 import { newCharacter } from '../engine/character';
-import { ABILITIES, abilityMod, emptyPlayState, normalizePlayState, fmtMod, type Ability, type ActionType, type CastingBlock, type DamageKind, type PlayState, type Timer } from '../engine/types';
+import { ABILITIES, abilityMod, emptyPlayState, normalizePlayState, fmtMod, type Ability, type ActionType, type CastingBlock, type CompanionPlayState, type DamageKind, type PlayState, type Timer } from '../engine/types';
 import {
   advanceTime, nextRound, startEncounter, endEncounter, addTimer, removeTimer, rest as restPlay,
   durationLabel, ROUNDS_PER_MINUTE, ROUNDS_PER_HOUR,
@@ -9,7 +9,7 @@ import {
 import { consume, unconsume, spendCharges, restoreCharges, restock } from '../engine/inventory';
 import { rollAttack, rollCheck, rollDamage, rollSave, rollMissChance, threatRange, CONCEALMENT, type Concealment, type MetamagicDamageMods } from '../engine/dice';
 import { applyDamage, bypassOptions, ENERGY_TYPES } from '../engine/damage';
-import { vitals, takeLethal, takeNonlethal, heal as healHp, type HpState } from '../engine/vitals';
+import { vitals, takeLethal, takeNonlethal, heal as healHp } from '../engine/vitals';
 import { allyCastableBuffs, spellBuffTimer, spellDamageAt, spellAttackerTimer } from '../engine/buffs';
 import { spendAction, resetActions, COMMON_ACTIONS, type ActionCost } from '../engine/actions';
 import { CONDITIONS, conditionById, SPELLS, spellById, spellLevelOn, classById, skillById, METAMAGIC, effectiveSpellLevel, dcSpellLevel, type MetamagicDef } from '../content/index';
@@ -275,12 +275,12 @@ export function PlaySheet({ id }: { id: string }) {
   const companionHd = Object.fromEntries(sheet.companions.map((c) => [c.slotId, c.hd]));
   const rest = (bedRest = false) => applyClock((p) => restPlay(p, doc.level, { bedRest, companionHd }).play);
 
-  // ---- A companion's own hit points ----
-  // Its damage belongs to the creature, not to a share of the master's, so it is keyed by the
-  // companion's slot id. An untouched companion has no entry at all.
-  const NO_DAMAGE_YET: HpState = { hpDamage: 0, tempHp: 0, nonlethal: 0 };
-  const companionHp = (slotId: string): HpState => play.companions[slotId] ?? NO_DAMAGE_YET;
-  const setCompanionHp = (slotId: string, next: HpState) =>
+  // ---- A companion's own play state ----
+  // Its damage and its conditions belong to the creature, not to a share of the master's, so they
+  // are keyed by the companion's slot id. An untouched companion has no entry at all.
+  const UNTOUCHED: CompanionPlayState = { hpDamage: 0, tempHp: 0, nonlethal: 0, conditions: [] };
+  const companionPlay = (slotId: string): CompanionPlayState => play.companions[slotId] ?? UNTOUCHED;
+  const setCompanionPlay = (slotId: string, next: CompanionPlayState) =>
     updatePlay((p) => ({ companions: { ...p.companions, [slotId]: next } }));
 
   // ---- Encounter & time (phase 4) ----
@@ -1260,9 +1260,9 @@ export function PlaySheet({ id }: { id: string }) {
       {/* Companions — a second creature to run at the table, so its block lives right on the mat. */}
       {sheet.companions.length > 0 && sheet.companions.map((c) => (
         <CompanionCard key={c.slotId} c={c}
-          // A fused eidolon has no hit points of its own — they are the master's temporary hit points,
-          // tracked in the block above — so it gets the static card.
-          hp={c.fused ? undefined : { state: companionHp(c.slotId), onChange: (next) => setCompanionHp(c.slotId, next) }} />
+          // A fused eidolon has no hit points or conditions of its own — it *is* the character, whose
+          // own block above carries both — so it gets the static card.
+          play={c.fused ? undefined : { state: companionPlay(c.slotId), onChange: (next) => setCompanionPlay(c.slotId, next) }} />
       ))}
 
       {/* Skills (trained) */}

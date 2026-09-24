@@ -2,13 +2,16 @@
 // Advancement step and the play sheet so the two never drift — the engine has already done every
 // piece of arithmetic, and this only lays it out.
 //
-// On the play sheet it also tracks the creature's hit points, because a companion takes damage of
-// its own. That state belongs to the companion (`PlayState.companions[slotId]`) and runs through the
-// same `vitals` rules as the character's: temporary hit points first, healing that also clears
-// nonlethal damage, and a death threshold at the *companion's* Constitution score.
+// On the play sheet it also tracks the creature's own play state, because a companion takes damage
+// and is shaken or entangled in its own right. That state belongs to the companion
+// (`PlayState.companions[slotId]`): its hit points run through the same `vitals` rules as the
+// character's — temporary hit points first, healing that also clears nonlethal damage, a death
+// threshold at the *companion's* Constitution score — and its conditions are folded into the block
+// by `resolveCompanion`, so the numbers above the chips already include them.
 
-import { ABILITIES, fmtMod, speedLabel, type CompanionBlock } from '../engine/types';
-import { vitals, takeLethal, takeNonlethal, heal, type HpState } from '../engine/vitals';
+import { ABILITIES, fmtMod, speedLabel, type CompanionBlock, type CompanionPlayState } from '../engine/types';
+import { vitals, takeLethal, takeNonlethal, heal } from '../engine/vitals';
+import { CONDITIONS, conditionById } from '../content/index';
 
 const KIND_KICKER: Record<CompanionBlock['kind'], string> = {
   animal: 'Animal companion',
@@ -16,11 +19,11 @@ const KIND_KICKER: Record<CompanionBlock['kind'], string> = {
   familiar: 'Familiar',
 };
 
-/** The companion's own hit-point state plus the way to change it. Absent in the builder, where the
- *  card is a preview of a creature that is not in play yet. */
-export interface CompanionHpTracker {
-  state: HpState;
-  onChange: (next: HpState) => void;
+/** The companion's own play state plus the way to change it. Absent in the builder, where the card
+ *  is a preview of a creature that is not in play yet. */
+export interface CompanionTracker {
+  state: CompanionPlayState;
+  onChange: (next: CompanionPlayState) => void;
 }
 
 /** A label/number pair, the unit this card is built out of. */
@@ -33,20 +36,26 @@ function Stat({ label, value, hint }: { label: string; value: string; hint?: str
   );
 }
 
-export function CompanionCard({ c, hp }: { c: CompanionBlock; hp?: CompanionHpTracker }) {
+export function CompanionCard({ c, play }: { c: CompanionBlock; play?: CompanionTracker }) {
   // The class's own name for the companion leads; the kind is only added when it says something
   // more ("Mount · Animal companion"), never when the label already contains it ("Fused Eidolon").
   const kind = KIND_KICKER[c.kind];
   const kicker = c.label.toLowerCase().includes(kind.toLowerCase()) ? c.label : `${c.label} · ${kind}`;
   const evo = c.evolutions;
   // Every rule about what the numbers mean is the engine's; this reads the verdict.
-  const vit = hp
-    ? vitals({ maxHp: c.hp, hpDamage: hp.state.hpDamage, tempHp: hp.state.tempHp, nonlethal: hp.state.nonlethal, conScore: c.abilities.con })
+  const vit = play
+    ? vitals({ maxHp: c.hp, hpDamage: play.state.hpDamage, tempHp: play.state.tempHp, nonlethal: play.state.nonlethal, conScore: c.abilities.con })
     : null;
-  const damage = (n: number) => hp?.onChange(n >= 0 ? takeLethal(hp.state, n) : heal(hp.state, -n));
+  const damage = (n: number) =>
+    play?.onChange({ ...play.state, ...(n >= 0 ? takeLethal(play.state, n) : heal(play.state, -n)) });
   const hpColor = !vit ? undefined
     : vit.status === 'healthy' ? undefined
       : vit.status === 'staggered' ? 'var(--warn-fg)' : 'var(--err)';
+  const active = play?.state.conditions ?? [];
+  const toggleCondition = (id: string) => play?.onChange({
+    ...play.state,
+    conditions: active.includes(id) ? active.filter((x) => x !== id) : [...active, id],
+  });
 
   return (
     <div className="mat-panel" style={{ marginTop: 14 }}>
@@ -84,34 +93,34 @@ export function CompanionCard({ c, hp }: { c: CompanionBlock; hp?: CompanionHpTr
         ))}
       </div>
 
-      {hp && vit && (
+      {play && vit && (
         <div style={{ marginBottom: 14, paddingBottom: 12, borderBottom: '1px solid var(--color-divider)' }}>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
             <span className="micro" style={{ marginRight: 2 }}>Hit points</span>
             <span className="num" style={{ fontSize: 20, fontWeight: 700, color: hpColor }}>{vit.current}</span>
             <span className="text-muted" style={{ fontSize: 12 }}>/ {c.hp}</span>
-            {hp.state.tempHp > 0 && <span style={{ fontSize: 11.5, color: 'var(--color-accent-300)' }}>+{hp.state.tempHp} temp</span>}
+            {play.state.tempHp > 0 && <span style={{ fontSize: 11.5, color: 'var(--color-accent-300)' }}>+{play.state.tempHp} temp</span>}
             <button className="btn btn-secondary" style={{ fontSize: 11.5 }} onClick={() => damage(5)}>−5</button>
             <button className="btn btn-secondary" style={{ fontSize: 11.5 }} onClick={() => damage(1)}>−1</button>
             <button className="btn btn-secondary" style={{ fontSize: 11.5 }} onClick={() => damage(-1)}>+1</button>
             <button className="btn btn-secondary" style={{ fontSize: 11.5 }} onClick={() => damage(-5)}>+5</button>
             <button className="btn btn-secondary" style={{ fontSize: 11.5 }}
               title="take 5 nonlethal damage — tracked apart from hit points, and lethal once it reaches its maximum"
-              onClick={() => hp.onChange(takeNonlethal(hp.state, 5, c.hp))}>−5 nl</button>
+              onClick={() => play.onChange({ ...play.state, ...takeNonlethal(play.state, 5, c.hp) })}>−5 nl</button>
             <label style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11.5 }}>
               <span className="text-muted">Temp</span>
               <input className="input" style={{ width: 46, padding: '2px 4px', textAlign: 'center', fontSize: 11.5 }}
-                type="number" min={0} value={hp.state.tempHp}
-                onChange={(e) => hp.onChange({ ...hp.state, tempHp: Math.max(0, Math.round(Number(e.target.value) || 0)) })} />
+                type="number" min={0} value={play.state.tempHp}
+                onChange={(e) => play.onChange({ ...play.state, tempHp: Math.max(0, Math.round(Number(e.target.value) || 0)) })} />
             </label>
             <label style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11.5 }}>
               <span className="text-muted">Nonlethal</span>
               <input className="input" style={{ width: 46, padding: '2px 4px', textAlign: 'center', fontSize: 11.5 }}
-                type="number" min={0} value={hp.state.nonlethal}
-                onChange={(e) => hp.onChange({ ...hp.state, nonlethal: Math.max(0, Math.round(Number(e.target.value) || 0)) })} />
+                type="number" min={0} value={play.state.nonlethal}
+                onChange={(e) => play.onChange({ ...play.state, nonlethal: Math.max(0, Math.round(Number(e.target.value) || 0)) })} />
             </label>
             <button className="btn btn-ghost" style={{ fontSize: 11 }} title="clear all damage — more than a night's rest heals"
-              onClick={() => hp.onChange({ hpDamage: 0, tempHp: hp.state.tempHp, nonlethal: 0 })}>full</button>
+              onClick={() => play.onChange({ ...play.state, hpDamage: 0, nonlethal: 0 })}>full</button>
           </div>
           {vit.status !== 'healthy' && (
             <div style={{ fontSize: 11.5, marginTop: 5, color: vit.status === 'staggered' ? 'var(--warn-fg)' : 'var(--err)' }}>
@@ -122,6 +131,30 @@ export function CompanionCard({ c, hp }: { c: CompanionBlock; hp?: CompanionHpTr
           {vit.nonlethalIsLethal && vit.status !== 'dead' && (
             <div className="text-muted" style={{ fontSize: 11, marginTop: 4 }}>
               Nonlethal damage has reached its maximum — further nonlethal damage counts as lethal.
+            </div>
+          )}
+
+          {/* The creature's own conditions. A wolf can be entangled while its druid is not, so these
+              are its own — and their penalties are already in the numbers above. */}
+          <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', alignItems: 'center', marginTop: 10 }}>
+            <span className="micro" style={{ marginRight: 2 }}>Conditions</span>
+            {CONDITIONS.map((cond) => {
+              const on = active.includes(cond.id);
+              return (
+                <button key={cond.id} onClick={() => toggleCondition(cond.id)} title={cond.desc}
+                  style={{ padding: '2px 8px', borderRadius: 999, fontSize: 10.5, cursor: 'pointer', fontFamily: 'inherit',
+                    border: `1px solid ${on ? 'var(--warn-fg)' : 'var(--color-divider)'}`,
+                    background: on ? 'var(--warn)' : 'transparent',
+                    color: on ? 'var(--warn-fg)' : 'var(--color-neutral-400)' }}>
+                  {cond.name}
+                </button>
+              );
+            })}
+          </div>
+          {active.length > 0 && (
+            <div style={{ fontSize: 11, color: 'var(--color-neutral-400)', marginTop: 6, lineHeight: 1.6 }}>
+              <span style={{ color: 'var(--warn-fg)' }}>Folded into the numbers above.</span>{' '}
+              {active.map((id) => conditionById.get(id)?.desc).filter(Boolean).join(' ')}
             </div>
           )}
         </div>
