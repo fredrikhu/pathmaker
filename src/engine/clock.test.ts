@@ -321,3 +321,46 @@ describe('a timer on a companion', () => {
     expect(next.companions['animal-companion'].conditions).toEqual(['entangled', 'shaken']);
   });
 });
+
+describe("a companion's initiative count", () => {
+  // A companion rolls its own initiative and acts on its own count. The count belongs to the fight,
+  // so beginning or ending one drops it — for the creatures as much as for the character.
+  const fighting = (): PlayState => play({
+    round: 4, initiative: 18, initiativeRoll: 15,
+    companions: {
+      'animal-companion': { hpDamage: 6, tempHp: 0, nonlethal: 0, conditions: ['shaken'], initiative: 12, initiativeRoll: 9 },
+      familiar: { hpDamage: 0, tempHp: 0, nonlethal: 0, initiative: 7, initiativeRoll: 5 },
+    },
+  });
+
+  it('survives the round it was rolled in', () => {
+    const { play: next } = nextRound(fighting());
+    expect(next.initiative).toBe(18);
+    expect(next.companions['animal-companion'].initiative).toBe(12);
+    expect(next.companions.familiar.initiative).toBe(7);
+  });
+
+  it('is dropped when a fight starts and when it ends, for every creature', () => {
+    const started = startEncounter(fighting(), 20, 17);
+    expect(started.initiative).toBe(20);
+    expect(started.companions['animal-companion'].initiative).toBeNull();
+    expect(started.companions['animal-companion'].initiativeRoll).toBeNull();
+    expect(started.companions.familiar.initiative).toBeNull();
+
+    const ended = endEncounter(fighting());
+    expect(ended.initiative).toBeNull();
+    expect(ended.companions['animal-companion'].initiative).toBeNull();
+    expect(ended.companions.familiar.initiativeRoll).toBeNull();
+  });
+
+  it('keeps everything else about the creature when the count goes', () => {
+    const next = startEncounter(fighting(), 11).companions['animal-companion'];
+    expect(next.hpDamage).toBe(6);
+    expect(next.conditions).toEqual(['shaken']);
+  });
+
+  it('leaves a creature that has not rolled untouched', () => {
+    const p = play({ companions: { familiar: { hpDamage: 0, tempHp: 0, nonlethal: 0 } } });
+    expect(endEncounter(p).companions.familiar).toEqual({ hpDamage: 0, tempHp: 0, nonlethal: 0 });
+  });
+});

@@ -7305,12 +7305,50 @@ describe('conditions on the companion itself', () => {
   });
 
   it('names the penalties the block has nowhere to print, rather than dropping them silently', () => {
-    // Shaken's −2 on skill checks and Deafened's −4 on initiative have no home on a stat block that
-    // prints a rank count and no initiative. They are said out loud instead.
+    // Shaken's −2 on skill checks has no home on a stat block that prints a rank count rather than
+    // per-skill numbers, so it is said out loud instead.
     const note = (ids: string[]) => wolf(ids).notes.find((n) => n.startsWith('Not in these numbers'));
     expect(note(['shaken'])).toContain('skill checks');
-    expect(note(['deafened'])).toContain('initiative');
     expect(note(['prone'])).toBeUndefined();
+  });
+
+  it('puts a penalty to initiative on the initiative the creature now has', () => {
+    // Deafened is −4 on initiative. The block used to have nowhere to print an initiative, so this
+    // was named as unshowable; now the creature rolls its own, and the penalty lands on it.
+    const before = wolf();
+    expect(before.init).toBe(before.mods.dex);
+    const deaf = wolf(['deafened']);
+    expect(deaf.init).toBe(before.init - 4);
+    expect(deaf.notes.some((n) => n.startsWith('Not in these numbers'))).toBe(false);
+  });
+
+  it('moves an initiative penalty with the Dexterity it is based on', () => {
+    // Fatigued takes 2 off Dexterity, which is 1 off the modifier and so 1 off initiative.
+    const before = wolf();
+    expect(wolf(['fatigued']).init).toBe(before.init - 1);
+  });
+
+  it('lets no condition change nothing and say nothing', () => {
+    // The guard that matters: every condition with an unconditional effect must either move a number
+    // the block prints or be named in the note. A target nobody handles — a future condition that
+    // penalises CMB, say — would otherwise vanish without a word, which is how the skill and
+    // initiative penalties came to be missing in the first place.
+    const shape = (c: ReturnType<typeof wolf>) => JSON.stringify({
+      ac: c.ac, touch: c.touch, ff: c.flatFooted, fort: c.fort, ref: c.ref, will: c.will,
+      init: c.init, cmb: c.cmb, cmd: c.cmd, abilities: c.abilities,
+      attacks: c.attacks.map((a) => [a.bonus, a.damage]), hp: c.hp, speed: c.speed,
+    });
+    const plain = shape(wolf());
+    const silent: string[] = [];
+    for (const cond of C.CONDITIONS) {
+      const numeric = cond.effects.some((e) => !e.condition) || cond.loseDexToAc;
+      if (!numeric) continue; // Dazed, Staggered, Nauseated, Confused: no number to move.
+      const got = wolf([cond.id]);
+      const moved = shape(got) !== plain;
+      const named = got.notes.some((n) => n.startsWith('Not in these numbers') && n.includes(cond.name));
+      if (!moved && !named) silent.push(cond.id);
+    }
+    expect(silent).toEqual([]);
   });
 
   it('keeps the two creatures\' conditions apart', () => {

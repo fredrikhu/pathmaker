@@ -170,6 +170,10 @@ export interface CompanionPlayState extends HpState {
   /** The creature's own turn: it acts on its own initiative with its own standard, move and swift
    *  action, so the budget cannot be shared with its master's. Refreshed by the round, like theirs. */
   actionsUsed?: Partial<Record<ActionType, boolean>>;
+  /** The initiative count it rolled for this fight, and the d20 behind it. Cleared when a fight
+   *  starts or ends, like the character's own. */
+  initiative?: number | null;
+  initiativeRoll?: number | null;
 }
 
 /** Session state that changes during play, kept separate from the build `decisions`. */
@@ -529,6 +533,8 @@ export interface CompanionBlock {
   /** Conditions active on the creature, whose numeric effects are already in the numbers above.
    *  Absent when it has none. */
   conditions?: string[];
+  /** Initiative modifier. A companion rolls its own initiative and acts on its own count. */
+  init: number;
   /** Rules caveats not folded into the numbers. */
   notes: string[];
 }

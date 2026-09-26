@@ -31,6 +31,19 @@ function freshBudgets(p: PlayState): Pick<PlayState, 'actionsUsed' | 'companions
   };
 }
 
+/** The same, plus every companion's initiative count — a fight beginning or ending drops the order
+ *  it was fought in, for the creatures as well as for the character. */
+function freshFight(p: PlayState): Pick<PlayState, 'actionsUsed' | 'companions'> {
+  const budgets = freshBudgets(p);
+  return {
+    actionsUsed: budgets.actionsUsed,
+    companions: Object.fromEntries(Object.entries(budgets.companions).map(([slot, st]) => [
+      slot,
+      st.initiative == null && st.initiativeRoll == null ? st : { ...st, initiative: null, initiativeRoll: null },
+    ])),
+  };
+}
+
 /** Count every timer down by `rounds`, dropping those that run out and clearing the conditions
  *  they drove. Never advances the round counter — callers decide whether this is combat time. */
 function tick(play: PlayState, rounds: number): AdvanceResult {
@@ -81,13 +94,13 @@ export function nextRound(play: PlayState): AdvanceResult {
  *  still running. */
 export function startEncounter(play: PlayState, initiative: number, roll: number | null = null): PlayState {
   const p = normalizePlayState(play);
-  return { ...p, round: 1, initiative, initiativeRoll: roll, ...freshBudgets(p) };
+  return { ...p, round: 1, initiative, initiativeRoll: roll, ...freshFight(p) };
 }
 
 /** Leave combat. Durations keep running (they're tracked in rounds either way). */
 export function endEncounter(play: PlayState): PlayState {
   const p = normalizePlayState(play);
-  return { ...p, round: 0, initiative: null, initiativeRoll: null, ...freshBudgets(p) };
+  return { ...p, round: 0, initiative: null, initiativeRoll: null, ...freshFight(p) };
 }
 
 export function addTimer(play: PlayState, timer: Timer): PlayState {

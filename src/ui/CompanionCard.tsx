@@ -34,6 +34,26 @@ export interface CompanionTracker {
   /** Whether a fight is on. A turn's budget only means anything in combat, so the row is shown only
    *  then — as it is for the character. */
   inEncounter?: boolean;
+  /** Rolling for the creature. The dice and the roll log belong to the mat — one log for the table,
+   *  so a companion's bite lands in it beside its master's sword — so the card asks rather than rolls. */
+  dice?: CompanionDice;
+}
+
+/** The rolls a companion makes. Each one logs; `initiative` also records the count the creature is
+ *  acting on this fight, which is the mat's state to write. */
+export interface CompanionDice {
+  attack: (name: string, bonus: number) => void;
+  damage: (source: string, formula: string) => void;
+  save: (source: string, bonus: number) => void;
+  initiative: (bonus: number) => void;
+}
+
+/** A die button, small enough to sit inside a stat block row. */
+function Roll({ label, title, onRoll }: { label: string; title: string; onRoll: () => void }) {
+  return (
+    <button className="btn btn-ghost" style={{ fontSize: 10.5, padding: '1px 7px', flex: 'none' }}
+      title={title} onClick={(e) => { e.stopPropagation(); onRoll(); }}>🎲 {label}</button>
+  );
 }
 
 /** How many rounds a unit is worth — the clock counts in rounds and nothing else. */
@@ -149,6 +169,8 @@ export function CompanionCard({ c, play }: { c: CompanionBlock; play?: Companion
         <Stat label="Fort" value={fmtMod(c.fort)} />
         <Stat label="Ref" value={fmtMod(c.ref)} />
         <Stat label="Will" value={fmtMod(c.will)} />
+        <Stat label="Init" value={fmtMod(c.init)}
+          hint={play?.state.initiative != null ? `acting on ${play.state.initiative} this fight` : 'its own initiative count'} />
         <Stat label="BAB" value={fmtMod(c.bab)} />
         <Stat label="CMB" value={fmtMod(c.cmb)} />
         <Stat label="CMD" value={String(c.cmd)} />
@@ -276,6 +298,24 @@ export function CompanionCard({ c, play }: { c: CompanionBlock; play?: Companion
         </div>
       )}
 
+      {play?.dice && (
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginBottom: 12 }}>
+          <span className="micro" style={{ marginRight: 2 }}>Roll</span>
+          <Roll label={`init ${fmtMod(c.init)}`} title={`Roll ${c.name}'s initiative and set the count it acts on`}
+            onRoll={() => play.dice!.initiative(c.init)} />
+          {([['Fort', c.fort], ['Ref', c.ref], ['Will', c.will]] as const).map(([which, bonus]) => (
+            <Roll key={which} label={`${which} ${fmtMod(bonus)}`} title={`Roll ${c.name}'s ${which} save`}
+              onRoll={() => play.dice!.save(`${c.name} ${which}`, bonus)} />
+          ))}
+          {play.state.initiative != null && (
+            <span className="text-muted num" style={{ fontSize: 11.5 }}>
+              acts on {play.state.initiative}
+              {play.state.initiativeRoll != null && ` (d20 ${play.state.initiativeRoll} ${fmtMod(play.state.initiative - play.state.initiativeRoll)})`}
+            </span>
+          )}
+        </div>
+      )}
+
       <div style={{ fontSize: 12.5, marginBottom: 10 }}>
         <span className="micro" style={{ marginRight: 8 }}>Speed</span>{speedLabel(c.speed)}
       </div>
@@ -284,10 +324,23 @@ export function CompanionCard({ c, play }: { c: CompanionBlock; play?: Companion
         <div style={{ marginBottom: 12 }}>
           <div className="micro" style={{ marginBottom: 6 }}>Attacks</div>
           {c.attacks.map((a) => (
-            <div key={a.name} style={{ fontSize: 13, marginBottom: 3 }}>
-              {a.name} <span className="num" style={{ fontWeight: 600, color: 'var(--color-accent-300)' }}>{fmtMod(a.bonus)}</span>
-              {' '}<span className="num">({a.damage})</span>
-              {a.notes.length > 0 && <span className="text-muted" style={{ fontSize: 11.5 }}> — {a.notes.join('; ')}</span>}
+            <div key={a.name} style={{ fontSize: 13, marginBottom: 3, display: 'flex', alignItems: 'baseline', gap: 6, flexWrap: 'wrap' }}>
+              <span>
+                {a.name} <span className="num" style={{ fontWeight: 600, color: 'var(--color-accent-300)' }}>{fmtMod(a.bonus)}</span>
+                {' '}<span className="num">({a.damage})</span>
+              </span>
+              {play?.dice && (
+                <>
+                  <Roll label="d20" title={`Roll ${a.name} at ${fmtMod(a.bonus)} — a natural attack threatens on a 20 for ×2`}
+                    onRoll={() => play.dice!.attack(`${c.name} ${a.name}`, a.bonus)} />
+                  {/* No dice, no damage roll: the octopus's tentacles only grab. */}
+                  {/\d+d\d+/.test(a.damage) && (
+                    <Roll label={a.damage} title={`Roll ${a.damage} damage`}
+                      onRoll={() => play.dice!.damage(`${c.name} ${a.name} damage`, a.damage)} />
+                  )}
+                </>
+              )}
+              {a.notes.length > 0 && <span className="text-muted" style={{ fontSize: 11.5 }}>— {a.notes.join('; ')}</span>}
             </div>
           ))}
         </div>

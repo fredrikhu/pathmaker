@@ -282,6 +282,32 @@ export function PlaySheet({ id }: { id: string }) {
   const companionPlay = (slotId: string): CompanionPlayState => play.companions[slotId] ?? UNTOUCHED;
   const setCompanionPlay = (slotId: string, next: CompanionPlayState) =>
     updatePlay((p) => ({ companions: { ...p.companions, [slotId]: next } }));
+  /** The rolls a companion's card asks for. The dice and the log live here — one log for the table,
+   *  so a wolf's bite lands in it beside its druid's scimitar — and rolling initiative for a creature
+   *  also records the count it is acting on, which is play state only this component can write. */
+  const companionDice = (c: { slotId: string; name: string }) => ({
+    // A natural attack threatens on a 20 for ×2; the catalogue carries no crit range for one, so
+    // nothing here invents a wider threat than the creature has.
+    attack: (name: string, bonus: number) => rollAttackLine(name, bonus, '×2'),
+    damage: (source: string, formula: string) => rollDamageFor(source, formula),
+    save: (source: string, bonus: number) => {
+      const r = rollSave(bonus);
+      log({ source, detail: `d20 ${r.natural} ${fmtMod(r.bonus)}`
+        + (r.automatic ? ` — natural ${r.natural}, ${r.natural === 20 ? 'automatic success' : 'automatic failure'}` : ''),
+        total: r.total });
+    },
+    initiative: (bonus: number) => {
+      const r = rollCheck(bonus);
+      log({ source: `${c.name} initiative`, detail: `d20 ${r.natural} ${fmtMod(r.bonus)}`, total: r.total });
+      updatePlay((p) => ({
+        companions: {
+          ...p.companions,
+          [c.slotId]: { ...(p.companions[c.slotId] ?? UNTOUCHED), initiative: r.total, initiativeRoll: r.natural },
+        },
+      }));
+    },
+  });
+
   /** Put one of a companion's conditions on the clock. The timer joins the character's own running
    *  effects — one clock for the table — but it is scoped to the creature, so when it runs out it
    *  clears the condition on the companion and not on anyone else. */
@@ -1279,6 +1305,7 @@ export function PlaySheet({ id }: { id: string }) {
             timers: play.timers.filter((t) => t.companionSlot === c.slotId),
             startTimer: (conditionId, rounds) => startCompanionTimer(c, conditionId, rounds),
             inEncounter,
+            dice: companionDice(c),
           }} />
       ))}
 

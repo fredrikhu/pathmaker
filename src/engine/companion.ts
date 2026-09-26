@@ -46,6 +46,8 @@ const clampLevel = (level: number): number => Math.min(20, Math.max(1, level));
 interface ConditionEffects {
   /** Penalty to AC, touch AC, flat-footed AC and CMD. */
   ac: number;
+  /** Penalty to initiative (Deafened's −4). */
+  init: number;
   /** Penalty to every attack roll. */
   attack: number;
   /** Penalty to the damage of every attack. */
@@ -60,15 +62,15 @@ interface ConditionEffects {
   unshown: string[];
 }
 
-/** The targets a companion block has nowhere to print, and what to call them on the card. */
+/** The targets a companion block has nowhere to print, and what to call them on the card. Skill
+ *  checks are the only one left: the block prints a rank count rather than per-skill numbers. */
 const UNSHOWN_TARGETS: Record<string, string> = {
   'skill:all': 'skill checks',
-  init: 'initiative',
 };
 
 function conditionEffects(conditionIds: readonly string[]): ConditionEffects {
   const out: ConditionEffects = {
-    ac: 0, attack: 0, damage: 0, saves: { fort: 0, ref: 0, will: 0 },
+    ac: 0, init: 0, attack: 0, damage: 0, saves: { fort: 0, ref: 0, will: 0 },
     loseDexToAc: false, abilityEffects: [], unshown: [],
   };
   for (const id of conditionIds) {
@@ -81,6 +83,7 @@ function conditionEffects(conditionIds: readonly string[]): ConditionEffects {
       if (e.condition) continue;
       if (e.target.startsWith('ability:')) { out.abilityEffects.push(e); continue; }
       if (e.target === 'ac') { out.ac += e.value; continue; }
+      if (e.target === 'init') { out.init += e.value; continue; }
       // A companion attacks only with natural weapons, so the melee line is the one that reaches it.
       if (e.target === 'attack:melee') { out.attack += e.value; continue; }
       if (e.target === 'attack:ranged') continue;
@@ -242,6 +245,8 @@ function assemble(args: {
     ref: args.saves.ref + mods.dex + cond.saves.ref,
     will: args.saves.will + mods.wis + cond.saves.will,
     bab: args.bab,
+    // Its own initiative count: Dexterity, and whatever a condition does to it.
+    init: mods.dex + cond.init,
     // CMB is base attack plus Strength plus size: a penalty on attack rolls is added to the roll
     // rather than baked in ("add any bonuses you currently have on attack rolls"), exactly as on the
     // character's sheet. CMD does take every penalty to AC, and loses the Dexterity bonus with it.
