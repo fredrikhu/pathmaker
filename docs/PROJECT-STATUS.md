@@ -6,7 +6,7 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 
 ## ▶ Resume here (last session end)
 
-**Current state** — branch `main`, working tree clean, **1,230 tests** passing; run
+**Current state** — branch `main`, working tree clean, **1,237 tests** passing; run
 `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
 **Latest — a companion is a creature in play: it tracks its own hit points and its own conditions.**
@@ -43,9 +43,21 @@ because a wolf casts nothing and draws nothing: attack, full attack, charge, mov
 three of which cost the whole turn. The row appears only in combat, and a staggered or unconscious
 creature is *told* it has fewer actions rather than being stopped — the mat tracks, the table decides.
 
+*You can roll for it*, which was the last thing the card could not do: its attacks, their damage, its
+saves and its initiative all roll from the card, through the mat's own dice and into the one roll log
+— so a wolf's bite lands beside its druid's scimitar, and the target-concealment toggle covers it for
+free. The block now prints an `init`, and the creature records the count it is acting on ("acts on 8
+(d20 5 +3)"), cleared at both ends of a fight. That initiative also gave **Deafened's −4 somewhere to
+land**: the only penalty left unshowable is the −2 on skill checks.
+
+The golden that came with it is the general one: **a condition may not change nothing and say
+nothing.** It sweeps every condition in the catalogue over a resolved companion and requires each to
+either move a printed number or be named in the note — the guard that would have caught the missing
+skill and initiative penalties from first principles.
+
 A fused (Synthesist) eidolon deliberately gets the static card — it *is* the character, whose own
 block carries all of this — and so does the builder's Advancement step, where the creature is a
-preview rather than in play.
+preview rather than in play (verified: no buttons on it at all).
 
 **Prior — the content, the generated text, the view and the engine's own arithmetic have all
 been audited against the published rules.** Twenty-four passes, `6729349`..`3cd1e6c`, covering every
