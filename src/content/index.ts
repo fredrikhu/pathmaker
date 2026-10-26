@@ -5,7 +5,7 @@ export { CLASSES, classById } from './classes';
 export { CLASS_PROGRESSION } from './class-features';
 export { FEATS, featById, FIREARM_GROUP_ID } from './feats';
 export { TRAITS, traitById } from './traits';
-export { WEAPONS, ARMORS, GEAR, weaponById, armorById, gearById, anyItemById } from './equipment';
+export { WEAPONS, ARMORS, GEAR, ARMOR_PROFICIENCY_CATEGORIES, weaponById, armorById, gearById, anyItemById } from './equipment';
 export type { AnyItem } from './equipment';
 export {
   DEITIES, deityById, DOMAINS, domainById, BLESSINGS, blessingById, SCHOOLS, schoolById,

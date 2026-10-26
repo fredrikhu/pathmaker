@@ -52,7 +52,9 @@ export const CLASSES: ClassDef[] = [
     hitDie: 10, bab: 'full', goodSaves: ['fort'], skillRanks: 2,
     classSkills: [...CRAFT_ALL, 'handle-animal', 'intimidate', 'know-dungeoneering', 'know-engineering', 'profession-any', 'ride', 'survival', 'swim', 'climb'],
     startingGold: 175,
-    proficiencies: { weapons: ['simple', 'martial'], armor: ['light', 'medium', 'heavy', 'shield'] },
+    // The only class with tower shields: "all armor (heavy, light, and medium) and shields
+    // (including tower shields)". Every other shield class stops at 'shield'.
+    proficiencies: { weapons: ['simple', 'martial'], armor: ['light', 'medium', 'heavy', 'shield', 'tower-shield'] },
   },
   {
     id: 'barbarian', name: 'Barbarian', sub: 'Martial · d12 · rage',

@@ -1,4 +1,4 @@
-import type { ArmorDef, GearDef, WeaponDef } from './model';
+import type { ArmorCategory, ArmorDef, GearDef, WeaponDef } from './model';
 
 // Several firearms double as a melee weapon (an axe musket is also an axe). The firearm table
 // carries no melee profile for them, so rather than invent one the attack line says so.
@@ -137,6 +137,10 @@ export const WEAPONS: WeaponDef[] = [
     firearm: { era: 'advanced', grip: 'two', misfire: '1–2', capacity: 2, scatter: {} } },
 ];
 
+/** Every armour-proficiency token, for validating class and archetype lists against one vocabulary. */
+export const ARMOR_PROFICIENCY_CATEGORIES: ReadonlySet<ArmorCategory> =
+  new Set<ArmorCategory>(['light', 'medium', 'heavy', 'shield', 'tower-shield']);
+
 export const ARMORS: ArmorDef[] = [
   { id: 'padded', name: 'Padded armor', cost: 5, weight: 10, acBonus: 1, maxDex: 8, acp: 0, asf: 5, slot: 'armor', category: 'light' },
   { id: 'leather', name: 'Leather armor', cost: 10, weight: 15, acBonus: 2, maxDex: 6, acp: 0, asf: 10, slot: 'armor', category: 'light' },
@@ -155,7 +159,7 @@ export const ARMORS: ArmorDef[] = [
   { id: 'light-steel-shield', name: 'Light steel shield', cost: 9, weight: 6, acBonus: 1, maxDex: null, acp: -1, asf: 5, slot: 'shield', category: 'shield' },
   { id: 'heavy-shield', name: 'Heavy wooden shield', cost: 7, weight: 10, acBonus: 2, maxDex: null, acp: -2, asf: 15, slot: 'shield', category: 'shield' },
   { id: 'heavy-steel-shield', name: 'Heavy steel shield', cost: 20, weight: 15, acBonus: 2, maxDex: null, acp: -2, asf: 15, slot: 'shield', category: 'shield' },
-  { id: 'tower-shield', name: 'Tower shield', cost: 30, weight: 45, acBonus: 4, maxDex: 2, acp: -10, asf: 50, slot: 'shield', category: 'shield' },
+  { id: 'tower-shield', name: 'Tower shield', cost: 30, weight: 45, acBonus: 4, maxDex: 2, acp: -10, asf: 50, slot: 'shield', category: 'tower-shield' },
 ];
 
 // Gear, consumables, ammunition, and charged items — costs/weights verified against d20pfsrd.

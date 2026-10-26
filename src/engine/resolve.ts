@@ -954,6 +954,10 @@ export function resolve(doc: CharacterDoc): Resolution {
   const bab = sumBab(saveInput);
   // Parameterised feats (Weapon/Skill/Spell Focus, Exotic Weapon Proficiency), resolved once.
   const featParams = activeFeatParams(doc, dec, level);
+  // What the character may wield and wear without penalty. Hoisted here because the armour side
+  // feeds the two attack stats below, and every weapon attack line is built from those.
+  const prof = proficiencyCtx(dec, classes, featParams);
+  const armorAtkPenalties = armorAttackPenalties(doc, prof);
   // For prerequisites ("caster level 5th"), a multiclass caster is judged on their best class.
   const clvl = classes.reduce((best, c) => {
     const p = c.klass.spellcasting;
@@ -1171,16 +1175,20 @@ export function resolve(doc: CharacterDoc): Resolution {
   ], conds('cmd'));
 
   // Melee / ranged attack
+  // The armour penalties ride both generic lines, which is what carries them into every weapon and
+  // natural-attack line: those are all built from these stats' totals and breakdown lines.
   stats['attack:melee'] = makeStat('attack:melee', 'Melee attack', [
     { type: 'base', value: bab, note: 'BAB' },
     { type: 'base', value: mods.str, note: 'Str modifier' },
     { type: 'size', value: sizeAcAtk, note: 'Size' },
+    ...armorAtkPenalties,
     ...unconds('attack:melee'),
   ], conds('attack:melee'));
   stats['attack:ranged'] = makeStat('attack:ranged', 'Ranged attack', [
     { type: 'base', value: bab, note: 'BAB' },
     { type: 'base', value: mods.dex, note: 'Dex modifier' },
     { type: 'size', value: sizeAcAtk, note: 'Size' },
+    ...armorAtkPenalties,
     ...unconds('attack:ranged'),
   ], conds('attack:ranged'));
   // Bonuses and penalties to *weapon damage* — Divine Favor's luck bonus, Sickened's −2. These
@@ -1487,8 +1495,7 @@ export function resolve(doc: CharacterDoc): Resolution {
     progression,
     pools: classes.flatMap((c) => classPools(c.klass, c.levels, mods)),
     attacks: [
-      ...weaponAttacks(doc, stats, bab, mods.str, mods.dex, size, finesseGrant, weaponFeatBonuses(featParams), itemQuality(doc), new Set(featIds),
-        proficiencyCtx(dec, classes, featParams)),
+      ...weaponAttacks(doc, stats, bab, mods.str, mods.dex, size, finesseGrant, weaponFeatBonuses(featParams), itemQuality(doc), new Set(featIds), prof),
       ...naturalAttacks(dec, stats, bab, mods.str, new Set(featIds), doc.play),
     ],
     combatOptions: {
@@ -1693,18 +1700,35 @@ interface ProficiencyCtx {
   weapons: Set<string>;
   /** Exotic weapons a racial familiarity reclassifies as martial. */
   asMartial: Set<string>;
+  /** Armour categories a class list or an Armor/Shield Proficiency feat grants. Matched against an
+   *  `ArmorDef.category`, which is the same vocabulary. */
+  armor: Set<C.ArmorCategory>;
 }
+
+/** The proficiency feats, each granting exactly one armour category. No cascade is needed: Armor
+ *  Proficiency (Heavy) requires (Medium) requires (Light), and Tower Shield Proficiency requires
+ *  Shield Proficiency, so the prerequisite chain already puts the lighter categories in the set. */
+const ARMOR_PROFICIENCY_FEATS: Record<string, C.ArmorCategory> = {
+  'armor-proficiency-light': 'light',
+  'armor-proficiency-medium': 'medium',
+  'armor-proficiency-heavy': 'heavy',
+  'shield-proficiency': 'shield',
+  'tower-shield-proficiency': 'tower-shield',
+};
 
 function proficiencyCtx(dec: Decisions, classes: ClassEntry[], featParams: { featId: string; param: string | null }[]): ProficiencyCtx {
   const groups = new Set<string>();
   const weapons = new Set<string>();
   const asMartial = new Set<string>();
+  const armor = new Set<C.ArmorCategory>();
   for (const c of classes) {
     for (const entry of c.klass.proficiencies.weapons) {
       // The lists mix group names with specific weapon ids.
       if (entry === 'simple' || entry === 'martial' || entry === C.FIREARM_GROUP_ID) groups.add(entry);
       else weapons.add(entry);
     }
+    // A multiclass character keeps every proficiency either class grants, so these union.
+    for (const cat of c.klass.proficiencies.armor) armor.add(cat);
   }
   const { standard, alternates } = activeRacialTraits(dec);
   for (const t of [...standard, ...alternates]) {
@@ -1712,6 +1736,8 @@ function proficiencyCtx(dec: Decisions, classes: ClassEntry[], featParams: { fea
     for (const id of t.weaponFamiliarity?.martial ?? []) asMartial.add(id);
   }
   for (const f of featParams) {
+    const armorCat = ARMOR_PROFICIENCY_FEATS[f.featId];
+    if (armorCat) { armor.add(armorCat); continue; }
     // Simple Weapon Proficiency grants the whole simple group; the others name one weapon.
     if (f.featId === 'simple-weapon-proficiency') { groups.add('simple'); continue; }
     if (f.featId === 'martial-weapon-proficiency' && f.param) { weapons.add(f.param); continue; }
@@ -1720,7 +1746,38 @@ function proficiencyCtx(dec: Decisions, classes: ClassEntry[], featParams: { fea
     if (f.param === C.FIREARM_GROUP_ID) groups.add(C.FIREARM_GROUP_ID);
     else weapons.add(f.param);
   }
-  return { groups, weapons, asMartial };
+  return { groups, weapons, asMartial, armor };
+}
+
+/** "When employing a tower shield in combat, you take a −2 penalty on attack rolls because of the
+ *  shield's encumbrance." Its own rule, not a proficiency one — it applies to a fighter too. */
+export const TOWER_SHIELD_ATTACK_PENALTY = -2;
+
+/** Penalties on every attack roll that come from what the character is wearing.
+ *
+ *  The proficiency rule: "A character who is wearing armor with which he is not proficient applies
+ *  its armor check penalty to attack rolls." Body armour and shield are judged separately, and both
+ *  apply — a wizard in full plate holding a heavy steel shield takes each. Three details matter:
+ *  the penalty is the armour's *own* check penalty after any masterwork/magic reduction, not the
+ *  worse-of figure the skills use; a *load's* check penalty is not armour and never reaches an
+ *  attack roll; and a zero-penalty suit (padded, leather) costs a non-proficient wearer nothing
+ *  here, which is correct — it still costs them the arcane spell failure they always had.
+ *
+ *  Separately, a tower shield penalises its wielder whether or not they are proficient. */
+function armorAttackPenalties(doc: CharacterDoc, prof: ProficiencyCtx): Contribution[] {
+  const out: Contribution[] = [];
+  const quality = itemQuality(doc);
+  // The same two slots the armour check penalty reads: a shield lives in the off hand.
+  for (const slot of [doc.equipped.armor, doc.equipped.offHand]) {
+    const a = slot ? C.armorById.get(slot) : null;
+    if (!a) continue;
+    if (a.category === 'tower-shield')
+      out.push({ type: 'penalty', value: TOWER_SHIELD_ATTACK_PENALTY, note: `${a.name} (encumbrance)` });
+    if (prof.armor.has(a.category)) continue;
+    const acp = Math.min(0, a.acp + armorCheckPenaltyReduction(quality[slot!]));
+    if (acp < 0) out.push({ type: 'penalty', value: acp, note: `Not proficient with ${a.name}` });
+  }
+  return out;
 }
 
 /** What a firearm does that no other weapon does. None of this is a bonus — it changes which AC

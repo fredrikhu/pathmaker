@@ -264,7 +264,7 @@ function offenseStyle(sheet: Sheet, featIds: Set<string>, hasCasting: boolean): 
 function armorPosture(sheet: Sheet): ArmorPosture {
   const worn = sheet.inventory.find((i) => i.equipped === 'armor');
   const def = worn ? C.armorById.get(worn.id) : undefined;
-  if (!def || def.category === 'shield') return 'unarmored';
+  if (!def || def.category === 'shield' || def.category === 'tower-shield') return 'unarmored';
   return def.category;
 }
 

@@ -6,10 +6,51 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 
 ## ▶ Resume here (last session end)
 
-**Current state** — branch `main`, working tree clean, **1,237 tests** passing; run
+**Current state** — branch `main`, **1,255 tests** passing; run
 `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
-**Latest — a companion is a creature in play: it tracks its own hit points and its own conditions.**
+**Latest — armour you are not proficient with now costs you on the attack roll, and the tower shield
+is its own proficiency.** `ClassDef.proficiencies.armor` had been dead data since it was authored:
+`proficiencyCtx` read only the weapon side, and the armour check penalty reached skills but never an
+attack roll, so neither a class's grant nor the four Armor/Shield Proficiency feats changed any
+number. (The question that surfaced it: "Shield Proficiency doesn't seem to be applied for
+warpriest" — the content was right all along, the engine simply never looked.)
+
+*The rule*: "a character who is wearing armor with which he is not proficient applies its armor check
+penalty to attack rolls". Body armour and shield are judged separately and **both** apply — a wizard
+in full plate with a heavy steel shield takes −6 and −2, on top of the −4 for a weapon they are not
+proficient with either. Three details the implementation is careful about: the figure is the armour's
+**own** penalty after any masterwork/magic reduction, not the worse-of figure the skills use; a
+**load's** check penalty is not armour and never reaches an attack roll; and a zero-penalty suit
+(padded, leather) costs a non-proficient wearer nothing here, which is correct.
+
+*Where it lands*: `armorAttackPenalties` feeds contributions into `stats['attack:melee']` and
+`stats['attack:ranged']`, and every weapon and natural-attack line is built from those two — so one
+insertion carries the penalty, and its breakdown line, onto every attack the sheet prints.
+`proficiencyCtx` gained an `armor: Set<ArmorCategory>` filled from each class's list (unioned across a
+multiclass, archetype-effective, so Sacred Fist's lost proficiency bites) and from the proficiency
+feats. No cascade is needed: Heavy requires Medium requires Light, so the prerequisite chain already
+puts the lighter categories in the set.
+
+*Tower shields* are now their own category rather than plain `'shield'`, because they need their own
+proficiency. `ArmorCategory` is one vocabulary shared by `ArmorDef.category` and the class
+proficiency tokens, so the two cannot drift. The **fighter alone** carries `'tower-shield'` ("shields
+*including* tower shields"); everyone else reaches one through the new **Tower Shield Proficiency**
+feat (prerequisite: Shield Proficiency). The feat's "fighters have it as a bonus feat" Special is
+modelled as the fighter's class list, not as a granted feat, so the rule lives in one place. The
+tower shield's **own** −2 attack penalty for encumbrance also lands now, proficient or not — without
+it the split would have had no consequence for the one class it exists for.
+
+*Guards*: the armour lists had drifted unchecked for the same reason the weapon lists once had —
+nothing read them, so nothing validated them. A new `armour proficiency data` block pins that every
+class and archetype token is a real category, that the catalogue and the proficiency vocabulary are
+**the same set** in both directions, that each category has a feat granting it, and that the fighter
+is the only class with tower shields. 13 engine tests in a new `armor-proficiency.test.ts`.
+Browser-verified: the armoured wizard reads −9 with "Not proficient with Full plate −6 / Not
+proficient with Heavy steel shield −2" in the breakdown, the tower-shield fighter +3 with only
+"Tower shield (encumbrance) −2", and the full-plate-and-shield warpriest +4 with no penalty at all.
+
+**Prior — a companion is a creature in play: it tracks its own hit points and its own conditions.**
 The one thing the companion audit found missing rather than wrong is now built.
 `PlayState.companions[slotId]` holds the creature's `{hpDamage, tempHp, nonlethal, conditions}`, and
 the card on the play sheet drives both.
@@ -606,8 +647,9 @@ progression) sees the effective class; `classFeaturesUpTo` no longer re-applies 
 (Ranger)** — removes spellcasting, grants Hunter's Tricks (verified vs d20pfsrd). Tests: golden (Skirmisher
 casts nothing vs a standard ranger; gains Hunter's Tricks at 5) + a unit test on `effectiveClass` for
 weapon/armor add-remove and a spellcasting override; 607 pass. Browser-verified the ranger archetype picker
-and no caster level. **Note:** armor proficiency is recorded but not yet consumed by the engine (no
-arcane-failure/penalty modelling); class-skill changes remain unmodeled — so archetypes that also alter
+and no caster level. **Note (since superseded):** armor proficiency was recorded but not consumed by
+the engine when this was written — it is now (see the Resume-here note); arcane spell failure is
+still display-only, and class-skill changes remain unmodeled — so archetypes that also alter
 domains/slots/skills (e.g. Cloistered Cleric) aren't shippable accurately yet. **⚠ resolve.test.ts is being
 edited by a parallel session (reorder churn); this commit deliberately excludes it — the new archetype tests
 sit there uncommitted, to be committed once the other session lands.**
@@ -1984,6 +2026,13 @@ afterwards (see *Resume here*).
 - **Fly/swim/climb** speeds are display-only; only **land speed** is reduced by armor/encumbrance, and
   that reduction doesn't handle non-proficiency or class-feature exceptions.
 - Favored-class **racial** alternative bonuses (beyond +1 HP / +1 skill) not modeled.
+- **Armour non-proficiency** reaches the attack roll but not the skill side: the armour check penalty
+  already applies to every check in the ACP skill set whether or not you are proficient, where RAW
+  limits a *proficient* wearer's to Str/Dex-based skills and adds "all skill checks that involve
+  moving" for a non-proficient one. In our catalogue those sets coincide (Ride included), so the
+  totals agree; the distinction would only show once a non-Str/Dex movement skill existed.
+- **Arcane spell failure** is still display-only — proficiency changes nothing about it (correctly:
+  the chance applies to any arcane caster in armour), and Arcane Armor Training has nothing to reduce.
 
 ## Phase roadmap
 

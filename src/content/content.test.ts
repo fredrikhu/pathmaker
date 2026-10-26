@@ -1247,6 +1247,59 @@ describe('weapon proficiency data', () => {
   });
 });
 
+describe('armour proficiency data', () => {
+  // The weapon lists had drifted while nothing consumed them (see above). The armour lists went the
+  // same way for longer — nothing read them at all until the non-proficiency attack penalty existed,
+  // and nothing checked them either. A token that matches no armour category is now a missing penalty.
+  const cats = [...C.ARMOR_PROFICIENCY_CATEGORIES];
+
+  it('every armour category a class claims is a real proficiency category', () => {
+    for (const c of C.CLASSES)
+      for (const entry of c.proficiencies.armor)
+        expect(cats, `${c.id} armour proficiency "${entry}"`).toContain(entry);
+  });
+
+  it('every armour category an archetype adds or removes is a real proficiency category', () => {
+    for (const c of C.CLASSES)
+      for (const a of c.archetypes ?? [])
+        for (const entry of [...(a.proficiencies?.armor?.add ?? []), ...(a.proficiencies?.armor?.remove ?? [])])
+          expect(cats, `${c.id}/${a.id} armour proficiency "${entry}"`).toContain(entry);
+  });
+
+  // The other direction: a category no class or feat can grant would be armour nobody can ever use
+  // without penalty, and a category no armour carries would be a proficiency that grants nothing.
+  it('the armour catalogue and the proficiency vocabulary are the same set', () => {
+    const fromArmour = new Set(C.ARMORS.map((a) => a.category));
+    expect([...fromArmour].sort()).toEqual([...cats].sort());
+  });
+
+  // Every category needs a feat that grants it, or a character whose class does not grant it could
+  // never shed the penalty. The engine maps these ids to categories; this pins that they exist.
+  it('each proficiency category has a feat that grants it', () => {
+    const featFor: Record<string, string> = {
+      light: 'armor-proficiency-light',
+      medium: 'armor-proficiency-medium',
+      heavy: 'armor-proficiency-heavy',
+      shield: 'shield-proficiency',
+      'tower-shield': 'tower-shield-proficiency',
+    };
+    for (const cat of cats) {
+      const id = featFor[cat];
+      expect(id, `no feat mapped for category "${cat}"`).toBeTruthy();
+      expect(C.featById.get(id), `feat "${id}" is missing`).toBeTruthy();
+    }
+    expect(Object.keys(featFor).sort()).toEqual([...cats].sort());
+  });
+
+  // The fighter is the only class whose text reads "shields (including tower shields)". Everyone
+  // else stops at 'shield', and reaches a tower shield only through the feat.
+  it('the fighter alone is proficient with tower shields', () => {
+    const withTower = C.CLASSES.filter((c) => c.proficiencies.armor.includes('tower-shield')).map((c) => c.id);
+    expect(withTower).toEqual(['fighter']);
+    expect(C.featById.get('tower-shield-proficiency')!.prerequisites).toEqual({ feat: 'shield-proficiency' });
+  });
+});
+
 describe('composite bows and Strength-to-damage weapons', () => {
   it('prices each point of Strength rating at the bow’s own rate', () => {
     // Verified against the weapons table: the composite longbow's +0..+5 rows run 100→600 gp.
@@ -3109,7 +3162,8 @@ describe('equipment: shapes that must hold', () => {
       if (a.maxDex !== null && (a.maxDex < 0 || a.maxDex > 8)) bad.push(`${a.id}: maxDex ${a.maxDex}`);
       // A shield sits in the shield slot and vice versa — the engine keys off `slot`, and the
       // off-hand/armour distinction is exactly the bug the project has hit before.
-      if ((a.category === 'shield') !== (a.slot === 'shield')) bad.push(`${a.id}: category "${a.category}" but slot "${a.slot}"`);
+      const shieldish = a.category === 'shield' || a.category === 'tower-shield';
+      if (shieldish !== (a.slot === 'shield')) bad.push(`${a.id}: category "${a.category}" but slot "${a.slot}"`);
       // Heavier categories should not protect less than lighter ones at the same cost of mobility.
       if (a.slot === 'armor' && a.maxDex === null) bad.push(`${a.id}: body armour with no max Dex`);
     }

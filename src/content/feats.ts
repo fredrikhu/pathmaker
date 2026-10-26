@@ -263,6 +263,12 @@ export const FEATS: FeatDef[] = [
     benefit: 'No armor check penalty on attack rolls while wearing heavy armor.', prerequisites: { feat: 'armor-proficiency-medium' } },
   { id: 'shield-proficiency', name: 'Shield Proficiency', types: ['combat'], reqText: '—',
     benefit: 'No armor check penalty on attack rolls from a shield you wield (except the tower shield’s).' },
+  // "Fighters automatically have Tower Shield Proficiency as a bonus feat. They need not select it" —
+  // modelled as the fighter's class proficiency list carrying 'tower-shield', not as a granted feat,
+  // so the rule lives in one place.
+  { id: 'tower-shield-proficiency', name: 'Tower Shield Proficiency', types: ['combat'], reqText: 'Shield Proficiency',
+    benefit: 'No armor check penalty on attack rolls from a tower shield you wield.',
+    prerequisites: { feat: 'shield-proficiency' } },
 
   // ---- Combat feats: maneuvers & positioning ----
   { id: 'agile-maneuvers', name: 'Agile Maneuvers', types: ['combat'], reqText: '—',

@@ -1,6 +1,13 @@
 import type { Ability, Alignment, DamageReduction, EnergyResistance, EnergyType, Effect, Predicate } from '../engine/types';
 import type { BabProgression, CasterProgression, SpellTable } from '../engine/progression';
 
+/** What a suit of armour is, for proficiency: the three armour categories, plus two for shields.
+ *  The tower shield is its own category because it needs its own proficiency — only the fighter's
+ *  class list and the Tower Shield Proficiency feat reach it, and Shield Proficiency explicitly
+ *  does not. An `ArmorDef`'s category and a class's proficiency tokens are the same vocabulary,
+ *  so the two cannot drift. */
+export type ArmorCategory = 'light' | 'medium' | 'heavy' | 'shield' | 'tower-shield';
+
 export interface RacialTraitDef {
   id: string;
   name: string;
@@ -365,11 +372,12 @@ export interface ArchetypeDef {
   desc: string;
   replaces: string[];
   grants: LeveledFeatureDef[];
-  /** Proficiency changes layered on the class's. Weapon changes affect attack math; armor entries
-   *  are recorded but not yet consumed by the engine (no arcane-failure / penalty modelling). */
+  /** Proficiency changes layered on the class's. Both sides affect attack math: armour you are not
+   *  proficient with applies its check penalty to your attack rolls. Arcane spell failure is still
+   *  display-only. */
   proficiencies?: {
     weapons?: { add?: string[]; remove?: string[] };
-    armor?: { add?: ('light' | 'medium' | 'heavy' | 'shield')[]; remove?: ('light' | 'medium' | 'heavy' | 'shield')[] };
+    armor?: { add?: ArmorCategory[]; remove?: ArmorCategory[] };
   };
   /** Spellcasting change: omit the field to keep the class's casting, `null` to remove it entirely,
    *  or a full SpellcastingDef to replace it. */
@@ -454,7 +462,7 @@ export interface ClassDef {
   alignment?: Alignment[];
   proficiencies: {
     weapons: ('simple' | 'martial')[] | string[];
-    armor: ('light' | 'medium' | 'heavy' | 'shield')[];
+    armor: ArmorCategory[];
   };
   /** Level-1 class features. Retained as the fallback while per-level `features` are authored
    *  The per-level progression below is the only place a class's features live. */
@@ -575,7 +583,7 @@ export interface ArmorDef {
   acp: number;
   asf: number;
   slot: 'armor' | 'shield';
-  category: 'light' | 'medium' | 'heavy' | 'shield';
+  category: ArmorCategory;
 }
 
 export interface GearDef {
