@@ -6,7 +6,12 @@ import { SKILLS } from './skills';
 // Weapon Focus offers every weapon we know about instead of a frozen subset of eight. Each option
 // keeps the catalogue id so the engine can match the pick to a weapon/skill without string-matching.
 const byName = (a: { name: string }, b: { name: string }) => a.name.localeCompare(b.name);
-const WEAPON_OPTIONS = WEAPONS.map((w) => ({ id: w.id, name: w.name })).sort(byName);
+/** Unarmed strike is no catalogue weapon, but Weapon Focus and its chain may name it. */
+export const UNARMED_STRIKE_ID = 'unarmed-strike';
+const WEAPON_OPTIONS = [
+  { id: UNARMED_STRIKE_ID, name: 'Unarmed strike' },
+  ...WEAPONS.map((w) => ({ id: w.id, name: w.name })).sort(byName),
+];
 // Exotic Weapon Proficiency names one exotic weapon — except for firearms, where the single pick
 // "firearms" grants the whole group at once. That option carries the group id, not a weapon id.
 export const FIREARM_GROUP_ID = 'firearms';
@@ -81,14 +86,16 @@ export const FEATS: FeatDef[] = [
     benefit: 'No penalty for using an improvised ranged weapon, and +1 circumstance bonus on attack rolls with thrown splash weapons.' },
   { id: 'weapon-specialization', name: 'Weapon Specialization', types: ['combat'], reqText: 'Weapon Focus, Fighter 4',
     benefit: '+2 bonus on damage rolls with the selected weapon.',
-    prerequisites: { all: [{ feat: 'weapon-focus' }, { classLevel: { classId: 'fighter', gte: 4 } }] } },
+    prerequisites: { all: [{ feat: 'weapon-focus' }, { classLevel: { classId: 'fighter', gte: 4 } }] },
+    param: { label: 'Weapon', options: WEAPON_OPTIONS } },
   { id: 'greater-weapon-focus', name: 'Greater Weapon Focus', types: ['combat'], reqText: 'Weapon Focus, Fighter 8',
     benefit: '+1 more on attack rolls with the selected weapon (stacks with Weapon Focus).',
     prerequisites: { all: [{ feat: 'weapon-focus' }, { classLevel: { classId: 'fighter', gte: 8 } }] },
     param: { label: 'Weapon', options: WEAPON_OPTIONS } },
   { id: 'greater-weapon-specialization', name: 'Greater Weapon Specialization', types: ['combat'], reqText: 'Weapon Specialization, Fighter 12',
     benefit: '+2 more on damage rolls with the selected weapon (stacks with Weapon Specialization).',
-    prerequisites: { all: [{ feat: 'weapon-specialization' }, { classLevel: { classId: 'fighter', gte: 12 } }] } },
+    prerequisites: { all: [{ feat: 'weapon-specialization' }, { classLevel: { classId: 'fighter', gte: 12 } }] },
+    param: { label: 'Weapon', options: WEAPON_OPTIONS } },
 
   // ---- Combat feats (situational; no static stat effect) ----
   { id: 'great-cleave', name: 'Great Cleave', types: ['combat'], reqText: 'Cleave, Str 13, BAB +4',

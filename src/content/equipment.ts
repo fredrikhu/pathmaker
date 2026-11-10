@@ -14,7 +14,7 @@ export const WEAPONS: WeaponDef[] = [
   { id: 'heavy-mace', name: 'Mace, heavy', cost: 12, weight: 8, dmg: '1d8', crit: '×2', dmgType: 'B', group: 'simple', hands: 'one' },
   { id: 'morningstar', name: 'Morningstar', cost: 8, weight: 6, dmg: '1d8', crit: '×2', dmgType: 'B and P', group: 'simple', hands: 'one' },
   { id: 'shortspear', name: 'Shortspear', cost: 1, weight: 3, dmg: '1d6', crit: '×2', range: 20, dmgType: 'P', group: 'simple', hands: 'one' },
-  { id: 'quarterstaff', name: 'Quarterstaff', cost: 0, weight: 4, dmg: '1d6/1d6', crit: '×2', dmgType: 'B', group: 'simple', hands: 'two' },
+  { id: 'quarterstaff', name: 'Quarterstaff', cost: 0, weight: 4, dmg: '1d6/1d6', crit: '×2', dmgType: 'B', group: 'simple', hands: 'two', monk: true },
   { id: 'spear', name: 'Spear', cost: 2, weight: 6, dmg: '1d8', crit: '×3', range: 20, dmgType: 'P', group: 'simple', hands: 'two' },
   { id: 'longspear', name: 'Longspear', cost: 5, weight: 9, dmg: '1d8', crit: '×3', dmgType: 'P', group: 'simple', hands: 'two' },
   { id: 'dart', name: 'Dart', cost: 0.5, weight: 0.5, dmg: '1d4', crit: '×2', range: 20, dmgType: 'P', group: 'simple', hands: 'ranged' },
@@ -54,10 +54,10 @@ export const WEAPONS: WeaponDef[] = [
   // Wielding one without Exotic Weapon Proficiency (or a racial familiarity that reclassifies it)
   // costs −4 on attack rolls, which the engine folds into the attack line.
   // Double weapons carry both ends in the damage string, as the quarterstaff already does.
-  { id: 'kama', name: 'Kama', cost: 2, weight: 2, dmg: '1d6', crit: '×2', dmgType: 'S', group: 'exotic', hands: 'light' },
-  { id: 'nunchaku', name: 'Nunchaku', cost: 2, weight: 2, dmg: '1d6', crit: '×2', dmgType: 'B', group: 'exotic', hands: 'light' },
-  { id: 'sai', name: 'Sai', cost: 1, weight: 1, dmg: '1d4', crit: '×2', dmgType: 'B', group: 'exotic', hands: 'light' },
-  { id: 'siangham', name: 'Siangham', cost: 3, weight: 1, dmg: '1d6', crit: '×2', dmgType: 'P', group: 'exotic', hands: 'light' },
+  { id: 'kama', name: 'Kama', cost: 2, weight: 2, dmg: '1d6', crit: '×2', dmgType: 'S', group: 'exotic', hands: 'light', monk: true },
+  { id: 'nunchaku', name: 'Nunchaku', cost: 2, weight: 2, dmg: '1d6', crit: '×2', dmgType: 'B', group: 'exotic', hands: 'light', monk: true },
+  { id: 'sai', name: 'Sai', cost: 1, weight: 1, dmg: '1d4', crit: '×2', dmgType: 'B', group: 'exotic', hands: 'light', monk: true },
+  { id: 'siangham', name: 'Siangham', cost: 3, weight: 1, dmg: '1d6', crit: '×2', dmgType: 'P', group: 'exotic', hands: 'light', monk: true },
   { id: 'bastard-sword', name: 'Sword, bastard', cost: 35, weight: 6, dmg: '1d10', crit: '19–20/×2', dmgType: 'S', group: 'exotic', hands: 'one' },
   { id: 'dwarven-waraxe', name: 'Waraxe, dwarven', cost: 30, weight: 8, dmg: '1d10', crit: '×3', dmgType: 'S', group: 'exotic', hands: 'one' },
   { id: 'whip', name: 'Whip', cost: 1, weight: 2, dmg: '1d3', crit: '×2', dmgType: 'S', group: 'exotic', hands: 'one' },
@@ -73,7 +73,7 @@ export const WEAPONS: WeaponDef[] = [
   { id: 'hand-crossbow', name: 'Crossbow, hand', cost: 100, weight: 2, dmg: '1d4', crit: '19–20/×2', range: 30, dmgType: 'P', group: 'exotic', hands: 'ranged' },
   { id: 'repeating-crossbow-heavy', name: 'Crossbow, repeating heavy', cost: 400, weight: 12, dmg: '1d10', crit: '19–20/×2', range: 120, dmgType: 'P', group: 'exotic', hands: 'ranged' },
   { id: 'repeating-crossbow-light', name: 'Crossbow, repeating light', cost: 250, weight: 6, dmg: '1d8', crit: '19–20/×2', range: 80, dmgType: 'P', group: 'exotic', hands: 'ranged' },
-  { id: 'shuriken', name: 'Shuriken', cost: 0.2, weight: 0.1, dmg: '1d2', crit: '×2', range: 10, dmgType: 'P', group: 'exotic', hands: 'ranged' },
+  { id: 'shuriken', name: 'Shuriken', cost: 0.2, weight: 0.1, dmg: '1d2', crit: '×2', range: 10, dmgType: 'P', group: 'exotic', hands: 'ranged', monk: true },
   { id: 'halfling-sling-staff', name: 'Sling staff, halfling', cost: 20, weight: 3, dmg: '1d8', crit: '×3', range: 80, dmgType: 'B', group: 'exotic', hands: 'ranged', strToDamage: true },
   // Not authored: the net. It deals no damage at all, and the attack line is built around a
   // damage string — listing it would print a damage figure the weapon does not have.

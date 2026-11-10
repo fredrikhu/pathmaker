@@ -130,6 +130,26 @@ export interface ClassFeatureDef {
   /** A choice of feats the feature hands out; the player picks one (the necromancy school's Power
    *  over Undead → Command Undead or Turn Undead). Prerequisites are bypassed. */
   grantsFeatChoice?: string[];
+  /** While the character has this feature, its class's levels count as levels in other classes
+   *  when qualifying for feats, in *every* feat slot (the brawler's Martial Training, the magus's
+   *  Fighter Training). Compare `BonusFeatsDef.levelsCountAs`, which covers a class's own bonus
+   *  slots only. */
+  countsAsClassLevels?: CountsAsClassLevelsDef;
+}
+
+/** How a feature turns its class's level into levels of another class, for feat prerequisites. */
+export interface CountsAsClassLevelsDef {
+  /** The classes whose levels this stands in for: `['fighter']`, or `['fighter', 'monk']`. */
+  as: string[];
+  /** The class level that counts: all of it, half of it (rounded down), or it less 3. */
+  amount: 'full' | 'half' | 'minus-3';
+  /** Real levels in the named class add on, where the rules say "these levels stack" (magus,
+   *  kensai). Without it the higher of the two counts, as for the warpriest. */
+  stacks?: boolean;
+  /** Only for feats applied to these weapons. `unarmed-or-monk`: unarmed strikes and weapons with
+   *  the monk special quality (Martial Arts Master). `chosenVia`: the one weapon picked for the
+   *  feat that feature grants (the kensai's chosen weapon is his Weapon Focus weapon). */
+  weapons?: 'unarmed-or-monk' | { chosenVia: string };
 }
 
 /** A class feature tagged with the class level at which it is gained. */
@@ -567,6 +587,9 @@ export interface WeaponDef {
   /** Firearm-only stats (Ultimate Combat). Present ⇒ the weapon follows the firearm rules:
    *  it resolves against touch AC at close range, misfires, and reloads by the action listed. */
   firearm?: FirearmDef;
+  /** The monk special quality: a monk may flurry with it, and the Martial Artist's Martial Arts
+   *  Master counts monk levels as fighter levels for feats applied to it. */
+  monk?: boolean;
 }
 
 export interface FirearmDef {

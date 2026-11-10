@@ -480,8 +480,17 @@ function predCtxAt(dec: Decisions, level: number): PredicateCtx {
     }, 0),
     skillRanks: dec.skillRanks,
     level,
-    classLevels: Object.fromEntries(cls.map((c) => [c.klass.id, c.levels])),
+    classLevels: classLevelsForFeats(cls, qualifyingLevels(cls).filter((q) => !q.weapons)),
   };
+}
+
+/** Class levels as feat prerequisites see them at the character's current level: real levels,
+ *  plus the class features that count one class's levels as another's in every feat slot. The
+ *  weapon-limited ones (kensai, Martial Arts Master) are left out, since they count only for some
+ *  feats, as are a class's own bonus slots (warpriest). */
+export function featQualifyingClassLevels(doc: CharacterDoc): Record<string, number> {
+  const level = Math.max(1, Math.min(20, Math.floor(doc.level) || 1));
+  return predCtxAt(readDecisions(doc), level).classLevels;
 }
 
 // Multiclass fan-outs: each class contributes at *its own* level, and the results concatenate.
@@ -982,7 +991,7 @@ export function resolve(doc: CharacterDoc): Resolution {
     abilities, bab, featIds,
     raceId: dec.raceId, classId: dec.classId, alignment: dec.alignment,
     casterLevel: clvl, skillRanks: dec.skillRanks,
-    level, classLevels: Object.fromEntries(classes.map((c) => [c.klass.id, c.levels])),
+    level, classLevels: classLevelsForFeats(classes, qualifyingLevels(classes).filter((q) => !q.weapons)),
   };
 
   // ---- Stats ----
@@ -2317,9 +2326,38 @@ function buildSlotsAndIssues(
     if (!c) { c = predCtxAt(dec, key); ctxCache.set(key, c); }
     return c;
   };
+  // Weapon-limited substitutions (the kensai's Fighter Training, Martial Arts Master) count only for
+  // feats applied to certain weapons, so they stay out of the base context. They are worked out
+  // per level, and added back only for a feat whose weapon they cover.
+  const limitedCache = new Map<number, { classes: ClassEntry[]; limited: QualifyingLevels[]; open: QualifyingLevels[] }>();
+  const limitedAt = (L: number) => {
+    const key = Math.min(L, ctx.level);
+    let c = limitedCache.get(key);
+    if (!c) {
+      const classes = classBreakdown(dec, key);
+      const all = qualifyingLevels(classes);
+      c = { classes, limited: all.filter((q) => q.weapons), open: all.filter((q) => !q.weapons) };
+      limitedCache.set(key, c);
+    }
+    return c;
+  };
   // A slot that substitutes class levels is judged against its own variant of that level's context.
-  const ctxForSlot = (L: number, sub?: FeatSlotKey['levelsCountAs']): PredicateCtx =>
-    sub ? withLevelsCountingAs(ctxAtLevel(L), sub) : ctxAtLevel(L);
+  // `include` picks the weapon-limited substitutions that count as well.
+  const ctxForSlot = (L: number, sub?: FeatSlotKey['levelsCountAs'], include?: (q: QualifyingLevels) => boolean): PredicateCtx => {
+    let pc = ctxAtLevel(L);
+    if (include) {
+      const { classes, limited, open } = limitedAt(L);
+      const extra = limited.filter(include);
+      if (extra.length) pc = { ...pc, classLevels: classLevelsForFeats(classes, [...open, ...extra]) };
+    }
+    return sub ? withLevelsCountingAs(pc, sub) : pc;
+  };
+  const anyWeapon = () => true;
+  const covers = (weapon: string) => (q: QualifyingLevels) => weaponCovered(q, weapon, dec);
+  /** "Fighter Training, which counts only for feats applied to your chosen weapon (Longsword)". */
+  const limitedText = (L: number): string => limitedAt(L).limited
+    .map((q) => `${q.featureName}, which counts only for feats applied to ${coveredWeaponsText(q, dec)}`)
+    .filter((t, i, all) => all.indexOf(t) === i).join('; and ');
   const optsCache = new Map<string, SlotOption[]>();
   const optionsAtLevel = (L: number, sub?: FeatSlotKey['levelsCountAs']): SlotOption[] => {
     const lvl = Math.min(L, ctx.level);
@@ -2327,11 +2365,16 @@ function buildSlotsAndIssues(
     let o = optsCache.get(key);
     if (!o) {
       const pc = ctxForSlot(lvl, sub);
+      // With weapon-limited substitutions in play, a feat they open is offered with a caution, and
+      // one still closed explains itself against the best levels any weapon could reach.
+      const wide = limitedAt(lvl).limited.length ? ctxForSlot(lvl, sub, anyWeapon) : pc;
       o = C.FEATS.map((f) => {
-        const legal = !f.prerequisites || evalPredicate(f.prerequisites, pc);
+        const legalBase = !f.prerequisites || evalPredicate(f.prerequisites, pc);
+        const legal = legalBase || evalPredicate(f.prerequisites!, wide);
         return {
           id: f.id, name: f.name, desc: f.benefit, tags: f.types, legal,
-          whyNot: !legal && f.prerequisites ? explainFailure(f.prerequisites, pc, displayName) ?? undefined : undefined,
+          whyNot: !legal && f.prerequisites ? explainFailure(f.prerequisites, wide, displayName) ?? undefined : undefined,
+          ...(legal && !legalBase ? { caution: `Qualifies only through ${limitedText(lvl)}` } : {}),
           meta: { req: f.reqText },
         };
       });
@@ -2358,9 +2401,28 @@ function buildSlotsAndIssues(
     if (keyLvl && Number(keyLvl[1]) > ctx.level) continue;
     const f = C.featById.get(fid);
     const slot = slotByKey.get(key);
-    const pc = ctxForSlot(slot?.charLevel ?? ctx.level, slot?.levelsCountAs);
+    const L = slot?.charLevel ?? ctx.level;
+    const pc = ctxForSlot(L, slot?.levelsCountAs);
     if (f?.prerequisites && !evalPredicate(f.prerequisites, pc)) {
-      issues.push({ severity: 'error', step: 'feats', slot: key, clearSlot: `feats.${key}`, message: `${f.name}: ${explainFailure(f.prerequisites, pc, displayName)}` });
+      const prereq = f.prerequisites;
+      const wide = limitedAt(L).limited.length ? ctxForSlot(L, slot?.levelsCountAs, anyWeapon) : pc;
+      if (!evalPredicate(prereq, wide)) {
+        issues.push({ severity: 'error', step: 'feats', slot: key, clearSlot: `feats.${key}`, message: `${f.name}: ${explainFailure(prereq, wide, displayName)}` });
+      } else if (f.param?.label === 'Weapon') {
+        // The feat names its weapon, so the limit can be checked outright.
+        const weapon = normalizeParam(fid, dec.featParams[key]);
+        if (!weapon) {
+          issues.push({ severity: 'warning', step: 'feats', slot: key, message: `${f.name}: qualifies only through ${limitedText(L)} — pick one of those` });
+        } else {
+          const withWeapon = ctxForSlot(L, slot?.levelsCountAs, covers(weapon));
+          if (!evalPredicate(prereq, withWeapon))
+            issues.push({ severity: 'error', step: 'feats', slot: key, clearSlot: `feats.${key}`, message: `${f.name} (${weaponLabel(weapon)}): ${explainFailure(prereq, withWeapon, displayName)}. It qualifies only through ${limitedText(L)}` });
+        }
+      } else {
+        // A feat that names no weapon (Disruptive, Penetrating Strike) can't be checked against the
+        // limit, so it is allowed and flagged rather than silently passed or wrongly refused.
+        issues.push({ severity: 'warning', step: 'feats', slot: key, message: `${f.name}: qualifies only through ${limitedText(L)}. This feat names no weapon, so check with your GM that it applies` });
+      }
     }
     // Orphaned: feat sits in a slot that no longer exists (e.g. Focused Study removed human feat slot).
     if (!featSlotKeys.some((fs) => fs.key === key)) {
@@ -2590,6 +2652,70 @@ interface FeatSlotKey {
 function withLevelsCountingAs(pc: PredicateCtx, sub: { from: string; as: string }): PredicateCtx {
   const levels = Math.max(pc.classLevels[sub.from] ?? 0, pc.classLevels[sub.as] ?? 0);
   return { ...pc, classLevels: { ...pc.classLevels, [sub.as]: levels } };
+}
+
+/** One class feature letting its class's levels count as another class's for feat prerequisites,
+ *  worked out at the class's current level (see `CountsAsClassLevelsDef`). */
+interface QualifyingLevels {
+  featureName: string;
+  as: string;
+  value: number;
+  stacks: boolean;
+  weapons?: C.CountsAsClassLevelsDef['weapons'];
+}
+
+/** The level substitutions the character's class features grant. A feature counts only once its
+ *  class has it — an archetype that replaces it (the Staff Magus's Fighter Training) takes it away. */
+function qualifyingLevels(classes: ClassEntry[]): QualifyingLevels[] {
+  const out: QualifyingLevels[] = [];
+  for (const c of classes) {
+    for (const f of classFeaturesUpTo(c.klass, c.levels)) {
+      const q = f.countsAsClassLevels;
+      if (!q) continue;
+      const value = q.amount === 'half' ? Math.floor(c.levels / 2) : q.amount === 'minus-3' ? c.levels - 3 : c.levels;
+      if (value <= 0) continue;
+      for (const as of q.as) out.push({ featureName: f.name, as, value, stacks: !!q.stacks, weapons: q.weapons });
+    }
+  }
+  return out;
+}
+
+/** Class levels for feat prerequisites: the real ones, raised by each substitution given. One that
+ *  stacks adds to the real levels in its class (magus, kensai: "these levels stack"); one that
+ *  doesn't counts only when it is the higher (brawler, Martial Arts Master), as for the warpriest.
+ *  Two substitutions for the same class never add to each other, since neither is a real level in
+ *  it, so the best one counts. */
+function classLevelsForFeats(classes: ClassEntry[], subs: QualifyingLevels[]): Record<string, number> {
+  const real: Record<string, number> = Object.fromEntries(classes.map((c) => [c.klass.id, c.levels]));
+  const out = { ...real };
+  for (const s of subs) {
+    const r = real[s.as] ?? 0;
+    out[s.as] = Math.max(out[s.as] ?? 0, s.stacks ? r + s.value : Math.max(r, s.value));
+  }
+  return out;
+}
+
+/** The weapon the kensai (or any `chosenVia` feature) picked for the feat its feature grants. */
+function chosenWeapon(featureId: string, dec: Decisions): string | null {
+  return dec.featParams[sourceGrantParamKey(featureId)] || null;
+}
+
+/** Whether a weapon-limited substitution counts for a feat applied to `weapon`. */
+function weaponCovered(q: QualifyingLevels, weapon: string, dec: Decisions): boolean {
+  if (!q.weapons) return true;
+  if (q.weapons === 'unarmed-or-monk') return weapon === C.UNARMED_STRIKE_ID || !!C.weaponById.get(weapon)?.monk;
+  return chosenWeapon(q.weapons.chosenVia, dec) === weapon;
+}
+
+function coveredWeaponsText(q: QualifyingLevels, dec: Decisions): string {
+  if (!q.weapons) return 'any weapon';
+  if (q.weapons === 'unarmed-or-monk') return 'unarmed strikes and monk weapons';
+  const w = chosenWeapon(q.weapons.chosenVia, dec);
+  return w ? `your chosen weapon (${weaponLabel(w)})` : 'your chosen weapon (not yet picked)';
+}
+
+function weaponLabel(id: string): string {
+  return id === C.UNARMED_STRIKE_ID ? 'Unarmed strike' : C.weaponById.get(id)?.name ?? id;
 }
 
 /** All feat slots opened up through `level`: a general feat at each odd level, racial bonus

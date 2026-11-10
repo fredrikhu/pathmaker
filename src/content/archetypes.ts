@@ -11,7 +11,8 @@ import { ROGUE_TALENTS, ROGUE_ADVANCED_TALENTS, MAGUS_ARCANA, WITCH_HEXES, ARCAN
 // The advanced slayer-talent line lets you pick a basic or an advanced talent (mirrors class-features).
 const SLAYER_TALENTS_ALL = [...SLAYER_TALENTS, ...SLAYER_ADVANCED_TALENTS];
 
-const g = (level: number, id: string, name: string, desc: string): LeveledFeatureDef => ({ level, id, name, desc });
+const g = (level: number, id: string, name: string, desc: string, extra?: Partial<LeveledFeatureDef>): LeveledFeatureDef =>
+  ({ level, id, name, desc, ...extra });
 
 /** The ten Knowledge skills, for archetypes that hand out the whole family. */
 const KNOW_ALL_SKILLS = [
@@ -480,9 +481,11 @@ export const MAGUS_ARCHETYPES: ArchetypeDef[] = [
     ],
     grants: [
       g(1, 'kensai-canny-defense', 'Canny Defense', 'While wielding your chosen weapon and unarmored, add your Intelligence bonus (max your kensai level) to AC as a dodge bonus, as the duelist ability.'),
-      g(1, 'kensai-weapon-focus', 'Weapon Focus', 'Gain Weapon Focus as a bonus feat with your chosen weapon.'),
+      // The weapon picked for this Weapon Focus is the kensai's chosen weapon.
+      g(1, 'kensai-weapon-focus', 'Weapon Focus', 'Gain Weapon Focus as a bonus feat with your chosen weapon.', { grantsFeat: 'weapon-focus' }),
       g(4, 'kensai-perfect-strike', 'Perfect Strike', 'Spend 1 arcane pool point to maximize your chosen weapon’s damage on a hit; spend 2 on a critical to raise its multiplier by 1. Replaces spell recall.'),
-      g(7, 'kensai-fighter-training', 'Fighter Training', 'Count your magus level − 3 as your fighter level for feat prerequisites, but only with your chosen weapon. Replaces knowledge pool.'),
+      g(7, 'kensai-fighter-training', 'Fighter Training', 'Count your magus level − 3 as your fighter level for qualifying for feats; levels in fighter stack with it. You lose the benefit of such feats with any weapon but your chosen one. Replaces knowledge pool.',
+        { countsAsClassLevels: { as: ['fighter'], amount: 'minus-3', stacks: true, weapons: { chosenVia: 'kensai-weapon-focus' } } }),
       g(7, 'kensai-iaijutsu', 'Iaijutsu', 'Add your Intelligence modifier to initiative, make attacks of opportunity while flat-footed, and draw your weapon as a free action when making one. Replaces medium armor.'),
       g(9, 'kensai-critical-perfection', 'Critical Perfection', 'Add your Intelligence bonus to critical confirmation rolls with your chosen weapon, and use your magus level as your BAB for Critical Focus feat prerequisites. Replaces the 9th-level magus arcana.'),
       g(11, 'kensai-superior-reflexes', 'Superior Reflexes', 'You may make a number of attacks of opportunity per round equal to your Intelligence modifier (minimum 1); this stacks with Combat Reflexes. Replaces improved spell recall.'),
@@ -512,7 +515,8 @@ export const MONK_ARCHETYPES: ArchetypeDef[] = [
     ],
     grants: [
       g(3, 'ma-pain-points', 'Pain Points', '+1 on critical hit confirmation rolls, and +1 to the DC of your Stunning Fist and quivering palm. Replaces still mind.'),
-      g(4, 'ma-martial-arts-master', 'Martial Arts Master', 'Use your monk level to qualify for feats with a fighter level prerequisite, when applied to unarmed strikes or monk weapons. Replaces slow fall.'),
+      g(4, 'ma-martial-arts-master', 'Martial Arts Master', 'Use your monk level to qualify for feats with a fighter level prerequisite, when applied to unarmed strikes or monk weapons. Replaces slow fall.',
+        { countsAsClassLevels: { as: ['fighter'], amount: 'full', weapons: 'unarmed-or-monk' } }),
       g(4, 'ma-exploit-weakness', 'Exploit Weakness', 'As a swift action, make a Wisdom check plus your monk level against 10 + hardness or CR; on a success gain +2 on attack rolls and ignore the target\u2019s DR or hardness until the end of your turn. Replaces ki pool.'),
       g(5, 'ma-extreme-endurance', 'Extreme Endurance', 'Immunity to fatigue at 5th, exhaustion at 10th, stunning at 15th, and death effects and energy drain at 20th. Replaces purity of body, diamond body and perfect self.'),
       g(7, 'ma-physical-resistance', 'Physical Resistance', 'Damage reduction that grows with your level, resisting the blows a monk would otherwise mend with ki. Replaces wholeness of body, timeless body, and tongue of the sun and moon.'),

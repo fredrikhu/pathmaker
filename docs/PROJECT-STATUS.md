@@ -6,10 +6,60 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 
 ## ▶ Resume here (last session end)
 
-**Current state** — branch `main`, **1,274 tests** passing; run
+**Current state** — branch `main`, **1,299 tests** passing; run
 `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
-**Latest — warpriest bonus feats count warpriest levels as fighter levels, and are combat-only.**
+**Latest — brawler, magus, kensai and Martial Artist levels count as fighter (and monk) levels
+for feats, in every slot.** The class-feature version of the warpriest change below. A feature
+carrying `countsAsClassLevels` (content, `ClassFeatureDef`) substitutes levels while the character
+has it, so an archetype that replaces it takes it away (Staff Magus). The rules, checked against the
+book text (AoN and d20pfsrd are blocked from the build sessions, so through search snippets of them):
+
+| Feature | Counts as | Amount | Real fighter levels | Limit |
+|---|---|---|---|---|
+| Brawler, Martial Training (1st) | fighter **and** monk | brawler level | higher, not sum (text is silent) | none |
+| Magus, Fighter Training (10th) | fighter | ½ magus level, rounded down | **stack** ("these levels stack") | none |
+| Kensai, Fighter Training (7th) | fighter | magus level − 3 | **stack** | feats with the chosen weapon |
+| Martial Artist, Martial Arts Master (4th) | fighter | monk level | higher, not sum (text is silent) | feats applied to unarmed strikes or monk weapons |
+
+The magus description was right ("half"), and now says the levels stack. The − 3 belongs to the
+kensai. A kensai keeps the base Fighter Training at 10th, since his replaces knowledge pool, so from
+10th he has both: ½ level for any weapon, level − 3 for the chosen one. Two substitutions for the
+same class never add to each other, since neither is a real fighter level, so the best one counts.
+
+*Where:* `qualifyingLevels` / `classLevelsForFeats` in `resolve.ts` feed `predCtxAt` and the main
+`predCtx`, so every slot's options and prerequisite issues see them. The warpriest slot variant
+applies on top of that. `featQualifyingClassLevels(doc)` exposes the result for tests.
+
+*The weapon limits are checked where they can be.* Weapon-limited substitutions stay out of the base
+context. A feat they alone open is offered with a caution ("Qualifies only through Martial Arts
+Master, which counts only for feats applied to unarmed strikes and monk weapons"). Once chosen:
+- a feat that names its weapon (`feat-params`, the Weapon Focus chain) is checked outright. A
+  covered weapon raises nothing, any other is an **error**, and no weapon picked yet is a warning.
+- a feat that names no weapon (Disruptive, Penetrating Strike, Greater Shield Focus) is **allowed
+  with a warning** to check it with the GM, not passed silently and not refused. The rules don't say
+  how these apply, and the forums split on it.
+
+To make that work: **Weapon Specialization and Greater Weapon Specialization now take a weapon
+param.** They had none, so the UI never offered a picker and their +2 damage reached no attack line.
+The engine already read a param from `feat-params` if one was there. **Weapon Focus and its chain
+can name "Unarmed strike"** (`UNARMED_STRIKE_ID`, no catalogue weapon). No attack line exists for
+it yet, so the choice records the feat but adds nothing to the sheet. **The kensai's Weapon Focus is
+a real granted feat** (`grantsFeat`, param key `granted-source:kensai-weapon-focus`). Its weapon is
+the chosen weapon. **`WeaponDef.monk`** marks the monk-quality weapons in the catalogue: kama,
+nunchaku, quarterstaff, sai, shuriken and siangham. Tests: `class-levels-for-feats.test.ts`.
+
+*Deliberately left out:*
+- the brawler counting as a monk for feats and items that work differently by class (Stunning Fist
+  uses, monk's robe). The catalogue has no feat with a monk-level prerequisite, so the monk half of
+  Martial Training changes nothing yet, though the context carries it.
+- the kensai's "forfeits the benefit of such feats with other weapons". That is enforced at
+  qualification only. A feat that names no weapon still applies everywhere on the sheet.
+- the kensai's chosen weapon is any Weapon Focus weapon, not limited to martial or exotic melee.
+- Weapon Specialization does not check that you have Weapon Focus *in the same weapon*. That was
+  already true for all of the chain.
+
+**Prior — warpriest bonus feats count warpriest levels as fighter levels, and are combat-only.**
 The rule: for the bonus combat feats a warpriest gains at 3rd level and every 3 levels after,
 warpriest levels count as fighter levels when qualifying. That is how a warpriest reaches Weapon
 Specialization (fighter 4) in the 6th-level slot. The engine had nothing for it, because every feat
@@ -25,13 +75,9 @@ fighter levels add on is not settled by the rules (forum readings split, no FAQ)
 is the reading no table objects to; the comment on `levelsCountAs` says so. Tests:
 `warpriest-feats.test.ts`.
 
-Same idea, not yet modelled: the brawler's Martial Training (brawler levels count as fighter *and*
-monk levels for all feats), the magus's Fighter Training, and the Kensai / Martial Arts Master
-versions, which are limited to certain weapons. Those apply to every feat slot, not just the
-class's own bonus slots, so they would need the substitution in the base context, gated by
-weapon where the archetype says so.
+The every-slot versions (brawler, magus, kensai, Martial Artist) are now modelled; see above.
 
-**Also — exported characters are checked on import, and exported clean.** An imported file is
+**Prior — exported characters are checked on import, and exported clean.** An imported file is
 validated before it is saved (`storage/transfer.ts`). A non-character used to be stored as-is and
 break the roster on every load, since the roster resolves each doc to draw its card. Exports leave
 out `play`, so the receiver gets the build at full health and fully rested, not mid-session.
