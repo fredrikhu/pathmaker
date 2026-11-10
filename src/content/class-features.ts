@@ -436,7 +436,8 @@ export const CLASS_PROGRESSION: Record<string, ClassProgression> = {
       f(1, 'brawl-martial-flexibility', 'Martial Flexibility', 'Gain combat feats temporarily as a move action; faster at higher levels.'),
       f(1, 'brawl-martial-training', 'Martial Training', 'Count brawler level as fighter and monk levels for qualifying for feats, and as both classes for feats and items that work differently for them.',
         { countsAsClassLevels: { as: ['fighter', 'monk'], amount: 'full' } }),
-      f(1, 'brawl-unarmed', 'Unarmed Strike', 'Deal scaling lethal unarmed damage; gain Improved Unarmed Strike.'),
+      // The bonus feat rides the feature, so an archetype that replaces it (Exemplar) takes the feat too.
+      f(1, 'brawl-unarmed', 'Unarmed Strike', 'Deal scaling lethal unarmed damage; gain Improved Unarmed Strike.', { grantsFeat: 'improved-unarmed-strike' }),
       f(2, 'brawl-flurry', "Brawler's Flurry", 'Flurry with unarmed strikes and close/monk weapons as two-weapon fighting.'),
       f(3, 'brawl-maneuver-training', 'Maneuver Training', 'Bonus to CMB with chosen maneuvers; another every 4 levels.'),
       f(4, 'brawl-ac-bonus', 'AC Bonus', 'Dodge bonus to AC and CMD in light/no armor, rising at 9th, 13th, and 18th.'),

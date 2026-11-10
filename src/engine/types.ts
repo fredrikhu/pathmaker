@@ -439,8 +439,9 @@ export interface AttackLine {
   id: string;
   name: string;
   kind: 'melee' | 'ranged';
-  /** Where the weapon sits: main hand, off hand, otherwise carried, or a natural attack (no hand). */
-  slot: 'main' | 'off' | 'carried' | 'natural';
+  /** Where the weapon sits: main hand, off hand, otherwise carried, a natural attack (no hand), or
+   *  the character's own unarmed strike. */
+  slot: 'main' | 'off' | 'carried' | 'natural' | 'unarmed';
   /** Present on the second line a throwable melee weapon produces. The melee and thrown modes of
    *  one weapon share an `id`, so anything keying attack lines must include this. */
   mode?: 'thrown';

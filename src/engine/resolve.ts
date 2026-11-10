@@ -1518,7 +1518,8 @@ export function resolve(doc: CharacterDoc): Resolution {
     progression,
     pools: classes.flatMap((c) => classPools(c.klass, c.levels, mods)),
     attacks: [
-      ...weaponAttacks(doc, stats, bab, mods.str, mods.dex, size, finesseGrant, weaponFeatBonuses(featParams), itemQuality(doc), new Set(featIds), prof),
+      ...weaponAttacks(doc, stats, bab, mods.str, mods.dex, size, finesseGrant, weaponFeatBonuses(featParams), itemQuality(doc), new Set(featIds), prof,
+        unarmedStrike(classes, new Set(featIds), featParams, size)),
       ...naturalAttacks(dec, stats, bab, mods.str, new Set(featIds), doc.play),
     ],
     combatOptions: {
@@ -1856,7 +1857,60 @@ function isFinessable(w: C.WeaponDef, grant: FinesseGrant): boolean {
   return false;
 }
 
-function weaponAttacks(doc: CharacterDoc, stats: Record<string, Stat>, bab: number, strMod: number, dexMod: number, size: 'small' | 'medium', finesse: FinesseGrant, featBonuses: Map<string, WeaponFeatBonus>, quality: Record<string, ItemQuality>, featIds: Set<string>, prof: ProficiencyCtx): AttackLine[] {
+/** Unarmed strike damage for a monk or brawler, by class level band (1–3, 4–7, 8–11, 12–15, 16–19,
+ *  20). The two classes print the same table. */
+const CLASS_UNARMED_DAMAGE: Record<'small' | 'medium', string[]> = {
+  medium: ['1d6', '1d8', '1d10', '2d6', '2d8', '2d10'],
+  small: ['1d4', '1d6', '1d8', '1d10', '2d6', '2d8'],
+};
+const CLASS_UNARMED_FEATURES = new Set(['monk-unarmed', 'brawl-unarmed']);
+
+/** The character's unarmed strike, as the stand-in weapon its attack line is built from, plus what
+ *  the line needs to say about it. */
+interface UnarmedStrike {
+  weapon: C.WeaponDef;
+  /** The die already sized for the character (the class tables print Small values of their own). */
+  die: string;
+  notes: string[];
+}
+
+/** An unarmed strike line, when one is worth showing: the character has a class unarmed strike
+ *  (monk, brawler), Improved Unarmed Strike, or a weapon feat that names unarmed strike. Everyone can
+ *  punch, but a wizard's sheet gains nothing from a 1d3 nonlethal line. */
+function unarmedStrike(classes: ClassEntry[], featIds: Set<string>, featParams: { featId: string; param: string | null }[], size: 'small' | 'medium'): UnarmedStrike | null {
+  // A monk/brawler multiclass uses the higher class level: whether the two add up for unarmed
+  // damage is not settled by the rules.
+  let best: { level: number; name: string; flurry: boolean } | null = null;
+  for (const c of classes) {
+    const feats = classFeaturesUpTo(c.klass, c.levels);
+    if (!feats.some((f) => CLASS_UNARMED_FEATURES.has(f.id))) continue;
+    if (!best || c.levels > best.level)
+      best = { level: c.levels, name: c.klass.name, flurry: feats.some((f) => f.id === 'monk-flurry' || f.id === 'brawl-flurry') };
+  }
+  const iusFeat = featIds.has('improved-unarmed-strike');
+  const named = featParams.some((f) => f.param === C.UNARMED_STRIKE_ID);
+  if (!best && !iusFeat && !named) return null;
+  const weapon: C.WeaponDef = {
+    id: C.UNARMED_STRIKE_ID, name: 'Unarmed strike', cost: 0, weight: 0,
+    dmg: '1d3', crit: '×2', dmgType: 'B', group: 'simple', hands: 'light',
+  };
+  const notes: string[] = [];
+  let die = weaponDamageForSize('1d3', size);
+  if (best) {
+    const band = best.level >= 20 ? 5 : best.level >= 16 ? 4 : best.level >= 12 ? 3 : best.level >= 8 ? 2 : best.level >= 4 ? 1 : 0;
+    die = CLASS_UNARMED_DAMAGE[size][band];
+    notes.push(`${best.name} unarmed strike: ${die} at ${best.name.toLowerCase()} level ${best.level}, adding full Str to damage with any strike.`);
+  }
+  if (best || iusFeat) {
+    notes.push('Lethal damage, and you are always considered armed: no attack of opportunity for striking unarmed.');
+  } else {
+    notes.push('Without Improved Unarmed Strike: nonlethal damage (−4 to hit to deal lethal), and striking provokes an attack of opportunity.');
+  }
+  if (best?.flurry) notes.push('Flurry of blows is not folded in: this is a single attack sequence at your normal bonuses.');
+  return { weapon, die, notes };
+}
+
+function weaponAttacks(doc: CharacterDoc, stats: Record<string, Stat>, bab: number, strMod: number, dexMod: number, size: 'small' | 'medium', finesse: FinesseGrant, featBonuses: Map<string, WeaponFeatBonus>, quality: Record<string, ItemQuality>, featIds: Set<string>, prof: ProficiencyCtx, unarmed: UnarmedStrike | null = null): AttackLine[] {
   const melee = stats['attack:melee'];
   const ranged = stats['attack:ranged'];
   if (!melee || !ranged) return [];
@@ -1874,7 +1928,7 @@ function weaponAttacks(doc: CharacterDoc, stats: Record<string, Stat>, bab: numb
   // it rolls off Dex rather than Str and never gets the two-handed damage multiplier. Rather than
   // annotate the melee line with rules the reader has to apply themselves, throwing gets its own
   // line — same weapon, same enhancement and feats, different numbers.
-  const push = (w: C.WeaponDef, slot: AttackLine['slot'], thrown: boolean): void => {
+  const push = (w: C.WeaponDef, slot: AttackLine['slot'], thrown: boolean, own?: UnarmedStrike): void => {
     const kind: 'melee' | 'ranged' = thrown || w.hands === 'ranged' ? 'ranged' : 'melee';
     const base = kind === 'ranged' ? ranged : melee;
     // Weapon-parameterised feats (Weapon Focus & co.) apply only to the weapon they name.
@@ -1893,7 +1947,8 @@ function weaponAttacks(doc: CharacterDoc, stats: Record<string, Stat>, bab: numb
     const paScale: PowerAttackScale = slot === 'off' ? 'half' : w.hands === 'two' ? 'oneAndHalf' : 'normal';
     const pa = usingPowerAttack && kind === 'melee' ? powerAttackAmounts(bab, paScale) : null;
     const twfPenalty = usingTwoWeapon && slot === 'main' ? twp.primary : usingTwoWeapon && slot === 'off' ? twp.off : 0;
-    const proficient = isProficientWith(w, prof);
+    // Everyone is proficient with their own unarmed strike.
+    const proficient = own ? true : isProficientWith(w, prof);
     // Weapon Finesse swaps Dexterity in for Strength on the attack roll (not damage) with a finessable
     // weapon. It is the wielder's option, so it is applied only when Dex is the better modifier — never
     // a penalty. Thrown lines already roll off Dex.
@@ -1916,7 +1971,7 @@ function weaponAttacks(doc: CharacterDoc, stats: Record<string, Stat>, bab: numb
     if (props.some((p) => p.extraAttack)) bonuses.splice(1, 0, attackTotal);
     // Strength contribution, scaled by how the weapon is held; feat damage adds on top.
     let strDamage = 0;
-    const notes: string[] = [];
+    const notes: string[] = [...(own?.notes ?? [])];
     if (thrown) {
       // A thrown weapon adds Strength to damage, but never the 1½× two-handed multiplier: that
       // rule is about a weapon "you are wielding two-handed", and a thrown one has left your hands.
@@ -1965,7 +2020,7 @@ function weaponAttacks(doc: CharacterDoc, stats: Record<string, Stat>, bab: numb
     // Unconditional property damage rides on the damage string; conditional ones become notes.
     const extraDice = props.map((p) => p.damageDice).filter(Boolean) as string[];
     // Weapons are sized to their wielder, so a Small character's weapon rolls the Small damage die.
-    const weaponDie = weaponDamageForSize(w.dmg, size);
+    const weaponDie = own ? own.die : weaponDamageForSize(w.dmg, size);
     const baseDamage = dmgMod !== 0 ? `${weaponDie}${fmtSigned(dmgMod)}` : weaponDie;
     const damage = extraDice.length ? `${baseDamage} + ${extraDice.join(' + ')}` : baseDamage;
     for (const p of props) {
@@ -2014,6 +2069,7 @@ function weaponAttacks(doc: CharacterDoc, stats: Record<string, Stat>, bab: numb
   add(doc.equipped.mainHand, 'main');
   add(doc.equipped.offHand, 'off');
   for (const pid of Object.keys(doc.purchases)) add(pid, 'carried');
+  if (unarmed) push(unarmed.weapon, 'unarmed', false, unarmed);
   return lines;
 }
 

@@ -6,10 +6,29 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 
 ## ▶ Resume here (last session end)
 
-**Current state** — branch `main`, **1,299 tests** passing; run
+**Current state** — branch `main`, **1,310 tests** passing; run
 `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
-**Latest — brawler, magus, kensai and Martial Artist levels count as fighter (and monk) levels
+**Latest — an unarmed strike line on the sheet.** `unarmedStrike` in `resolve.ts` builds a stand-in
+weapon (`UNARMED_STRIKE_ID`: light, simple, ×2, bludgeoning). It goes through the same per-weapon
+builder as a longsword, so Weapon Focus / Specialization / Improved Critical *(unarmed strike)*,
+Power Attack, Weapon Finesse and weapon-damage buffs all apply. It always counts as proficient. The
+line, `slot: 'unarmed'`, shows only when there is a reason for it: a class unarmed strike (monk,
+brawler), Improved Unarmed Strike, or a weapon feat that names unarmed strike. A wizard's sheet stays
+free of a 1d3 nonlethal line.
+- **Damage:** 1d3 (Small 1d2) for anyone. A monk or brawler uses the class table: Medium 1d6 / 1d8 /
+  1d10 / 2d6 / 2d8 / 2d10 at 1 / 4 / 8 / 12 / 16 / 20, and the printed Small column 1d4 … 2d8, not a
+  generic step-down. A monk/brawler multiclass uses the higher class level, not the sum (unsettled).
+- **Lethal or not:** with the class feature or Improved Unarmed Strike, the line notes lethal damage
+  and no attack of opportunity. Without them it notes nonlethal (−4 for lethal) and provoking.
+- **Brawler fix:** the brawler's Unarmed Strike feature said it grants Improved Unarmed Strike, but
+  nothing granted it. It now rides the feature (`grantsFeat`), so the Exemplar, whose Call to Arms
+  replaces that feature, correctly has neither the feat nor the line.
+- *Left out:* flurry of blows (the line notes it isn't folded in), the amulet of mighty fists and
+  other enhancement of unarmed strikes, two-weapon fighting with unarmed strikes, and the brawler's
+  Close Weapon Mastery. Tests: `unarmed-strike.test.ts`.
+
+**Prior — brawler, magus, kensai and Martial Artist levels count as fighter (and monk) levels
 for feats, in every slot.** The class-feature version of the warpriest change below. A feature
 carrying `countsAsClassLevels` (content, `ClassFeatureDef`) substitutes levels while the character
 has it, so an archetype that replaces it takes it away (Staff Magus). The rules, checked against the
@@ -43,8 +62,8 @@ Master, which counts only for feats applied to unarmed strikes and monk weapons"
 To make that work: **Weapon Specialization and Greater Weapon Specialization now take a weapon
 param.** They had none, so the UI never offered a picker and their +2 damage reached no attack line.
 The engine already read a param from `feat-params` if one was there. **Weapon Focus and its chain
-can name "Unarmed strike"** (`UNARMED_STRIKE_ID`, no catalogue weapon). No attack line exists for
-it yet, so the choice records the feat but adds nothing to the sheet. **The kensai's Weapon Focus is
+can name "Unarmed strike"** (`UNARMED_STRIKE_ID`, no catalogue weapon). Its bonuses land on the
+unarmed strike line (see above). **The kensai's Weapon Focus is
 a real granted feat** (`grantsFeat`, param key `granted-source:kensai-weapon-focus`). Its weapon is
 the chosen weapon. **`WeaponDef.monk`** marks the monk-quality weapons in the catalogue: kama,
 nunchaku, quarterstaff, sai, shuriken and siangham. Tests: `class-levels-for-feats.test.ts`.
