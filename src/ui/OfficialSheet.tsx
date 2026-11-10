@@ -13,6 +13,7 @@
 import type { CharacterDoc, Sheet, Stat, BreakdownLine, Ability } from '../engine/types';
 import { ABILITIES, abilityMod, fmtMod } from '../engine/types';
 import { resolve } from '../engine/resolve';
+import { armorCheckPenaltyReduction } from '../engine/items';
 import { readDescription } from '../engine/description';
 import { SKILLS, raceById, deityById, featById, spellById, armorById } from '../content/index';
 import '../styles/sheet.css';
@@ -539,6 +540,7 @@ function WeaponCell({ cap, v, w, last }: { cap: string; v?: string; w?: number; 
 
 function PageTwo({ doc, sheet }: { doc: CharacterDoc; sheet: Sheet }) {
   const dec = doc.decisions;
+  const quality = (dec['item-quality'] as Record<string, { masterwork?: boolean; enhancement?: number }>) ?? {};
   const race = raceById.get((dec['race'] as string) ?? '');
 
   // --- AC items: every line that contributes to AC, enriched for armor and shields with the
@@ -546,14 +548,21 @@ function PageTwo({ doc, sheet }: { doc: CharacterDoc; sheet: Sheet }) {
   const acRows = sheet.stats['ac'].lines
     .filter((l) => ['armor', 'shield', 'natural-armor', 'deflection'].includes(l.type ?? ''))
     .map((l) => {
-      const armor = [doc.equipped.armor, doc.equipped.offHand]
-        .map((id) => (id ? armorById.get(id) : undefined))
-        .find((a) => a && l.label.startsWith(a.name));
+      // `includes`, not `startsWith`: a magic item's AC line is labelled with its enhancement
+      // ("+1 Full plate (armor)"), which the item's own name no longer begins.
+      const slot = [doc.equipped.armor, doc.equipped.offHand]
+        .find((id) => { const a = id ? armorById.get(id) : undefined; return a && l.label.includes(a.name); });
+      const armor = slot ? armorById.get(slot) : undefined;
+      // The printed penalty is the one the character actually takes: masterwork (and so all magic)
+      // armour reduces it by 1, which is why a +1 full plate checks at −5 rather than −6.
+      const acp = armor
+        ? Math.min(0, armor.acp + armorCheckPenaltyReduction(quality[slot!]))
+        : 0;
       return {
         name: l.label,
         bonus: l.value,
         type: AC_TYPE_LABEL[l.type ?? 'untyped'] ?? l.type ?? '',
-        acp: armor && armor.acp ? fmtMod(-Math.abs(armor.acp)) : '',
+        acp: acp ? fmtMod(acp) : '',
         asf: armor && armor.asf ? `${armor.asf}%` : '',
         weight: armor ? String(armor.weight) : '',
         props: armor?.maxDex !== null && armor?.maxDex !== undefined ? `max Dex +${armor.maxDex}` : '',

@@ -667,28 +667,42 @@ function collectEffects(dec: Decisions, doc: CharacterDoc, level: number): Effec
     const picked = t ? traitParamSkill(t, dec) : null;
     if (t && picked && t.param?.bonus) effects.push({ target: `skill:${picked}`, type: 'trait', value: t.param.bonus, note: t.name });
   }
-  // Equipped armor / shield
-  const armor = doc.equipped.armor ? C.armorById.get(doc.equipped.armor) : null;
-  const shield = doc.equipped.offHand ? C.armorById.get(doc.equipped.offHand) : null;
-  if (armor) effects.push({ target: 'ac', type: 'armor', value: armor.acBonus, note: `${armor.name} (armor)` });
-  if (shield && shield.slot === 'shield') {
+  // Equipped armor / shield. An item's **enhancement bonus is folded into that item's own AC
+  // line** rather than pushed as a separate 'enhancement' contribution, because the enhancement
+  // improves *that* bonus: "an enhancement bonus to armor stacks with the armor's armor bonus",
+  // and a shield's enhancement does the same for the shield bonus. They are bonuses to two
+  // different things, so both apply — but as two 'enhancement'-typed contributions they were
+  // highest-wins *against each other*, and a +1 shield worn with +1 armour added nothing at all.
+  // That is the same shadowing the Shield Focus note below describes. Folding also keeps mage
+  // armor and bracers of armor correctly non-stacking with worn armour, both being 'armor'-typed.
+  const quality = itemQuality(doc);
+  const armorSlot = doc.equipped.armor;
+  const shieldSlot = doc.equipped.offHand;
+  const armor = armorSlot ? C.armorById.get(armorSlot) : null;
+  const shield = shieldSlot ? C.armorById.get(shieldSlot) : null;
+  /** "+2 Chain shirt (armor)" — the enhancement is in the number, so it is named in the label too.
+   *  Masterwork is deliberately not shown: it changes the check penalty, never the AC. */
+  const acItemNote = (slot: string, item: C.ArmorDef, kind: 'armor' | 'shield'): string => {
+    const enh = armorQualityBonus(quality[slot]);
+    return `${enh > 0 ? `+${enh} ` : ''}${item.name} (${kind})`;
+  };
+  if (armorSlot && armor)
+    effects.push({ target: 'ac', type: 'armor', value: armor.acBonus + armorQualityBonus(quality[armorSlot]),
+      note: acItemNote(armorSlot, armor, 'armor') });
+  if (shieldSlot && shield && shield.slot === 'shield') {
     // Shield Focus increases the AC bonus granted by the shield rather than adding a separate
     // shield bonus — so it is folded into this effect's value (a separate 'shield'-type bonus would
     // be shadowed by the shield's own, both being highest-wins). Greater Shield Focus adds one more.
     const shieldFocus = (featSet.has('shield-focus') ? 1 : 0) + (featSet.has('greater-shield-focus') ? 1 : 0);
-    effects.push({ target: 'ac', type: 'shield', value: shield.acBonus + shieldFocus,
-      note: `${shield.name} (shield)${shieldFocus ? ` +${shieldFocus} Shield Focus` : ''}` });
+    effects.push({ target: 'ac', type: 'shield',
+      value: shield.acBonus + shieldFocus + armorQualityBonus(quality[shieldSlot]),
+      note: `${acItemNote(shieldSlot, shield, 'shield')}${shieldFocus ? ` +${shieldFocus} Shield Focus` : ''}` });
   }
-  // Magic armour/shield: the enhancement is its own bonus type, so it stacks with the item's own
-  // armour or shield bonus.
-  const quality = itemQuality(doc);
-  for (const [slotId, item] of [[doc.equipped.armor, armor], [doc.equipped.offHand, shield]] as const) {
-    if (!slotId || !item) continue;
-    const enh = armorQualityBonus(quality[slotId]);
-    if (enh > 0) effects.push({ target: 'ac', type: 'enhancement', value: enh, note: `${item.name} +${enh}` });
-    // Armour abilities with an unconditional effect (slick, shadow) fold into the stat graph;
-    // conditional ones (fortification, SR…) are surfaced on the item, never totalled.
-    for (const pid of quality[slotId]?.properties ?? []) {
+  // Armour abilities with an unconditional effect (slick, shadow) fold into the stat graph;
+  // conditional ones (fortification, SR…) are surfaced on the item, never totalled.
+  for (const slot of [armorSlot, shieldSlot]) {
+    if (!slot) continue;
+    for (const pid of quality[slot]?.properties ?? []) {
       const p = C.armorPropertyById.get(pid);
       if (p?.effects) effects.push(...p.effects);
     }

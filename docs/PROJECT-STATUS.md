@@ -6,10 +6,42 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 
 ## ▶ Resume here (last session end)
 
-**Current state** — branch `main`, **1,255 tests** passing; run
+**Current state** — branch `main`, **1,258 tests** passing; run
 `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
-**Latest — armour you are not proficient with now costs you on the attack roll, and the tower shield
+**Latest — a magic shield's enhancement bonus was being swallowed by the armour's.** Reported from
+play ("a +1 shield gives no AC"), and true: both enhancements were pushed as `'enhancement'`-typed
+contributions to `ac`, so they were **highest-wins against each other** and only the larger one ever
+landed. A +1 shield over +1 armour added nothing; a +3 shield over +1 armour added 3 instead of 4.
+In the rules they are bonuses to two different things — an enhancement bonus on armour improves its
+*armour* bonus, a shield's improves its *shield* bonus — so both apply.
+
+The fix folds each item's enhancement **into that item's own AC line** (`+1 Full plate (armor)` is
+one contribution worth 10), which is what the Shield Focus note beside it had been doing for years
+and for the same stated reason. That also keeps mage armor and bracers of armor correctly
+*non*-stacking with worn armour, all three being `'armor'`-typed — pinned by a test that first
+checks mage armor is worth its full +4 on an unarmoured character, so it cannot pass by applying
+nothing. Masterwork is deliberately not named on an AC line: it changes the check penalty, never
+the AC.
+
+Folding fixed the **printed sheet** at the same time. Its AC-items table filters for
+`armor`/`shield`/`natural-armor`/`deflection` lines, so the separate `enhancement` lines had been
+dropped from it entirely and its TOTALS column undercounted (+12 where the sheet's own AC box said
+26). The enhancement now rides inside a row the table already keeps. Two follow-ons there: the
+row-to-item match became `includes` rather than `startsWith`, since a magic item's line no longer
+*begins* with the item's name, and the CHECK PENALTY column now prints the penalty the character
+actually takes (a +1 full plate checks at −5, not −6) instead of the catalogue's base figure.
+
+Two other things the same report raised turned out not to be bugs, recorded so they are not
+re-investigated: **a shield's check penalty does reach the sheet** — Climb on a fighter in full
+plate with a heavy steel shield reads "Armor check penalty (Full plate, Heavy steel shield) −6",
+naming both — and **a ring of protection and Dodge do belong in CMD**, which they already were:
+"a creature can also add any circumstance, deflection, dodge, insight, luck, morale, profane, and
+sacred bonuses to AC to its CMD". CMD correctly takes the deflection and dodge bonuses while
+leaving the armour and shield bonuses out, and uses the *uncapped* Dex modifier (an armour's max
+Dex limits the Dex bonus to AC, and CMD is not AC).
+
+**Prior — armour you are not proficient with now costs you on the attack roll, and the tower shield
 is its own proficiency.** `ClassDef.proficiencies.armor` had been dead data since it was authored:
 `proficiencyCtx` read only the weapon side, and the armour check penalty reached skills but never an
 attack roll, so neither a class's grant nor the four Armor/Shield Proficiency feats changed any

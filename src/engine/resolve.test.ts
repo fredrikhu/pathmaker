@@ -3,6 +3,7 @@ import { resolve, doubleThreatRange, effectiveClass, readDecisions, heavyLoadFor
 import { newCharacter, withDecision } from './character';
 import { armorSlowedSpeed } from './types';
 import { vitals } from './vitals';
+import { spellBuffTimer } from './buffs';
 import type { CharacterDoc } from './types';
 import { emptyPlayState } from './types';
 import * as C from '../content/index';
@@ -2287,7 +2288,52 @@ describe('masterwork and magic enhancement', () => {
     const plain = resolve(armed({})).sheet.stats['ac'].total;
     const magic = resolve(armed({ 'chain-shirt': { masterwork: true, enhancement: 2 } })).sheet.stats['ac'];
     expect(magic.total - plain).toBe(2);
-    expect(magic.lines).toContainEqual(expect.objectContaining({ label: 'Chain shirt +2', value: 2 }));
+    // The enhancement is folded into the armour's own AC line rather than shown beside it: it
+    // improves *that* bonus, and a separate 'enhancement' line shadowed the shield's (below).
+    expect(magic.lines).toContainEqual(expect.objectContaining({ label: '+2 Chain shirt (armor)', value: 6 }));
+  });
+
+  it("a shield's enhancement stacks with the armour's, because they improve different bonuses", () => {
+    // Reported from play: a +1 shield added nothing to AC. Both enhancements were 'enhancement'-
+    // typed contributions to AC, so they were highest-wins against each other and only the larger
+    // one ever landed. Chain shirt +4, shield +2; at +1 each that is 5 + 3 = 8 of item bonuses.
+    const both = { 'chain-shirt': { masterwork: true, enhancement: 1 }, 'heavy-shield': { masterwork: true, enhancement: 1 } };
+    const withShield = (q: Record<string, unknown>) => resolve(armed(q, {
+      purchases: { longsword: 1, greataxe: 1, 'chain-shirt': 1, 'heavy-shield': 1 },
+      equipped: { armor: 'chain-shirt', mainHand: 'longsword', offHand: 'heavy-shield' },
+    })).sheet.stats['ac'];
+
+    const plain = withShield({}).total;
+    expect(withShield(both).total - plain).toBe(2);
+    expect(withShield(both).lines).toContainEqual(expect.objectContaining({ label: '+1 Chain shirt (armor)', value: 5 }));
+    expect(withShield(both).lines).toContainEqual(expect.objectContaining({ label: '+1 Heavy wooden shield (shield)', value: 3 }));
+
+    // Unequal enhancements: the old bug kept the larger and dropped the smaller, so a +1 armour
+    // with a +3 shield gained 3 rather than 4.
+    const uneven = { 'chain-shirt': { masterwork: true, enhancement: 1 }, 'heavy-shield': { masterwork: true, enhancement: 3 } };
+    expect(withShield(uneven).total - plain).toBe(4);
+  });
+
+  it('masterwork is not named on an AC line, because it changes no AC', () => {
+    const mwk = resolve(armed({ 'chain-shirt': { masterwork: true } })).sheet.stats['ac'];
+    expect(mwk.lines).toContainEqual(expect.objectContaining({ label: 'Chain shirt (armor)', value: 4 }));
+  });
+
+  it('mage armor still does not stack with worn armour, both being armour bonuses', () => {
+    // The fold must not turn the armour's line into something a same-typed bonus can add to.
+    // A running buff reaches the stat graph as a timer carrying its effects.
+    const mageArmor = spellBuffTimer(C.spellById.get('mage-armor')!, 3, 'mage')!;
+    const withBuff = (d: CharacterDoc): CharacterDoc =>
+      ({ ...d, play: { ...emptyPlayState(), timers: [mageArmor] } });
+
+    // Live check first, so this cannot pass by applying nothing: on an unarmoured character mage
+    // armor is worth its full +4.
+    const bare = armed({}, { equipped: { armor: null, mainHand: 'longsword', offHand: null } });
+    expect(resolve(withBuff(bare)).sheet.stats['ac'].total - resolve(bare).sheet.stats['ac'].total).toBe(4);
+
+    // Over a +1 chain shirt the armour line is already 5, so the +4 loses outright and adds nothing.
+    const plated = armed({ 'chain-shirt': { masterwork: true, enhancement: 1 } });
+    expect(resolve(withBuff(plated)).sheet.stats['ac'].total).toBe(resolve(plated).sheet.stats['ac'].total);
   });
 
   it('masterwork armour reduces the armour check penalty by 1', () => {
