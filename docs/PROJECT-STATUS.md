@@ -6,10 +6,28 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 
 ## ▶ Resume here (last session end)
 
-**Current state** — branch `main`, **1,310 tests** passing; run
+**Current state** — branch `main`, **1,316 tests** passing; run
 `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
-**Latest — an unarmed strike line on the sheet.** `unarmedStrike` in `resolve.ts` builds a stand-in
+**Latest — flurry of blows on the unarmed strike.** A monk or brawler who can flurry gets a second
+unarmed line, `mode: 'flurry'`, named "Unarmed strike (flurry of blows)" or "(brawler's flurry)".
+It has the same damage, since both flurries add full Str to every hit. Its bonuses come from
+`flurryBonuses`: the iteratives from the flurry's BAB, with the first one doubled (the first two at
+8th, three at 15th), and −2 on all of them. The breakdown shows "Monk level as BAB" and the −2.
+- **Monk** (Core Rulebook, as errata'd): his monk levels count in full as BAB for the flurry, and
+  other classes' BAB adds on. Fighter 2 / monk 4 flurries from +6, not +5. Checked against the
+  printed table at levels 1–4, 6, 7, 8, 11, 15, 16 and 20. **Lost in armor, with a shield, or under a
+  medium or heavy load** (`monkFlurryBar`): the line is dropped and the plain line says why.
+  Master of Many Styles, Zen Archer and Sensei replace flurry, so they get no flurry line.
+  The Martial Artist keeps it.
+- **Brawler** (Advanced Class Guide): from 2nd, the same extra attacks and −2 at her normal (full)
+  BAB, as Two-Weapon Fighting, then Improved at 8th and Greater at 15th. No armor limit.
+- **Both:** the one giving more attacks counts, then the higher bonus. They never combine.
+- *Left out:* flurrying with monk or close weapons (only the unarmed line has one), Zen Archer's
+  bow flurry, ki's extra attack, and maneuvers in place of flurry attacks. Tests: the flurry block
+  in `unarmed-strike.test.ts`.
+
+**Prior — an unarmed strike line on the sheet.** `unarmedStrike` in `resolve.ts` builds a stand-in
 weapon (`UNARMED_STRIKE_ID`: light, simple, ×2, bludgeoning). It goes through the same per-weapon
 builder as a longsword, so Weapon Focus / Specialization / Improved Critical *(unarmed strike)*,
 Power Attack, Weapon Finesse and weapon-damage buffs all apply. It always counts as proficient. The
@@ -24,8 +42,7 @@ free of a 1d3 nonlethal line.
 - **Brawler fix:** the brawler's Unarmed Strike feature said it grants Improved Unarmed Strike, but
   nothing granted it. It now rides the feature (`grantsFeat`), so the Exemplar, whose Call to Arms
   replaces that feature, correctly has neither the feat nor the line.
-- *Left out:* flurry of blows (the line notes it isn't folded in), the amulet of mighty fists and
-  other enhancement of unarmed strikes, two-weapon fighting with unarmed strikes, and the brawler's
+- *Left out:* the amulet of mighty fists and other enhancement of unarmed strikes, two-weapon fighting with unarmed strikes, and the brawler's
   Close Weapon Mastery. Tests: `unarmed-strike.test.ts`.
 
 **Prior — brawler, magus, kensai and Martial Artist levels count as fighter (and monk) levels

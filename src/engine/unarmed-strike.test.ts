@@ -31,6 +31,9 @@ const U = C.UNARMED_STRIKE_ID;
 const repeat = (id: string, n: number) => Array.from({ length: n }, () => id);
 const unarmed = (d: CharacterDoc): AttackLine | undefined => resolve(d).sheet.attacks.find((a) => a.id === U);
 const die = (d: CharacterDoc) => unarmed(d)!.damage.split(/[+−]/)[0];
+const flurry = (d: CharacterDoc): AttackLine | undefined => resolve(d).sheet.attacks.find((a) => a.id === U && a.mode === 'flurry');
+/** Flurry bonuses with the Str +2 taken back off, to compare against the printed table. */
+const flurryTable = (d: CharacterDoc) => flurry(d)!.bonuses.map((b) => b - 2);
 
 describe('the unarmed strike line', () => {
   it('is left off a sheet with nothing unarmed about it', () => {
@@ -43,7 +46,7 @@ describe('the unarmed strike line', () => {
     expect(line).toMatchObject({ name: 'Unarmed strike', kind: 'melee', slot: 'unarmed', damage: '1d6+2', crit: '×2', dmgType: 'B' });
     expect(line.bonuses).toEqual([2]); // BAB +0, Str +2
     expect(line.notes.join(' ')).toMatch(/Lethal damage/);
-    expect(line.notes.join(' ')).toMatch(/Flurry of blows is not folded in/);
+    expect(line.notes.join(' ')).toMatch(/Flurry of blows is listed on its own line/);
   });
 
   it('follows the monk table at each band boundary', () => {
@@ -107,5 +110,72 @@ describe('the unarmed strike line', () => {
     // Fighter 8: Improved Critical needs BAB +8, so it sits in the 8th-level fighter bonus slot.
     const d = withFeats(build('fighter', 8), { 'feat-1': 'improved-unarmed-strike', 'feat-fighter-L8': 'improved-critical' }, { 'feat-fighter-L8': U });
     expect(unarmed(d)!.crit).toBe('19–20/×2');
+  });
+});
+
+// Flurry of blows (Core Rulebook, as errata'd): a full attack with one extra attack, as Two-Weapon
+// Fighting (two at 8th as Improved, three at 15th as Greater), −2 on every attack. The monk's monk
+// levels count in full as BAB for it; other classes' BAB adds on. Lost in armor, with a shield, or
+// under a medium or heavy load. Brawler's flurry (Advanced Class Guide): from 2nd, the same extra
+// attacks and −2, at the brawler's normal (full) BAB. Both add full Str to every hit.
+describe('flurry of blows on the unarmed strike', () => {
+  it('matches the printed monk flurry table at each step', () => {
+    // Core Rulebook monk table, flurry of blows column (before Str).
+    const table: [number, number[]][] = [
+      [1, [-1, -1]], [2, [0, 0]], [3, [1, 1]], [4, [2, 2]], [6, [4, 4, -1]], [7, [5, 5, 0]],
+      [8, [6, 6, 1, 1]], [11, [9, 9, 4, 4, -1]], [15, [13, 13, 8, 8, 3, 3]],
+      [16, [14, 14, 9, 9, 4, 4, -1]], [20, [18, 18, 13, 13, 8, 8, 3]],
+    ];
+    for (const [level, expected] of table) expect(flurryTable(build('monk', level)), `monk ${level}`).toEqual(expected);
+  });
+
+  it('is its own line, with the same damage and the flurry folded into the breakdown', () => {
+    const d = build('monk', 1);
+    const line = flurry(d)!;
+    expect(line).toMatchObject({ name: 'Unarmed strike (flurry of blows)', slot: 'unarmed', damage: '1d6+2', crit: '×2' });
+    expect(line.bonuses).toEqual([1, 1]); // monk level 1 as BAB, Str +2, −2
+    expect(line.attackLines).toContainEqual({ label: 'Monk level as BAB', value: 1 });
+    expect(line.attackLines).toContainEqual({ label: 'Flurry of blows', value: -2 });
+    expect(unarmed(d)!.bonuses).toEqual([2]); // the single-attack line stays at BAB +0
+  });
+
+  it('adds other classes\' BAB to the monk level: fighter 2 / monk 4 flurries from BAB +6', () => {
+    // Normal BAB 2 + 3 = 5 → +7. Flurry BAB 2 + 4 = 6 → +6/+6/+1 (Str 2, −2).
+    const d = build('monk', 6, { classLevels: [...repeat('fighter', 2), ...repeat('monk', 4)] });
+    expect(unarmed(d)!.bonuses).toEqual([7]);
+    expect(flurry(d)!.bonuses).toEqual([6, 6, 1]);
+    // Weapon Focus (unarmed strike) lands on the flurry too.
+    const wf = withFeats(d, { 'feat-1': 'weapon-focus' }, { 'feat-1': U });
+    expect(flurry(wf)!.bonuses).toEqual([7, 7, 2]);
+  });
+
+  it('is lost in armor, with a shield, or under a medium load — with a note saying why', () => {
+    const armored = { ...build('monk', 4), purchases: { leather: 1 }, equipped: { armor: 'leather', mainHand: null, offHand: null } };
+    expect(flurry(armored)).toBeUndefined();
+    expect(unarmed(armored)!.notes).toContain('No flurry of blows while wearing armor.');
+    const shield = { ...build('monk', 4), purchases: { 'light-shield': 1 }, equipped: { armor: null, mainHand: null, offHand: 'light-shield' } };
+    expect(unarmed(shield)!.notes).toContain('No flurry of blows while using a shield.');
+    // Str 14 carries 58 lb light; two suits of chainmail carried (80 lb, not worn) are a medium load.
+    const loaded = { ...build('monk', 4), purchases: { chainmail: 2 } };
+    expect(unarmed(loaded)!.notes).toContain('No flurry of blows while carrying a medium or heavy load.');
+  });
+
+  it('does not apply to monk archetypes that give flurry up: Master of Many Styles, Zen Archer', () => {
+    expect(flurry(build('monk', 4, { archetype: 'master-of-many-styles' }))).toBeUndefined();
+    expect(flurry(build('monk', 4, { archetype: 'zen-archer' }))).toBeUndefined();
+    // The Martial Artist keeps it.
+    expect(flurry(build('monk', 4, { archetype: 'martial-artist' }))).toBeDefined();
+  });
+
+  it("gives a brawler her flurry from 2nd, at her full BAB", () => {
+    expect(flurry(build('brawler', 1))).toBeUndefined();
+    expect(flurry(build('brawler', 2))!.name).toBe("Unarmed strike (brawler's flurry)");
+    expect(flurryTable(build('brawler', 2))).toEqual([0, 0]);
+    expect(flurryTable(build('brawler', 7))).toEqual([5, 5, 0]);
+    expect(flurryTable(build('brawler', 8))).toEqual([6, 6, 1, 1]);
+    expect(flurryTable(build('brawler', 15))).toEqual([13, 13, 8, 8, 3, 3]);
+    // No armor limit on the brawler's flurry.
+    const armored = { ...build('brawler', 2), purchases: { leather: 1 }, equipped: { armor: 'leather', mainHand: null, offHand: null } };
+    expect(flurry(armored)).toBeDefined();
   });
 });

@@ -442,9 +442,10 @@ export interface AttackLine {
   /** Where the weapon sits: main hand, off hand, otherwise carried, a natural attack (no hand), or
    *  the character's own unarmed strike. */
   slot: 'main' | 'off' | 'carried' | 'natural' | 'unarmed';
-  /** Present on the second line a throwable melee weapon produces. The melee and thrown modes of
-   *  one weapon share an `id`, so anything keying attack lines must include this. */
-  mode?: 'thrown';
+  /** Present on the second line a throwable melee weapon produces (`thrown`), or on the unarmed
+   *  strike's flurry line (`flurry`). The modes of one weapon share an `id`, so anything keying
+   *  attack lines must include this. */
+  mode?: 'thrown' | 'flurry';
   /** Iterative attack bonuses, highest first (e.g. [6, 1] = "+6/+1"). */
   bonuses: number[];
   /** Breakdown of the primary (highest) attack bonus. */

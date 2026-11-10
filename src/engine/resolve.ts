@@ -1519,7 +1519,7 @@ export function resolve(doc: CharacterDoc): Resolution {
     pools: classes.flatMap((c) => classPools(c.klass, c.levels, mods)),
     attacks: [
       ...weaponAttacks(doc, stats, bab, mods.str, mods.dex, size, finesseGrant, weaponFeatBonuses(featParams), itemQuality(doc), new Set(featIds), prof,
-        unarmedStrike(classes, new Set(featIds), featParams, size)),
+        unarmedStrike(classes, new Set(featIds), featParams, size, bab, monkFlurryBar(doc, encumberingLoad))),
       ...naturalAttacks(dec, stats, bab, mods.str, new Set(featIds), doc.play),
     ],
     combatOptions: {
@@ -1706,6 +1706,12 @@ export function iterativeBonuses(primary: number, bab: number): number[] {
   return Array.from({ length: count }, (_, i) => primary - 5 * i);
 }
 
+/** A flurry's attack bonuses: the BAB iteratives, with the first `extra` of them doubled — one extra
+ *  attack as Two-Weapon Fighting, two as Improved, three as Greater. Monk 8 at +6: [6, 6, 1, 1]. */
+export function flurryBonuses(primary: number, bab: number, extra: number): number[] {
+  return iterativeBonuses(primary, bab).flatMap((b, i) => (i < extra ? [b, b] : [b]));
+}
+
 /** Ready-to-use attack lines for the character's wielded/carried weapons: the iterative sequence,
  *  Strength-scaled damage, the weapon's own dice/crit, and any weapon-parameterised feat bonuses
  *  (Weapon Focus & co.) that name this specific weapon. Magic enhancement is still not modelled. */
@@ -1872,20 +1878,82 @@ interface UnarmedStrike {
   /** The die already sized for the character (the class tables print Small values of their own). */
   die: string;
   notes: string[];
+  /** The flurry this character can make with it, if any: listed as a line of its own. */
+  flurry?: UnarmedFlurry;
+}
+
+/** A monk's flurry of blows or a brawler's flurry, made with unarmed strikes. */
+interface UnarmedFlurry {
+  name: string;
+  /** The BAB the flurry's iteratives come from. A monk's monk levels count in full for it. */
+  bab: number;
+  /** Extra attacks at the top of the sequence: 1, then 2 at 8th, then 3 at 15th. */
+  extra: number;
+  notes: string[];
+}
+
+/** Why a monk can't flurry right now — armour, a shield, or a medium or heavy load — or null. */
+function monkFlurryBar(doc: CharacterDoc, encumberingLoad: boolean): string | null {
+  if (doc.equipped.armor && C.armorById.get(doc.equipped.armor)) return 'wearing armor';
+  const off = doc.equipped.offHand ? C.armorById.get(doc.equipped.offHand) : undefined;
+  if (off && (off.category === 'shield' || off.category === 'tower-shield')) return 'using a shield';
+  if (encumberingLoad) return 'carrying a medium or heavy load';
+  return null;
+}
+
+/** The flurry that gives the most attacks (then the higher bonus), between a monk's and a
+ *  brawler's, for a character with either. */
+function unarmedFlurry(classes: ClassEntry[], bab: number, monkBar: string | null): { flurry?: UnarmedFlurry; note?: string } {
+  const extraAt = (level: number) => (level >= 15 ? 3 : level >= 8 ? 2 : 1);
+  const options: UnarmedFlurry[] = [];
+  let note: string | undefined;
+  for (const c of classes) {
+    const feats = classFeaturesUpTo(c.klass, c.levels);
+    if (feats.some((f) => f.id === 'monk-flurry')) {
+      if (monkBar) { note = `No flurry of blows while ${monkBar}.`; continue; }
+      // "The monk's base attack bonus from his monk class levels is equal to his monk level";
+      // other classes' BAB adds on as usual.
+      const others = classes.filter((o) => o !== c)
+        .map((o) => ({ bab: o.klass.bab, goodSaves: o.klass.goodSaves, levels: o.levels }));
+      const fb = sumBab(others) + c.levels;
+      const extra = extraAt(c.levels);
+      options.push({
+        name: 'Flurry of blows', bab: fb, extra,
+        notes: [
+          `Flurry of blows (full attack): monk level counts as BAB${fb > bab ? ` (+${fb})` : ''}, ${extra === 1 ? 'one extra attack' : `${extra} extra attacks`}, and −2 on every attack.`,
+          'Full Str to damage on every hit. Lost in armor, with a shield, or under a medium or heavy load.',
+        ],
+      });
+    }
+    if (feats.some((f) => f.id === 'brawl-flurry')) {
+      const extra = extraAt(c.levels);
+      const as = extra === 3 ? 'Greater Two-Weapon Fighting' : extra === 2 ? 'Improved Two-Weapon Fighting' : 'Two-Weapon Fighting';
+      options.push({
+        name: "Brawler's flurry", bab, extra,
+        notes: [
+          `Brawler's flurry (full attack): as ${as} with unarmed strikes, −2 on every attack.`,
+          'Full Str to damage on every hit.',
+        ],
+      });
+    }
+  }
+  const count = (f: UnarmedFlurry) => flurryBonuses(0, f.bab, f.extra).length;
+  const best = options.sort((a, b) => count(b) - count(a) || b.bab - a.bab)[0];
+  return { flurry: best, note: best ? undefined : note };
 }
 
 /** An unarmed strike line, when one is worth showing: the character has a class unarmed strike
  *  (monk, brawler), Improved Unarmed Strike, or a weapon feat that names unarmed strike. Everyone can
  *  punch, but a wizard's sheet gains nothing from a 1d3 nonlethal line. */
-function unarmedStrike(classes: ClassEntry[], featIds: Set<string>, featParams: { featId: string; param: string | null }[], size: 'small' | 'medium'): UnarmedStrike | null {
+function unarmedStrike(classes: ClassEntry[], featIds: Set<string>, featParams: { featId: string; param: string | null }[], size: 'small' | 'medium', bab: number, monkBar: string | null): UnarmedStrike | null {
   // A monk/brawler multiclass uses the higher class level: whether the two add up for unarmed
   // damage is not settled by the rules.
-  let best: { level: number; name: string; flurry: boolean } | null = null;
+  let best: { level: number; name: string } | null = null;
   for (const c of classes) {
     const feats = classFeaturesUpTo(c.klass, c.levels);
     if (!feats.some((f) => CLASS_UNARMED_FEATURES.has(f.id))) continue;
     if (!best || c.levels > best.level)
-      best = { level: c.levels, name: c.klass.name, flurry: feats.some((f) => f.id === 'monk-flurry' || f.id === 'brawl-flurry') };
+      best = { level: c.levels, name: c.klass.name };
   }
   const iusFeat = featIds.has('improved-unarmed-strike');
   const named = featParams.some((f) => f.param === C.UNARMED_STRIKE_ID);
@@ -1906,8 +1974,10 @@ function unarmedStrike(classes: ClassEntry[], featIds: Set<string>, featParams: 
   } else {
     notes.push('Without Improved Unarmed Strike: nonlethal damage (−4 to hit to deal lethal), and striking provokes an attack of opportunity.');
   }
-  if (best?.flurry) notes.push('Flurry of blows is not folded in: this is a single attack sequence at your normal bonuses.');
-  return { weapon, die, notes };
+  const { flurry, note } = unarmedFlurry(classes, bab, monkBar);
+  if (flurry) notes.push(`${flurry.name} is listed on its own line.`);
+  if (note) notes.push(note);
+  return { weapon, die, notes, ...(flurry ? { flurry } : {}) };
 }
 
 function weaponAttacks(doc: CharacterDoc, stats: Record<string, Stat>, bab: number, strMod: number, dexMod: number, size: 'small' | 'medium', finesse: FinesseGrant, featBonuses: Map<string, WeaponFeatBonus>, quality: Record<string, ItemQuality>, featIds: Set<string>, prof: ProficiencyCtx, unarmed: UnarmedStrike | null = null): AttackLine[] {
@@ -2042,10 +2112,11 @@ function weaponAttacks(doc: CharacterDoc, stats: Record<string, Stat>, bab: numb
       ...(pa ? [{ label: `Power Attack${paScale === 'oneAndHalf' ? ' (1½×)' : paScale === 'half' ? ' (½×)' : ''}`, value: pa.damage }] : []),
       ...(dmgStat?.lines ?? []),
     ];
-    lines.push({
+    const attackLines = [...base.lines, ...(fb?.attackLines ?? []), ...qualityLines, ...optionLines];
+    const line: AttackLine = {
       id: w.id, name: thrown ? `${w.name} (thrown)` : w.name, kind, slot, bonuses,
       ...(thrown ? { mode: 'thrown' as const } : {}),
-      attackLines: [...base.lines, ...(fb?.attackLines ?? []), ...qualityLines, ...optionLines],
+      attackLines,
       damage, damageLines,
       // Keen and Improved Critical both double the threat range, and never together — applying
       // doubleThreatRange once when either is present is exactly the "does not stack" rule.
@@ -2054,7 +2125,24 @@ function weaponAttacks(doc: CharacterDoc, stats: Record<string, Stat>, bab: numb
       ...(qb.label ? { qualityLabel: qb.label } : {}),
       ...(props.length ? { properties: props.map((p) => p.name) } : {}),
       notes,
-    });
+    };
+    lines.push(line);
+    // The unarmed strike's flurry: the same strike, from the flurry's BAB, with its extra attacks
+    // and −2 on all of them. Damage is unchanged, since a flurry adds full Str to every hit.
+    const flurry = own?.flurry;
+    if (flurry) {
+      const babLift = flurry.bab - bab;
+      const lift: BreakdownLine[] = [
+        ...(babLift ? [{ label: 'Monk level as BAB', value: babLift }] : []),
+        { label: flurry.name, value: -2 },
+      ];
+      lines.push({
+        ...line, name: `${w.name} (${flurry.name.toLowerCase()})`, mode: 'flurry',
+        bonuses: flurryBonuses(attackTotal + babLift - 2, flurry.bab, flurry.extra),
+        attackLines: [...attackLines, ...lift],
+        notes: [...flurry.notes, ...notes.filter((n) => !n.endsWith('is listed on its own line.'))],
+      });
+    }
   };
   const add = (id: string | null, slot: AttackLine['slot']): void => {
     if (!id || seen.has(id)) return;
