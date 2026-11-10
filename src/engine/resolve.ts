@@ -2317,12 +2317,16 @@ function buildSlotsAndIssues(
     if (!c) { c = predCtxAt(dec, key); ctxCache.set(key, c); }
     return c;
   };
-  const optsCache = new Map<number, SlotOption[]>();
-  const optionsAtLevel = (L: number): SlotOption[] => {
-    const key = Math.min(L, ctx.level);
+  // A slot that substitutes class levels is judged against its own variant of that level's context.
+  const ctxForSlot = (L: number, sub?: FeatSlotKey['levelsCountAs']): PredicateCtx =>
+    sub ? withLevelsCountingAs(ctxAtLevel(L), sub) : ctxAtLevel(L);
+  const optsCache = new Map<string, SlotOption[]>();
+  const optionsAtLevel = (L: number, sub?: FeatSlotKey['levelsCountAs']): SlotOption[] => {
+    const lvl = Math.min(L, ctx.level);
+    const key = sub ? `${lvl}:${sub.from}>${sub.as}` : `${lvl}`;
     let o = optsCache.get(key);
     if (!o) {
-      const pc = ctxAtLevel(key);
+      const pc = ctxForSlot(lvl, sub);
       o = C.FEATS.map((f) => {
         const legal = !f.prerequisites || evalPredicate(f.prerequisites, pc);
         return {
@@ -2335,9 +2339,9 @@ function buildSlotsAndIssues(
     }
     return o;
   };
-  const slotLevelByKey = new Map(featSlotKeys.map((fs) => [fs.key, fs.charLevel]));
+  const slotByKey = new Map(featSlotKeys.map((fs) => [fs.key, fs]));
   for (const fs of featSlotKeys) {
-    const opts = optionsAtLevel(fs.charLevel);
+    const opts = optionsAtLevel(fs.charLevel, fs.levelsCountAs);
     slots.push({
       id: fs.key, step: 'feats', label: fs.label, count: 1, multi: false,
       selected: dec.feats[fs.key] ? [dec.feats[fs.key]!] : [],
@@ -2353,7 +2357,8 @@ function buildSlotsAndIssues(
     const keyLvl = key.match(/-L(\d+)$/);
     if (keyLvl && Number(keyLvl[1]) > ctx.level) continue;
     const f = C.featById.get(fid);
-    const pc = ctxAtLevel(slotLevelByKey.get(key) ?? ctx.level);
+    const slot = slotByKey.get(key);
+    const pc = ctxForSlot(slot?.charLevel ?? ctx.level, slot?.levelsCountAs);
     if (f?.prerequisites && !evalPredicate(f.prerequisites, pc)) {
       issues.push({ severity: 'error', step: 'feats', slot: key, clearSlot: `feats.${key}`, message: `${f.name}: ${explainFailure(f.prerequisites, pc, displayName)}` });
     }
@@ -2573,7 +2578,19 @@ function dualTalent(dec: Decisions): boolean {
 /** `level` is the level the slot belongs to *within its own track* — the character level for a
  *  general feat, the class level for a class bonus feat. `charLevel` is always the character
  *  level at which it was actually gained, which is what the advancement table rows key off. */
-interface FeatSlotKey { key: string; label: string; combatOnly?: boolean; level: number; charLevel: number; }
+interface FeatSlotKey {
+  key: string; label: string; combatOnly?: boolean; level: number; charLevel: number;
+  /** A class bonus slot whose class's levels count as another class's for prerequisites
+   *  (warpriest → fighter); see `BonusFeatsDef.levelsCountAs`. */
+  levelsCountAs?: { from: string; as: string };
+}
+
+/** The prerequisite context for a slot that lets one class's levels stand in for another's: the
+ *  higher of the two counts, so a fighter 2 / warpriest 4 is fighter level 4 there, not 6. */
+function withLevelsCountingAs(pc: PredicateCtx, sub: { from: string; as: string }): PredicateCtx {
+  const levels = Math.max(pc.classLevels[sub.from] ?? 0, pc.classLevels[sub.as] ?? 0);
+  return { ...pc, classLevels: { ...pc.classLevels, [sub.as]: levels } };
+}
 
 /** All feat slots opened up through `level`: a general feat at each odd level, racial bonus
  *  feat(s) at level 1, and class bonus feats at the class's `bonusFeats.levels`. Level-1 keys
@@ -2600,6 +2617,7 @@ function featSlots(dec: Decisions, race: C.RaceDef | undefined, level: number): 
       out.push({
         key: l === 1 ? `feat-${c.klass.id}` : `feat-${c.klass.id}-L${l}`,
         label, combatOnly: bf.combatOnly, level: l, charLevel: takenAt[l - 1] ?? l,
+        ...(bf.levelsCountAs ? { levelsCountAs: { from: c.klass.id, as: bf.levelsCountAs } } : {}),
       });
     }
   }

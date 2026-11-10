@@ -6,10 +6,37 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 
 ## ▶ Resume here (last session end)
 
-**Current state** — branch `main`, **1,258 tests** passing; run
+**Current state** — branch `main`, **1,274 tests** passing; run
 `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
-**Latest — a magic shield's enhancement bonus was being swallowed by the armour's.** Reported from
+**Latest — warpriest bonus feats count warpriest levels as fighter levels, and are combat-only.**
+The rule: for the bonus combat feats a warpriest gains at 3rd level and every 3 levels after,
+warpriest levels count as fighter levels when qualifying. That is how a warpriest reaches Weapon
+Specialization (fighter 4) in the 6th-level slot. The engine had nothing for it, because every feat
+slot shared one prerequisite context, so fighter-only feats were closed to a warpriest everywhere.
+The slots were also missing `combatOnly`, so Iron Will and the like were wrongly on offer in them.
+
+`BonusFeatsDef.levelsCountAs` (content) names the class whose levels this class's levels stand in
+for, *in its own bonus slots only*. `featSlots` carries it onto each slot, and the feat options and
+the prerequisite issues judge that slot against a variant of its level's context
+(`withLevelsCountingAs`). General feat slots and other classes' slots are untouched. **Higher, not
+sum:** a fighter 2 / warpriest 3 is fighter level 3 in the warpriest slot, not 5. Whether real
+fighter levels add on is not settled by the rules (forum readings split, no FAQ), and the higher
+is the reading no table objects to; the comment on `levelsCountAs` says so. Tests:
+`warpriest-feats.test.ts`.
+
+Same idea, not yet modelled: the brawler's Martial Training (brawler levels count as fighter *and*
+monk levels for all feats), the magus's Fighter Training, and the Kensai / Martial Arts Master
+versions, which are limited to certain weapons. Those apply to every feat slot, not just the
+class's own bonus slots, so they would need the substitution in the base context, gated by
+weapon where the archetype says so.
+
+**Also — exported characters are checked on import, and exported clean.** An imported file is
+validated before it is saved (`storage/transfer.ts`). A non-character used to be stored as-is and
+break the roster on every load, since the roster resolves each doc to draw its card. Exports leave
+out `play`, so the receiver gets the build at full health and fully rested, not mid-session.
+
+**Prior — a magic shield's enhancement bonus was being swallowed by the armour's.** Reported from
 play ("a +1 shield gives no AC"), and true: both enhancements were pushed as `'enhancement'`-typed
 contributions to `ac`, so they were **highest-wins against each other** and only the larger one ever
 landed. A +1 shield over +1 armour added nothing; a +3 shield over +1 armour added 3 instead of 4.

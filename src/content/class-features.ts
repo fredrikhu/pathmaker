@@ -4,7 +4,7 @@
 // rather than bloating the class stat blocks. Subsystem picks (rage powers, talents, mercies…)
 // are ClassChoiceDef entries with a `levels` array; the engine emits one slot per granted level.
 
-import type { LeveledFeatureDef, ClassChoiceDef } from './model';
+import type { BonusFeatsDef, LeveledFeatureDef, ClassChoiceDef } from './model';
 import {
   BARBARIAN_RAGE_POWERS, ROGUE_TALENTS, ROGUE_ADVANCED_TALENTS, PALADIN_MERCIES, PALADIN_DIVINE_BOND,
   ALCHEMIST_DISCOVERIES, GRAND_DISCOVERIES, MAGUS_ARCANA, WITCH_HEXES, SHAMAN_HEXES,
@@ -16,7 +16,7 @@ const SLAYER_TALENTS_ALL = [...SLAYER_TALENTS, ...SLAYER_ADVANCED_TALENTS];
 
 export interface ClassProgression {
   features: LeveledFeatureDef[];
-  bonusFeats?: { levels: number[]; combatOnly?: boolean; label?: string };
+  bonusFeats?: BonusFeatsDef;
   /** Fixed feats the class grants automatically (not player picks) — shown read-only in Feats. */
   grantedFeats?: { level: number; feat: string; note?: string }[];
   /** Per-level subsystem picks, merged after the class's level-1 choices. */
@@ -385,7 +385,8 @@ export const CLASS_PROGRESSION: Record<string, ClassProgression> = {
     ],
   },
   warpriest: {
-    bonusFeats: { levels: [3, 6, 9, 12, 15, 18], label: 'Warpriest bonus feat' },
+    // Combat feats only, and for these slots warpriest levels count as fighter levels.
+    bonusFeats: { levels: [3, 6, 9, 12, 15, 18], combatOnly: true, levelsCountAs: 'fighter', label: 'Warpriest bonus feat' },
     grantedFeats: [{ level: 1, feat: 'weapon-focus', note: "deity's favored weapon" }],
     features: [
       f(1, 'wp-aura', 'Aura', "Project your deity's alignment aura."),

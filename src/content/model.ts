@@ -448,6 +448,21 @@ export interface ArchetypeDef {
   damageReduction?: { levels: number[]; bypass: string } | null;
 }
 
+/** A class's bonus feat slots. */
+export interface BonusFeatsDef {
+  /** The class levels a slot opens at. */
+  levels: number[];
+  /** Only combat feats may fill these slots. */
+  combatOnly?: boolean;
+  label?: string;
+  /** For feats taken *in these slots only*, this class's levels count as levels in the named
+   *  class when checking prerequisites — the warpriest's levels count as fighter levels, which is
+   *  how a warpriest reaches Weapon Specialization. The higher of the two is used, not the sum:
+   *  whether real levels in that class add on is unsettled, and the higher is the reading no GM
+   *  objects to. General feat slots are unaffected. */
+  levelsCountAs?: string;
+}
+
 export interface ClassDef {
   id: string;
   name: string;
@@ -473,7 +488,7 @@ export interface ClassDef {
   /** Archetypes for this class — each swaps a set of class features for alternates. */
   archetypes?: ArchetypeDef[];
   /** Class bonus feat slots, e.g. fighter at every even level, wizard at 5/10/15/20. */
-  bonusFeats?: { levels: number[]; combatOnly?: boolean; label?: string };
+  bonusFeats?: BonusFeatsDef;
   /** Fixed feats the class confers automatically (not player choices), e.g. warpriest's Weapon
    *  Focus, wizard's Scribe Scroll, monk's Improved Unarmed Strike / Stunning Fist. Shown read-only
    *  in the Feats step and folded into the character's feat set for prerequisites. */
