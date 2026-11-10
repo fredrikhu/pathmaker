@@ -1335,6 +1335,9 @@ export function resolve(doc: CharacterDoc): Resolution {
   const fleetCount = featParams.filter((f) => f.featId === 'fleet').length;
   const fleetBonus = armorLightOrNone && !encumberingLoad ? 5 * fleetCount : 0;
   const effectiveSpeed = reducedSpeed + speedBonus + fleetBonus;
+  // A monk's or brawler's flurry, for the unarmed strike and monk weapon lines. A monk loses his in
+  // armor, with a shield, or under a medium or heavy load, which is known only from here on.
+  const flurry = classFlurry(classes, bab, monkFlurryBar(doc, encumberingLoad));
   // Medium/heavy armour or load slows every movement mode, not just the land speed, by the same
   // one-third step (fly 60 → 40, swim 30 → 20). Display only, like the land figure.
   const reduceMode = (v: number) => (speedReduced ? armorSlowedSpeed(v) : v);
@@ -1519,7 +1522,7 @@ export function resolve(doc: CharacterDoc): Resolution {
     pools: classes.flatMap((c) => classPools(c.klass, c.levels, mods)),
     attacks: [
       ...weaponAttacks(doc, stats, bab, mods.str, mods.dex, size, finesseGrant, weaponFeatBonuses(featParams), itemQuality(doc), new Set(featIds), prof,
-        unarmedStrike(classes, new Set(featIds), featParams, size, bab, monkFlurryBar(doc, encumberingLoad))),
+        unarmedStrike(classes, new Set(featIds), featParams, size, flurry), flurry.flurry),
       ...naturalAttacks(dec, stats, bab, mods.str, new Set(featIds), doc.play),
     ],
     combatOptions: {
@@ -1878,12 +1881,10 @@ interface UnarmedStrike {
   /** The die already sized for the character (the class tables print Small values of their own). */
   die: string;
   notes: string[];
-  /** The flurry this character can make with it, if any: listed as a line of its own. */
-  flurry?: UnarmedFlurry;
 }
 
-/** A monk's flurry of blows or a brawler's flurry, made with unarmed strikes. */
-interface UnarmedFlurry {
+/** A monk's flurry of blows or a brawler's flurry, made with unarmed strikes and monk weapons. */
+interface Flurry {
   name: string;
   /** The BAB the flurry's iteratives come from. A monk's monk levels count in full for it. */
   bab: number;
@@ -1902,10 +1903,10 @@ function monkFlurryBar(doc: CharacterDoc, encumberingLoad: boolean): string | nu
 }
 
 /** The flurry that gives the most attacks (then the higher bonus), between a monk's and a
- *  brawler's, for a character with either. */
-function unarmedFlurry(classes: ClassEntry[], bab: number, monkBar: string | null): { flurry?: UnarmedFlurry; note?: string } {
+ *  brawler's, for a character with either. `note` says why a monk has none right now. */
+function classFlurry(classes: ClassEntry[], bab: number, monkBar: string | null): { flurry?: Flurry; note?: string } {
   const extraAt = (level: number) => (level >= 15 ? 3 : level >= 8 ? 2 : 1);
-  const options: UnarmedFlurry[] = [];
+  const options: Flurry[] = [];
   let note: string | undefined;
   for (const c of classes) {
     const feats = classFeaturesUpTo(c.klass, c.levels);
@@ -1931,13 +1932,13 @@ function unarmedFlurry(classes: ClassEntry[], bab: number, monkBar: string | nul
       options.push({
         name: "Brawler's flurry", bab, extra,
         notes: [
-          `Brawler's flurry (full attack): as ${as} with unarmed strikes, −2 on every attack.`,
+          `Brawler's flurry (full attack): as ${as} with unarmed strikes and monk weapons, −2 on every attack.`,
           'Full Str to damage on every hit.',
         ],
       });
     }
   }
-  const count = (f: UnarmedFlurry) => flurryBonuses(0, f.bab, f.extra).length;
+  const count = (f: Flurry) => flurryBonuses(0, f.bab, f.extra).length;
   const best = options.sort((a, b) => count(b) - count(a) || b.bab - a.bab)[0];
   return { flurry: best, note: best ? undefined : note };
 }
@@ -1945,7 +1946,7 @@ function unarmedFlurry(classes: ClassEntry[], bab: number, monkBar: string | nul
 /** An unarmed strike line, when one is worth showing: the character has a class unarmed strike
  *  (monk, brawler), Improved Unarmed Strike, or a weapon feat that names unarmed strike. Everyone can
  *  punch, but a wizard's sheet gains nothing from a 1d3 nonlethal line. */
-function unarmedStrike(classes: ClassEntry[], featIds: Set<string>, featParams: { featId: string; param: string | null }[], size: 'small' | 'medium', bab: number, monkBar: string | null): UnarmedStrike | null {
+function unarmedStrike(classes: ClassEntry[], featIds: Set<string>, featParams: { featId: string; param: string | null }[], size: 'small' | 'medium', flurry: { note?: string }): UnarmedStrike | null {
   // A monk/brawler multiclass uses the higher class level: whether the two add up for unarmed
   // damage is not settled by the rules.
   let best: { level: number; name: string } | null = null;
@@ -1974,13 +1975,11 @@ function unarmedStrike(classes: ClassEntry[], featIds: Set<string>, featParams: 
   } else {
     notes.push('Without Improved Unarmed Strike: nonlethal damage (−4 to hit to deal lethal), and striking provokes an attack of opportunity.');
   }
-  const { flurry, note } = unarmedFlurry(classes, bab, monkBar);
-  if (flurry) notes.push(`${flurry.name} is listed on its own line.`);
-  if (note) notes.push(note);
-  return { weapon, die, notes, ...(flurry ? { flurry } : {}) };
+  if (flurry.note) notes.push(flurry.note);
+  return { weapon, die, notes };
 }
 
-function weaponAttacks(doc: CharacterDoc, stats: Record<string, Stat>, bab: number, strMod: number, dexMod: number, size: 'small' | 'medium', finesse: FinesseGrant, featBonuses: Map<string, WeaponFeatBonus>, quality: Record<string, ItemQuality>, featIds: Set<string>, prof: ProficiencyCtx, unarmed: UnarmedStrike | null = null): AttackLine[] {
+function weaponAttacks(doc: CharacterDoc, stats: Record<string, Stat>, bab: number, strMod: number, dexMod: number, size: 'small' | 'medium', finesse: FinesseGrant, featBonuses: Map<string, WeaponFeatBonus>, quality: Record<string, ItemQuality>, featIds: Set<string>, prof: ProficiencyCtx, unarmed: UnarmedStrike | null = null, flurry?: Flurry): AttackLine[] {
   const melee = stats['attack:melee'];
   const ranged = stats['attack:ranged'];
   if (!melee || !ranged) return [];
@@ -1998,7 +1997,13 @@ function weaponAttacks(doc: CharacterDoc, stats: Record<string, Stat>, bab: numb
   // it rolls off Dex rather than Str and never gets the two-handed damage multiplier. Rather than
   // annotate the melee line with rules the reader has to apply themselves, throwing gets its own
   // line — same weapon, same enhancement and feats, different numbers.
-  const push = (w: C.WeaponDef, slot: AttackLine['slot'], thrown: boolean, own?: UnarmedStrike): void => {
+  // A flurry is made with unarmed strikes and monk weapons, never with a thrown melee weapon.
+  const flurries = (w: C.WeaponDef, thrown: boolean): boolean =>
+    Boolean(flurry) && !thrown && (w.id === C.UNARMED_STRIKE_ID || Boolean(w.monk));
+  // `asFlurry` builds the weapon's flurry line instead: the flurry's BAB and extra attacks, −2 on
+  // every attack, full Str to every hit whichever hand or hands hold it, and no two-weapon penalty,
+  // since a flurry is its own full attack rather than two-weapon fighting.
+  const push = (w: C.WeaponDef, slot: AttackLine['slot'], thrown: boolean, own?: UnarmedStrike, asFlurry?: Flurry): void => {
     const kind: 'melee' | 'ranged' = thrown || w.hands === 'ranged' ? 'ranged' : 'melee';
     const base = kind === 'ranged' ? ranged : melee;
     // Weapon-parameterised feats (Weapon Focus & co.) apply only to the weapon they name.
@@ -2014,9 +2019,10 @@ function weaponAttacks(doc: CharacterDoc, stats: Record<string, Stat>, bab: numb
     const bow = w.composite ? compositeBowEffect(strMod, rating) : null;
     // Power Attack is melee-only and scales with how the weapon is held; two-weapon penalties hit
     // both hands, so a carried (unwielded) weapon takes neither.
-    const paScale: PowerAttackScale = slot === 'off' ? 'half' : w.hands === 'two' ? 'oneAndHalf' : 'normal';
+    const paScale: PowerAttackScale = asFlurry ? 'normal' : slot === 'off' ? 'half' : w.hands === 'two' ? 'oneAndHalf' : 'normal';
     const pa = usingPowerAttack && kind === 'melee' ? powerAttackAmounts(bab, paScale) : null;
-    const twfPenalty = usingTwoWeapon && slot === 'main' ? twp.primary : usingTwoWeapon && slot === 'off' ? twp.off : 0;
+    const twfPenalty = asFlurry ? 0 : usingTwoWeapon && slot === 'main' ? twp.primary : usingTwoWeapon && slot === 'off' ? twp.off : 0;
+    const flurryBabLift = asFlurry ? asFlurry.bab - bab : 0;
     // Everyone is proficient with their own unarmed strike.
     const proficient = own ? true : isProficientWith(w, prof);
     // Weapon Finesse swaps Dexterity in for Strength on the attack roll (not damage) with a finessable
@@ -2030,18 +2036,22 @@ function weaponAttacks(doc: CharacterDoc, stats: Record<string, Stat>, bab: numb
       ...(pa ? [{ label: 'Power Attack', value: pa.penalty }] : []),
       ...(twfPenalty ? [{ label: slot === 'off' ? 'Two-weapon (off hand)' : 'Two-weapon (primary)', value: twfPenalty }] : []),
       ...(bow?.attack ? [{ label: `Bow rated +${rating}, above your Str`, value: bow.attack }] : []),
+      ...(flurryBabLift ? [{ label: 'Monk level as BAB', value: flurryBabLift }] : []),
+      ...(asFlurry ? [{ label: asFlurry.name, value: -2 }] : []),
     ];
     const attackTotal = base.total + (fb?.attack ?? 0) + qb.attack + finesseAdj + (pa?.penalty ?? 0) + twfPenalty
-      + (proficient ? 0 : NON_PROFICIENT_PENALTY) + (bow?.attack ?? 0);
+      + (proficient ? 0 : NON_PROFICIENT_PENALTY) + (bow?.attack ?? 0) + (asFlurry ? flurryBabLift - 2 : 0);
     // The off hand gets one attack (plus Improved/Greater), not the BAB iteratives.
-    const bonuses = usingTwoWeapon && slot === 'off'
+    const bonuses = asFlurry ? flurryBonuses(attackTotal, asFlurry.bab, asFlurry.extra)
+      : usingTwoWeapon && slot === 'off'
       ? offHandAttackBonuses(attackTotal, featIds.has('improved-two-weapon-fighting'), featIds.has('greater-two-weapon-fighting'))
       : iterativeBonuses(attackTotal, bab);
     // Speed grants one extra attack at full BAB on a full attack.
     if (props.some((p) => p.extraAttack)) bonuses.splice(1, 0, attackTotal);
     // Strength contribution, scaled by how the weapon is held; feat damage adds on top.
     let strDamage = 0;
-    const notes: string[] = [...(own?.notes ?? [])];
+    const notes: string[] = [...(asFlurry?.notes ?? []), ...(own?.notes ?? [])];
+    if (!asFlurry && flurry && flurries(w, thrown)) notes.push(`${flurry.name} with it is listed on its own line.`);
     if (thrown) {
       // A thrown weapon adds Strength to damage, but never the 1½× two-handed multiplier: that
       // rule is about a weapon "you are wielding two-handed", and a thrown one has left your hands.
@@ -2062,6 +2072,8 @@ function weaponAttacks(doc: CharacterDoc, stats: Record<string, Stat>, bab: numb
       } else {
         notes.push('Ranged: no Str to damage (composite bows and slings excepted).');
       }
+    } else if (asFlurry) {
+      strDamage = strMod;
     } else if (slot === 'off') {
       strDamage = strengthDamage(strMod, 'half');
       notes.push(usingTwoWeapon
@@ -2099,8 +2111,8 @@ function weaponAttacks(doc: CharacterDoc, stats: Record<string, Stat>, bab: numb
       if (p.restriction) notes.push(`${p.name} applies to ${p.restriction}.`);
     }
     // A Strength penalty is never scaled, so the ½×/1½× note only shows when a bonus is being scaled.
-    const scaleNote = strMod > 0 && slot === 'off' ? ' (½×)'
-      : strMod > 0 && !thrown && w.hands === 'two' ? ' (1½×)'
+    const scaleNote = strMod > 0 && !asFlurry && slot === 'off' ? ' (½×)'
+      : strMod > 0 && !asFlurry && !thrown && w.hands === 'two' ? ' (1½×)'
       : bow && strMod > rating ? ` (capped at the bow's +${rating})` : '';
     // Most ranged weapons add no Strength at all, so the row is omitted rather than shown as +0 —
     // but slings and composite bows do, and for them it has to be visible.
@@ -2114,8 +2126,9 @@ function weaponAttacks(doc: CharacterDoc, stats: Record<string, Stat>, bab: numb
     ];
     const attackLines = [...base.lines, ...(fb?.attackLines ?? []), ...qualityLines, ...optionLines];
     const line: AttackLine = {
-      id: w.id, name: thrown ? `${w.name} (thrown)` : w.name, kind, slot, bonuses,
-      ...(thrown ? { mode: 'thrown' as const } : {}),
+      id: w.id, name: asFlurry ? `${w.name} (${asFlurry.name.toLowerCase()})` : thrown ? `${w.name} (thrown)` : w.name,
+      kind, slot, bonuses,
+      ...(thrown ? { mode: 'thrown' as const } : asFlurry ? { mode: 'flurry' as const } : {}),
       attackLines,
       damage, damageLines,
       // Keen and Improved Critical both double the threat range, and never together — applying
@@ -2127,22 +2140,6 @@ function weaponAttacks(doc: CharacterDoc, stats: Record<string, Stat>, bab: numb
       notes,
     };
     lines.push(line);
-    // The unarmed strike's flurry: the same strike, from the flurry's BAB, with its extra attacks
-    // and −2 on all of them. Damage is unchanged, since a flurry adds full Str to every hit.
-    const flurry = own?.flurry;
-    if (flurry) {
-      const babLift = flurry.bab - bab;
-      const lift: BreakdownLine[] = [
-        ...(babLift ? [{ label: 'Monk level as BAB', value: babLift }] : []),
-        { label: flurry.name, value: -2 },
-      ];
-      lines.push({
-        ...line, name: `${w.name} (${flurry.name.toLowerCase()})`, mode: 'flurry',
-        bonuses: flurryBonuses(attackTotal + babLift - 2, flurry.bab, flurry.extra),
-        attackLines: [...attackLines, ...lift],
-        notes: [...flurry.notes, ...notes.filter((n) => !n.endsWith('is listed on its own line.'))],
-      });
-    }
   };
   const add = (id: string | null, slot: AttackLine['slot']): void => {
     if (!id || seen.has(id)) return;
@@ -2150,6 +2147,7 @@ function weaponAttacks(doc: CharacterDoc, stats: Record<string, Stat>, bab: numb
     if (!w) return;
     seen.add(id);
     push(w, slot, false);
+    if (flurry && flurries(w, false)) push(w, slot, false, undefined, flurry);
     // Melee weapons that carry a range increment (dagger, spear, trident…) get a thrown line too.
     // Weapons that are already ranged do not — a javelin is thrown in its only mode.
     if (w.hands !== 'ranged' && w.range) push(w, slot, true);
@@ -2157,7 +2155,10 @@ function weaponAttacks(doc: CharacterDoc, stats: Record<string, Stat>, bab: numb
   add(doc.equipped.mainHand, 'main');
   add(doc.equipped.offHand, 'off');
   for (const pid of Object.keys(doc.purchases)) add(pid, 'carried');
-  if (unarmed) push(unarmed.weapon, 'unarmed', false, unarmed);
+  if (unarmed) {
+    push(unarmed.weapon, 'unarmed', false, unarmed);
+    if (flurry) push(unarmed.weapon, 'unarmed', false, unarmed, flurry);
+  }
   return lines;
 }
 

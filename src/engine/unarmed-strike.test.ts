@@ -31,7 +31,14 @@ const U = C.UNARMED_STRIKE_ID;
 const repeat = (id: string, n: number) => Array.from({ length: n }, () => id);
 const unarmed = (d: CharacterDoc): AttackLine | undefined => resolve(d).sheet.attacks.find((a) => a.id === U);
 const die = (d: CharacterDoc) => unarmed(d)!.damage.split(/[+−]/)[0];
-const flurry = (d: CharacterDoc): AttackLine | undefined => resolve(d).sheet.attacks.find((a) => a.id === U && a.mode === 'flurry');
+const flurry = (d: CharacterDoc, id = U): AttackLine | undefined => resolve(d).sheet.attacks.find((a) => a.id === id && a.mode === 'flurry');
+const plain = (d: CharacterDoc, id: string): AttackLine | undefined => resolve(d).sheet.attacks.find((a) => a.id === id && !a.mode);
+/** Wielding: weapons bought and put in hand. */
+const wielding = (d: CharacterDoc, mainHand: string | null, offHand: string | null = null): CharacterDoc => ({
+  ...d,
+  purchases: Object.fromEntries([mainHand, offHand].filter(Boolean).map((id) => [id!, 1])),
+  equipped: { armor: null, mainHand, offHand },
+});
 /** Flurry bonuses with the Str +2 taken back off, to compare against the printed table. */
 const flurryTable = (d: CharacterDoc) => flurry(d)!.bonuses.map((b) => b - 2);
 
@@ -46,7 +53,7 @@ describe('the unarmed strike line', () => {
     expect(line).toMatchObject({ name: 'Unarmed strike', kind: 'melee', slot: 'unarmed', damage: '1d6+2', crit: '×2', dmgType: 'B' });
     expect(line.bonuses).toEqual([2]); // BAB +0, Str +2
     expect(line.notes.join(' ')).toMatch(/Lethal damage/);
-    expect(line.notes.join(' ')).toMatch(/Flurry of blows is listed on its own line/);
+    expect(line.notes.join(' ')).toMatch(/Flurry of blows with it is listed on its own line/);
   });
 
   it('follows the monk table at each band boundary', () => {
@@ -177,5 +184,63 @@ describe('flurry of blows on the unarmed strike', () => {
     // No armor limit on the brawler's flurry.
     const armored = { ...build('brawler', 2), purchases: { leather: 1 }, equipped: { armor: 'leather', mainHand: null, offHand: null } };
     expect(flurry(armored)).toBeDefined();
+  });
+});
+
+// Flurry with monk weapons: the same flurry, made with any weapon that has the monk special quality
+// (kama, nunchaku, quarterstaff, sai, shuriken, siangham here). Full Str to every hit "whether the
+// attacks are made with an off-hand or with a weapon wielded in both hands", and no two-weapon
+// penalty, since a flurry is its own full attack.
+describe('flurry with monk weapons', () => {
+  it('gives a monk weapon a flurry line at the same bonuses as the unarmed one', () => {
+    const d = wielding(build('monk', 8), 'kama');
+    const line = flurry(d, 'kama')!;
+    expect(line.name).toBe('Kama (flurry of blows)');
+    expect(line.bonuses.map((b) => b - 2)).toEqual([6, 6, 1, 1]); // the printed monk 8 flurry
+    expect(line.damage).toBe('1d6+2');
+    expect(plain(d, 'kama')!.bonuses).toEqual([8, 3]); // BAB +6, Str +2
+    expect(plain(d, 'kama')!.notes).toContain('Flurry of blows with it is listed on its own line.');
+  });
+
+  it('adds full Str, not 1½×, with a two-handed quarterstaff', () => {
+    const d = wielding(build('monk', 4), 'quarterstaff');
+    expect(plain(d, 'quarterstaff')!.damage).toBe('1d6/1d6+3'); // two-handed: 1½ × 2 (a double weapon)
+    expect(flurry(d, 'quarterstaff')!.damage).toBe('1d6/1d6+2');
+  });
+
+  it('adds full Str, not ½×, off hand, and takes no two-weapon penalty', () => {
+    const d = wielding(build('monk', 4), 'sai', 'kama');
+    const twf = { ...d, play: { ...(d.play ?? {}), twoWeapon: true } } as CharacterDoc;
+    // Off-hand kama: ½ × 2 = +1 normally, +2 in the flurry.
+    expect(plain(twf, 'kama')!.damage).toBe('1d6+1');
+    expect(flurry(twf, 'kama')!.damage).toBe('1d6+2');
+    // Monk 4 flurry +2/+2 before Str, with or without the two-weapon toggle.
+    expect(flurry(twf, 'kama')!.bonuses).toEqual([4, 4]);
+    expect(flurry(twf, 'sai')!.bonuses).toEqual([4, 4]);
+    expect(flurry(twf, 'kama')!.attackLines.some((l) => /Two-weapon/.test(l.label))).toBe(false);
+  });
+
+  it('covers a ranged monk weapon, the shuriken, off the ranged bonus', () => {
+    // Monk 1: Dex +2, BAB 0 → monk level 1 as BAB, −2: +1/+1.
+    const line = flurry(wielding(build('monk', 1), 'shuriken'), 'shuriken')!;
+    expect(line.kind).toBe('ranged');
+    expect(line.bonuses).toEqual([1, 1]);
+  });
+
+  it('does not apply to a weapon without the monk quality, or to a monk in armor', () => {
+    expect(flurry(wielding(build('monk', 4), 'longsword'), 'longsword')).toBeUndefined();
+    const armored = { ...wielding(build('monk', 4), 'kama'), equipped: { armor: 'leather', mainHand: 'kama', offHand: null } };
+    expect(flurry(armored, 'kama')).toBeUndefined();
+  });
+
+  it("gives a brawler's flurry to monk weapons, even for an Exemplar with no unarmed strike", () => {
+    const line = flurry(wielding(build('brawler', 2), 'quarterstaff'), 'quarterstaff')!;
+    expect(line.name).toBe("Quarterstaff (brawler's flurry)");
+    expect(line.bonuses).toEqual([2, 2]); // BAB +2, Str +2, −2
+    expect(line.damage).toBe('1d6/1d6+2');
+    // The Exemplar replaces the brawler's unarmed strike but keeps her flurry.
+    const ex = wielding(build('brawler', 2, { archetype: 'exemplar' }), 'quarterstaff');
+    expect(unarmed(ex)).toBeUndefined();
+    expect(flurry(ex, 'quarterstaff')).toBeDefined();
   });
 });

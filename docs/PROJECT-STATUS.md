@@ -6,10 +6,27 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 
 ## ▶ Resume here (last session end)
 
-**Current state** — branch `main`, **1,316 tests** passing; run
+**Current state** — branch `main`, **1,322 tests** passing; run
 `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
-**Latest — flurry of blows on the unarmed strike.** A monk or brawler who can flurry gets a second
+**Latest — flurry with monk weapons.** Every weapon line for a weapon with the monk quality
+(`WeaponDef.monk`: kama, nunchaku, quarterstaff, sai, shuriken, siangham) gets a flurry line beside
+it, as the unarmed strike does. The flurry now belongs to the class, not the unarmed line
+(`classFlurry`). That way an Exemplar brawler, who has no unarmed strike, still flurries with a
+quarterstaff. The flurry line is built by the same builder in an `asFlurry` mode:
+- **Full Str to every hit,** whichever hand holds it. A two-handed quarterstaff gets ×1, not 1½×,
+  and an off-hand kama ×1, not ½× ("whether the attacks are made with an off-hand or with a weapon
+  wielded in both hands"). Power Attack uses its one-handed rate in a flurry.
+- **No two-weapon penalties:** a flurry is its own full attack, so the two-weapon toggle leaves the
+  flurry lines alone.
+- **Shuriken** flurries off the ranged bonus. It adds no Str, because of a separate, existing bug:
+  thrown-only weapons (dart, javelin, shuriken, bola) get no Str to damage anywhere on the sheet. It
+  is filed as its own task.
+- *Left out:* close-group weapons for the brawler's flurry (the catalogue has no fighter weapon
+  groups), and flurrying with a mix of weapons in one sequence (each weapon's line shows the whole
+  flurry with that weapon). Tests: the "monk weapons" block in `unarmed-strike.test.ts`.
+
+**Prior — flurry of blows on the unarmed strike.** A monk or brawler who can flurry gets a second
 unarmed line, `mode: 'flurry'`, named "Unarmed strike (flurry of blows)" or "(brawler's flurry)".
 It has the same damage, since both flurries add full Str to every hit. Its bonuses come from
 `flurryBonuses`: the iteratives from the flurry's BAB, with the first one doubled (the first two at
@@ -23,8 +40,7 @@ It has the same damage, since both flurries add full Str to every hit. Its bonus
 - **Brawler** (Advanced Class Guide): from 2nd, the same extra attacks and −2 at her normal (full)
   BAB, as Two-Weapon Fighting, then Improved at 8th and Greater at 15th. No armor limit.
 - **Both:** the one giving more attacks counts, then the higher bonus. They never combine.
-- *Left out:* flurrying with monk or close weapons (only the unarmed line has one), Zen Archer's
-  bow flurry, ki's extra attack, and maneuvers in place of flurry attacks. Tests: the flurry block
+- *Left out:* flurrying with close weapons (see above for monk weapons), Zen Archer's bow flurry, ki's extra attack, and maneuvers in place of flurry attacks. Tests: the flurry block
   in `unarmed-strike.test.ts`.
 
 **Prior — an unarmed strike line on the sheet.** `unarmedStrike` in `resolve.ts` builds a stand-in
