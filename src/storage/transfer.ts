@@ -19,8 +19,13 @@ export function exportFileName(doc: CharacterDoc): string {
   return `${doc.name.replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '').toLowerCase() || 'character'}.pathmaker.json`;
 }
 
+/** The build, without the session. `play` is what has happened at the table — damage taken,
+ *  slots spent, conditions, a running encounter — and the person receiving a character wants it
+ *  fresh, not halfway through someone else's fight. The play sheet starts a doc with no `play`
+ *  at full health and fully rested. */
 export function serializeCharacter(doc: CharacterDoc): string {
-  return JSON.stringify(doc, null, 2);
+  const { play: _play, ...build } = doc;
+  return JSON.stringify(build, null, 2);
 }
 
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);

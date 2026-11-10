@@ -30,8 +30,15 @@ describe('sharing a character between rosters', () => {
     const original = fighter();
     const imported = parseCharacterFile(serializeCharacter(original), 'my-id', NOW);
     expect(imported.decisions).toEqual(original.decisions);
-    expect(imported.play).toEqual(original.play);
     expect(resolve(imported).sheet.stats['hp:max'].total).toBe(resolve(original).sheet.stats['hp:max'].total);
+  });
+
+  it('exports a clean copy: the build travels, the play session does not', () => {
+    const original = fighter();
+    expect(original.play?.hpDamage).toBe(4);
+    expect(JSON.parse(serializeCharacter(original))).not.toHaveProperty('play');
+    expect(parseCharacterFile(serializeCharacter(original), 'my-id', NOW).play).toBeUndefined();
+    expect(original.play?.hpDamage).toBe(4); // the exporter's own copy is untouched
   });
 
   it('files it as a new character of the importer’s, edited now', () => {
