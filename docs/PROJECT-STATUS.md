@@ -6,10 +6,21 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 
 ## ▶ Resume here (last session end)
 
-**Current state** — branch `main`, **1,322 tests** passing; run
+**Current state** — branch `main`, **1,328 tests** passing; run
 `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
-**Latest — flurry with monk weapons.** Every weapon line for a weapon with the monk quality
+**Latest — thrown-only weapons add Strength to damage.** The dart, javelin, shuriken and bola
+(`hands: 'ranged'`, no melee mode) were getting the projectile rule of no Str to damage. In PF1 a
+thrown weapon adds Str to damage; bows and crossbows do not, composite bows and slings excepted. They
+now carry a new `WeaponDef.thrown` flag (`src/content/model.ts`), which the attack builder treats as
+it does a melee weapon's thrown line: full Str (a Str penalty in full), ½× from the off hand, never
+1½×, and the five-increment range cap (javelin: 150 ft). The flurry line with a shuriken adds full
+Str, so the open bug noted in the entry below is fixed. A Str 14 character's javelin reads `1d6+2` and
+dart `1d4+2`; the crossbow and longbow still add nothing. The catalogue has no net or other thrown-only
+weapon. Tests: the "thrown weapons" block in `resolve.test.ts`, the shuriken flurry test in
+`unarmed-strike.test.ts`, and a catalogue check in `content.test.ts`.
+
+**Prior — flurry with monk weapons.** Every weapon line for a weapon with the monk quality
 (`WeaponDef.monk`: kama, nunchaku, quarterstaff, sai, shuriken, siangham) gets a flurry line beside
 it, as the unarmed strike does. The flurry now belongs to the class, not the unarmed line
 (`classFlurry`). That way an Exemplar brawler, who has no unarmed strike, still flurries with a
@@ -19,9 +30,8 @@ quarterstaff. The flurry line is built by the same builder in an `asFlurry` mode
   wielded in both hands"). Power Attack uses its one-handed rate in a flurry.
 - **No two-weapon penalties:** a flurry is its own full attack, so the two-weapon toggle leaves the
   flurry lines alone.
-- **Shuriken** flurries off the ranged bonus. It adds no Str, because of a separate, existing bug:
-  thrown-only weapons (dart, javelin, shuriken, bola) get no Str to damage anywhere on the sheet. It
-  is filed as its own task.
+- **Shuriken** flurries off the ranged bonus. At the time it added no Str, because thrown-only
+  weapons got no Str to damage anywhere on the sheet; fixed in the Latest entry above.
 - *Left out:* close-group weapons for the brawler's flurry (the catalogue has no fighter weapon
   groups), and flurrying with a mix of weapons in one sequence (each weapon's line shows the whole
   flurry with that weapon). Tests: the "monk weapons" block in `unarmed-strike.test.ts`.

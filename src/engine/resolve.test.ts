@@ -2710,6 +2710,41 @@ describe('thrown weapons', () => {
     expect(lines(thrower('longbow'))).toHaveLength(1);
   });
 
+  // Thrown-only weapons (`hands: 'ranged'`, `thrown: true`) were getting the projectile rule of no
+  // Str to damage. Str 14 → +2 throughout.
+  it('adds Strength to the damage of a thrown-only weapon', () => {
+    expect(lines(thrower('javelin', 14))[0].damage).toBe('1d6+2');
+    expect(lines(thrower('dart', 14))[0].damage).toBe('1d4+2');
+    expect(lines(thrower('shuriken', 14))[0].damage).toBe('1d2+2');
+    expect(lines(thrower('bola', 14))[0].damage).toBe('1d4+2');
+    const str = lines(thrower('javelin', 14))[0].damageLines.find((b) => b.label.startsWith('Str modifier'))!;
+    expect(str.value).toBe(2);
+  });
+
+  it('applies a Strength penalty to a thrown-only weapon in full', () => {
+    // Str 8 → −1.
+    expect(lines(thrower('javelin', 8))[0].damage).toBe('1d6−1');
+  });
+
+  it('gives a thrown-only weapon in the off hand ½× Str', () => {
+    const d = { ...thrower('longsword', 14), equipped: { armor: null, mainHand: 'longsword', offHand: 'dart' } };
+    const dart = lines(d).find((a) => a.id === 'dart')!;
+    expect(dart.damage).toBe('1d4+1');
+    expect(dart.damageLines.find((b) => b.label.startsWith('Str modifier'))!.label).toContain('½×');
+  });
+
+  it('caps a thrown-only weapon at five range increments and says it adds Str', () => {
+    const notes = lines(thrower('javelin', 14))[0].notes.join(' ');
+    expect(notes).toContain('Maximum range 150 ft');
+    expect(notes).toContain('adds Str to damage');
+    expect(notes).not.toContain('no Str to damage');
+  });
+
+  it('still gives a crossbow or longbow no Strength', () => {
+    expect(lines(thrower('light-crossbow', 14))[0].damage).toBe('1d8');
+    expect(lines(thrower('longbow', 14))[0].damage).toBe('1d8');
+  });
+
   it('gives a melee weapon with no range increment no thrown line', () => {
     expect(lines(thrower('longsword'))).toHaveLength(1);
   });

@@ -2052,17 +2052,19 @@ function weaponAttacks(doc: CharacterDoc, stats: Record<string, Stat>, bab: numb
     let strDamage = 0;
     const notes: string[] = [...(asFlurry?.notes ?? []), ...(own?.notes ?? [])];
     if (!asFlurry && flurry && flurries(w, thrown)) notes.push(`${flurry.name} with it is listed on its own line.`);
-    if (thrown) {
+    if (thrown || w.thrown) {
       // A thrown weapon adds Strength to damage, but never the 1½× two-handed multiplier: that
       // rule is about a weapon "you are wielding two-handed", and a thrown one has left your hands.
-      strDamage = slot === 'off' ? strengthDamage(strMod, 'half') : strMod;
+      // This covers both a melee weapon's thrown line and a thrown-only weapon (javelin, dart…).
+      // A flurry adds full Str whichever hand throws, so a shuriken flurry is never halved.
+      strDamage = slot === 'off' && !asFlurry ? strengthDamage(strMod, 'half') : strMod;
       notes.push('Thrown: rolls off Dex, adds Str to damage (no 1½× — the weapon has left your hands).');
       if (w.range) notes.push(`Maximum range ${w.range * THROWN_MAX_INCREMENTS} ft (${THROWN_MAX_INCREMENTS} range increments), at −2 per increment past the first.`);
     } else if (kind === 'ranged') {
       if (w.strToDamage) {
-        // The sling and halfling sling staff add Strength to damage just as thrown weapons do.
+        // The sling and halfling sling staff are the projectile weapons that add full Strength.
         strDamage = strMod;
-        notes.push(`${w.name}: Str applies to damage, as it does for a thrown weapon.`);
+        notes.push(`${w.name}: Str applies to damage — slings are the exception among projectile weapons.`);
       } else if (bow) {
         strDamage = bow.damage;
         notes.push(`Composite bow rated +${rating}: it adds Str to damage up to +${rating}`
@@ -2070,7 +2072,7 @@ function weaponAttacks(doc: CharacterDoc, stats: Record<string, Stat>, bab: numb
         if (bow.attack) notes.push(`Your Str bonus is below the bow's +${rating} rating: −2 on attack rolls. A bow rated to your own Strength removes this.`);
         if (strMod < 0) notes.push('A Strength penalty applies to a composite bow\'s damage in full, whatever the rating.');
       } else {
-        notes.push('Ranged: no Str to damage (composite bows and slings excepted).');
+        notes.push('Ranged: no Str to damage (composite bows, slings and thrown weapons excepted).');
       }
     } else if (asFlurry) {
       strDamage = strMod;
@@ -2114,8 +2116,8 @@ function weaponAttacks(doc: CharacterDoc, stats: Record<string, Stat>, bab: numb
     const scaleNote = strMod > 0 && !asFlurry && slot === 'off' ? ' (½×)'
       : strMod > 0 && !asFlurry && !thrown && w.hands === 'two' ? ' (1½×)'
       : bow && strMod > rating ? ` (capped at the bow's +${rating})` : '';
-    // Most ranged weapons add no Strength at all, so the row is omitted rather than shown as +0 —
-    // but slings and composite bows do, and for them it has to be visible.
+    // Most projectile weapons add no Strength at all, so the row is omitted rather than shown as +0 —
+    // but thrown weapons, slings and composite bows do, and for them it has to be visible.
     const showStrDamage = kind !== 'ranged' || strDamage !== 0;
     const damageLines: BreakdownLine[] = [
       ...(showStrDamage ? [{ label: `Str modifier${scaleNote}`, value: strDamage }] : []),

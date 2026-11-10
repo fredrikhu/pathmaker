@@ -225,6 +225,9 @@ describe('flurry with monk weapons', () => {
     const line = flurry(wielding(build('monk', 1), 'shuriken'), 'shuriken')!;
     expect(line.kind).toBe('ranged');
     expect(line.bonuses).toEqual([1, 1]);
+    // A shuriken is thrown, so it adds Str (+2) to damage, in the flurry as on its plain line.
+    expect(line.damage).toBe('1d2+2');
+    expect(plain(wielding(build('monk', 1), 'shuriken'), 'shuriken')!.damage).toBe('1d2+2');
   });
 
   it('does not apply to a weapon without the monk quality, or to a monk in armor', () => {

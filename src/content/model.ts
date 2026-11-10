@@ -577,9 +577,13 @@ export interface WeaponDef {
   hands: 'light' | 'one' | 'two' | 'ranged';
   /** Caveat surfaced on the attack line — e.g. a weapon whose second mode is not modelled. */
   note?: string;
-  /** Ranged weapons that add the full Strength modifier to damage, as thrown weapons do —
+  /** Projectile weapons that add the full Strength modifier to damage, as thrown weapons do —
    *  the sling and the halfling sling staff. */
   strToDamage?: boolean;
+  /** Thrown-only weapons (dart, javelin, shuriken, bola): `hands` is 'ranged' and the weapon is
+   *  thrown in its only mode. Like a thrown melee weapon it adds Str to damage (½× off-hand), never
+   *  1½×, and reaches five range increments rather than ten. */
+  thrown?: boolean;
   /** Composite bows, which are built to a Strength rating: the rating caps how much of the
    *  wielder's Strength bonus reaches damage, and shooting a bow rated above your own Strength
    *  costs −2 to hit. `costPerPoint` gp is added per point of rating. */

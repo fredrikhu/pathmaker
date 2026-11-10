@@ -1321,6 +1321,16 @@ describe('composite bows and Strength-to-damage weapons', () => {
   it('never marks a weapon as both', () => {
     for (const w of C.WEAPONS) expect(Boolean(w.composite && w.strToDamage), w.id).toBe(false);
   });
+
+  it('marks the thrown-only weapons as thrown: ranged, with a range, and no other Str rule', () => {
+    const thrown = C.WEAPONS.filter((w) => w.thrown).map((w) => w.id).sort();
+    expect(thrown).toEqual(['bola', 'dart', 'javelin', 'shuriken']);
+    for (const w of C.WEAPONS.filter((w) => w.thrown)) {
+      expect(w.hands, w.id).toBe('ranged');
+      expect(w.range, w.id).toBeGreaterThan(0);
+      expect(Boolean(w.composite || w.strToDamage || w.firearm), w.id).toBe(false);
+    }
+  });
 });
 
 describe('firearms', () => {
