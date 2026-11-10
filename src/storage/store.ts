@@ -1,13 +1,14 @@
 import type { CharacterDoc } from '../engine/types';
-import { migrate } from '../engine/character';
 import { fetchAccount, fetchCharacters, importCharacters, type Account } from './api';
 import {
   clearLocalRoster, isAccountScope, readCharacter, readIndex, readLocalRoster,
   removeCharacter, replaceAll, setScope, writeCharacter, type RosterEntry,
 } from './cache';
 import { flush, installFlushTriggers, queueDelete, queueSave, setSyncAccount } from './sync';
+import { exportFileName, parseCharacterFile, serializeCharacter } from './transfer';
 
 export type { RosterEntry } from './cache';
+export { ImportError } from './transfer';
 export type { Account } from './api';
 
 /** Every read here is synchronous, against the local cache, exactly as it was when localStorage
@@ -32,33 +33,28 @@ export function deleteCharacter(id: string): void {
   queueDelete(id);
 }
 
+/** Downloads the character as a `.pathmaker.json` file — the way to hand it to another player,
+ *  who brings it into their own roster with `importCharacter`. */
 export function exportCharacter(doc: CharacterDoc): void {
-  const blob = new Blob([JSON.stringify(doc, null, 2)], { type: 'application/json' });
+  const blob = new Blob([serializeCharacter(doc)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `${doc.name.replace(/[^a-z0-9]+/gi, '-').toLowerCase() || 'character'}.pathmaker.json`;
+  a.download = exportFileName(doc);
+  document.body.appendChild(a);
   a.click();
-  URL.revokeObjectURL(url);
+  a.remove();
+  // Revoking in the same tick can cancel the download before the browser has started it.
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-export function importCharacter(file: File): Promise<CharacterDoc> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      try {
-        const doc = migrate(JSON.parse(reader.result as string) as CharacterDoc);
-        // Fresh id to avoid clobbering an existing character.
-        doc.id = crypto.randomUUID();
-        saveCharacter(doc);
-        resolve(doc);
-      } catch (e) {
-        reject(e);
-      }
-    };
-    reader.onerror = () => reject(reader.error);
-    reader.readAsText(file);
-  });
+/** Adds an exported character to the current roster — the browser's, or the signed-in
+ *  account's — as a new character of its own. Rejects with an `ImportError` whose message can
+ *  be shown as-is when the file is not one. */
+export async function importCharacter(file: File): Promise<CharacterDoc> {
+  const doc = parseCharacterFile(await file.text(), uid());
+  saveCharacter(doc);
+  return doc;
 }
 
 export function uid(): string {

@@ -4,7 +4,7 @@ import { resolve } from '../engine/resolve';
 import { fingerprint } from '../engine/fingerprint';
 import { identityChip } from '../engine/playstyle';
 import {
-  deleteCharacter, exportCharacter, importCharacter, loadCharacter, loadIndex,
+  deleteCharacter, exportCharacter, importCharacter, ImportError, loadCharacter, loadIndex,
   saveCharacter, uid, type RosterEntry,
 } from '../storage/store';
 import { navigate } from './App';
@@ -56,13 +56,16 @@ export function Roster() {
     refresh();
   };
 
-  const onImport = async (file: File | undefined) => {
+  const onImport = async (input: HTMLInputElement) => {
+    const file = input.files?.[0];
+    // Cleared straight away, or choosing the same file a second time would not fire a change.
+    input.value = '';
     if (!file) return;
     try {
       await importCharacter(file);
       refresh();
-    } catch {
-      alert('That file could not be read as a Pathmaker character.');
+    } catch (e) {
+      alert(e instanceof ImportError ? e.message : 'That file could not be read as a Pathmaker character.');
     }
   };
 
@@ -83,7 +86,7 @@ export function Roster() {
         <ThemeToggle />
         <button className="btn btn-secondary" onClick={() => fileInput.current?.click()}>Import JSON</button>
         <button className="btn btn-primary" onClick={create}>+ New character</button>
-        <input ref={fileInput} type="file" accept="application/json,.json" hidden onChange={(e) => onImport(e.target.files?.[0])} />
+        <input ref={fileInput} type="file" accept="application/json,.json" hidden onChange={(e) => onImport(e.currentTarget)} />
       </header>
 
       {entries.length === 0 ? (
