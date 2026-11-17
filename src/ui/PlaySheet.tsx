@@ -875,9 +875,12 @@ export function PlaySheet({ id }: { id: string }) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {sheet.attacks.map((atk) => {
               const label = attackLabel(atk.bonuses);
+              // The card's title names the weapon as it is: enhancement, then the abilities on it.
+              // Unconditional ones are already in the damage string and conditional ones are in the
+              // notes, but neither tells you *which* sword you are reading about.
               const open = tip.card({
                 kicker: atk.kind === 'ranged' ? 'Ranged attack' : 'Melee attack',
-                title: `${atk.name} ${label}`,
+                title: `${atk.qualityLabel ? `${atk.qualityLabel} ` : ''}${atk.name}${atk.properties?.length ? ` (${atk.properties.map((p) => p.toLowerCase()).join(', ')})` : ''} ${label}`,
                 lines: atk.attackLines,
                 body: `Damage ${atk.damage} · crit ${atk.crit} · ${atk.dmgType}${atk.range ? ` · range ${atk.range} ft` : ''}`,
                 annotations: atk.notes,
@@ -1202,6 +1205,31 @@ export function PlaySheet({ id }: { id: string }) {
                 </div>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {/* Worn magic items. Their numbers already reach the stats above, but the items themselves
+          were only ever visible in the builder — so at the table you could not answer "what am I
+          wearing?" without leaving play. The ones whose effect the engine does not model as a
+          number (boots of speed, goggles of night) were invisible entirely. */}
+      {sheet.worn.length > 0 && (
+        <div className="mat-panel" style={{ marginTop: 18 }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
+            <div className="micro">Worn magic items</div>
+            <span className="text-muted" style={{ fontSize: 11.5 }}>their bonuses are already in the numbers above</span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+            {sheet.worn.map((w, i) => (
+              <div key={`${w.id}-${i}`} style={{ display: 'flex', alignItems: 'baseline', gap: 10, fontSize: 12.5, opacity: w.active ? 1 : 0.55 }}>
+                <span style={{ minWidth: 200, fontWeight: 500 }}>
+                  {w.name}
+                  <span className="tag tag-neutral" style={{ fontSize: 9.5, marginLeft: 6 }}>{w.slot}</span>
+                </span>
+                <span className="text-muted" style={{ flex: 1, fontSize: 11.5 }}>{w.desc}</span>
+                {!w.active && <span style={{ fontSize: 11, color: 'var(--warn-fg)' }}>slot full, no effect</span>}
+              </div>
+            ))}
           </div>
         </div>
       )}

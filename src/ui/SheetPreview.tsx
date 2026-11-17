@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { loadCharacter } from '../storage/store';
 import { resolve } from '../engine/resolve';
 import { ABILITIES, abilityMod, fmtMod, speedLabel, type Ability } from '../engine/types';
-import { anyItemById, featById, spellById } from '../content/index';
+import { featById, spellById, itemProperties } from '../content/index';
 import { navigate } from './App';
 import { StatValue } from './StatValue';
 import { ThemeToggle } from './ThemeToggle';
@@ -26,7 +26,8 @@ export function SheetPreview({ id }: { id: string }) {
   const spells: string[] = Array.isArray(spellPicksByLevel)
     ? spellPicksByLevel
     : Object.keys(spellPicksByLevel ?? {}).sort((a, b) => Number(a) - Number(b)).flatMap((k) => (spellPicksByLevel as Record<string, string[]>)[k]);
-  const gear = Object.entries(doc.purchases).filter(([, q]) => q > 0);
+  const gear = sheet.inventory.filter((it) => it.qty > 0);
+  const quality = (doc.decisions['item-quality'] as Record<string, { properties?: string[] }>) ?? {};
 
   if (mode === 'print') return <OfficialSheet doc={doc} onExit={() => setMode('screen')} />;
 
@@ -117,9 +118,40 @@ export function SheetPreview({ id }: { id: string }) {
         )}
 
         <Section title="Gear">
-          {gear.length ? gear.map(([gid, q]) => <div key={gid} style={{ fontSize: 13, lineHeight: 1.7 }}>{anyItemById(gid)?.name}{q > 1 ? ` ×${q}` : ''}</div>) : <span className="text-muted">Nothing purchased.</span>}
+          {/* Read off the resolved inventory rather than the raw purchases: that is where the
+              masterwork/+N prefix and the special abilities live, so a +1 flaming longsword reads
+              as one here instead of as a plain longsword. Each ability carries its rules text. */}
+          {gear.length ? gear.map((it) => (
+            <div key={it.id} style={{ fontSize: 13, lineHeight: 1.7 }}>
+              {it.name}{it.qty > 1 ? ` ×${it.qty}` : ''}
+              {it.properties?.map((p) => (
+                <span key={p} className="tag tag-neutral" style={{ fontSize: 10, marginLeft: 5 }}>{p}</span>
+              ))}
+              {itemProperties(quality[it.id]?.properties).map((p) => (
+                <div key={p.id} style={{ fontSize: 11.5, lineHeight: 1.5, color: 'var(--color-neutral-400)', marginLeft: 12 }}>
+                  {p.name} — {p.desc}
+                </div>
+              ))}
+            </div>
+          )) : <span className="text-muted">Nothing purchased.</span>}
           <div className="text-muted" style={{ fontSize: 11.5, marginTop: 8 }}>Load {sheet.load.current} lb ({sheet.load.label}) · {sheet.gold} gp remaining</div>
         </Section>
+
+        {/* Worn magic items. The sheet is a reference first, and a cloak of resistance that shows
+            up only inside a save's breakdown is not on the sheet in any useful sense. */}
+        {sheet.worn.length > 0 && (
+          <Section title="Worn magic items">
+            {sheet.worn.map((w, i) => (
+              <div key={`${w.id}-${i}`} style={{ marginBottom: 6, opacity: w.active ? 1 : 0.55 }}>
+                <div style={{ fontSize: 13, lineHeight: 1.5 }}>
+                  {w.name} <span className="text-muted">· {w.slot}</span>
+                  {!w.active && <span style={{ fontSize: 11.5, color: 'var(--warn-fg)' }}> · slot full, no effect</span>}
+                </div>
+                <div style={{ fontSize: 12, lineHeight: 1.5, color: 'var(--color-neutral-400)' }}>{w.desc}</div>
+              </div>
+            ))}
+          </Section>
+        )}
       </div>
 
       {portrait && doc && <PortraitDialog doc={doc} resolution={r} onClose={() => setPortrait(false)} />}

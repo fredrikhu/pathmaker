@@ -554,6 +554,26 @@ describe('deities and bloodlines', () => {
       }
     }
   });
+  it('one lookup answers "what is on this item?" for both ability catalogues', () => {
+    // Weapon and armour ability ids are distinct, so a single lookup is safe — and every display
+    // goes through it, which is what keeps a flaming longsword reading the same everywhere.
+    expect(C.itemProperty('flaming')?.name).toBe('Flaming');
+    expect(C.itemProperty('fortification-light')?.name).toBe('Light fortification');
+    expect(C.itemProperty('no-such-ability')).toBeUndefined();
+    // Weapon restrictions survive the trip; armour abilities have none.
+    expect(C.itemProperty('keen')?.restriction).toBe('piercing or slashing melee weapons');
+    // Unknown ids drop out rather than becoming blanks in a chip row.
+    expect(C.itemPropertyNames(['keen', 'no-such-ability', 'flaming'])).toEqual(['Keen', 'Flaming']);
+    expect(C.itemPropertyNames(undefined)).toEqual([]);
+    // The suffix is concatenable: empty when there is nothing to say.
+    expect(C.itemPropertySuffix(['flaming', 'keen'])).toBe(' (flaming, keen)');
+    expect(C.itemPropertySuffix([])).toBe('');
+    // Every id either catalogue defines must resolve, or some display will silently drop it.
+    const missing = [...C.WEAPON_PROPERTIES, ...C.ARMOR_PROPERTIES]
+      .map((p) => p.id).filter((id) => !C.itemProperty(id));
+    expect(missing, `unresolvable ability ids: ${missing.join(', ')}`).toEqual([]);
+  });
+
   it('every body slot has a capacity', () => {
     for (const s of C.BODY_SLOTS) expect(C.SLOT_CAPACITY[s], `slot ${s}`).toBeGreaterThanOrEqual(1);
     expect(C.SLOT_CAPACITY.ring, 'a character can wear two magic rings').toBe(2);
@@ -3530,6 +3550,10 @@ describe('magic item pricing, verified against the published tables', () => {
       ['belt-strength', [2, 4, 6], 1_000], ['belt-dexterity', [2, 4, 6], 1_000],
       ['belt-constitution', [2, 4, 6], 1_000], ['headband-intelligence', [2, 4, 6], 1_000],
       ['headband-wisdom', [2, 4, 6], 1_000], ['headband-charisma', [2, 4, 6], 1_000],
+      // A belt of physical might boosts two abilities, and prices at 2,500 per bonus² for it:
+      // 10,000 / 40,000 / 90,000.
+      ['belt-might-str-dex', [2, 4, 6], 2_500], ['belt-might-str-con', [2, 4, 6], 2_500],
+      ['belt-might-dex-con', [2, 4, 6], 2_500],
       ['cloak-resistance', [1, 2, 3, 4, 5], 1_000],
       ['ring-protection', [1, 2, 3, 4, 5], 2_000],
       ['amulet-natural-armor', [1, 2, 3, 4, 5], 2_000],

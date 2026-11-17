@@ -3,9 +3,9 @@ import type { CharCtl } from '../../Builder';
 import { WEAPONS, ARMORS, GEAR, weaponById, armorById, anyItemById, gearById } from '../../../content/index';
 import { armorSlowedSpeed, type CharacterDoc } from '../../../engine/types';
 import { TermSpan, useTip, type TipCard } from '../../Tooltip';
-import { qualityCost, qualityPrefix, strRatingCost, totalBonus, MAX_ENHANCEMENT, MAX_STR_RATING, MAX_TOTAL_BONUS, type ItemQuality } from '../../../engine/items';
-import { propertyPrice } from '../../../engine/resolve';
-import { WEAPON_PROPERTIES, ARMOR_PROPERTIES, WONDROUS_ITEMS, BODY_SLOTS, armorById as armorLookup } from '../../../content/index';
+import { qualityCost, qualityPrefix, strRatingCost, totalBonus, weaponQualityBonus, armorQualityBonus, armorCheckPenaltyReduction, MAX_ENHANCEMENT, MAX_STR_RATING, MAX_TOTAL_BONUS, type ItemQuality } from '../../../engine/items';
+import { propertyPrice, doubleThreatRange } from '../../../engine/resolve';
+import { WEAPON_PROPERTIES, ARMOR_PROPERTIES, WONDROUS_ITEMS, BODY_SLOTS, armorById as armorLookup, itemProperties, itemPropertyNames, itemPropertySuffix } from '../../../content/index';
 import { useSnapPanels } from '../bits';
 
 /** Abilities offered for an item: weapon abilities on weapons, and the matching
@@ -21,9 +21,30 @@ const propertiesFor = (id: string) => {
  *  Same round-down-to-5(base/3) rule the engine applies; stated here for the tooltip. */
 // The rule lives in the engine; the preview only needs to show what it will do.
 
+/** The special abilities on an owned item, as tooltip annotations — each one's own rules text,
+ *  plus the caveats the numbers never carry (conditions and weapon restrictions). */
+function propertyAnnotations(q: ItemQuality | undefined): string[] {
+  return itemProperties(q?.properties).map((p) => {
+    const caveat = p.restriction ? ` Applies to ${p.restriction}.` : '';
+    return `${p.name}: ${p.desc}${caveat}`;
+  });
+}
+
 /** A rich tooltip for a shop/owned item: what it actually does, so effects like a breastplate's
- *  speed penalty are visible without cross-referencing a rulebook. */
-function itemCard(id: string): TipCard | null {
+ *  speed penalty are visible without cross-referencing a rulebook. With a quality it also carries
+ *  the enhancement bonus and every special ability on that particular item, so the abilities you
+ *  paid for are readable from the item itself rather than only from the picker that set them. */
+function itemCard(id: string, q?: ItemQuality): TipCard | null {
+  const props = propertyAnnotations(q);
+  const enh = q?.enhancement
+    ? ` It is a +${q.enhancement} item: +${q.enhancement} to attack and damage (armour: +${q.enhancement} AC).`
+    : q?.masterwork ? ' Masterwork: +1 to attack (armour: one less check penalty).' : '';
+  const withQuality = (c: TipCard): TipCard => ({
+    ...c,
+    title: `${qualityPrefix(q)}${c.title}${itemPropertySuffix(q?.properties)}`,
+    body: `${c.body ?? ''}${enh}`,
+    annotations: [...(c.annotations ?? []), ...props],
+  });
   const a = armorById.get(id);
   if (a) {
     const parts = [`+${a.acBonus} AC`];
@@ -33,39 +54,66 @@ function itemCard(id: string): TipCard | null {
     const slows = a.category === 'medium' || a.category === 'heavy';
     const speed = slows ? ` It slows you: 30 ft → ${armorSlowedSpeed(30)} ft (a 20-ft base drops to ${armorSlowedSpeed(20)} ft).` : '';
     const cap = a.slot === 'shield' ? 'Shield' : `${a.category[0].toUpperCase()}${a.category.slice(1)} armor`;
-    return { kicker: cap, title: a.name, body: `${parts.join(' · ')}.${speed}` };
+    return withQuality({ kicker: cap, title: a.name, body: `${parts.join(' · ')}.${speed}` });
   }
   const w = weaponById.get(id);
   if (w) {
     const hands = w.hands === 'ranged' ? 'ranged' : w.hands === 'two' ? 'two-handed' : w.hands === 'light' ? 'light' : 'one-handed';
     const bits = [`${w.dmg} ${w.dmgType}`, `crit ${w.crit}`];
     if (w.range) bits.push(`range ${w.range} ft`);
-    return { kicker: `${w.group[0].toUpperCase()}${w.group.slice(1)} · ${hands}`, title: w.name,
-      body: `${bits.join(' · ')}.${w.note ? ` ${w.note}` : ''}` };
+    return withQuality({ kicker: `${w.group[0].toUpperCase()}${w.group.slice(1)} · ${hands}`, title: w.name,
+      body: `${bits.join(' · ')}.${w.note ? ` ${w.note}` : ''}` });
   }
   const g = gearById.get(id);
   if (g) return { kicker: 'Gear', title: g.name, body: g.note || 'No mechanical effect on your sheet.' };
   return null;
 }
 
-/** A one-line summary of an equipped item's key numbers, for the slot cards at the top. */
-function basicInfo(id: string): string | null {
+/** The special abilities on an item as a chip row, so what you bought is visible on the item
+ *  wherever it is listed rather than only inside the picker that set it. */
+function PropertyChips({ q, size = 9.5 }: { q: ItemQuality | undefined; size?: number }) {
+  const names = itemPropertyNames(q?.properties);
+  if (names.length === 0) return null;
+  return (
+    <>
+      {names.map((n) => (
+        <span key={n} className="tag tag-neutral" style={{ fontSize: size, marginLeft: 4 }}>{n}</span>
+      ))}
+    </>
+  );
+}
+
+/** A one-line summary of an equipped item's key numbers, for the slot cards at the top. The numbers
+ *  are the ones this particular item actually has: a +1 suit of armour says +5 AC rather than +4,
+ *  and a keen weapon's threat range is shown widened, because the slot card is where you check what
+ *  you are holding. */
+function basicInfo(id: string, q?: ItemQuality): string | null {
   const a = armorById.get(id);
   if (a) {
-    const bits = [`+${a.acBonus} AC`];
-    if (a.acp) bits.push(`check −${Math.abs(a.acp)}`);
+    const enh = armorQualityBonus(q);
+    const bits = [`+${a.acBonus + enh} AC`];
+    if (a.acp) bits.push(`check −${Math.abs(Math.min(0, a.acp + armorCheckPenaltyReduction(q)))}`);
     if (a.category === 'medium' || a.category === 'heavy') bits.push(`speed 30→${armorSlowedSpeed(30)}`);
     return bits.join(' · ');
   }
   const w = weaponById.get(id);
-  if (w) return `${w.dmg} ${w.dmgType} · crit ${w.crit}${w.range ? ` · ${w.range} ft` : ''}`;
+  if (w) {
+    const qb = weaponQualityBonus(q);
+    // Keen doubles the threat range, so the printed crit here is the one you would actually roll.
+    const keen = itemProperties(q?.properties).some((p) => p.id === 'keen');
+    const bits = [`${w.dmg} ${w.dmgType}`, `crit ${keen ? doubleThreatRange(w.crit) : w.crit}`];
+    if (w.range) bits.push(`${w.range} ft`);
+    if (qb.attack) bits.push(qb.label === 'mwk' ? '+1 attack (mwk)' : `${qb.label} attack & damage`);
+    return bits.join(' · ');
+  }
   return null;
 }
 
-/** The item's name, hoverable/clickable to open its effects tooltip. */
-function ItemName({ id, children }: { id: string; children: ReactNode }) {
+/** The item's name, hoverable/clickable to open its effects tooltip. `q` is the owned item's
+ *  quality, so an owned weapon's card carries its enhancement and abilities; the shop passes none. */
+function ItemName({ id, q, children }: { id: string; q?: ItemQuality; children: ReactNode }) {
   const tip = useTip();
-  const card = itemCard(id);
+  const card = itemCard(id, q);
   if (!card) return <>{children}</>;
   return (
     <span className="term" onMouseEnter={tip.card(card)} onMouseLeave={tip.leave} onClick={tip.card(card)}>
@@ -280,11 +328,14 @@ export function EquipmentStep({ ch }: { ch: CharCtl }) {
 
       <div style={{ display: 'flex', gap: 10, marginBottom: 18, flexWrap: 'wrap' }}>
         {([['Armor', equipped.armor], ['Main hand', equipped.mainHand], ['Off hand', equipped.offHand]] as const).map(([k, v]) => {
-          const info = v ? basicInfo(v) : null;
+          const q = v ? quality[v] : undefined;
+          const info = v ? basicInfo(v, q) : null;
           return (
             <div key={k} className="pick" style={{ padding: '9px 14px', minWidth: 170 }}>
               <div className="micro">{k}</div>
-              <div style={{ fontSize: 13, fontWeight: 500, marginTop: 2 }}>{v ? <ItemName id={v}>{slotLabel(v)}</ItemName> : slotLabel(v)}</div>
+              <div style={{ fontSize: 13, fontWeight: 500, marginTop: 2 }}>
+                {v ? <>{qualityPrefix(q)}<ItemName id={v} q={q}>{slotLabel(v)}</ItemName><PropertyChips q={q} /></> : slotLabel(v)}
+              </div>
               {info && <div className="text-muted" style={{ fontSize: 11, marginTop: 2 }}>{info}</div>}
             </div>
           );
@@ -328,7 +379,8 @@ export function EquipmentStep({ ch }: { ch: CharCtl }) {
               return (
                 <div key={id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 8, background: 'var(--color-surface)', flexWrap: 'wrap' }}>
                   <span style={{ flex: 1, fontSize: 13, minWidth: 140 }}>
-                    {qualityPrefix(quality[id])}<ItemName id={id}>{item.name}</ItemName> <span className="text-muted" style={{ fontSize: 11 }}>×{q}</span>
+                    {qualityPrefix(quality[id])}<ItemName id={id} q={quality[id]}>{item.name}</ItemName> <span className="text-muted" style={{ fontSize: 11 }}>×{q}</span>
+                    <PropertyChips q={quality[id]} />
                   </span>
                   {qualityKind(id) && <QualityPicker id={id} kind={qualityKind(id)!} />}
                   <StrRatingPicker id={id} />

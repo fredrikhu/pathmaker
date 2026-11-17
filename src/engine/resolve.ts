@@ -1674,9 +1674,7 @@ function buildInventory(doc: CharacterDoc): InventoryItem[] {
     const maxCharges = g?.charges;
     // Masterwork / magic gear reads as "+1 Longsword" in the carried list.
     const qName = `${qualityPrefix(quality[id])}${base.name}`;
-    const propNames = (quality[id]?.properties ?? [])
-      .map((pid) => C.weaponPropertyById.get(pid)?.name ?? C.armorPropertyById.get(pid)?.name)
-      .filter(Boolean) as string[];
+    const propNames = C.itemPropertyNames(quality[id]?.properties);
     out.push({
       id, name: qName, kind, purchased, qty,
       weightEach: base.weight,
@@ -2107,9 +2105,19 @@ function weaponAttacks(doc: CharacterDoc, stats: Record<string, Stat>, bab: numb
     const weaponDie = own ? own.die : weaponDamageForSize(w.dmg, size);
     const baseDamage = dmgMod !== 0 ? `${weaponDie}${fmtSigned(dmgMod)}` : weaponDie;
     const damage = extraDice.length ? `${baseDamage} + ${extraDice.join(' + ')}` : baseDamage;
+    // Keen and Improved Critical both double the threat range, and never together — applying
+    // doubleThreatRange once when either is present is exactly the "does not stack" rule.
+    const widensThreat = Boolean(fb?.doublesThreat) || props.some((p) => p.doublesThreat);
+    const crit = widensThreat ? doubleThreatRange(w.crit) : w.crit;
+    // Every ability on the weapon says its piece here. The three that change the numbers used to
+    // pass silently — the extra dice landed in the damage string, keen widened the crit and speed
+    // inserted a repeated attack bonus, with nothing on the line admitting why — so each one now
+    // names itself against the figure it moved.
     for (const p of props) {
-      if (p.condition) notes.push(`${p.name}: ${p.desc}`);
-      else if (!p.damageDice && !p.extraAttack && !p.doublesThreat) notes.push(`${p.name}: ${p.desc}`);
+      if (p.damageDice) notes.push(`${p.name}: +${p.damageDice} on every hit, already counted in the damage above.`);
+      if (p.doublesThreat) notes.push(`${p.name}: threat range doubled — ${crit} rather than ${w.crit}.`);
+      if (p.extraAttack) notes.push(`${p.name}: the repeated ${fmtSigned(attackTotal)} above is its extra attack, which you get only on a full attack.`);
+      if (p.condition || !(p.damageDice || p.extraAttack || p.doublesThreat)) notes.push(`${p.name}: ${p.desc}`);
       if (p.restriction) notes.push(`${p.name} applies to ${p.restriction}.`);
     }
     // A Strength penalty is never scaled, so the ½×/1½× note only shows when a bonus is being scaled.
@@ -2133,9 +2141,7 @@ function weaponAttacks(doc: CharacterDoc, stats: Record<string, Stat>, bab: numb
       ...(thrown ? { mode: 'thrown' as const } : asFlurry ? { mode: 'flurry' as const } : {}),
       attackLines,
       damage, damageLines,
-      // Keen and Improved Critical both double the threat range, and never together — applying
-      // doubleThreatRange once when either is present is exactly the "does not stack" rule.
-      crit: (fb?.doublesThreat || props.some((p) => p.doublesThreat)) ? doubleThreatRange(w.crit) : w.crit,
+      crit,
       dmgType: w.dmgType, range: w.range,
       ...(qb.label ? { qualityLabel: qb.label } : {}),
       ...(props.length ? { properties: props.map((p) => p.name) } : {}),

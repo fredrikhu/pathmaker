@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { resolve, doubleThreatRange, effectiveClass, readDecisions, heavyLoadFor } from './resolve';
 import { newCharacter, withDecision } from './character';
+import { fingerprint } from './fingerprint';
 import { armorSlowedSpeed } from './types';
 import { vitals } from './vitals';
 import { spellBuffTimer } from './buffs';
@@ -2467,6 +2468,35 @@ describe('named weapon properties', () => {
     const d = armed({ longsword: { masterwork: true, enhancement: 1, properties: ['flaming', 'frost'] } });
     expect(line(d, 'longsword').damage).toBe('1d8+4 + 1d6 fire + 1d6 cold');
   });
+
+  it('every applied ability names itself on the line, including the ones that move a number', () => {
+    // An ability that silently changes a figure is the worst case: the reader sees the number and
+    // cannot tell what put it there. Each of the three kinds has to speak for itself.
+    const d = armed({ longsword: { masterwork: true, enhancement: 1, properties: ['flaming', 'keen', 'speed'] } });
+    const l = line(d, 'longsword');
+    // Flaming's dice are in the damage string, and the note says so rather than repeating them.
+    expect(l.damage).toBe('1d8+4 + 1d6 fire');
+    expect(l.notes.some((n) => n.startsWith('Flaming: +1d6 fire on every hit'))).toBe(true);
+    // Keen's widened range is on the line, and the note names both ranges.
+    expect(l.crit).toBe('17–20/×2');
+    expect(l.notes.some((n) => n === 'Keen: threat range doubled — 17–20/×2 rather than 19–20/×2.')).toBe(true);
+    // Speed's extra attack is a repeated bonus, which reads as a typo until something explains it.
+    expect(l.bonuses).toEqual([10, 10, 5]);
+    expect(l.notes.some((n) => n.startsWith('Speed: the repeated +10 above is its extra attack'))).toBe(true);
+    // And the names are carried for display, so a chip row needs no second lookup.
+    expect(l.properties).toEqual(['Flaming', 'Keen', 'Speed']);
+  });
+
+  it('carries an ability-bearing weapon into the carried list and the portrait prompt', () => {
+    const d = armed({ longsword: { masterwork: true, enhancement: 1, properties: ['flaming', 'keen'] } });
+    const r = resolve(d);
+    const inv = r.sheet.inventory.find((i) => i.id === 'longsword')!;
+    expect(inv.name).toBe('+1 Longsword');
+    expect(inv.properties).toEqual(['Flaming', 'Keen']);
+    // The prompt describes the character, and a flaming sword is the most describable thing on
+    // them. It is named the way the rules name it, so the prompt reads as prose.
+    expect(fingerprint(d, r).offense.mainHand).toBe('+1 flaming keen Longsword');
+  });
 });
 
 describe('armour and shield special abilities', () => {
@@ -3243,6 +3273,27 @@ describe('worn magic items', () => {
     expect(after - before).toBe(12); // +1 Con modifier × 12 levels
   });
 
+  it('a belt of physical might raises both of its abilities from the one belt slot', () => {
+    const before = resolve(worn([])).sheet;
+    const after = resolve(worn(['belt-might-str-con-4'])).sheet;
+    expect(after.stats['ability:str'].total - before.stats['ability:str'].total).toBe(4);
+    expect(after.stats['ability:con'].total - before.stats['ability:con'].total).toBe(4);
+    // The untouched third physical ability is left alone.
+    expect(after.stats['ability:dex'].total).toBe(before.stats['ability:dex'].total);
+    // Both halves flow on: Str 17 → 21 is +2 to melee, Con 14 → 18 is +2 hp per level.
+    expect(after.stats['attack:melee'].total - before.stats['attack:melee'].total).toBe(2);
+    expect(after.stats['hp:max'].total - before.stats['hp:max'].total).toBe(24);
+    expect(before.gold - after.gold).toBe(40_000);
+  });
+
+  it('a belt of physical might does not stack with a stat belt — one belt slot, same bonus type', () => {
+    // Worn together the second belt is suppressed by the slot, so only the might belt applies.
+    const r = resolve(worn(['belt-might-str-dex-2', 'belt-strength-6']));
+    expect(r.sheet.worn.map((w) => w.active)).toEqual([true, false]);
+    expect(r.sheet.stats['ability:str'].total).toBe(19); // 17 + 2, not 17 + 6
+    expect(r.sheet.stats['ability:dex'].total).toBe(16);
+  });
+
   it('cloak of resistance adds to every save', () => {
     const d = worn(['cloak-resistance-3']);
     for (const s of ['save:fort', 'save:ref', 'save:will']) {
@@ -3284,6 +3335,19 @@ describe('worn magic items', () => {
 
   it('ignores an unknown item id', () => {
     expect(resolve(worn(['no-such-item'])).sheet.worn).toEqual([]);
+  });
+
+  it('carries each worn item’s slot and description, including the ones that change no number', () => {
+    // The sheets and the play mat list these items and print what they do. For boots of speed
+    // the description IS the item — nothing it does reaches a stat — so dropping it would leave
+    // 12,000 gp on the sheet with nothing to show for it.
+    const r = resolve(worn(['boots-of-speed', 'cloak-resistance-3']));
+    expect(r.sheet.worn).toEqual([
+      { id: 'boots-of-speed', name: 'Boots of speed', slot: 'feet', cost: 12_000, active: true,
+        desc: 'Free action: act as though hasted for up to 10 rounds per day; the rounds need not be consecutive.' },
+      { id: 'cloak-resistance-3', name: 'Cloak of resistance +3', slot: 'shoulders', cost: 9_000, active: true,
+        desc: '+3 resistance bonus on all saving throws.' },
+    ]);
   });
 
   it('a document missing goldSpent resolves to a number, not NaN', () => {

@@ -233,6 +233,20 @@ function equippedWeapon(sheet: Sheet, where: 'main' | 'off') {
   return { item, def: C.weaponById.get(item.id) };
 }
 
+/** How a wielded weapon is named in the portrait prompt. A flaming longsword is the single most
+ *  describable thing about a character, so the special abilities belong in the name the prompt
+ *  sees — "+1 Longsword" alone throws them away. They go between the bonus and the weapon, the way
+ *  the rules name them ("a +1 flaming keen longsword"), because the prompt is read as prose and a
+ *  parenthetical inside the prompt's own parentheses is not. */
+function wieldedName(w: { item: { name: string; properties?: string[] } } | null): string | null {
+  if (!w) return null;
+  const props = w.item.properties ?? [];
+  if (props.length === 0) return w.item.name;
+  const adjectives = props.map((p) => p.toLowerCase()).join(' ');
+  const prefixed = w.item.name.match(/^(\+\d+ |Masterwork )(.*)$/);
+  return prefixed ? `${prefixed[1]}${adjectives} ${prefixed[2]}` : `${adjectives} ${w.item.name}`;
+}
+
 function offenseStyle(sheet: Sheet, featIds: Set<string>, hasCasting: boolean): OffenseStyle {
   const main = equippedWeapon(sheet, 'main');
   const off = equippedWeapon(sheet, 'off');
@@ -438,8 +452,8 @@ export function fingerprint(doc: CharacterDoc, res: Resolution): BuildFingerprin
       iteratives: best?.bonuses.length ?? 0,
       hasRanged,
       hasMelee,
-      mainHand: mainItem?.item.name ?? null,
-      offHand: offItem?.item.name ?? null,
+      mainHand: wieldedName(mainItem),
+      offHand: wieldedName(offItem),
     },
     defense: {
       posture,

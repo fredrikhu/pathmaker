@@ -50,6 +50,30 @@ function abilityItems(idBase: string, name: string, slot: BodySlot, ability: Abi
   }));
 }
 
+/** Belt of physical might: an enhancement bonus to TWO physical abilities, +2/+4/+6, priced
+ *  bonus² × 2,500. "These bonuses are chosen when the belt is created and cannot be changed", so
+ *  each pair is its own item rather than a choice made at the table. */
+function abilityPairItems(
+  idBase: string, name: string, slot: BodySlot, per: number,
+  pair: [Ability, Ability], short: string, long: string,
+): WondrousItemDef[] {
+  return [2, 4, 6].map((b) => {
+    const full = `${name} +${b} (${short})`;
+    return {
+      id: `${idBase}-${b}`,
+      name: full,
+      slot,
+      cost: b * b * per,
+      bonus: b,
+      tiered: true,
+      desc: `+${b} enhancement bonus to ${long}.`,
+      effects: pair.map((ability) => ({
+        target: `ability:${ability}`, type: 'enhancement' as const, value: b, note: full,
+      })),
+    };
+  });
+}
+
 /** A +1..+5 family priced bonus² × `per`. */
 function tieredItems(
   idBase: string, name: string, slot: BodySlot, per: number,
@@ -91,6 +115,11 @@ export const WONDROUS_ITEMS: WondrousItemDef[] = [
   ...abilityItems('headband-intelligence', 'Headband of vast intelligence', 'headband', 'int', 'Intelligence'),
   ...abilityItems('headband-wisdom', 'Headband of inspired wisdom', 'headband', 'wis', 'Wisdom'),
   ...abilityItems('headband-charisma', 'Headband of alluring charisma', 'headband', 'cha', 'Charisma'),
+  // ---- Two abilities at once (belt of physical might), 10,000 / 40,000 / 90,000 ----
+  // Priced bonus² × 2,500 rather than the single-ability 1,000: one belt slot doing two belts' work.
+  ...abilityPairItems('belt-might-str-dex', 'Belt of physical might', 'belt', 2_500, ['str', 'dex'], 'Str & Dex', 'Strength and Dexterity'),
+  ...abilityPairItems('belt-might-str-con', 'Belt of physical might', 'belt', 2_500, ['str', 'con'], 'Str & Con', 'Strength and Constitution'),
+  ...abilityPairItems('belt-might-dex-con', 'Belt of physical might', 'belt', 2_500, ['dex', 'con'], 'Dex & Con', 'Dexterity and Constitution'),
   // ---- Defensive trio ----
   ...tieredItems('cloak-resistance', 'Cloak of resistance', 'shoulders', 1_000,
     (b) => ({ target: 'save:all', type: 'resistance', value: b, note: `Cloak of resistance +${b}` }),

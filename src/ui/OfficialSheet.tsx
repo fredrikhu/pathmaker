@@ -15,7 +15,7 @@ import { ABILITIES, abilityMod, fmtMod } from '../engine/types';
 import { resolve } from '../engine/resolve';
 import { armorCheckPenaltyReduction } from '../engine/items';
 import { readDescription } from '../engine/description';
-import { SKILLS, raceById, deityById, featById, spellById, armorById } from '../content/index';
+import { SKILLS, raceById, deityById, featById, spellById, armorById, itemProperties } from '../content/index';
 import '../styles/sheet.css';
 
 // ---------------------------------------------------------------------------
@@ -408,7 +408,10 @@ function PageOne({ doc, sheet }: { doc: CharacterDoc; sheet: Sheet }) {
                 </div>
                 <div style={{ display: 'flex', border: '0.75px solid #000' }}>
                   <div style={{ flex: 1, fontSize: 10, padding: '2px 3px', minHeight: 26, display: 'flex', alignItems: 'center', borderRight: '0.75px solid #000', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {a ? `${a.name}${a.qualityLabel ? ` (${a.qualityLabel})` : ''}${a.mode === 'thrown' ? ' — thrown' : ''}` : ''}
+                    {/* The weapon reads as it does everywhere else — "+1 Longsword (flaming,
+                        keen)" — so the abilities you paid for are on the line you swing with.
+                        Their rules text is printed under Special Abilities. */}
+                    {a ? `${a.qualityLabel ? `${a.qualityLabel} ` : ''}${a.name}${a.properties?.length ? ` (${a.properties.map((p) => p.toLowerCase()).join(', ')})` : ''}${a.mode === 'thrown' ? ' — thrown' : ''}` : ''}
                   </div>
                   <div className="pf-box" style={{ width: 70, border: 'none', borderRight: '0.75px solid #000', fontSize: 11 }}>
                     {a ? a.bonuses.map(fmtMod).join('/') : ''}
@@ -540,7 +543,7 @@ function WeaponCell({ cap, v, w, last }: { cap: string; v?: string; w?: number; 
 
 function PageTwo({ doc, sheet }: { doc: CharacterDoc; sheet: Sheet }) {
   const dec = doc.decisions;
-  const quality = (dec['item-quality'] as Record<string, { masterwork?: boolean; enhancement?: number }>) ?? {};
+  const quality = (dec['item-quality'] as Record<string, { masterwork?: boolean; enhancement?: number; properties?: string[] }>) ?? {};
   const race = raceById.get((dec['race'] as string) ?? '');
 
   // --- AC items: every line that contributes to AC, enriched for armor and shields with the
@@ -565,7 +568,6 @@ function PageTwo({ doc, sheet }: { doc: CharacterDoc; sheet: Sheet }) {
         acp: acp ? fmtMod(acp) : '',
         asf: armor && armor.asf ? `${armor.asf}%` : '',
         weight: armor ? String(armor.weight) : '',
-        props: armor?.maxDex !== null && armor?.maxDex !== undefined ? `max Dex +${armor.maxDex}` : '',
       };
     });
   const acTotals = {
@@ -573,10 +575,30 @@ function PageTwo({ doc, sheet }: { doc: CharacterDoc; sheet: Sheet }) {
     weight: acRows.reduce((n, r) => n + (Number(r.weight) || 0), 0),
   };
 
-  // --- Gear
-  const gear = sheet.inventory
-    .filter((it) => it.qty > 0)
-    .map((it) => ({ name: `${it.name}${it.qty > 1 ? ` ×${it.qty}` : ''}`, wt: it.weight }));
+  // --- Gear. A magic item's abilities ride in its name here too, so the carried list and the
+  //     weapon lines on page one describe the same sword.
+  //     Worn magic items are listed with the rest of what you are carrying — a cloak of resistance
+  //     is equipment, and a sheet that shows it only as an anonymous +3 inside a save's breakdown
+  //     cannot answer "what am I wearing?". The catalogue carries no weight for them, so the Wt.
+  //     column is left blank rather than filled with a guess.
+  const gear = [
+    ...sheet.inventory
+      .filter((it) => it.qty > 0)
+      .map((it) => ({
+        name: `${it.name}${it.properties?.length ? ` (${it.properties.map((p) => p.toLowerCase()).join(', ')})` : ''}${it.qty > 1 ? ` ×${it.qty}` : ''}`,
+        wt: it.weight,
+      })),
+    ...sheet.worn.map((w) => ({
+      name: `${w.name} (${w.slot})${w.active ? '' : ' — slot full, no effect'}`,
+      wt: 0,
+    })),
+  ];
+
+  // --- Magic item abilities, with their rules text. The weapon line and the gear list have room
+  //     only for the names, so the text that tells you what flaming or fortification actually does
+  //     is printed here — the one place on the sheet that has the space for it.
+  const itemAbilities = sheet.inventory.flatMap((it) =>
+    itemProperties(quality[it.id]?.properties).map((p) => `${p.name} — ${p.desc} (${it.name})`));
 
   // --- Feats: chosen slots plus everything the class handed out.
   const chosen = Object.values((dec['feats'] as Record<string, string | null>) ?? {})
@@ -602,6 +624,11 @@ function PageTwo({ doc, sheet }: { doc: CharacterDoc; sheet: Sheet }) {
     ...sheet.spellLikeAbilities.map((s) => `${s.name} — ${s.uses === 'at-will' ? 'at will' : `${s.uses}/day`} (${s.source})`),
     ...sheet.defenses.dr.map((d) => `DR ${d.amount}/${d.bypass}`),
     ...sheet.defenses.resistances.map((r) => `Resist ${r.type} ${r.amount}`),
+    ...itemAbilities,
+    // Several worn items do something the engine never turns into a number — boots of speed, the
+    // jump half of striding and springing, goggles of night. Printed nowhere else, they would be
+    // paid for and then forgotten, so their text goes here with everything else you can do.
+    ...sheet.worn.filter((w) => w.active).map((w) => `${w.name} — ${w.desc}`),
   ];
 
   // --- Spells
