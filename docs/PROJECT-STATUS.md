@@ -6,7 +6,7 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 
 ## ▶ Resume here (last session end)
 
-**Current state** — branch `main`, **1,345 tests** passing; run
+**Current state** — branch `main`, **1,346 tests** passing; run
 `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
 **Latest — warpriest blessings on the play mat.** A warpriest's chosen blessings now have their own
@@ -26,8 +26,20 @@ panel on the play mat, after Resources. It shows each blessing's minor and major
   picked.
 - *Left out:* action types and durations per power (the catalogue has neither), so **use** spends a
   use but does not spend an action or start a timer. Tests: `warpriest-blessings.test.ts`.
-- **Not yet checked against d20pfsrd** (the site refuses requests from cloud sessions): the uses per
-  day, the save DC and the 10th-level major power above. The checklist is in the pull request.
+- **Checked against d20pfsrd** (the warpriest page, read directly): the uses per day, the save DC,
+  the minor power at 1st and major at 10th, warpriest levels only, the Forgepriest's single blessing
+  and the Divine Commander's Mount replacing blessings all hold as built. The base class stops at 13
+  uses; only the alternative capstone Hammer of God (PPC, not carried here) and the dwarf/elf
+  warpriest favored-class bonuses go past it, and Aspect of War's free minute at 20th is not
+  modelled.
+- **The blessing catalogue was audited power by power at the same visit**, since the panel now puts
+  that text in front of a player at the table. 17 of the 37 entries were rewritten in `deities.ts`:
+  Destruction's Heart of Carnage gave the *foe* the crit bonus that belongs to an ally; the aligned
+  Battle Companion summons read as any chaotic/evil/good/lawful creature, not an outsider of that
+  alignment or an animal with the matching template; Curse, Darkness, Repose and Scalykind dropped
+  the save that makes them conditional; and Animal, Artifice, Community, Godfist, Liberation,
+  Madness, Nobility, Scalykind and Trickery misstated a target, reach, die size or duration. The
+  audited facts are asserted in `content.test.ts`, not left to prose.
 
 **Prior — thrown-only weapons add Strength to damage.** The dart, javelin, shuriken and bola
 (`hands: 'ranged'`, no melee mode) were getting the projectile rule of no Str to damage. In PF1 a

@@ -632,6 +632,40 @@ describe('deities and bloodlines', () => {
       expect(b.major.length, `blessing ${b.id}: empty major power`).toBeGreaterThan(0);
     }
   });
+  // Audited power by power against d20pfsrd's blessings list. These are the lines that were wrong
+  // once, and the play mat now shows them at the table: a power that helps an ally read as helping
+  // a foe, an aligned summons read as any creature of that alignment, and a power whose save was
+  // missing read as automatic.
+  it('says who each audited blessing power helps, and names the save it allows', () => {
+    const b = (id: string) => C.blessingById.get(id)!;
+    // Heart of Carnage buffs an ally; it does not hand the enemy a bonus to confirm crits.
+    expect(b('destruction').major).toMatch(/ally/);
+    expect(b('destruction').major).not.toMatch(/foe/);
+    // Battle Companion summons an outsider of that alignment or an animal with the matching
+    // template, not any creature that happens to share the alignment.
+    for (const id of ['chaos', 'evil', 'good', 'law'])
+      expect(b(id).major, `blessing ${id}`).toMatch(/outsider or \w+ animal/);
+    // A power that allows a save says so, so the mat does not read it as automatic.
+    expect(b('darkness').major).toMatch(/Will negates/);
+    expect(b('curse').minor).toMatch(/Will negates/);
+    expect(b('curse').major).toMatch(/Will negates/);
+    expect(b('scalykind').major).toMatch(/Fort negates/);
+    expect(b('repose').major).toMatch(/save halves/);
+    // Scaly Touch is an enhancement bonus *to* natural armor, not a natural armor bonus.
+    expect(b('scalykind').minor).toMatch(/enhancement to natural armor/);
+    // Crafter's Wrath bypasses hardness and DR against objects and constructs only.
+    expect(b('artifice').minor).toMatch(/objects and constructs/);
+    // Fight as One, Tactical Readiness and Freedom's Shout each reach fewer allies than the
+    // 30-ft-everyone they once claimed.
+    expect(b('community').major).toMatch(/within 10 ft/);
+    expect(b('godfist').major).toMatch(/Wisdom bonus/);
+    expect(b('liberation').major).toMatch(/share the Liberation blessing/);
+    // Lead by Example is conditional on your own next action.
+    expect(b('nobility').major).toMatch(/attack or skill check/);
+    // Animal Fury's bite is a d8 at Medium size; Madness Supremacy reaches any creature, not a foe.
+    expect(b('animal').minor).toMatch(/bite \(1d8\)/);
+    expect(b('madness').minor).toMatch(/one creature within 30 ft/);
+  });
 });
 
 describe('spells', () => {
