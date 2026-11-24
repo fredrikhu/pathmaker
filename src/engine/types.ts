@@ -603,6 +603,9 @@ export interface Sheet {
   /** Innate spell-like abilities. A per-day `uses` is tracked via `play.usedPools[id]`, so it
    *  clears on Rest like any daily resource; 'at-will' abilities carry no count. */
   spellLikeAbilities: SpellLikeAbility[];
+  /** A warpriest's chosen blessings and the one daily pool they draw on. Absent for anyone without
+   *  the feature (a Divine Commander trades it away) or who has not picked a blessing yet. */
+  blessings?: BlessingsBlock;
   /** Resolved companion creatures (animal companion, eidolon, familiar, mount). Empty for the
    *  character who has none, which is most of them. */
   companions: CompanionBlock[];
@@ -624,6 +627,25 @@ export interface SpellLikeAbility {
   /** Save DC (10 + spell level + Charisma) when the named spell allows a save; absent for spells that
    *  force no save (daylight, alter self…) or that aren't in the catalog. */
   saveDc?: number;
+}
+
+/** Warpriest blessings (Advanced Class Guide) for the play mat. Every call on any blessing, minor or
+ *  major, spends one use from a single daily pool, so the mat tracks one pool, not one per power. */
+export interface BlessingsBlock {
+  /** The `sheet.pools` entry the powers spend from. Its uses live in `play.usedPools[poolId]`, so
+   *  Rest restores them like any other daily resource. */
+  poolId: string;
+  /** 3 + ½ warpriest level, shared by every blessing and both of its powers (13 at 20th). */
+  perDay: number;
+  /** 10 + ½ warpriest level + Wisdom modifier, for the powers that allow a save. */
+  saveDc: number;
+  /** The warpriest level the blessings run at. For a multiclass character this is the warpriest
+   *  class level, not the character level. */
+  classLevel: number;
+  /** Major powers open at 10th warpriest level. Below it the mat still shows them, as to come. */
+  majorAt: number;
+  majorReady: boolean;
+  blessings: { id: string; name: string; minor: string; major: string }[];
 }
 
 export interface Resolution {

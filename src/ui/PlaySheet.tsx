@@ -443,7 +443,10 @@ export function PlaySheet({ id }: { id: string }) {
   const timerFor = (conditionId: string): Timer | undefined =>
     play.timers.filter((t) => t.conditionId === conditionId).sort((a, b) => a.remaining - b.remaining)[0];
 
-  const pools = sheet.pools;
+  // The blessing pool is drawn in the Blessings panel, beside the powers that spend it, so the
+  // Resources panel leaves it out rather than showing the same uses twice.
+  const blessings = sheet.blessings;
+  const pools = sheet.pools.filter((p) => p.id !== blessings?.poolId);
   const usedPoolAt = (id: string) => play.usedPools[id] ?? 0;
   const setUsedPool = (id: string, v: number, max: number) =>
     updatePlay((p) => ({ usedPools: { ...p.usedPools, [id]: Math.max(0, Math.min(max, v)) } }));
@@ -1177,37 +1180,61 @@ export function PlaySheet({ id }: { id: string }) {
         <div className="mat-panel" style={{ marginTop: 18 }}>
           <div className="micro" style={{ marginBottom: 12 }}>Resources</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {pools.map((pool) => {
-              const used = usedPoolAt(pool.id);
-              const remaining = pool.max - used;
-              return (
-                <div key={pool.id} style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-                  <span style={{ width: 148, fontSize: 13, fontWeight: 500 }}>{pool.name}</span>
-                  {pool.max <= 10 ? (
-                    <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-                      {Array.from({ length: pool.max }).map((_, i) => {
-                        const spent = i < used;
-                        return (
-                          <button key={i} title={spent ? 'restore' : 'spend'}
-                            onClick={() => setUsedPool(pool.id, spent ? i : i + 1, pool.max)}
-                            style={{ width: 22, height: 22, borderRadius: 6, cursor: 'pointer', border: '1px solid var(--color-divider)', background: spent ? 'transparent' : 'var(--color-accent)', opacity: spent ? 0.5 : 1 }} />
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                      <button className="stepper" style={{ width: 26, height: 26 }} disabled={remaining <= 0} onClick={() => adjustPool(pool.id, 1, pool.max)}>−</button>
-                      <button className="stepper" style={{ width: 26, height: 26 }} disabled={used <= 0} onClick={() => adjustPool(pool.id, -1, pool.max)}>+</button>
-                    </div>
-                  )}
-                  <span className="num" style={{ fontSize: 14, fontWeight: 600, color: remaining <= 0 ? 'var(--warn-fg)' : undefined }}>{remaining}</span>
-                  <span className="text-muted" style={{ fontSize: 12 }}>/ {pool.max} {pool.unit}</span>
-                </div>
-              );
-            })}
+            {pools.map((pool) => (
+              <div key={pool.id} style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                <span style={{ width: 148, fontSize: 13, fontWeight: 500 }}>{pool.name}</span>
+                <PoolTrack used={usedPoolAt(pool.id)} max={pool.max} unit={pool.unit}
+                  onSet={(v) => setUsedPool(pool.id, v, pool.max)} onAdjust={(d) => adjustPool(pool.id, d, pool.max)} />
+              </div>
+            ))}
           </div>
         </div>
       )}
+
+      {/* Warpriest blessings. Every call on any power, minor or major, spends one use of a single
+          daily pool, so the pool sits at the top and each power's button draws on it. Major powers
+          open at 10th warpriest level; before that they show dimmed, as what is coming. */}
+      {blessings && (() => {
+        const used = usedPoolAt(blessings.poolId);
+        const left = blessings.perDay - used;
+        const spend = () => adjustPool(blessings.poolId, 1, blessings.perDay);
+        const power = (tier: 'minor' | 'major', desc: string, ready: boolean) => (
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, fontSize: 12.5, opacity: ready ? 1 : 0.55 }}>
+            <span className="tag tag-neutral" style={{ fontSize: 9.5, minWidth: 42, textAlign: 'center', flexShrink: 0 }}>{tier}</span>
+            <span style={{ flex: 1, minWidth: 0, lineHeight: 1.5 }}>{desc}</span>
+            {ready ? (
+              <button className="btn btn-secondary" style={{ fontSize: 11, flexShrink: 0 }} disabled={left <= 0}
+                title={left > 0 ? 'Spend one use of your blessings' : 'No blessing uses left today'} onClick={spend}>use</button>
+            ) : (
+              <span className="text-muted" style={{ fontSize: 11, flexShrink: 0 }}>at level {blessings.majorAt}</span>
+            )}
+          </div>
+        );
+        return (
+          <div className="mat-panel" style={{ marginTop: 18 }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
+              <div className="micro">Blessings</div>
+              <span className="text-muted" style={{ fontSize: 11.5 }}>
+                one pool for every power · save DC <span className="num">{blessings.saveDc}</span>
+              </span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 14 }}>
+              <PoolTrack used={used} max={blessings.perDay} unit="uses per day"
+                onSet={(v) => setUsedPool(blessings.poolId, v, blessings.perDay)}
+                onAdjust={(d) => adjustPool(blessings.poolId, d, blessings.perDay)} />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              {blessings.blessings.map((b) => (
+                <div key={b.id} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <span style={{ fontSize: 13, fontWeight: 500 }}>{b.name}</span>
+                  {power('minor', b.minor, true)}
+                  {power('major', b.major, blessings.majorReady)}
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Worn magic items. Their numbers already reach the stats above, but the items themselves
           were only ever visible in the builder — so at the table you could not answer "what am I
@@ -1413,6 +1440,41 @@ export function PlaySheet({ id }: { id: string }) {
 
       <p className="text-muted" style={{ fontSize: 11, marginTop: 16 }}>Play state (HP, conditions, resources, prepared/expended spells) is saved with the character. Rest restores daily resources and cast spells, and heals at the natural rate — 1 hp per level a night, not all of it.</p>
     </div>
+  );
+}
+
+/** A daily pool's spend track and what is left of it: a pip per use while they fit on a line,
+ *  steppers past ten. Clicking a lit pip spends up to it; clicking a spent one restores from it. */
+function PoolTrack({ used, max, unit, onSet, onAdjust }: {
+  used: number;
+  max: number;
+  /** Shown after the maximum: "points", "rounds", "uses per day". */
+  unit: string;
+  onSet: (used: number) => void;
+  onAdjust: (delta: number) => void;
+}) {
+  const remaining = max - used;
+  return (
+    <>
+      {max <= 10 ? (
+        <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+          {Array.from({ length: max }).map((_, i) => {
+            const spent = i < used;
+            return (
+              <button key={i} title={spent ? 'restore' : 'spend'} onClick={() => onSet(spent ? i : i + 1)}
+                style={{ width: 22, height: 22, borderRadius: 6, cursor: 'pointer', border: '1px solid var(--color-divider)', background: spent ? 'transparent' : 'var(--color-accent)', opacity: spent ? 0.5 : 1 }} />
+            );
+          })}
+        </div>
+      ) : (
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+          <button className="stepper" style={{ width: 26, height: 26 }} disabled={remaining <= 0} onClick={() => onAdjust(1)}>−</button>
+          <button className="stepper" style={{ width: 26, height: 26 }} disabled={used <= 0} onClick={() => onAdjust(-1)}>+</button>
+        </div>
+      )}
+      <span className="num" style={{ fontSize: 14, fontWeight: 600, color: remaining <= 0 ? 'var(--warn-fg)' : undefined }}>{remaining}</span>
+      <span className="text-muted" style={{ fontSize: 12 }}>/ {max} {unit}</span>
+    </>
   );
 }
 

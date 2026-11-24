@@ -138,6 +138,8 @@ describe('house rules: the prose may not misstate the rules', () => {
       d = withDecision(d, 'race', 'human');
       d = withDecision(d, 'alignment', c.id === 'paladin' ? 'LG' : 'N');
       d = withDecision(d, 'class', c.id);
+      // The blessing pool exists only once a blessing is chosen: it is spent on the powers.
+      if (c.id === 'warpriest') d = withDecision(d, 'class-choices', { blessings: ['war'] });
       // Two levels, because a pool can exist only in a window: the druid's wild shape uses run out
       // at 20th, where it becomes at-will.
       for (const lvl of [12, 20])
