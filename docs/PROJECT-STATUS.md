@@ -26,6 +26,8 @@ panel on the play mat, after Resources. It shows each blessing's minor and major
   picked.
 - *Left out:* action types and durations per power (the catalogue has neither), so **use** spends a
   use but does not spend an action or start a timer. Tests: `warpriest-blessings.test.ts`.
+- **Not yet checked against d20pfsrd** (the site refuses requests from cloud sessions): the uses per
+  day, the save DC and the 10th-level major power above. The checklist is in the pull request.
 
 **Prior — thrown-only weapons add Strength to damage.** The dart, javelin, shuriken and bola
 (`hands: 'ranged'`, no melee mode) were getting the projectile rule of no Str to damage. In PF1 a
