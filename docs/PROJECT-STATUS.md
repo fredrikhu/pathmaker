@@ -6,7 +6,7 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 
 ## ▶ Resume here (last session end)
 
-**Current state** — branch `main`, **1,347 tests** passing; run
+**Current state** — branch `main`, **1,348 tests** passing; run
 `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
 **Latest — warpriest blessings on the play mat.** A warpriest's chosen blessings now have their own
@@ -51,6 +51,12 @@ panel on the play mat, after Resources. It shows each blessing's minor and major
   that spend extra blessing uses (Sun for both weapon properties, Travel for distance and
   passengers), and the minimums and save types that were left to guesswork. `BlessingDef` in
   `model.ts` now records the standard-action default so a future line does not have to repeat it.
+  A follow-up added the page’s non-stacking notes, since a power that duplicates what its target
+  already has grants nothing and the use is still gone: the alignment and energy strikes on a weapon
+  that already carries the matching property, Powerful Healer on an empowered cure, Armor of Earth
+  against other DR, and the illusory double on a real *mirror image*. With them came the two limits
+  that waste a use the same way — one retributive curse per creature, and Animal Fury replacing an
+  ally’s own claws and bite. Only flavour (glow colours, bonus-type labels) is left out now.
 
 **Prior — thrown-only weapons add Strength to damage.** The dart, javelin, shuriken and bola
 (`hands: 'ranged'`, no melee mode) were getting the projectile rule of no Str to damage. In PF1 a

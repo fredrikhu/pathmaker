@@ -705,6 +705,24 @@ describe('deities and bloodlines', () => {
     expect(b('sun').minor).toMatch(/Reflex/);
     expect(b('plant').minor).toMatch(/Reflex negates/);
   });
+  // The page's non-stacking notes. A power that duplicates something its target already has grants
+  // nothing, and the use still comes out of a pool of three to thirteen for the whole day, so the
+  // line has to say it.
+  it('says where a blessing power stacks with nothing', () => {
+    const b = (id: string) => C.blessingById.get(id)!;
+    const overlap: [string, string][] = [
+      ['chaos', 'anarchic'], ['evil', 'unholy'], ['good', 'holy'], ['law', 'axiomatic'],
+      ['fire', 'flaming'], ['water', 'frost'], ['weather', 'shock'], ['earth', 'corrosive'],
+    ];
+    for (const [id, property] of overlap)
+      expect(b(id).minor, `blessing ${id}`).toMatch(new RegExp(`nothing on an? ${property} weapon`));
+    expect(b('healing').minor).toMatch(/not on top of itself or Empower Spell/);
+    expect(b('earth').major).toMatch(/does not stack with other DR/);
+    expect(b('trickery').minor).toMatch(/no extra images on a real mirror image/);
+    // The two limits that waste a use the same way.
+    expect(b('curse').major).toMatch(/only one retributive curse at a time/);
+    expect(b('animal').minor).toMatch(/replacing similar natural attacks/);
+  });
 });
 
 describe('spells', () => {
