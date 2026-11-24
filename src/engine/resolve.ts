@@ -4,7 +4,7 @@ import type {
   Resolution, Sheet, SlotOption, Stat,
 } from './types';
 import { armorSlowedSpeed } from './types';
-import type { AttackLine, BreakdownLine, CastingBlock, CompanionBlock, ConditionalBonus, DamageReduction, Defenses, EnergyAbsorption, EnergyResistance, GrantedFeat, InventoryItem, PlayState, ProgressionRow, ResourcePool, SpellLikeAbility } from './types';
+import type { AttackLine, BlessingsBlock, BreakdownLine, CastingBlock, CompanionBlock, ConditionalBonus, DamageReduction, Defenses, EnergyAbsorption, EnergyResistance, GrantedFeat, InventoryItem, PlayState, ProgressionRow, ResourcePool, SpellLikeAbility } from './types';
 import { resolveCompanion, type CompanionContext } from './companion';
 import { ABILITIES, abilityMod, abilitiesWithEffects } from './types';
 import { evalPredicate, explainFailure, type PredicateCtx } from './predicates';
@@ -218,6 +218,43 @@ function gatherInnate(dec: Decisions, level: number, chaMod: number): { senses: 
     spellLikeAbilities.push({ id: `sla:heritage:${slug}`, name: sla.name, uses: sla.uses, ...(sla.note ? { note: sla.note } : {}), source, ...slaExtras(sla.name, level, chaMod) });
   }
   return { senses, spellLikeAbilities };
+}
+
+/** The warpriest level at which every blessing's major power opens. */
+const BLESSING_MAJOR_LEVEL = 10;
+
+/** Warpriest blessings for the play mat. A warpriest calls on his blessings 3 + ½ his warpriest
+ *  level times a day "in any combination", so one pool covers every blessing and both of its
+ *  powers. The save DC is 10 + ½ warpriest level + Wisdom modifier, and the major power arrives at
+ *  10th level. All three count warpriest levels only, so a multiclass character uses that class's
+ *  level, not the character's.
+ *
+ *  Read off the *effective* class's blessing pick: a Divine Commander has none, so a blessing chosen
+ *  before taking the archetype grants nothing, and a Forgepriest's single pick caps a stale second
+ *  one. A blessing the deity does not grant still shows — the builder warns about it, and taking it
+ *  anyway is the player's (and GM's) call. */
+function gatherBlessings(classes: ClassEntry[], dec: Decisions, wisMod: number): BlessingsBlock | undefined {
+  for (const entry of classes) {
+    const choice = (entry.klass.choices ?? []).find((ch) => ch.kind === 'warpriest-blessings');
+    if (!choice) continue;
+    const blessings = (dec.classChoices[choice.id] ?? [])
+      .slice(0, choice.count)
+      .map((id) => C.blessingById.get(id))
+      .filter((b): b is C.BlessingDef => Boolean(b))
+      .map((b) => ({ id: b.id, name: b.name, minor: b.minor, major: b.major }));
+    if (!blessings.length) return undefined;
+    const half = Math.floor(entry.levels / 2);
+    return {
+      poolId: 'blessings',
+      perDay: 3 + half,
+      saveDc: 10 + half + wisMod,
+      classLevel: entry.levels,
+      majorAt: BLESSING_MAJOR_LEVEL,
+      majorReady: entry.levels >= BLESSING_MAJOR_LEVEL,
+      blessings,
+    };
+  }
+  return undefined;
 }
 
 function activeRacialTraits(dec: Decisions): { standard: C.RacialTraitDef[]; alternates: C.AltTraitDef[] } {
@@ -1499,6 +1536,8 @@ export function resolve(doc: CharacterDoc): Resolution {
     swashbuckler: allClassFeatures(dec, level, false).some((f) => f.id === 'swb-finesse'),
   };
 
+  const blessings = gatherBlessings(classes, dec, mods.wis);
+
   const sheet: Sheet = {
     level,
     stats, skillIds, classSkillIds, acpSkillIds, skillAbility,
@@ -1519,7 +1558,12 @@ export function resolve(doc: CharacterDoc): Resolution {
       : {}),
     ...(spellsKnown && spellsKnown.length ? { spellsKnown } : {}),
     progression,
-    pools: classes.flatMap((c) => classPools(c.klass, c.levels, mods)),
+    // The blessing pool rides with the class pools, so Rest restores it and the playstyle brief
+    // counts it; the play mat draws it beside the powers that spend it.
+    pools: [
+      ...classes.flatMap((c) => classPools(c.klass, c.levels, mods)),
+      ...(blessings ? [{ id: blessings.poolId, name: 'Blessings', max: blessings.perDay, unit: 'uses' as const }] : []),
+    ],
     attacks: [
       ...weaponAttacks(doc, stats, bab, mods.str, mods.dex, size, finesseGrant, weaponFeatBonuses(featParams), itemQuality(doc), new Set(featIds), prof,
         unarmedStrike(classes, new Set(featIds), featParams, size, flurry), flurry.flurry),
@@ -1536,6 +1580,7 @@ export function resolve(doc: CharacterDoc): Resolution {
     worn: wornItemsWithStatus(doc).map(({ item, active }) =>
       ({ id: item.id, name: item.name, slot: item.slot, cost: item.cost, desc: item.desc, active })),
     ...gatherInnate(dec, level, mods.cha),
+    ...(blessings ? { blessings } : {}),
     // A familiar reads most of its block off its master, so this has to come after the character's
     // own hit points, base attack and base saves are settled.
     companions: resolveCompanions(dec, level, {

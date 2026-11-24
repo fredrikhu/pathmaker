@@ -287,6 +287,7 @@ export const POOL_TEXT: Record<string, string> = {
   'stunning-fist': 'Stunning Fist can take an enemy out of the fight for a round. Against a single dangerous opponent that is worth far more than the damage you skipped.',
   channel: 'Channel energy reaches everyone at once, which makes it the most efficient healing available to anyone. Keep at least one use back for the moment two people are down.',
   fervor: 'Fervor lets you heal or buff and still act, which is what makes fighting and casting in the same round possible.',
+  blessings: 'Your blessings share one daily count between them, so the question is which fight deserves them, not which blessing to save. Many last a minute, so they pay most when called as a fight starts.',
   'lay-on-hands': 'Lay on hands works on yourself as a swift action, so it is as much a way to stay standing mid-fight as it is a way to heal others afterwards.',
   'smite-evil': 'Smite is a small number of enormous turns. Spend one on the most dangerous evil creature in the room; spending them on minions wastes the class.',
   'wild-shape': 'Wild shape changes what kind of character you are for a whole fight, so the decision is made before initiative rather than during.',

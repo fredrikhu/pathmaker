@@ -6,10 +6,30 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 
 ## ▶ Resume here (last session end)
 
-**Current state** — branch `main`, **1,328 tests** passing; run
+**Current state** — branch `main`, **1,345 tests** passing; run
 `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
-**Latest — thrown-only weapons add Strength to damage.** The dart, javelin, shuriken and bola
+**Latest — warpriest blessings on the play mat.** A warpriest's chosen blessings now have their own
+panel on the play mat, after Resources. It shows each blessing's minor and major power, each with a
+**use** button that spends from one shared daily pool. The engine builds a `sheet.blessings` block
+(`gatherBlessings` in `resolve.ts`, `BlessingsBlock` in `types.ts`):
+- **Uses per day:** 3 + ½ warpriest level, shared by every blessing and both of its powers (13 at
+  20th). **Save DC:** 10 + ½ warpriest level + Wis. **Major powers** open at 10th; before that they
+  show dimmed with "at level 10". All three count warpriest levels only, so fighter 4 / warpriest 6
+  has 6 uses, DC 15 with Wis 14, and no major powers.
+- **The pool is a normal `sheet.pools` entry** (`blessings`), so Rest restores it and the playstyle
+  brief mentions it (a new `POOL_TEXT.blessings` line). The Resources panel leaves it out because the
+  Blessings panel draws it. The pip/stepper track is now one `PoolTrack` component used by both.
+- **Read off the effective class's blessing pick:** a Divine Commander has no block even with a stale
+  pick, and a Forgepriest's one-blessing pick caps a stale second one. A blessing the deity does not
+  grant still shows; the builder already warns about it. No block, and no pool, until a blessing is
+  picked.
+- *Left out:* action types and durations per power (the catalogue has neither), so **use** spends a
+  use but does not spend an action or start a timer. Tests: `warpriest-blessings.test.ts`.
+- **Not yet checked against d20pfsrd** (the site refuses requests from cloud sessions): the uses per
+  day, the save DC and the 10th-level major power above. The checklist is in the pull request.
+
+**Prior — thrown-only weapons add Strength to damage.** The dart, javelin, shuriken and bola
 (`hands: 'ranged'`, no melee mode) were getting the projectile rule of no Str to damage. In PF1 a
 thrown weapon adds Str to damage; bows and crossbows do not, composite bows and slings excepted. They
 now carry a new `WeaponDef.thrown` flag (`src/content/model.ts`), which the attack builder treats as
