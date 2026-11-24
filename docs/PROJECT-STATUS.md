@@ -6,7 +6,7 @@ phase roadmap. Written so context isn't lost across sessions/compaction. Compani
 
 ## ▶ Resume here (last session end)
 
-**Current state** — branch `main`, **1,346 tests** passing; run
+**Current state** — branch `main`, **1,347 tests** passing; run
 `npx tsc --noEmit && npx vitest run && npm run build` to confirm.
 
 **Latest — warpriest blessings on the play mat.** A warpriest's chosen blessings now have their own
@@ -40,6 +40,17 @@ panel on the play mat, after Resources. It shows each blessing's minor and major
   the save that makes them conditional; and Animal, Artifice, Community, Godfist, Liberation,
   Madness, Nobility, Scalykind and Trickery misstated a target, reach, die size or duration. The
   audited facts are asserted in `content.test.ts`, not left to prose.
+- **A second pass over the same page caught what the lines dropped rather than misstated**, and four
+  more outright errors with it: Battle Lust (War) buffs a touched ally, not your own attacks;
+  Strength of Will ignores only the *movement* penalties of medium/heavy armor and loads; Hand of the
+  Acolyte (Magic) uses Wis *in place of* Dex on a thrown-weapon attack; and Fight as One (Community)
+  runs for a minute, with only its +4 crit bonus expiring at your next turn — that last one a line the
+  first pass had introduced. Every line now carries its level scaling (Protection +1/+2/+3, its aura
+  10→20 at 15th, Earth DR to 5/— at 18th, the five summon powers climbing a spell level per 2 levels
+  past 10th), its action where that is not the standard action a blessing defaults to, the options
+  that spend extra blessing uses (Sun for both weapon properties, Travel for distance and
+  passengers), and the minimums and save types that were left to guesswork. `BlessingDef` in
+  `model.ts` now records the standard-action default so a future line does not have to repeat it.
 
 **Prior — thrown-only weapons add Strength to damage.** The dart, javelin, shuriken and bola
 (`hands: 'ranged'`, no melee mode) were getting the projectile rule of no Str to damage. In PF1 a

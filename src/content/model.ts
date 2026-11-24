@@ -770,7 +770,12 @@ export interface DomainDef {
 }
 
 /** Warpriest blessing (keyed by the matching domain id): the minor power granted at 1st level and
- *  the major power granted at 10th. Usable a shared 3 + ½ level times/day (the blessing pool). */
+ *  the major power granted at 10th. Usable a shared 3 + ½ level times/day (the blessing pool).
+ *
+ *  Each line carries what changes a decision at the table — level scaling, a save, an option that
+ *  costs extra blessing uses — and names the action only when it is *not* a standard action, which
+ *  is the default for calling any blessing. A blessing that duplicates a spell casts it at the
+ *  warpriest level. The line is all the play mat shows, so what it leaves out is lost at the table. */
 export interface BlessingDef {
   id: string;
   name: string;

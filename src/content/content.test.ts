@@ -666,6 +666,45 @@ describe('deities and bloodlines', () => {
     expect(b('animal').minor).toMatch(/bite \(1d8\)/);
     expect(b('madness').minor).toMatch(/one creature within 30 ft/);
   });
+  // A second pass over the same page, for the mechanics the one-liners dropped rather than
+  // misstated: level scaling, the action when it is not the standard one, and the options that buy
+  // more effect with more blessing uses. It also caught three powers still pointed at the wrong
+  // creature, and a line the first pass had introduced.
+  it('carries the scaling, the action and the extra-use options of each blessing power', () => {
+    const b = (id: string) => C.blessingById.get(id)!;
+    // Battle Lust buffs a touched ally's attacks, not your own.
+    expect(b('war').major).toMatch(/^Touch an ally/);
+    // Strength of Will ignores the movement penalties of armor and load, not every armor penalty.
+    expect(b('strength').major).toMatch(/movement penalties/);
+    // Hand of the Acolyte swaps Wisdom in for Dexterity; it does not add Wisdom on top.
+    expect(b('magic').minor).toMatch(/in place of Dex/);
+    // Fight as One runs for a minute; only its crit bonus expires at your next turn.
+    expect(b('community').major).toMatch(/^For 1 min/);
+    // Every power whose numbers climb says where they climb.
+    expect(b('protection').minor).toMatch(/\+2 at 10th, \+3 at 20th/);
+    expect(b('protection').major).toMatch(/20 at 15th/);
+    expect(b('earth').major).toMatch(/\+1 per 2 levels past 10th/);
+    expect(b('scalykind').minor).toMatch(/5th, 10th, 15th and 20th/);
+    for (const id of ['animal', 'chaos', 'evil', 'good', 'law', 'plant'])
+      expect(b(id).major, `blessing ${id}`).toMatch(/\+1 level per 2 levels past 10th/);
+    // Calling a blessing is a standard action, so a power that is not says which action it is.
+    for (const id of ['strength', 'liberation', 'madness', 'travel', 'plant'])
+      expect(b(id).minor, `blessing ${id}`).toMatch(/^Swift action/);
+    expect(b('trickery').minor).toMatch(/^Move action/);
+    expect(b('travel').major).toMatch(/^Move action/);
+    expect(b('luck').major).toMatch(/^Immediate action/);
+    expect(b('godfist').major).toMatch(/free action/);
+    expect(b('curse').major).toMatch(/swift or immediate action/);
+    expect(b('healing').minor).toMatch(/^Swift action/);
+    // The two powers that spend more of the same pool for more effect.
+    expect(b('sun').major).toMatch(/two blessing uses/);
+    expect(b('travel').major).toMatch(/per extra blessing use/);
+    // Minimums, and the save types the lines had left to guesswork.
+    expect(b('destruction').minor).toMatch(/min 1/);
+    expect(b('strength').minor).toMatch(/min \+1/);
+    expect(b('sun').minor).toMatch(/Reflex/);
+    expect(b('plant').minor).toMatch(/Reflex negates/);
+  });
 });
 
 describe('spells', () => {
